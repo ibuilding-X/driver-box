@@ -43,7 +43,7 @@ func (p *Plugin) ProtocolAdapter() contracts.ProtocolAdapter {
 }
 
 // Connector 此协议不支持获取连接器
-func (p *Plugin) Connector(deviceName string) (connector contracts.Connector, err error) {
+func (p *Plugin) Connector(deviceName, pointName string) (connector contracts.Connector, err error) {
 	return nil, common.NotSupportGetConnector
 }
 

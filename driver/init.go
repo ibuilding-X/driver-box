@@ -40,7 +40,15 @@ func (s *Driver) initialize() error {
 	}
 
 	// 缓存核心配置
-	helper.InitCoreCache(configMap)
+	if err = helper.InitCoreCache(configMap); err != nil {
+		helper.Logger.Error("init core cache error")
+		return err
+	}
+
+	// 初始化设备模型及设备
+	if err = device.Init(); err != nil {
+		return err
+	}
 
 	// 初始化本地影子服务
 	initDeviceShadow(s.serviceConfig.DriverConfig.DefaultDeviceTTL, configMap)
@@ -71,11 +79,6 @@ func (s *Driver) initialize() error {
 
 		// 缓存插件
 		helper.CoreCache.AddRunningPlugin(key, plugin)
-
-		// 初始化设备模型及设备
-		if err = device.Init(configMap[key]); err != nil {
-			return err
-		}
 
 		// 初始化定时任务
 		if configMap[key].Tasks != nil && len(configMap[key].Tasks) > 0 {

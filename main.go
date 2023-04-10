@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	serviceName string = "device-box"
+	serviceName string = "driver-box"
 	version     string = "0.0.2"
 )
 

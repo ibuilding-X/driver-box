@@ -66,7 +66,7 @@ type extendProps struct {
 // Encode 编码数据
 func (a *adapter) Encode(deviceName string, mode contracts.EncodeMode, value contracts.PointData) (res interface{}, err error) {
 	// 获取设备数据
-	device, ok := helper.CoreCache.GetDevice(deviceName)
+	device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceName, value.PointName)
 	if !ok {
 		return nil, fmt.Errorf("not found device, deviceName is %s", deviceName)
 	}
