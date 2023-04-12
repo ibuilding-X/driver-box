@@ -97,8 +97,6 @@ type PointBase struct {
 	ValueType string `json:"valueType" validate:"required,oneof=int float string"`
 	// 读写模式
 	ReadWrite string `json:"readWrite" validate:"required,oneof=int float string"`
-	// 默认值
-	DefaultValue string `json:"defaultValue" validate:"-"`
 	// 实时上报开关
 	RealReport bool `json:"realReport" validate:"required,boolean"`
 	// 定时上报

@@ -2,7 +2,6 @@ package device
 
 import (
 	"driver-box/core/helper"
-	"fmt"
 	"github.com/edgexfoundry/device-sdk-go/v2/pkg/service"
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/common"
 	models2 "github.com/edgexfoundry/go-mod-core-contracts/v2/models"
@@ -67,9 +66,10 @@ func initModelAndDevice() error {
 		// 初始化设备
 		for _, device := range model.Devices {
 			findDevice, err := s.GetDeviceByName(device.Name)
-			protocols, ok := helper.CoreCache.GetProtocolsByDevice(device.Name)
-			if !ok {
-				return fmt.Errorf("device %s protocols not found", device.Name)
+			protocols := map[string]models2.ProtocolProperties{
+				"fill": {
+					"fill": "fill",
+				},
 			}
 			if err != nil { // 添加
 				_, err = s.AddDevice(models2.Device{
