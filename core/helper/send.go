@@ -13,12 +13,12 @@ func Send(deviceName string, mode contracts.EncodeMode, value contracts.PointDat
 		}
 	}()
 	// 获取插件
-	plugin, ok := CoreCache.GetRunningPluginByDevice(deviceName)
+	plugin, ok := CoreCache.GetRunningPluginByDeviceAndPoint(deviceName, value.PointName)
 	if !ok {
 		return fmt.Errorf("not found running plugin, device name is %s", deviceName)
 	}
 	// 获取连接
-	conn, err := plugin.Connector(deviceName)
+	conn, err := plugin.Connector(deviceName, value.PointName)
 	if err != nil {
 		_ = DeviceShadow.MayBeOffline(deviceName)
 		return

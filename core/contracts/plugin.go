@@ -49,7 +49,7 @@ type Plugin interface {
 	// ProtocolAdapter 协议适配器
 	ProtocolAdapter() ProtocolAdapter
 	// Connector 连接器
-	Connector(deviceName string) (connector Connector, err error)
+	Connector(deviceName, pointName string) (connector Connector, err error)
 	// Destroy 销毁驱动
 	Destroy() error
 }

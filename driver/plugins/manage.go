@@ -5,7 +5,6 @@ package plugins
 import (
 	"driver-box/core/config"
 	"driver-box/core/contracts"
-	"driver-box/driver/plugins/bacnet"
 	"driver-box/driver/plugins/httpclient"
 	"driver-box/driver/plugins/httpserver"
 	"driver-box/driver/plugins/modbus"

@@ -46,9 +46,9 @@ func (p *Plugin) ProtocolAdapter() contracts.ProtocolAdapter {
 }
 
 // Connector 连接器
-func (p *Plugin) Connector(deviceName string) (conn contracts.Connector, err error) {
+func (p *Plugin) Connector(deviceName, pointName string) (conn contracts.Connector, err error) {
 	// 获取连接key
-	device, ok := helper.CoreCache.GetDevice(deviceName)
+	device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceName, pointName)
 	if !ok {
 		return nil, errors.New("not found device connection key")
 	}
