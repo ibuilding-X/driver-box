@@ -35,9 +35,8 @@ func (m Model) Points2Resources() (deviceResources []models.DeviceResource, err 
 			IsHidden:    false,
 			Tag:         "",
 			Properties: models.ResourceProperties{
-				ValueType:    valueType,
-				ReadWrite:    point.ReadWrite,
-				DefaultValue: point.DefaultValue,
+				ValueType: valueType,
+				ReadWrite: point.ReadWrite,
 			},
 			Attributes: attributes,
 		})
