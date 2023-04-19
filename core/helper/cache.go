@@ -152,7 +152,9 @@ func (c *cache) GetPointByDevice(deviceName string, pointName string) (point con
 }
 
 func (c *cache) GetRunningPluginByDeviceAndPoint(deviceName, pointName string) (plugin contracts.Plugin, ok bool) {
-
+	if key, ok := c.devicePointPlugins.Load(fmt.Sprintf("%s_%s", deviceName, pointName)); ok {
+		return c.GetRunningPluginByKey(key.(string))
+	}
 	return nil, false
 }
 
