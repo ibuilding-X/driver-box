@@ -5,7 +5,10 @@ import (
 	"driver-box/driver/common"
 	"encoding/json"
 	"fmt"
+	"github.com/cjoudrey/gluahttp"
 	lua "github.com/yuin/gopher-lua"
+	luajson "layeh.com/gopher-json"
+	"net/http"
 	"os"
 	"path/filepath"
 )
@@ -15,6 +18,9 @@ func InitLuaVM(scriptDir string) (*lua.LState, error) {
 	ls := lua.NewState(lua.Options{
 		RegistryMaxSize: 128,
 	})
+	// 预加载模块（json、http）
+	ls.PreloadModule("http", gluahttp.NewHttpModule(&http.Client{}).Loader)
+	luajson.Preload(ls)
 	// 文件路径
 	filePath := filepath.Join(common.CoreConfigPath, scriptDir, common.LuaScriptName)
 	if FileExists(filePath) {

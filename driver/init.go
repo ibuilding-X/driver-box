@@ -9,6 +9,7 @@ import (
 	"driver-box/driver/common"
 	"driver-box/driver/device"
 	"driver-box/driver/plugins"
+	"driver-box/driver/restful/route"
 	"errors"
 	"fmt"
 	sdkModels "github.com/edgexfoundry/device-sdk-go/v2/pkg/models"
@@ -55,6 +56,9 @@ func (s *Driver) initialize() error {
 
 	// 初始化通知服务
 	helper.InitNotification()
+
+	// 注册 REST API 路由
+	route.Register()
 
 	// 启动插件
 	for key, _ := range configMap {
