@@ -57,23 +57,21 @@ func (lm *LuaModule) Report(L *lua.LState) int {
 	deviceName := L.ToString(1) // 设备名称
 	points := L.ToTable(2)      // 点位值
 
-	if points.Len() > 0 {
-		deviceData := contracts.DeviceData{
-			DeviceName: deviceName,
-		}
-		var pd []contracts.PointData
-		// 循环点位数据
-		points.ForEach(func(key lua.LValue, value lua.LValue) {
-			pd = append(pd, contracts.PointData{
-				PointName: key.String(),
-				Value:     value.String(),
-			})
-		})
-		deviceData.Values = pd
-
-		// 发送数据
-		WriteToMessageBus(deviceData)
+	deviceData := contracts.DeviceData{
+		DeviceName: deviceName,
 	}
+	var pd []contracts.PointData
+	// 循环点位数据
+	points.ForEach(func(key lua.LValue, value lua.LValue) {
+		pd = append(pd, contracts.PointData{
+			PointName: key.String(),
+			Value:     value.String(),
+		})
+	})
+	deviceData.Values = pd
+
+	// 发送数据
+	WriteToMessageBus(deviceData)
 
 	return 0
 }

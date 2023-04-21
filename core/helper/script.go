@@ -11,7 +11,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 )
+
+var runLock = &sync.Mutex{}
 
 // InitLuaVM 编译 lua 脚本
 func InitLuaVM(scriptDir string) (*lua.LState, error) {
@@ -93,19 +96,15 @@ func CallLuaEncodeConverter(L *lua.LState, deviceName string, raw interface{}) (
 	return result, err
 }
 
-// CallLuaFunc 调用脚本指定函数
-func CallLuaFunc(L *lua.LState, method string) error {
-	// 调用脚本函数
-	err := L.CallByParam(lua.P{
-		Fn:      L.GetGlobal(method),
-		NRet:    0,
-		Protect: true,
-		Handler: nil,
-	})
-	//L.Remove(100)
-	defer L.Remove(1)
-	if err != nil {
+// SafeCallLuaFunc 安全调用 lua 函数，通过锁机制独占时间片
+func SafeCallLuaFunc(L *lua.LState, method string) error {
+	runLock.Lock()
+	defer runLock.Unlock()
+
+	L.Push(L.GetGlobal(method))
+	if err := L.PCall(0, 0, nil); err != nil {
 		return fmt.Errorf("call lua script %s function error: %s", method, err)
 	}
+
 	return nil
 }

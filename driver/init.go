@@ -187,7 +187,7 @@ func initDeviceShadow(defaultTTL int64, configMap map[string]coreConfig.Config) 
 func timerTaskForScript(L *lua.LState, method string) func() {
 	return func() {
 		helper.Logger.Info("begin handle auto event", zap.String("taskType", "script"))
-		if err := helper.CallLuaFunc(L, method); err != nil {
+		if err := helper.SafeCallLuaFunc(L, method); err != nil {
 			helper.Logger.Error("auto event error", zap.Error(err))
 		}
 	}
