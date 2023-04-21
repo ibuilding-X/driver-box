@@ -12,8 +12,8 @@ import (
 func Register() {
 	// 插件 REST API
 	ps := controller.NewPluginStorage()
-	addRoute("/plugin/storage/get", ps.Get(), http.MethodGet)
-	addRoute("/plugin/storage/set", ps.Set(), http.MethodPost)
+	addRoute("/plugin/cache/get", ps.Get(), http.MethodGet)
+	addRoute("/plugin/cache/set", ps.Set(), http.MethodPost)
 }
 
 // addRoute 添加路由

@@ -18,9 +18,10 @@ func InitLuaVM(scriptDir string) (*lua.LState, error) {
 	ls := lua.NewState(lua.Options{
 		RegistryMaxSize: 128,
 	})
-	// 预加载模块（json、http）
+	// 预加载模块（json、http、storage）
 	ls.PreloadModule("http", gluahttp.NewHttpModule(&http.Client{}).Loader)
 	luajson.Preload(ls)
+	ls.PreloadModule("driverbox", LuaModuleInstance.Loader)
 	// 文件路径
 	filePath := filepath.Join(common.CoreConfigPath, scriptDir, common.LuaScriptName)
 	if FileExists(filePath) {
@@ -90,4 +91,21 @@ func CallLuaEncodeConverter(L *lua.LState, deviceName string, raw interface{}) (
 	// 获取解析结果
 	result := L.Get(-1).String()
 	return result, err
+}
+
+// CallLuaFunc 调用脚本指定函数
+func CallLuaFunc(L *lua.LState, method string) error {
+	// 调用脚本函数
+	err := L.CallByParam(lua.P{
+		Fn:      L.GetGlobal(method),
+		NRet:    0,
+		Protect: true,
+		Handler: nil,
+	})
+	//L.Remove(100)
+	defer L.Remove(1)
+	if err != nil {
+		return fmt.Errorf("call lua script %s function error: %s", method, err)
+	}
+	return nil
 }

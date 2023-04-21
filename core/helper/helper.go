@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 var MessageBus chan<- *sdkModels.AsyncValues // 消息总线
@@ -18,6 +19,8 @@ var MessageBus chan<- *sdkModels.AsyncValues // 消息总线
 var RunningPlugin contracts.Plugin // todo 待删除
 
 var DeviceShadow shadow.DeviceShadow // 本地设备影子
+
+var PluginCacheMap = &sync.Map{} // 插件通用缓存
 
 // Map2Struct map 转 struct，用于解析连接器配置
 // m：map[string]interface
