@@ -15,9 +15,9 @@ type LuaModule struct{}
 func (lm *LuaModule) Loader(L *lua.LState) int {
 	// 模块方法定义
 	mod := L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
-		"setCache": lm.SetCache,
-		"getCache": lm.GetCache,
-		"report":   lm.Report,
+		"setCache":      lm.SetCache,
+		"getCache":      lm.GetCache,
+		"writeToMsgBus": lm.WriteToMsgBus,
 	})
 	L.Push(mod)
 
@@ -50,10 +50,10 @@ func (lm *LuaModule) SetCache(L *lua.LState) int {
 	return 0
 }
 
-// Report 上报设备数据
+// WriteToMsgBus 上报设备数据
 // deviceName：设备名称，例如：sensor_1
 // points：点位数据，例如（此时以json格式进行说明，lua实际入参格式为 table 类型）：{"onOff":1, "voc": 23}
-func (lm *LuaModule) Report(L *lua.LState) int {
+func (lm *LuaModule) WriteToMsgBus(L *lua.LState) int {
 	deviceName := L.ToString(1) // 设备名称
 	points := L.ToTable(2)      // 点位值
 
