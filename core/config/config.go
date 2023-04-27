@@ -137,14 +137,15 @@ type Device struct {
 
 // TimerTask 定时任务
 type TimerTask struct {
-	// 间隔
+	// 间隔（单位：毫秒）
 	Interval string `json:"interval" validate:"required"`
-	// 点位名称
+	// 任务类型
 	Type string `json:"type" validate:"required"`
-	// 定时动作
-	Action []Action `json:"action" validate:"required"`
+	// 任务动作
+	Action interface{} `json:"action" validate:"required"`
 }
 
+// Action todo: 待删除
 type Action struct {
 	DeviceNames []string `json:"devices"`
 	Points      []string `json:"points"`

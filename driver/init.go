@@ -9,9 +9,10 @@ import (
 	"driver-box/driver/common"
 	"driver-box/driver/device"
 	"driver-box/driver/plugins"
+	"driver-box/driver/restful/route"
 	"errors"
 	"fmt"
-	sdkModels "github.com/edgexfoundry/device-sdk-go/v2/pkg/models"
+	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 	"time"
 )
@@ -56,6 +57,9 @@ func (s *Driver) initialize() error {
 	// 初始化通知服务
 	helper.InitNotification()
 
+	// 注册 REST API 路由
+	route.Register()
+
 	// 启动插件
 	for key, _ := range configMap {
 		helper.Logger.Info(key+" begin start", zap.Any("directoryName", key), zap.Any("plugin", configMap[key].ProtocolName))
@@ -82,7 +86,7 @@ func (s *Driver) initialize() error {
 
 		// 初始化定时任务
 		if configMap[key].Tasks != nil && len(configMap[key].Tasks) > 0 {
-			if err = initTimerTasks(configMap[key].Tasks); err != nil {
+			if err = initTimerTasks(ls, configMap[key].Tasks); err != nil {
 				return err
 			}
 		}
@@ -105,68 +109,35 @@ func receiveHandler() contracts.OnReceiveHandler {
 		}
 		// 写入消息总线
 		for _, data := range deviceData {
-			var values []*sdkModels.CommandValue
-			for _, point := range data.Values {
-				// 获取点位信息
-				cachePoint, ok := helper.CoreCache.GetPointByDevice(data.DeviceName, point.PointName)
-				if !ok {
-					helper.Logger.Warn("unknown point", zap.Any("deviceName", data.DeviceName), zap.Any("pointName", point.PointName))
-					continue
-				}
-				// 缓存比较
-				shadowValue, _ := helper.DeviceShadow.GetDevicePoint(data.DeviceName, point.PointName)
-				if shadowValue == point.Value {
-					helper.Logger.Debug("point value = cache, stop sending to messageBus")
-					continue
-				}
-				// 缓存
-				if err = helper.DeviceShadow.SetDevicePoint(data.DeviceName, point.PointName, point.Value); err != nil {
-					helper.Logger.Error("shadow store point value error", zap.Error(err), zap.Any("deviceName", data.DeviceName))
-				}
-				// 点位类型转换
-				pointValue, err := helper.ConvPointType(point.Value, cachePoint.ValueType)
-				if err != nil {
-					helper.Logger.Warn("point value type convert error", zap.Error(err))
-					continue
-				}
-				// 点位值类型名称转换
-				pointType := helper.PointValueType2EdgeX(cachePoint.ValueType)
-				v, err := sdkModels.NewCommandValue(point.PointName, pointType, pointValue)
-				if err != nil {
-					helper.Logger.Warn("new command value error", zap.Error(err), zap.Any("pointName", point.PointName), zap.Any("type", pointType), zap.Any("value", pointValue))
-					continue
-				}
-				values = append(values, v)
-			}
-			if len(values) > 0 {
-				helper.Logger.Info("send to message bus", zap.Any("deviceName", data.DeviceName), zap.Any("values", values))
-				helper.MessageBus <- &sdkModels.AsyncValues{
-					DeviceName:    data.DeviceName,
-					SourceName:    "default",
-					CommandValues: values,
-				}
-			}
+			helper.WriteToMessageBus(data)
 		}
 		return
 	}
 }
 
 // 初始化设备 autoEvent
-func initTimerTasks(tasks []coreConfig.TimerTask) (err error) {
+func initTimerTasks(L *lua.LState, tasks []coreConfig.TimerTask) (err error) {
 	c := crontab.NewCrontab()
 	for _, task := range tasks {
-		// 读点位
-		if task.Type == "read_points" {
-			for _, action := range task.Action {
-				if len(action.DeviceNames) > 0 && len(action.Points) > 0 {
-					if err := c.AddFunc(task.Interval+"ms", timerTaskHandler(action.DeviceNames, action.Points)); err != nil {
+		switch task.Type {
+		case "read_points": // 读点位
+			// action数据格式：[{"devices":["sensor_1"],"points":["onOff"]}]
+			list, _ := task.Action.([]map[string][]string)
+			for _, action := range list {
+				if len(action["devices"]) > 0 && len(action["points"]) > 0 {
+					if err := c.AddFunc(task.Interval+"ms", timerTaskHandler(action["devices"], action["points"])); err != nil {
 						return err
 					}
 				}
 			}
+		case "script": // 执行脚本函数
+			// action数据格式：functionName
+			funcName, _ := task.Action.(string)
+			if err := c.AddFunc(task.Interval+"ms", timerTaskForScript(L, funcName)); err != nil {
+				return err
+			}
 		}
 	}
-
 	c.Start()
 	return
 }
@@ -175,6 +146,7 @@ func initTimerTasks(tasks []coreConfig.TimerTask) (err error) {
 func timerTaskHandler(deviceNames []string, pointNames []string) func() {
 	return func() {
 		helper.Logger.Info("begin handle auto event",
+			zap.String("taskType", "read_points"),
 			zap.String("deviceNames", fmt.Sprintf("%+v", deviceNames)),
 			zap.String("pointNames", fmt.Sprintf("%+v", pointNames)))
 		if err := helper.SendMultiRead(deviceNames, pointNames); err != nil {
@@ -207,6 +179,16 @@ func initDeviceShadow(defaultTTL int64, configMap map[string]coreConfig.Config) 
 				dev := shadow.NewDevice(d.Name, model.Name, nil)
 				_ = helper.DeviceShadow.AddDevice(dev)
 			}
+		}
+	}
+}
+
+// 定时任务 - 执行脚本函数
+func timerTaskForScript(L *lua.LState, method string) func() {
+	return func() {
+		helper.Logger.Info("begin handle auto event", zap.String("taskType", "script"))
+		if err := helper.SafeCallLuaFunc(L, method); err != nil {
+			helper.Logger.Error("auto event error", zap.Error(err))
 		}
 	}
 }
