@@ -15,7 +15,7 @@ func main() {
 	_ = os.Setenv("EDGEX_SECURITY_SECRET_STORE", "false")
 
 	// 正式环境需注释掉
-	//localMode("127.0.0.1", "59999", "192.168.16.88")
+	//localMode("192.168.16.88", "59999", "127.0.0.1")
 
 	sd := driver.Driver{}
 	startup.Bootstrap(serviceName, version, &sd)

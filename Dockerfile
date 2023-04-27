@@ -17,7 +17,7 @@ COPY ./main.go ./main.go
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories && \
     apk update && apk add pkgconfig zeromq-dev gcc libc-dev && \
     go mod vendor && \
-    go build -o app .
+    go build -o driver-box .
 
 FROM alpine:latest
 
@@ -32,9 +32,9 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/re
 
 COPY --from=builder /build/app /app
 COPY --from=builder /build/res /res
-COPY --from=builder /build/driver-config /driver-config
+COPY --from=builder /build/driver-box /driver-box
 
 EXPOSE 59999
 
-ENTRYPOINT ["/app"]
+ENTRYPOINT ["/driver-box"]
 CMD ["-cp=consul.http://edgex-core-consul:8500", "--registry", "--confdir=/res"]

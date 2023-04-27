@@ -22,7 +22,7 @@ services:
       REGISTRY_HOST: edgex-core-consul
       SERVICE_HOST: edgex-core-command
     hostname: edgex-core-command
-    image: edgexfoundry/core-command:2.3.0
+    image: openyurt/core-command:2.3.0
     networks:
       edgex-network: {}
     ports:
@@ -67,7 +67,7 @@ services:
       REGISTRY_HOST: edgex-core-consul
       SERVICE_HOST: edgex-core-data
     hostname: edgex-core-data
-    image: edgexfoundry/core-data:2.3.0
+    image: openyurt/core-data:2.3.0
     networks:
       edgex-network: {}
     ports:
@@ -122,7 +122,7 @@ services:
       REGISTRY_HOST: edgex-core-consul
       SERVICE_HOST: edgex-core-metadata
     hostname: edgex-core-metadata
-    image: edgexfoundry/core-metadata:2.3.0
+    image: openyurt/core-metadata:2.3.0
     networks:
       edgex-network: {}
     ports:
@@ -149,7 +149,7 @@ services:
       REGISTRY_HOST: edgex-core-consul
       SERVICE_HOST: edgex-support-notifications
     hostname: edgex-support-notifications
-    image: edgexfoundry/support-notifications:2.3.0
+    image: openyurt/support-notifications:2.3.0
     networks:
       edgex-network: {}
     ports:
@@ -207,7 +207,7 @@ services:
       REGISTRY_HOST: edgex-core-consul
       SERVICE_HOST: edgex-support-scheduler
     hostname: edgex-support-scheduler
-    image: edgexfoundry/support-scheduler:2.3.0
+    image: openyurt/support-scheduler:2.3.0
     networks:
       edgex-network: {}
     ports:
@@ -240,7 +240,7 @@ services:
       REGISTRY_HOST: edgex-core-consul
       SERVICE_HOST: edgex-sys-mgmt-agent
     hostname: edgex-sys-mgmt-agent
-    image: edgexfoundry/sys-mgmt-agent:2.3.0
+    image: openyurt/sys-mgmt-agent:2.3.0
     networks:
       edgex-network: {}
     ports:
@@ -259,7 +259,7 @@ services:
       EDGEX_SECURITY_SECRET_STORE: "false"
       SERVICE_HOST: edgex-ui-go
     hostname: edgex-ui-go
-    image: edgexfoundry/edgex-ui:2.3.0
+    image: openyurt/edgex-ui:2.3.0
     networks:
       edgex-network: {}
     ports:
