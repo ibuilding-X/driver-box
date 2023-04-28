@@ -45,7 +45,7 @@ func (p *Plugin) ProtocolAdapter() contracts.ProtocolAdapter {
 }
 
 // Connector 连接器
-func (p *Plugin) Connector(deviceName string) (connector contracts.Connector, err error) {
+func (p *Plugin) Connector(deviceName, pointName string) (connector contracts.Connector, err error) {
 	return nil, common.NotSupportGetConnector
 }
 

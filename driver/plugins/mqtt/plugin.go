@@ -70,7 +70,7 @@ func (p *Plugin) ProtocolAdapter() contracts.ProtocolAdapter {
 }
 
 // Connector 连接器
-func (p *Plugin) Connector(deviceName string) (contracts.Connector, error) {
+func (p *Plugin) Connector(deviceName, pointName string) (contracts.Connector, error) {
 	deviceModels := p.config.DeviceModels
 	for _, deviceModel := range deviceModels {
 		devices := deviceModel.Devices

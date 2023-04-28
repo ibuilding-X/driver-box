@@ -3,6 +3,7 @@ module driver-box
 go 1.18
 
 require (
+	github.com/cjoudrey/gluahttp v0.0.0-20201111170219-25003d9adfa9
 	github.com/eclipse/paho.mqtt.golang v1.3.5
 	github.com/edgexfoundry/device-sdk-go/v2 v2.2.0
 	github.com/edgexfoundry/go-mod-core-contracts/v2 v2.2.0
@@ -10,8 +11,9 @@ require (
 	github.com/go-playground/validator/v10 v10.10.1
 	github.com/simonvetter/modbus v1.6.0
 	github.com/spf13/cast v1.5.0
-	github.com/yuin/gopher-lua v0.0.0-20220504180219-658193537a64
+	github.com/yuin/gopher-lua v1.1.0
 	go.uber.org/zap v1.23.0
+	layeh.com/gopher-json v0.0.0-20201124131017-552bb3c4c3bf
 )
 
 require (

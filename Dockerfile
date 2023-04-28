@@ -1,38 +1,38 @@
-ARG BASE=golang:1.18-alpine3.15
-FROM ${BASE} AS builder
-
-ARG ALPINE_PKG_BASE="make git gcc libc-dev libsodium-dev zeromq-dev"
-ARG ALPINE_PKG_EXTRA=""
-
-RUN sed -e 's/dl-cdn[.]alpinelinux.org/nl.alpinelinux.org/g' -i~ /etc/apk/repositories
-RUN apk add --update --no-cache ${ALPINE_PKG_BASE} ${ALPINE_PKG_EXTRA}
+FROM golang:1.18-alpine AS builder
 
 ENV GO111MODULE=on
-ENV GOPROXY=https://goproxy.cn
+ENV GOPROXY=https://goproxy.cn,direct
 
-ARG MAKE=make build
+WORKDIR /build
 
-WORKDIR /device
+COPY ./config ./config
+COPY ./core ./core
+COPY ./driver ./driver
+COPY ./driver-config ./driver-config
+COPY ./res ./res
+COPY ./go.sum ./go.sum
+COPY ./go.mod ./go.mod
+COPY ./main.go ./main.go
 
-COPY . .
-RUN go build -o driver-box
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories && \
+    apk update && apk add pkgconfig zeromq-dev gcc libc-dev && \
+    go mod vendor && \
+    go build -o driver-box .
 
-# Next image - Copy built Go binary into new workspace
-FROM alpine:3.14
+FROM alpine:latest
 
-RUN sed -e 's/dl-cdn[.]alpinelinux.org/nl.alpinelinux.org/g' -i~ /etc/apk/repositories
-# dumb-init is required as security-bootstrapper uses it in the entrypoint script
-RUN apk add --update --no-cache ca-certificates zeromq dumb-init curl
-RUN apk --update add tzdata && \
+WORKDIR /
+
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories && \
+    apk update && apk add zeromq-dev curl tzdata && \
     cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone && \
     apk del tzdata && \
     rm -rf /var/cache/apk/*
 
-WORKDIR /
-COPY --from=builder /device/driver-box /driver-box
-COPY --from=builder /device/res /res
-COPY --from=builder /device/scripts /scripts
+COPY --from=builder /build/app /app
+COPY --from=builder /build/res /res
+COPY --from=builder /build/driver-box /driver-box
 
 EXPOSE 59999
 

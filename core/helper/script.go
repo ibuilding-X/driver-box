@@ -5,16 +5,26 @@ import (
 	"driver-box/driver/common"
 	"encoding/json"
 	"fmt"
+	"github.com/cjoudrey/gluahttp"
 	lua "github.com/yuin/gopher-lua"
+	luajson "layeh.com/gopher-json"
+	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 )
+
+var runLock = &sync.Mutex{}
 
 // InitLuaVM 编译 lua 脚本
 func InitLuaVM(scriptDir string) (*lua.LState, error) {
 	ls := lua.NewState(lua.Options{
 		RegistryMaxSize: 128,
 	})
+	// 预加载模块（json、http、storage）
+	ls.PreloadModule("http", gluahttp.NewHttpModule(&http.Client{}).Loader)
+	luajson.Preload(ls)
+	ls.PreloadModule("driverbox", LuaModuleInstance.Loader)
 	// 文件路径
 	filePath := filepath.Join(common.CoreConfigPath, scriptDir, common.LuaScriptName)
 	if FileExists(filePath) {
@@ -84,4 +94,17 @@ func CallLuaEncodeConverter(L *lua.LState, deviceName string, raw interface{}) (
 	// 获取解析结果
 	result := L.Get(-1).String()
 	return result, err
+}
+
+// SafeCallLuaFunc 安全调用 lua 函数，通过锁机制独占时间片
+func SafeCallLuaFunc(L *lua.LState, method string) error {
+	runLock.Lock()
+	defer runLock.Unlock()
+
+	L.Push(L.GetGlobal(method))
+	if err := L.PCall(0, 0, nil); err != nil {
+		return fmt.Errorf("call lua script %s function error: %s", method, err)
+	}
+
+	return nil
 }

@@ -9,9 +9,8 @@ import (
 
 // Points2Resources points 转 resources
 // 配置文件点位值类型限定三种：int、float、string，对应 go 类型：int64、float64、string
-func (dm DeviceModel) Points2Resources() (deviceResources []models.DeviceResource, err error) {
-	for _, pm := range dm.DevicePoints {
-		point := pm.ToPoint()
+func (m Model) Points2Resources() (deviceResources []models.DeviceResource, err error) {
+	for _, point := range m.Points {
 		// 点位类型适配（int64、float64、string）
 		valueType := point.ValueType
 		switch point.ValueType {
@@ -22,6 +21,13 @@ func (dm DeviceModel) Points2Resources() (deviceResources []models.DeviceResourc
 		case "string":
 			valueType = common.ValueTypeString
 		}
+		attributes := make(map[string]interface{})
+		attributes["realReport"] = point.RealReport
+		attributes["reportMode"] = point.ReportMode
+		attributes["timerReport"] = point.TimerReport
+		if point.Units != "" {
+			attributes["units"] = point.Units
+		}
 		// 默认配置
 		deviceResources = append(deviceResources, models.DeviceResource{
 			Description: point.Description,
@@ -29,11 +35,10 @@ func (dm DeviceModel) Points2Resources() (deviceResources []models.DeviceResourc
 			IsHidden:    false,
 			Tag:         "",
 			Properties: models.ResourceProperties{
-				ValueType:    valueType,
-				ReadWrite:    point.ReadWrite,
-				DefaultValue: point.DefaultValue,
+				ValueType: valueType,
+				ReadWrite: point.ReadWrite,
 			},
-			Attributes: point.Extends,
+			Attributes: attributes,
 		})
 	}
 	return
