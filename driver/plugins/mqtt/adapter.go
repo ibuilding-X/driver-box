@@ -17,7 +17,7 @@ type adapter struct {
 func (a *adapter) Encode(deviceName string, mode contracts.EncodeMode, value contracts.PointData) (res interface{}, err error) {
 	if mode == contracts.WriteMode {
 		tmp, _ := json.Marshal(value)
-		return helper.CallLuaEncodeConverter(a.ls, a.scriptDir, string(tmp))
+		return helper.CallLuaEncodeConverter(a.ls, deviceName, string(tmp))
 	}
 	return nil, common.NotSupportEncode
 }
