@@ -10,6 +10,7 @@ import (
 	"driver-box/driver/device"
 	"driver-box/driver/plugins"
 	"driver-box/driver/restful/route"
+	"encoding/json"
 	"errors"
 	"fmt"
 	lua "github.com/yuin/gopher-lua"
@@ -122,10 +123,12 @@ func initTimerTasks(L *lua.LState, tasks []coreConfig.TimerTask) (err error) {
 		switch task.Type {
 		case "read_points": // 读点位
 			// action数据格式：[{"devices":["sensor_1"],"points":["onOff"]}]
-			list, _ := task.Action.([]map[string][]string)
-			for _, action := range list {
-				if len(action["devices"]) > 0 && len(action["points"]) > 0 {
-					if err := c.AddFunc(task.Interval+"ms", timerTaskHandler(action["devices"], action["points"])); err != nil {
+			b, _ := json.Marshal(task.Action)
+			var actions []coreConfig.ReadPointsAction
+			_ = json.Unmarshal(b, &actions)
+			for _, action := range actions {
+				if len(action.DeviceNames) > 0 && len(action.Points) > 0 {
+					if err := c.AddFunc(task.Interval+"ms", timerTaskHandler(action.DeviceNames, action.Points)); err != nil {
 						return err
 					}
 				}
