@@ -156,3 +156,8 @@ type ModelCache struct {
 	ModelBase
 	Points map[string]PointBase
 }
+
+type ReadPointsAction struct {
+	DeviceNames []string `json:"devices"`
+	Points      []string `json:"points"`
+}
