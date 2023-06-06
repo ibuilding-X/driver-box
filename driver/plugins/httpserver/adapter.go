@@ -6,12 +6,14 @@ import (
 	"driver-box/driver/common"
 	"encoding/json"
 	lua "github.com/yuin/gopher-lua"
+	"sync"
 )
 
 // Adapter 协议适配器
 type adapter struct {
 	scriptDir string      // 脚本目录名称
 	ls        *lua.LState // lua 虚拟机
+	lock      *sync.Mutex
 }
 
 // protoData 协议数据，框架重组交由动态脚本解析
@@ -35,5 +37,7 @@ func (a *adapter) Encode(deviceName string, mode contracts.EncodeMode, values co
 
 // Decode 解码数据，调用动态脚本解析
 func (a *adapter) Decode(raw interface{}) (res []contracts.DeviceData, err error) {
+	a.lock.Lock()
+	defer a.lock.Unlock()
 	return helper.CallLuaConverter(a.ls, "decode", raw)
 }
