@@ -61,6 +61,9 @@ func (s *Driver) initialize() error {
 	// 注册 REST API 路由
 	route.Register()
 
+	// 初始化 crontab
+	helper.Crontab = crontab.NewCrontab()
+
 	// 启动插件
 	for key, _ := range configMap {
 		helper.Logger.Info(key+" begin start", zap.Any("directoryName", key), zap.Any("plugin", configMap[key].ProtocolName))
@@ -118,7 +121,6 @@ func receiveHandler() contracts.OnReceiveHandler {
 
 // 初始化设备 autoEvent
 func initTimerTasks(L *lua.LState, tasks []coreConfig.TimerTask) (err error) {
-	c := crontab.NewCrontab()
 	for _, task := range tasks {
 		switch task.Type {
 		case "read_points": // 读点位
@@ -128,7 +130,7 @@ func initTimerTasks(L *lua.LState, tasks []coreConfig.TimerTask) (err error) {
 			_ = json.Unmarshal(b, &actions)
 			for _, action := range actions {
 				if len(action.DeviceNames) > 0 && len(action.Points) > 0 {
-					if err := c.AddFunc(task.Interval+"ms", timerTaskHandler(action.DeviceNames, action.Points)); err != nil {
+					if err := helper.Crontab.AddFunc(task.Interval+"ms", timerTaskHandler(action.DeviceNames, action.Points)); err != nil {
 						return err
 					}
 				}
@@ -136,12 +138,12 @@ func initTimerTasks(L *lua.LState, tasks []coreConfig.TimerTask) (err error) {
 		case "script": // 执行脚本函数
 			// action数据格式：functionName
 			funcName, _ := task.Action.(string)
-			if err := c.AddFunc(task.Interval+"ms", timerTaskForScript(L, funcName)); err != nil {
+			if err := helper.Crontab.AddFunc(task.Interval+"ms", timerTaskForScript(L, funcName)); err != nil {
 				return err
 			}
 		}
 	}
-	c.Start()
+	helper.Crontab.Start()
 	return
 }
 

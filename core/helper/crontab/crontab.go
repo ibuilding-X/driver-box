@@ -31,8 +31,10 @@ func (c *crontab) Start() {
 }
 
 func (c *crontab) Stop() {
-	for i, _ := range c.tickerArray {
-		c.tickerArray[i].Stop()
+	if len(c.tickerArray) > 0 {
+		for i, _ := range c.tickerArray {
+			c.tickerArray[i].Stop()
+		}
 	}
 }
 
