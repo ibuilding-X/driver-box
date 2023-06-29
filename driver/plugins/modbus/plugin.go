@@ -67,7 +67,9 @@ func (p *Plugin) Connector(deviceName, pointName string) (conn contracts.Connect
 
 // Destroy 销毁驱动插件
 func (p *Plugin) Destroy() error {
-	p.ls.Close()
+	if p.ls != nil {
+		p.ls.Close()
+	}
 	return nil
 }
 

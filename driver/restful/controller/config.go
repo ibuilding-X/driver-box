@@ -4,6 +4,7 @@ import (
 	"driver-box/core/helper"
 	"driver-box/core/helper/response"
 	"driver-box/core/models"
+	"driver-box/driver/bootstrap"
 	"driver-box/driver/common"
 	"encoding/json"
 	"go.uber.org/zap"
@@ -16,7 +17,7 @@ import (
 type Config struct {
 }
 
-func (c *Config) Update(reload func() error) http.HandlerFunc {
+func (c *Config) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// ------------------------------------------------------------
 		// 配置文件覆盖更新
@@ -60,6 +61,9 @@ func (c *Config) Update(reload func() error) http.HandlerFunc {
 			if err != nil {
 				helper.Logger.Error("save config.json file error", zap.Error(err))
 			}
+			if config.Config.ProtocolName == "modbus" && config.Script == "" {
+				continue
+			}
 			err = os.WriteFile(scriptFilename, []byte(config.Script), 0666)
 			if err != nil {
 				helper.Logger.Error("save converter.lua file error", zap.Error(err))
@@ -71,6 +75,7 @@ func (c *Config) Update(reload func() error) http.HandlerFunc {
 		// ------------------------------------------------------------
 		// 1. 停止所有 timerTask 任务
 		helper.Crontab.Stop()
+
 		// 2. 停止运行中的 plugin
 		pluginKeys := helper.CoreCache.GetAllRunningPluginKey()
 		if len(pluginKeys) > 0 {
@@ -84,6 +89,16 @@ func (c *Config) Update(reload func() error) http.HandlerFunc {
 					}
 				}
 			}
+		}
+		// 3. 停止影子服务设备状态监听、删除影子服务
+		helper.DeviceShadow.StopStatusListener()
+		helper.DeviceShadow = nil
+
+		// 4. 加载 plugins
+		err = bootstrap.LoadPlugins()
+		if err != nil {
+			response.String(w, http.StatusInternalServerError, "reload plugins error: %s", err)
+			return
 		}
 
 		w.WriteHeader(http.StatusOK)

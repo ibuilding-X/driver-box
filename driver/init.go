@@ -18,16 +18,8 @@ import (
 	"time"
 )
 
-// initialize 额外初始化工作
-func (s *Driver) initialize() error {
-	// 初始化日志记录器
-	if err := helper.InitLogger(s.serviceConfig.DriverConfig.LoggerLevel); err != nil {
-		return common.InitLoggerErr
-	}
-
-	// 点位缓存客户端
-	helper.InitPointCache(time.Duration(s.serviceConfig.DriverConfig.PointCacheTTL) * time.Second)
-
+// LoadPlugins 加载插件并运行
+func LoadPlugins() error {
 	// 加载核心配置
 	configMap, err := coreConfig.ParseFromPath(common.CoreConfigPath)
 	if err != nil {
@@ -53,13 +45,7 @@ func (s *Driver) initialize() error {
 	}
 
 	// 初始化本地影子服务
-	initDeviceShadow(s.serviceConfig.DriverConfig.DefaultDeviceTTL, configMap)
-
-	// 初始化通知服务
-	helper.InitNotification()
-
-	// 注册 REST API 路由
-	route.Register()
+	initDeviceShadow(driverInstance.serviceConfig.DriverConfig.DefaultDeviceTTL, configMap)
 
 	// 初始化 crontab
 	helper.Crontab = crontab.NewCrontab()
@@ -97,6 +83,22 @@ func (s *Driver) initialize() error {
 
 		helper.Logger.Info("start success", zap.Any("directoryName", key), zap.Any("plugin", configMap[key].ProtocolName))
 	}
+
+	return nil
+}
+
+// initialize 额外初始化工作
+func (s *Driver) initialize() error {
+	// 初始化日志记录器
+	if err := helper.InitLogger(s.serviceConfig.DriverConfig.LoggerLevel); err != nil {
+		return common.InitLoggerErr
+	}
+
+	// 初始化通知服务
+	helper.InitNotification()
+
+	// 注册 REST API 路由
+	route.Register()
 
 	return nil
 }

@@ -3,6 +3,7 @@
 package helper
 
 import (
+	"driver-box/config"
 	"driver-box/core/contracts"
 	"driver-box/core/helper/crontab"
 	"driver-box/core/helper/shadow"
@@ -24,6 +25,8 @@ var DeviceShadow shadow.DeviceShadow // 本地设备影子
 var PluginCacheMap = &sync.Map{} // 插件通用缓存
 
 var Crontab crontab.Crontab // 全局定时任务实例
+
+var DriverConfig config.DriverConfig // 驱动配置
 
 // Map2Struct map 转 struct，用于解析连接器配置
 // m：map[string]interface

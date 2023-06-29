@@ -17,9 +17,7 @@ func Register() {
 
 	// 核心配置 API
 	conf := &controller.Config{}
-	addRoute("/config/update", conf.Update(func() error {
-		return nil
-	}), http.MethodPost)
+	addRoute("/config/update", conf.Update(), http.MethodPost)
 
 }
 
