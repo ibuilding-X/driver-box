@@ -1,6 +1,6 @@
 .PHONY: docker clean docker-no-cache
 
-VERSION=0.2
+VERSION=0.3
 
 docker:
 	docker build -t driver-box:$(VERSION) .
