@@ -5,12 +5,14 @@ import (
 	"driver-box/core/helper"
 	"encoding/json"
 	lua "github.com/yuin/gopher-lua"
+	"sync"
 )
 
 // Adapter 协议适配器
 type adapter struct {
 	scriptDir string      // 脚本目录名称
 	ls        *lua.LState // lua 虚拟机
+	lock      *sync.Mutex
 }
 
 // transportationData 通讯数据（编码返回、解码输入数据格式）
@@ -29,6 +31,8 @@ func (td transportationData) ToJSON() string {
 
 // Encode 编码数据
 func (a *adapter) Encode(deviceName string, mode contracts.EncodeMode, values contracts.PointData) (res interface{}, err error) {
+	a.lock.Lock()
+	defer a.lock.Unlock()
 	data := transportationData{
 		DeviceName: "deviceName",
 		Mode:       string(mode),
@@ -40,5 +44,7 @@ func (a *adapter) Encode(deviceName string, mode contracts.EncodeMode, values co
 
 // Decode 解码数据，调用动态脚本解析
 func (a *adapter) Decode(raw interface{}) (res []contracts.DeviceData, err error) {
+	a.lock.Lock()
+	defer a.lock.Unlock()
 	return helper.CallLuaConverter(a.ls, "decode", raw)
 }
