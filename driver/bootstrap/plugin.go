@@ -1,4 +1,4 @@
-package driver
+package bootstrap
 
 import (
 	coreConfig "driver-box/core/config"
@@ -9,7 +9,6 @@ import (
 	"driver-box/driver/common"
 	"driver-box/driver/device"
 	"driver-box/driver/plugins"
-	"driver-box/driver/restful/route"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -45,7 +44,7 @@ func LoadPlugins() error {
 	}
 
 	// 初始化本地影子服务
-	initDeviceShadow(driverInstance.serviceConfig.DriverConfig.DefaultDeviceTTL, configMap)
+	initDeviceShadow(helper.DriverConfig.DefaultDeviceTTL, configMap)
 
 	// 初始化 crontab
 	helper.Crontab = crontab.NewCrontab()
@@ -87,37 +86,31 @@ func LoadPlugins() error {
 	return nil
 }
 
-// initialize 额外初始化工作
-func (s *Driver) initialize() error {
-	// 初始化日志记录器
-	if err := helper.InitLogger(s.serviceConfig.DriverConfig.LoggerLevel); err != nil {
-		return common.InitLoggerErr
-	}
-
-	// 初始化通知服务
-	helper.InitNotification()
-
-	// 注册 REST API 路由
-	route.Register()
-
-	return nil
-}
-
-// receiveHandler 接收消息回调
-func receiveHandler() contracts.OnReceiveHandler {
-	return func(plugin contracts.Plugin, raw interface{}) (result interface{}, err error) {
-		helper.Logger.Debug("raw data", zap.Any("data", raw))
-		// 协议适配器
-		deviceData, err := plugin.ProtocolAdapter().Decode(raw)
-		helper.Logger.Debug("decode data", zap.Any("data", deviceData))
+// 初始化影子服务
+func initDeviceShadow(defaultTTL int64, configMap map[string]coreConfig.Config) {
+	shadow.SetDefaultDeviceTTL(time.Duration(defaultTTL) * time.Second)
+	// 设置影子服务设备生命周期
+	helper.DeviceShadow = shadow.NewDeviceShadow()
+	// 设置回调
+	helper.DeviceShadow.SetOnlineChangeCallback(func(deviceName string, online bool) {
+		if online {
+			helper.Logger.Info("device online", zap.String("deviceName", deviceName))
+		} else {
+			helper.Logger.Warn("device offline...", zap.String("deviceName", deviceName))
+		}
+		err := helper.SendStatusChangeNotification(deviceName, online)
 		if err != nil {
-			return nil, err
+			helper.Logger.Error("send device status change notification error", zap.String("deviceName", deviceName))
 		}
-		// 写入消息总线
-		for _, data := range deviceData {
-			helper.WriteToMessageBus(data)
+	})
+	// 添加设备
+	for _, config := range configMap {
+		for _, model := range config.DeviceModels {
+			for _, d := range model.Devices {
+				dev := shadow.NewDevice(d.Name, model.Name, nil)
+				_ = helper.DeviceShadow.AddDevice(dev)
+			}
 		}
-		return
 	}
 }
 
@@ -162,34 +155,6 @@ func timerTaskHandler(deviceNames []string, pointNames []string) func() {
 	}
 }
 
-// 初始化影子服务
-func initDeviceShadow(defaultTTL int64, configMap map[string]coreConfig.Config) {
-	shadow.SetDefaultDeviceTTL(time.Duration(defaultTTL) * time.Second)
-	// 设置影子服务设备生命周期
-	helper.DeviceShadow = shadow.NewDeviceShadow()
-	// 设置回调
-	helper.DeviceShadow.SetOnlineChangeCallback(func(deviceName string, online bool) {
-		if online {
-			helper.Logger.Info("device online", zap.String("deviceName", deviceName))
-		} else {
-			helper.Logger.Warn("device offline...", zap.String("deviceName", deviceName))
-		}
-		err := helper.SendStatusChangeNotification(deviceName, online)
-		if err != nil {
-			helper.Logger.Error("send device status change notification error", zap.String("deviceName", deviceName))
-		}
-	})
-	// 添加设备
-	for _, config := range configMap {
-		for _, model := range config.DeviceModels {
-			for _, d := range model.Devices {
-				dev := shadow.NewDevice(d.Name, model.Name, nil)
-				_ = helper.DeviceShadow.AddDevice(dev)
-			}
-		}
-	}
-}
-
 // 定时任务 - 执行脚本函数
 func timerTaskForScript(L *lua.LState, method string) func() {
 	return func() {
@@ -197,5 +162,23 @@ func timerTaskForScript(L *lua.LState, method string) func() {
 		if err := helper.SafeCallLuaFunc(L, method); err != nil {
 			helper.Logger.Error("auto event error", zap.Error(err))
 		}
+	}
+}
+
+// receiveHandler 接收消息回调
+func receiveHandler() contracts.OnReceiveHandler {
+	return func(plugin contracts.Plugin, raw interface{}) (result interface{}, err error) {
+		helper.Logger.Debug("raw data", zap.Any("data", raw))
+		// 协议适配器
+		deviceData, err := plugin.ProtocolAdapter().Decode(raw)
+		helper.Logger.Debug("decode data", zap.Any("data", deviceData))
+		if err != nil {
+			return nil, err
+		}
+		// 写入消息总线
+		for _, data := range deviceData {
+			helper.WriteToMessageBus(data)
+		}
+		return
 	}
 }

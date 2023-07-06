@@ -99,6 +99,7 @@ type coreCache interface {
 	Models() (models []config.Model)                                                                         // all model
 	Devices() (devices []config.DeviceBase)
 	GetProtocolsByDevice(deviceName string) (map[string]models.ProtocolProperties, bool) // device protocols
+	GetAllRunningPluginKey() (keys []string)                                             // get running plugin keys
 }
 
 func (c *cache) GetModel(modelName string) (model config.ModelBase, ok bool) {
@@ -194,4 +195,13 @@ func (c *cache) GetProtocolsByDevice(deviceName string) (map[string]models.Proto
 		return protocols, true
 	}
 	return nil, false
+}
+
+func (c *cache) GetAllRunningPluginKey() (keys []string) {
+	c.runningPlugins.Range(func(key, value any) bool {
+		k, _ := key.(string)
+		keys = append(keys, k)
+		return true
+	})
+	return
 }

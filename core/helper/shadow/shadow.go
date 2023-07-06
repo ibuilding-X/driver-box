@@ -33,6 +33,9 @@ type DeviceShadow interface {
 	MayBeOffline(deviceName string) (err error)
 
 	SetOnlineChangeCallback(handlerFunc OnlineChangeCallback)
+
+	// StopStatusListener 停止设备状态监听
+	StopStatusListener()
 }
 
 type deviceShadow struct {
@@ -180,6 +183,10 @@ func (d *deviceShadow) MayBeOffline(deviceName string) (err error) {
 	} else {
 		return UnknownDeviceErr
 	}
+}
+
+func (d *deviceShadow) StopStatusListener() {
+	d.ticker.Stop()
 }
 
 func (d *deviceShadow) checkOnOff() {

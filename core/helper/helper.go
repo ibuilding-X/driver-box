@@ -3,7 +3,9 @@
 package helper
 
 import (
+	"driver-box/config"
 	"driver-box/core/contracts"
+	"driver-box/core/helper/crontab"
 	"driver-box/core/helper/shadow"
 	"encoding/json"
 	sdkModels "github.com/edgexfoundry/device-sdk-go/v2/pkg/models"
@@ -21,6 +23,10 @@ var RunningPlugin contracts.Plugin // todo 待删除
 var DeviceShadow shadow.DeviceShadow // 本地设备影子
 
 var PluginCacheMap = &sync.Map{} // 插件通用缓存
+
+var Crontab crontab.Crontab // 全局定时任务实例
+
+var DriverConfig config.DriverConfig // 驱动配置
 
 // Map2Struct map 转 struct，用于解析连接器配置
 // m：map[string]interface
@@ -53,6 +59,17 @@ func GetChildDir(path string) (list []string, err error) {
 	err = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() {
 			list = append(list, path)
+		}
+		return nil
+	})
+	return
+}
+
+// GetChildDirName 获取指定路径下所有子目录名称
+func GetChildDirName(path string) (list []string, err error) {
+	err = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+		if d.IsDir() {
+			list = append(list, d.Name())
 		}
 		return nil
 	})

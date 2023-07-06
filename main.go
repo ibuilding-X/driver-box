@@ -17,8 +17,8 @@ func main() {
 	// 正式环境需注释掉
 	//localMode("192.168.16.88", "59999", "127.0.0.1")
 
-	sd := driver.Driver{}
-	startup.Bootstrap(serviceName, version, &sd)
+	sd := driver.NewDriver()
+	startup.Bootstrap(serviceName, version, sd)
 }
 
 // localMode 本地调试模式
