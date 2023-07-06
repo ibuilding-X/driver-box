@@ -14,6 +14,11 @@ func Register() {
 	ps := controller.NewPluginStorage()
 	addRoute("/plugin/cache/get", ps.Get(), http.MethodGet)
 	addRoute("/plugin/cache/set", ps.Set(), http.MethodPost)
+
+	// 核心配置 API
+	conf := &controller.Config{}
+	addRoute("/config/update", conf.Update(), http.MethodPost)
+
 }
 
 // addRoute 添加路由

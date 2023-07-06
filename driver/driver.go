@@ -4,6 +4,7 @@ import (
 	"driver-box/config"
 	"driver-box/core/contracts"
 	"driver-box/core/helper"
+	"driver-box/driver/bootstrap"
 	"errors"
 	"fmt"
 	sdkModels "github.com/edgexfoundry/device-sdk-go/v2/pkg/models"
@@ -11,13 +12,26 @@ import (
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/clients/logger"
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 	"go.uber.org/zap"
+	"sync"
 	"time"
 )
+
+var driverInstance *Driver
+var once = &sync.Once{}
 
 type Driver struct {
 	lc            logger.LoggingClient                // EdgeX 日志组件
 	serviceConfig *config.ServiceConfig               // 自定义 EdgeX 配置
 	deviceCh      chan<- []sdkModels.DiscoveredDevice // 设备通道，暂无使用价值
+}
+
+// NewDriver return driver instance
+func NewDriver() *Driver {
+	once.Do(func() {
+		driverInstance = &Driver{}
+	})
+
+	return driverInstance
 }
 
 // Initialize 初始化
@@ -34,6 +48,7 @@ func (s *Driver) Initialize(lc logger.LoggingClient, asyncCh chan<- *sdkModels.A
 	}
 
 	lc.Infof("DriverConfig config is: %v", s.serviceConfig.DriverConfig)
+	helper.DriverConfig = s.serviceConfig.DriverConfig
 
 	if err := s.serviceConfig.DriverConfig.Validate(); err != nil {
 		return fmt.Errorf("'DriverConfig' custom configuration validation failed: %s", err.Error())
@@ -47,6 +62,10 @@ func (s *Driver) Initialize(lc logger.LoggingClient, asyncCh chan<- *sdkModels.A
 		lc.Info("-------------------- begin init --------------------")
 
 		if err := s.initialize(); err != nil {
+			lc.Errorf("init error: %s", err.Error())
+		}
+
+		if err := bootstrap.LoadPlugins(); err != nil {
 			lc.Errorf("init error: %s", err.Error())
 		}
 
