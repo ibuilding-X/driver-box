@@ -5,7 +5,6 @@ import (
 	"driver-box/core/helper"
 	"driver-box/driver/common"
 	"fmt"
-	common2 "github.com/edgexfoundry/go-mod-core-contracts/v2/common"
 	"github.com/simonvetter/modbus"
 	"github.com/spf13/cast"
 	"go.uber.org/zap"
@@ -215,55 +214,55 @@ func (prv *pointRawValue) uint16sToValue(originalData []uint16, registerType str
 		return nil
 	case string(HoldingRegister), string(InputRegister):
 		switch strings.ToUpper(rawType) {
-		case strings.ToUpper(common2.ValueTypeUint16):
+		case strings.ToUpper(common.ValueTypeUint16):
 			if length != 1 {
 				return fmt.Errorf("illegal length %s", prv.Name)
 			}
 			prv.Value = BytesToUint16(e, bytes)
 			return nil
-		case strings.ToUpper(common2.ValueTypeInt16):
+		case strings.ToUpper(common.ValueTypeInt16):
 			if length != 1 {
 				return fmt.Errorf("illegal length %s", prv.Name)
 			}
 			prv.Value = cast.ToInt16(BytesToUint16(e, bytes))
 			return nil
-		case strings.ToUpper(common2.ValueTypeUint32):
+		case strings.ToUpper(common.ValueTypeUint32):
 			if length != 2 {
 				return fmt.Errorf("illegal length %s", prv.Name)
 			}
 			prv.Value = BytesToUint32s(e, w, bytes)[0]
 			return nil
-		case strings.ToUpper(common2.ValueTypeInt32):
+		case strings.ToUpper(common.ValueTypeInt32):
 			if length != 2 {
 				return fmt.Errorf("illegal length %s", prv.Name)
 			}
 			prv.Value = cast.ToInt32(BytesToUint32s(e, w, bytes)[0])
 			return nil
-		case strings.ToUpper(common2.ValueTypeFloat32):
+		case strings.ToUpper(common.ValueTypeFloat32):
 			if length != 2 {
 				return fmt.Errorf("illegal length %s", prv.Name)
 			}
 			prv.Value = BytesToFloat32s(e, w, bytes)[0]
 			return nil
-		case strings.ToUpper(common2.ValueTypeUint64):
+		case strings.ToUpper(common.ValueTypeUint64):
 			if length != 4 {
 				return fmt.Errorf("illegal length %s", prv.Name)
 			}
 			prv.Value = BytesToUint64s(e, w, bytes)[0]
 			return nil
-		case strings.ToUpper(common2.ValueTypeInt64):
+		case strings.ToUpper(common.ValueTypeInt64):
 			if length != 4 {
 				return fmt.Errorf("illegal length %s", prv.Name)
 			}
 			prv.Value = cast.ToInt64(BytesToUint64s(e, w, bytes)[0])
 			return nil
-		case strings.ToUpper(common2.ValueTypeFloat64):
+		case strings.ToUpper(common.ValueTypeFloat64):
 			if length != 4 {
 				return fmt.Errorf("illegal length %s", prv.Name)
 			}
 			prv.Value = BytesToFloat64s(e, w, bytes)[0]
 			return nil
-		case strings.ToUpper(common2.ValueTypeString):
+		case strings.ToUpper(common.ValueTypeString):
 			prv.Value = cast.ToString(bytes)
 			return nil
 		default:

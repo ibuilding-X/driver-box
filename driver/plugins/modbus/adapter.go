@@ -6,7 +6,6 @@ import (
 	"driver-box/driver/common"
 	"encoding/json"
 	"fmt"
-	common2 "github.com/edgexfoundry/go-mod-core-contracts/v2/common"
 	"github.com/spf13/cast"
 	lua "github.com/yuin/gopher-lua"
 	"os"
@@ -136,23 +135,23 @@ func (ptv *pointTargetValue) encodeRawValue(registerType, rawType string, byteSw
 		}}
 	default:
 		switch strings.ToUpper(rawType) {
-		case strings.ToUpper(common2.ValueTypeUint16):
+		case strings.ToUpper(common.ValueTypeUint16):
 			ptv.Values = []Value{{
 				Value: BytesToUint16(BIG_ENDIAN, Uint16ToBytes(Endianness(byteSwap), cast.ToUint16(ptv.TargetValue))),
 			}}
-		case strings.ToUpper(common2.ValueTypeInt16):
+		case strings.ToUpper(common.ValueTypeInt16):
 			conv2Int64, _ := helper.Conv2Int64(ptv.TargetValue)
 			val := conv2Int64 & 0xFFFF
 			ptv.Values = []Value{{
 				Value: BytesToUint16(BIG_ENDIAN, Uint16ToBytes(Endianness(byteSwap), cast.ToUint16(uint16(val)))),
 			}}
-		case strings.ToUpper(common2.ValueTypeUint32):
+		case strings.ToUpper(common.ValueTypeUint32):
 			uint16s := BytesToUint16s(BIG_ENDIAN, Uint32ToBytes(Endianness(byteSwap), WordOrder(wordSwap), cast.ToUint32(ptv.TargetValue)))
 			ptv.Values = []Value{
 				{Value: uint16s[0]},
 				{Value: uint16s[1]},
 			}
-		case strings.ToUpper(common2.ValueTypeInt32):
+		case strings.ToUpper(common.ValueTypeInt32):
 			conv2Int64, _ := helper.Conv2Int64(ptv.TargetValue)
 			val := conv2Int64 & 0xFFFFFFFF
 			uint16s := BytesToUint16s(BIG_ENDIAN, Uint32ToBytes(Endianness(byteSwap), WordOrder(wordSwap), cast.ToUint32(uint32(val))))
@@ -160,7 +159,7 @@ func (ptv *pointTargetValue) encodeRawValue(registerType, rawType string, byteSw
 				{Value: uint16s[0]},
 				{Value: uint16s[1]},
 			}
-		case strings.ToUpper(common2.ValueTypeUint64):
+		case strings.ToUpper(common.ValueTypeUint64):
 			uint16s := BytesToUint16s(BIG_ENDIAN, Uint64ToBytes(Endianness(byteSwap), WordOrder(wordSwap), cast.ToUint64(ptv.TargetValue)))
 			ptv.Values = []Value{
 				{Value: uint16s[0]},
@@ -168,7 +167,7 @@ func (ptv *pointTargetValue) encodeRawValue(registerType, rawType string, byteSw
 				{Value: uint16s[2]},
 				{Value: uint16s[3]},
 			}
-		case strings.ToUpper(common2.ValueTypeInt64):
+		case strings.ToUpper(common.ValueTypeInt64):
 			val, _ := helper.Conv2Int64(ptv.TargetValue)
 			uint16s := BytesToUint16s(BIG_ENDIAN, Uint64ToBytes(Endianness(byteSwap), WordOrder(wordSwap), cast.ToUint64(uint64(val))))
 			ptv.Values = []Value{
@@ -177,13 +176,13 @@ func (ptv *pointTargetValue) encodeRawValue(registerType, rawType string, byteSw
 				{Value: uint16s[2]},
 				{Value: uint16s[3]},
 			}
-		case strings.ToUpper(common2.ValueTypeFloat32):
+		case strings.ToUpper(common.ValueTypeFloat32):
 			uint16s := BytesToUint16s(BIG_ENDIAN, Float32ToBytes(Endianness(byteSwap), WordOrder(wordSwap), cast.ToFloat32(ptv.TargetValue)))
 			ptv.Values = []Value{
 				{Value: uint16s[0]},
 				{Value: uint16s[1]},
 			}
-		case strings.ToUpper(common2.ValueTypeFloat64):
+		case strings.ToUpper(common.ValueTypeFloat64):
 			uint16s := BytesToUint16s(BIG_ENDIAN, Float64ToBytes(Endianness(byteSwap), WordOrder(wordSwap), cast.ToFloat64(ptv.TargetValue)))
 			ptv.Values = []Value{
 				{Value: uint16s[0]},
@@ -191,7 +190,7 @@ func (ptv *pointTargetValue) encodeRawValue(registerType, rawType string, byteSw
 				{Value: uint16s[2]},
 				{Value: uint16s[3]},
 			}
-		case strings.ToUpper(common2.ValueTypeString):
+		case strings.ToUpper(common.ValueTypeString):
 			uint16s := BytesToUint16s(Endianness(byteSwap), []byte(cast.ToString(ptv.TargetValue)))
 			var values []Value
 			for _, v := range uint16s {

@@ -6,9 +6,10 @@ import (
 	"driver-box/core/config"
 	"driver-box/core/contracts"
 	"fmt"
-	"github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 	"sync"
 )
+
+type ProtocolProperties map[string]string
 
 // CoreCache 核心缓存
 var CoreCache coreCache
@@ -60,11 +61,11 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 				if _, ok := model.Devices[deviceName]; !ok {
 					model.Devices[deviceName] = device.DeviceBase
 				}
-				var protocols map[string]models.ProtocolProperties
+				var protocols map[string]ProtocolProperties
 				if raw, ok := c.deviceProtocols.Load(deviceName); ok {
-					protocols = raw.(map[string]models.ProtocolProperties)
+					protocols = raw.(map[string]ProtocolProperties)
 				} else {
-					protocols = make(map[string]models.ProtocolProperties)
+					protocols = make(map[string]ProtocolProperties)
 				}
 				protocols[configMap[key].ProtocolName+"_"+device.ConnectionKey] = device.Protocol
 				c.deviceProtocols.Store(deviceName, protocols)
@@ -98,8 +99,8 @@ type coreCache interface {
 	AddRunningPlugin(key string, plugin contracts.Plugin)                                                    // add running plugin
 	Models() (models []config.Model)                                                                         // all model
 	Devices() (devices []config.DeviceBase)
-	GetProtocolsByDevice(deviceName string) (map[string]models.ProtocolProperties, bool) // device protocols
-	GetAllRunningPluginKey() (keys []string)                                             // get running plugin keys
+	GetProtocolsByDevice(deviceName string) (map[string]ProtocolProperties, bool) // device protocols
+	GetAllRunningPluginKey() (keys []string)                                      // get running plugin keys
 }
 
 func (c *cache) GetModel(modelName string) (model config.ModelBase, ok bool) {
@@ -189,9 +190,9 @@ func (c *cache) Devices() (devices []config.DeviceBase) {
 	return
 }
 
-func (c *cache) GetProtocolsByDevice(deviceName string) (map[string]models.ProtocolProperties, bool) {
+func (c *cache) GetProtocolsByDevice(deviceName string) (map[string]ProtocolProperties, bool) {
 	if raw, ok := c.deviceProtocols.Load(deviceName); ok {
-		protocols, _ := raw.(map[string]models.ProtocolProperties)
+		protocols, _ := raw.(map[string]ProtocolProperties)
 		return protocols, true
 	}
 	return nil, false

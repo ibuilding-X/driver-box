@@ -1,15 +1,16 @@
 // 核心配置转换
 
-package config
+package edgex
 
 import (
-	"github.com/edgexfoundry/go-mod-core-contracts/v2/common"
+	"driver-box/core/config"
+	"driver-box/driver/common"
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 )
 
 // Points2Resources points 转 resources
 // 配置文件点位值类型限定三种：int、float、string，对应 go 类型：int64、float64、string
-func (m Model) Points2Resources() (deviceResources []models.DeviceResource, err error) {
+func Points2Resources(m config.Model) (deviceResources []models.DeviceResource, err error) {
 	for _, point := range m.Points {
 		// 点位类型适配（int64、float64、string）
 		valueType := point.ValueType
@@ -45,7 +46,7 @@ func (m Model) Points2Resources() (deviceResources []models.DeviceResource, err 
 }
 
 // Actions2Commands action 转 command
-func (dm DeviceModel) Actions2Commands() (deviceCommands []models.DeviceCommand) {
+func Actions2Commands(dm config.DeviceModel) (deviceCommands []models.DeviceCommand) {
 	for _, action := range dm.DeviceActions {
 		resourceOperations := make([]models.ResourceOperation, 0)
 		for _, operation := range action.ResourceOperations {
@@ -75,9 +76,3 @@ func (dm DeviceModel) Actions2Commands() (deviceCommands []models.DeviceCommand)
 //	}
 //	return
 //}
-
-func (d Device) ConvProtocols() map[string]models.ProtocolProperties {
-	m := make(map[string]models.ProtocolProperties)
-	m["other"] = d.Protocol
-	return m
-}

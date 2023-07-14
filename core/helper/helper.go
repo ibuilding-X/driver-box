@@ -7,16 +7,16 @@ import (
 	"driver-box/core/contracts"
 	"driver-box/core/helper/crontab"
 	"driver-box/core/helper/shadow"
+	"driver-box/driver/common"
+	"driver-box/driver/export"
 	"encoding/json"
-	sdkModels "github.com/edgexfoundry/device-sdk-go/v2/pkg/models"
-	"github.com/edgexfoundry/go-mod-core-contracts/v2/common"
 	"io/fs"
 	"path/filepath"
 	"strings"
 	"sync"
 )
 
-var MessageBus chan<- *sdkModels.AsyncValues // 消息总线
+var Export export.Export
 
 var RunningPlugin contracts.Plugin // todo 待删除
 

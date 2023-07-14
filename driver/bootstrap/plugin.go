@@ -7,7 +7,6 @@ import (
 	"driver-box/core/helper/crontab"
 	"driver-box/core/helper/shadow"
 	"driver-box/driver/common"
-	"driver-box/driver/device"
 	"driver-box/driver/plugins"
 	"encoding/json"
 	"errors"
@@ -35,11 +34,6 @@ func LoadPlugins() error {
 	// 缓存核心配置
 	if err = helper.InitCoreCache(configMap); err != nil {
 		helper.Logger.Error("init core cache error")
-		return err
-	}
-
-	// 初始化设备模型及设备
-	if err = device.Init(); err != nil {
 		return err
 	}
 
@@ -98,7 +92,11 @@ func initDeviceShadow(defaultTTL int64, configMap map[string]coreConfig.Config) 
 		} else {
 			helper.Logger.Warn("device offline...", zap.String("deviceName", deviceName))
 		}
-		err := helper.SendStatusChangeNotification(deviceName, online)
+		if !helper.Export.IsReady() {
+			helper.Logger.Warn("export not ready")
+			return
+		}
+		err := helper.Export.SendStatusChangeNotification(deviceName, online)
 		if err != nil {
 			helper.Logger.Error("send device status change notification error", zap.String("deviceName", deviceName))
 		}
@@ -177,7 +175,8 @@ func receiveHandler() contracts.OnReceiveHandler {
 		}
 		// 写入消息总线
 		for _, data := range deviceData {
-			helper.WriteToMessageBus(data)
+			//helper.WriteToMessageBus(data)
+			helper.Export.ExportTo(data)
 		}
 		return
 	}
