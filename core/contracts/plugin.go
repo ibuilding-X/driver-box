@@ -3,8 +3,8 @@
 package contracts
 
 import (
-	"driver-box/core/config"
 	"encoding/json"
+	"github.com/ibuilding-x/driver-box/core/config"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )

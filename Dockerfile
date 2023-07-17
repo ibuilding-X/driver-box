@@ -6,8 +6,8 @@ ENV GOPROXY=https://goproxy.cn,direct
 WORKDIR /build
 
 COPY ./config ./config
-COPY ./core ./core
-COPY ./driver ./driver
+COPY core ./core
+COPY internal/driver ./driver
 COPY ./driver-config ./driver-config
 COPY ./res ./res
 COPY ./go.sum ./go.sum

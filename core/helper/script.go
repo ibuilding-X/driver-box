@@ -1,11 +1,11 @@
 package helper
 
 import (
-	"driver-box/core/contracts"
-	"driver-box/driver/common"
 	"encoding/json"
 	"fmt"
 	"github.com/cjoudrey/gluahttp"
+	"github.com/ibuilding-x/driver-box/core/contracts"
+	"github.com/ibuilding-x/driver-box/internal/driver/common"
 	lua "github.com/yuin/gopher-lua"
 	luajson "layeh.com/gopher-json"
 	"net/http"

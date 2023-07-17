@@ -3,9 +3,9 @@
 package config
 
 import (
-	"driver-box/driver/common"
 	"encoding/json"
 	"errors"
+	"github.com/ibuilding-x/driver-box/internal/driver/common"
 	"io"
 	"io/fs"
 	"os"
@@ -13,13 +13,13 @@ import (
 )
 
 // ParseFromString 从字符串解析
-func ParseFromString(s string) (c Config, err error) {
+func parseFromString(s string) (c Config, err error) {
 	err = json.Unmarshal([]byte(s), &c)
 	return
 }
 
 // ParseFromFile 从文件解析
-func ParseFromFile(path string) (c Config, err error) {
+func parseFromFile(path string) (c Config, err error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return
@@ -30,7 +30,7 @@ func ParseFromFile(path string) (c Config, err error) {
 	if err != nil {
 		return
 	}
-	return ParseFromString(string(body))
+	return parseFromString(string(body))
 }
 
 // ParseFromPath 从指定路径解析所有核心配置文件
@@ -57,7 +57,7 @@ func ParseFromPath(path string) (list map[string]Config, err error) {
 	list = make(map[string]Config)
 	for i, _ := range dirs {
 		fileName := filepath.Join(common.CoreConfigPath, dirs[i], common.CoreConfigName)
-		c, err := ParseFromFile(fileName)
+		c, err := parseFromFile(fileName)
 		if err != nil {
 			continue
 		}

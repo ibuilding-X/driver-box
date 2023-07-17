@@ -1,6 +1,8 @@
 package models
 
-import "driver-box/core/config"
+import (
+	"github.com/ibuilding-x/driver-box/core/config"
+)
 
 // APIConfig restful API request body
 type APIConfig struct {

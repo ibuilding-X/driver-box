@@ -1,11 +1,9 @@
 package main
 
 import (
-	"driver-box/driver"
-	"driver-box/driver/export"
-	"driver-box/driver/export/edgex"
-	"driver-box/driver/plugins"
-	"driver-box/driver/plugins/httpserver"
+	"github.com/ibuilding-x/driver-box/core/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/internal/driver/plugins/httpserver"
 	"os"
 )
 
@@ -13,8 +11,8 @@ func main() {
 	localMode("127.0.0.1", "59999", "192.168.16.35")
 	_ = os.Setenv("EDGEX_SECURITY_SECRET_STORE", "false")
 
-	plugins.Manager.Register("bacnet", &httpserver.Plugin{})
-	driver.Start([]export.Export{edgex.NewEdgexExport()})
+	driverbox.RegisterPlugin("bacnet", &httpserver.Plugin{})
+	driverbox.Start([]contracts.Export{&contracts.DefaultExport{}})
 	select {}
 }
 
