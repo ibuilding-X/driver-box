@@ -18,6 +18,8 @@ import (
 
 var Export export.Export
 
+var Exports []export.Export
+
 var RunningPlugin contracts.Plugin // todo 待删除
 
 var DeviceShadow shadow.DeviceShadow // 本地设备影子

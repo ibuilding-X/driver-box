@@ -5,7 +5,7 @@ import "driver-box/core/contracts"
 type ExportConfig struct {
 }
 type Export interface {
-	Init()
+	Init() error
 	//导出消息：写入Edgex总线、MQTT上云
 	ExportTo(deviceData contracts.DeviceData)
 
@@ -18,8 +18,9 @@ type DefaultExport struct {
 	init bool
 }
 
-func (export *DefaultExport) Init() {
+func (export *DefaultExport) Init() error {
 	export.init = true
+	return nil
 }
 
 // 导出消息：写入Edgex总线、MQTT上云

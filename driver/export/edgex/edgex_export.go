@@ -5,7 +5,6 @@ import (
 	"driver-box/config"
 	"driver-box/core/contracts"
 	"driver-box/core/helper"
-	"driver-box/driver/restful/route"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -73,8 +72,9 @@ type EdgexExport struct {
 	asyncCh       chan<- *sdkModels.AsyncValues
 }
 
-func (export *EdgexExport) Init() {
+func (export *EdgexExport) Init() error {
 	startup.Bootstrap(serviceName, version, export)
+	return nil
 }
 
 // 导出消息：写入Edgex总线、MQTT上云
@@ -183,9 +183,6 @@ func (s *EdgexExport) initialize() error {
 	// 初始化通知服务
 	url := fmt.Sprintf("http://%s:%d", "edgex-support-notifications", 59860)
 	noticeClient = http.NewNotificationClient(url)
-
-	// 注册 REST API 路由
-	route.Register()
 
 	return nil
 }
