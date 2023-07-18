@@ -2,8 +2,8 @@ package httpserver
 
 import (
 	"encoding/json"
-	"github.com/ibuilding-x/driver-box/core/contracts"
-	"github.com/ibuilding-x/driver-box/core/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/internal/driver/common"
 	lua "github.com/yuin/gopher-lua"
 	"sync"

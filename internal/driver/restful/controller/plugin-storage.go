@@ -2,8 +2,8 @@ package controller
 
 import (
 	"encoding/json"
-	"github.com/ibuilding-x/driver-box/core/helper"
-	"github.com/ibuilding-x/driver-box/core/helper/response"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/response"
 	"io"
 	"net/http"
 )

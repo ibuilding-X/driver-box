@@ -4,7 +4,7 @@ package contracts
 
 import (
 	"encoding/json"
-	"github.com/ibuilding-x/driver-box/core/config"
+	"github.com/ibuilding-x/driver-box/driverbox/config"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )

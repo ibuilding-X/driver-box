@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/ibuilding-x/driver-box/core/config"
+	"github.com/ibuilding-x/driver-box/driverbox/config"
 )
 
 // APIConfig restful API request body

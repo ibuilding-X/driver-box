@@ -4,8 +4,8 @@ package plugins
 
 import (
 	"fmt"
-	"github.com/ibuilding-x/driver-box/core/config"
-	"github.com/ibuilding-x/driver-box/core/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/contracts"
 	"github.com/ibuilding-x/driver-box/internal/driver/plugins/httpclient"
 	"github.com/ibuilding-x/driver-box/internal/driver/plugins/httpserver"
 	"github.com/ibuilding-x/driver-box/internal/driver/plugins/modbus"

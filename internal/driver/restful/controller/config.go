@@ -2,9 +2,9 @@ package controller
 
 import (
 	"encoding/json"
-	"github.com/ibuilding-x/driver-box/core/helper"
-	"github.com/ibuilding-x/driver-box/core/helper/response"
-	"github.com/ibuilding-x/driver-box/core/models"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/response"
+	"github.com/ibuilding-x/driver-box/driverbox/models"
 	"github.com/ibuilding-x/driver-box/internal/driver/bootstrap"
 	"github.com/ibuilding-x/driver-box/internal/driver/common"
 	"go.uber.org/zap"

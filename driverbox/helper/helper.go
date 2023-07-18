@@ -4,10 +4,11 @@ package helper
 
 import (
 	"encoding/json"
-	"github.com/ibuilding-x/driver-box/core/config"
-	"github.com/ibuilding-x/driver-box/core/contracts"
-	"github.com/ibuilding-x/driver-box/core/helper/crontab"
-	"github.com/ibuilding-x/driver-box/core/helper/shadow"
+	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/export"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/internal/driver/common"
 	"io/fs"
 	"path/filepath"
@@ -15,9 +16,9 @@ import (
 	"sync"
 )
 
-var Export contracts.Export
+var Export export.Export
 
-var Exports []contracts.Export
+var Exports []export.Export
 
 var RunningPlugin contracts.Plugin // todo 待删除
 

@@ -1,8 +1,9 @@
 package driverbox
 
 import (
-	"github.com/ibuilding-x/driver-box/core/contracts"
-	"github.com/ibuilding-x/driver-box/core/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/export"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/internal/driver/bootstrap"
 	"github.com/ibuilding-x/driver-box/internal/driver/plugins"
 	"github.com/ibuilding-x/driver-box/internal/driver/plugins/httpserver"
@@ -14,9 +15,9 @@ func RegisterPlugin(name string, plugin contracts.Plugin) error {
 	return plugins.Manager.Register("bacnet", &httpserver.Plugin{})
 }
 
-func Start(exports []contracts.Export) {
+func Start(exports []export.Export) {
 	//第一步：加载配置文件DriverConfig
-	helper.Export = &contracts.DefaultExport{}
+	helper.Export = &export.DefaultExport{}
 
 	//第二步：初始化日志记录器
 	if err := helper.InitLogger("DEBUG"); err != nil {
@@ -42,7 +43,7 @@ func Start(exports []contracts.Export) {
 	//第五步：启动Export
 	helper.Exports = exports
 	for _, item := range exports {
-		go func(item contracts.Export) {
+		go func(item export.Export) {
 			err := item.Init()
 			if err != nil {
 				panic(err)

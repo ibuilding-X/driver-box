@@ -2,7 +2,7 @@ package helper
 
 import (
 	"fmt"
-	"github.com/ibuilding-x/driver-box/core/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/contracts"
 	lua "github.com/yuin/gopher-lua"
 )
 

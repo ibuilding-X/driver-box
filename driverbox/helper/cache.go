@@ -4,8 +4,8 @@ package helper
 
 import (
 	"fmt"
-	"github.com/ibuilding-x/driver-box/core/config"
-	"github.com/ibuilding-x/driver-box/core/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/contracts"
 	"sync"
 )
 

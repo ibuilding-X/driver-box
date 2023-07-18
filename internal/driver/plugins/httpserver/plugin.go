@@ -1,9 +1,9 @@
 package httpserver
 
 import (
-	"github.com/ibuilding-x/driver-box/core/config"
-	"github.com/ibuilding-x/driver-box/core/contracts"
-	"github.com/ibuilding-x/driver-box/core/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/internal/driver/common"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"

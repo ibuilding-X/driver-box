@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/ibuilding-x/driver-box/core/contracts"
 	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/internal/driver/plugins/httpserver"
 	"os"
 )
@@ -12,7 +12,7 @@ func main() {
 	_ = os.Setenv("EDGEX_SECURITY_SECRET_STORE", "false")
 
 	driverbox.RegisterPlugin("bacnet", &httpserver.Plugin{})
-	driverbox.Start([]contracts.Export{&contracts.DefaultExport{}})
+	driverbox.Start([]export.Export{&export.DefaultExport{}})
 	select {}
 }
 

@@ -2,8 +2,8 @@ package modbus
 
 import (
 	"fmt"
-	"github.com/ibuilding-x/driver-box/core/contracts"
-	"github.com/ibuilding-x/driver-box/core/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/internal/driver/common"
 	"github.com/simonvetter/modbus"
 	"github.com/spf13/cast"

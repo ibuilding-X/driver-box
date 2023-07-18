@@ -2,7 +2,7 @@ package helper
 
 import (
 	"fmt"
-	"github.com/ibuilding-x/driver-box/core/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/contracts"
 )
 
 // Send 向设备发送数据

@@ -2,8 +2,8 @@ package httpclient
 
 import (
 	"encoding/json"
-	"github.com/ibuilding-x/driver-box/core/contracts"
-	"github.com/ibuilding-x/driver-box/core/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	lua "github.com/yuin/gopher-lua"
 	"sync"
 )

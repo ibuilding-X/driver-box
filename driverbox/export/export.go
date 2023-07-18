@@ -1,11 +1,13 @@
-package contracts
+package export
+
+import "github.com/ibuilding-x/driver-box/driverbox/contracts"
 
 type ExportConfig struct {
 }
 type Export interface {
 	Init() error
 	//导出消息：写入Edgex总线、MQTT上云
-	ExportTo(deviceData DeviceData)
+	ExportTo(deviceData contracts.DeviceData)
 
 	SendStatusChangeNotification(deviceName string, online bool) error
 
@@ -22,7 +24,7 @@ func (export *DefaultExport) Init() error {
 }
 
 // 导出消息：写入Edgex总线、MQTT上云
-func (export *DefaultExport) ExportTo(deviceData DeviceData) {
+func (export *DefaultExport) ExportTo(deviceData contracts.DeviceData) {
 
 }
 
