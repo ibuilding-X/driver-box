@@ -5,7 +5,7 @@ package plugins
 import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/driver/plugins/httpclient"
 	"github.com/ibuilding-x/driver-box/internal/driver/plugins/httpserver"
 	"github.com/ibuilding-x/driver-box/internal/driver/plugins/modbus"
@@ -34,7 +34,7 @@ type manager struct {
 }
 
 // 注册自定义插件
-func (m *manager) Register(name string, plugin contracts.Plugin) error {
+func (m *manager) Register(name string, plugin plugin.Plugin) error {
 	if _, ok := m.plugins.Load(name); ok {
 		panic("plugin:" + name + " is exists")
 	} else {
@@ -44,9 +44,9 @@ func (m *manager) Register(name string, plugin contracts.Plugin) error {
 }
 
 // Get 获取插件实例
-func (m *manager) Get(c config.Config) (plugin contracts.Plugin, err error) {
+func (m *manager) Get(c config.Config) (p plugin.Plugin, err error) {
 	if raw, ok := m.plugins.Load(c.ProtocolName); ok {
-		plugin = raw.(contracts.Plugin)
+		p = raw.(plugin.Plugin)
 	} else {
 		err = fmt.Errorf("not found drive plugin, plugin name is %s", c.ProtocolName)
 	}

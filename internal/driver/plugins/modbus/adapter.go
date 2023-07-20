@@ -3,9 +3,9 @@ package modbus
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/driverbox/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/internal/driver/common"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/spf13/cast"
 	lua "github.com/yuin/gopher-lua"
 	"os"
@@ -31,12 +31,12 @@ type adapter struct {
 
 // transportationData 通讯数据（编码返回、解码输入数据格式）
 type transportationData struct {
-	DeviceName  string               // 设备名称
-	Mode        contracts.EncodeMode // 读取模式
-	SlaveID     uint8                // 从机 salve id
-	MaxQuantity uint16               // 最长连续读数量
-	PointName   string               // 点位名称
-	Values      []Value              // 写入值，仅当 write 模式时使用
+	DeviceName  string            // 设备名称
+	Mode        plugin.EncodeMode // 读取模式
+	SlaveID     uint8             // 从机 salve id
+	MaxQuantity uint16            // 最长连续读数量
+	PointName   string            // 点位名称
+	Values      []Value           // 写入值，仅当 write 模式时使用
 }
 
 // Value 设定值及掩码
@@ -63,7 +63,7 @@ type extendProps struct {
 }
 
 // Encode 编码数据
-func (a *adapter) Encode(deviceName string, mode contracts.EncodeMode, value contracts.PointData) (res interface{}, err error) {
+func (a *adapter) Encode(deviceName string, mode plugin.EncodeMode, value plugin.PointData) (res interface{}, err error) {
 	// 获取设备数据
 	device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceName, value.PointName)
 	if !ok {
@@ -86,7 +86,7 @@ func (a *adapter) Encode(deviceName string, mode contracts.EncodeMode, value con
 	if !ok {
 		return nil, fmt.Errorf("not found point from core config, deviceName is %s, point name is %s", deviceName, value.PointName)
 	}
-	if mode == contracts.WriteMode {
+	if mode == plugin.WriteMode {
 		ptv := &pointTargetValue{
 			Name:        value.PointName,
 			TargetValue: value.Value,
@@ -202,21 +202,21 @@ func (ptv *pointTargetValue) encodeRawValue(registerType, rawType string, byteSw
 }
 
 // Decode 解码数据
-func (a *adapter) Decode(raw interface{}) (res []contracts.DeviceData, err error) {
+func (a *adapter) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
 	deviceRawData := raw.(rawData)
 	deviceRawDataBytes, _ := json.Marshal(deviceRawData)
 	if a.scriptExists() {
 		return helper.CallLuaConverter(a.ls, "decode", string(deviceRawDataBytes))
 	} else {
 		// 当前设备未被lua解析
-		var pointDatalist []contracts.PointData
+		var pointDatalist []plugin.PointData
 		for _, prv := range deviceRawData.PointRawValues {
-			pointDatalist = append(pointDatalist, contracts.PointData{
+			pointDatalist = append(pointDatalist, plugin.PointData{
 				PointName: prv.Name,
 				Value:     prv.Value,
 			})
 		}
-		res = append(res, contracts.DeviceData{
+		res = append(res, plugin.DeviceData{
 			DeviceName: deviceRawData.DeviceName,
 			Values:     pointDatalist,
 		})

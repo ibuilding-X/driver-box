@@ -1,10 +1,10 @@
 package tcpserver
 
 import (
+	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/contracts"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/internal/driver/common"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 	"sync"
@@ -13,14 +13,14 @@ import (
 type Plugin struct {
 	logger   *zap.Logger
 	config   config.Config
-	callback contracts.OnReceiveHandler
-	adapter  contracts.ProtocolAdapter
+	callback plugin.OnReceiveHandler
+	adapter  plugin.ProtocolAdapter
 	connPool []*connector
 	ls       *lua.LState
 }
 
 // Initialize 插件初始化
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, handler contracts.OnReceiveHandler, ls *lua.LState) (err error) {
+func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, handler plugin.OnReceiveHandler, ls *lua.LState) (err error) {
 	p.logger = logger
 	p.config = c
 	p.callback = handler
@@ -42,12 +42,12 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, handler contrac
 }
 
 // ProtocolAdapter 协议适配器
-func (p *Plugin) ProtocolAdapter() contracts.ProtocolAdapter {
+func (p *Plugin) ProtocolAdapter() plugin.ProtocolAdapter {
 	return p.adapter
 }
 
 // Connector 连接器
-func (p *Plugin) Connector(deviceName, pointName string) (connector contracts.Connector, err error) {
+func (p *Plugin) Connector(deviceName, pointName string) (connector plugin.Connector, err error) {
 	return nil, common.NotSupportGetConnector
 }
 

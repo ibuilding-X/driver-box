@@ -4,12 +4,12 @@ package helper
 
 import (
 	"encoding/json"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/contracts"
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
-	"github.com/ibuilding-x/driver-box/internal/driver/common"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"io/fs"
 	"path/filepath"
 	"strings"
@@ -20,7 +20,7 @@ var Export export.Export
 
 var Exports []export.Export
 
-var RunningPlugin contracts.Plugin // todo 待删除
+var RunningPlugin plugin.Plugin // todo 待删除
 
 var DeviceShadow shadow.DeviceShadow // 本地设备影子
 

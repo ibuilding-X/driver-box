@@ -5,7 +5,7 @@ package helper
 import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"sync"
 )
 
@@ -20,7 +20,7 @@ type cache struct {
 	deviceProtocols    *sync.Map // deviceName => map[string]map[string]string
 	points             *sync.Map // deviceName_pointName => config.Point
 	devicePointPlugins *sync.Map // deviceName_pointName => plugin key
-	runningPlugins     *sync.Map // key => contracts.Plugin
+	runningPlugins     *sync.Map // key => plugin.Plugin
 	devicePointConn    *sync.Map // deviceName_pointName => config.Device
 }
 
@@ -89,15 +89,15 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 
 // coreCache 核心缓存
 type coreCache interface {
-	GetModel(modelName string) (model config.ModelBase, ok bool)                                             // model info
-	GetDevice(deviceName string) (device config.DeviceBase, ok bool)                                         // device info
-	GetDeviceByDeviceAndPoint(deviceName string, pointName string) (device config.Device, ok bool)           // connection config
-	GetPointByModel(modelName string, pointName string) (point config.PointBase, ok bool)                    // search point by model
-	GetPointByDevice(deviceName string, pointName string) (point config.Point, ok bool)                      // search point by device
-	GetRunningPluginByDeviceAndPoint(deviceName string, pointName string) (plugin contracts.Plugin, ok bool) // search plugin by device and point
-	GetRunningPluginByKey(key string) (plugin contracts.Plugin, ok bool)                                     // search plugin by directory name
-	AddRunningPlugin(key string, plugin contracts.Plugin)                                                    // add running plugin
-	Models() (models []config.Model)                                                                         // all model
+	GetModel(modelName string) (model config.ModelBase, ok bool)                                          // model info
+	GetDevice(deviceName string) (device config.DeviceBase, ok bool)                                      // device info
+	GetDeviceByDeviceAndPoint(deviceName string, pointName string) (device config.Device, ok bool)        // connection config
+	GetPointByModel(modelName string, pointName string) (point config.PointBase, ok bool)                 // search point by model
+	GetPointByDevice(deviceName string, pointName string) (point config.Point, ok bool)                   // search point by device
+	GetRunningPluginByDeviceAndPoint(deviceName string, pointName string) (plugin plugin.Plugin, ok bool) // search plugin by device and point
+	GetRunningPluginByKey(key string) (plugin plugin.Plugin, ok bool)                                     // search plugin by directory name
+	AddRunningPlugin(key string, plugin plugin.Plugin)                                                    // add running plugin
+	Models() (models []config.Model)                                                                      // all model
 	Devices() (devices []config.DeviceBase)
 	GetProtocolsByDevice(deviceName string) (map[string]ProtocolProperties, bool) // device protocols
 	GetAllRunningPluginKey() (keys []string)                                      // get running plugin keys
@@ -153,22 +153,22 @@ func (c *cache) GetPointByDevice(deviceName string, pointName string) (point con
 	return config.Point{}, false
 }
 
-func (c *cache) GetRunningPluginByDeviceAndPoint(deviceName, pointName string) (plugin contracts.Plugin, ok bool) {
+func (c *cache) GetRunningPluginByDeviceAndPoint(deviceName, pointName string) (plugin plugin.Plugin, ok bool) {
 	if key, ok := c.devicePointPlugins.Load(fmt.Sprintf("%s_%s", deviceName, pointName)); ok {
 		return c.GetRunningPluginByKey(key.(string))
 	}
 	return nil, false
 }
 
-func (c *cache) GetRunningPluginByKey(key string) (plugin contracts.Plugin, ok bool) {
+func (c *cache) GetRunningPluginByKey(key string) (p plugin.Plugin, ok bool) {
 	if raw, ok := c.runningPlugins.Load(key); ok {
-		plugin, _ = raw.(contracts.Plugin)
-		return plugin, true
+		p, _ = raw.(plugin.Plugin)
+		return p, true
 	}
 	return nil, false
 }
 
-func (c *cache) AddRunningPlugin(key string, plugin contracts.Plugin) {
+func (c *cache) AddRunningPlugin(key string, plugin plugin.Plugin) {
 	c.runningPlugins.Store(key, plugin)
 }
 

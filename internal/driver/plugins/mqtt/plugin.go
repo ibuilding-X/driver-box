@@ -2,26 +2,26 @@ package mqtt
 
 import (
 	"fmt"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/contracts"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/internal/driver/common"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 	"sync"
 )
 
 type Plugin struct {
-	logger     *zap.Logger                // 日志
-	config     config.Config              // 配置
-	callback   contracts.OnReceiveHandler // 回调
-	adapter    *adapter                   // 适配
-	connectors map[string]*connector      // mqtt连接池
-	ls         *lua.LState                // lua 虚拟机
+	logger     *zap.Logger             // 日志
+	config     config.Config           // 配置
+	callback   plugin.OnReceiveHandler // 回调
+	adapter    *adapter                // 适配
+	connectors map[string]*connector   // mqtt连接池
+	ls         *lua.LState             // lua 虚拟机
 }
 
 // Initialize 初始化日志、配置、接收回调
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, handler contracts.OnReceiveHandler, ls *lua.LState) (err error) {
+func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, handler plugin.OnReceiveHandler, ls *lua.LState) (err error) {
 	p.logger = logger
 	p.config = c
 	p.callback = handler
@@ -67,12 +67,12 @@ func (p *Plugin) initConnPool() error {
 }
 
 // ProtocolAdapter 协议适配器
-func (p *Plugin) ProtocolAdapter() contracts.ProtocolAdapter {
+func (p *Plugin) ProtocolAdapter() plugin.ProtocolAdapter {
 	return p.adapter
 }
 
 // Connector 连接器
-func (p *Plugin) Connector(deviceName, pointName string) (contracts.Connector, error) {
+func (p *Plugin) Connector(deviceName, pointName string) (plugin.Connector, error) {
 	deviceModels := p.config.DeviceModels
 	for _, deviceModel := range deviceModels {
 		devices := deviceModel.Devices

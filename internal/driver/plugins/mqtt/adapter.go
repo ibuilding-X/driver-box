@@ -2,9 +2,9 @@ package mqtt
 
 import (
 	"encoding/json"
-	"github.com/ibuilding-x/driver-box/driverbox/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/internal/driver/common"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
 	"sync"
 )
@@ -16,10 +16,10 @@ type adapter struct {
 	lock      *sync.Mutex
 }
 
-func (a *adapter) Encode(deviceName string, mode contracts.EncodeMode, value contracts.PointData) (res interface{}, err error) {
+func (a *adapter) Encode(deviceName string, mode plugin.EncodeMode, value plugin.PointData) (res interface{}, err error) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
-	if mode == contracts.WriteMode {
+	if mode == plugin.WriteMode {
 		tmp, _ := json.Marshal(value)
 		return helper.CallLuaEncodeConverter(a.ls, deviceName, string(tmp))
 	}
@@ -27,7 +27,7 @@ func (a *adapter) Encode(deviceName string, mode contracts.EncodeMode, value con
 }
 
 // Decode 解析数据
-func (a *adapter) Decode(raw interface{}) (res []contracts.DeviceData, err error) {
+func (a *adapter) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	return helper.CallLuaConverter(a.ls, "decode", raw)

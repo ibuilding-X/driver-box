@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cjoudrey/gluahttp"
-	"github.com/ibuilding-x/driver-box/driverbox/contracts"
-	"github.com/ibuilding-x/driver-box/internal/driver/common"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
 	luajson "layeh.com/gopher-json"
 	"net/http"
@@ -47,7 +47,7 @@ func FileExists(path string) bool {
 }
 
 // CallLuaConverter 调用 Lua 脚本转换器
-func CallLuaConverter(L *lua.LState, method string, raw interface{}) ([]contracts.DeviceData, error) {
+func CallLuaConverter(L *lua.LState, method string, raw interface{}) ([]plugin.DeviceData, error) {
 	data, ok := raw.(string)
 	if !ok {
 		return nil, common.ProtocolDataFormatErr
@@ -67,7 +67,7 @@ func CallLuaConverter(L *lua.LState, method string, raw interface{}) ([]contract
 
 	// 获取解析结果
 	result := L.Get(-1).String()
-	res := make([]contracts.DeviceData, 0)
+	res := make([]plugin.DeviceData, 0)
 	err = json.Unmarshal([]byte(result), &res)
 	return res, err
 }

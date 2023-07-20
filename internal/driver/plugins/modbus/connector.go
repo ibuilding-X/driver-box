@@ -2,9 +2,9 @@ package modbus
 
 import (
 	"fmt"
-	"github.com/ibuilding-x/driver-box/driverbox/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/internal/driver/common"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/simonvetter/modbus"
 	"github.com/spf13/cast"
 	"go.uber.org/zap"
@@ -50,7 +50,7 @@ func (c *connector) Send(data interface{}) (err error) {
 	// 数据转换
 	td, _ := data.(transportationData)
 	// 读操作
-	if td.Mode == contracts.ReadMode {
+	if td.Mode == plugin.ReadMode {
 		err = c.sendReadMode(td)
 	} else {
 		err = c.sendWriteMode(td)

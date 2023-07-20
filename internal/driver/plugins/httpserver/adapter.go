@@ -2,9 +2,9 @@ package httpserver
 
 import (
 	"encoding/json"
-	"github.com/ibuilding-x/driver-box/driverbox/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/internal/driver/common"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
 	"sync"
 )
@@ -31,12 +31,12 @@ func (pd protoData) ToJSON() string {
 }
 
 // Encode 编码数据，无需实现
-func (a *adapter) Encode(deviceName string, mode contracts.EncodeMode, values contracts.PointData) (res interface{}, err error) {
+func (a *adapter) Encode(deviceName string, mode plugin.EncodeMode, values plugin.PointData) (res interface{}, err error) {
 	return nil, common.NotSupportEncode
 }
 
 // Decode 解码数据，调用动态脚本解析
-func (a *adapter) Decode(raw interface{}) (res []contracts.DeviceData, err error) {
+func (a *adapter) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	return helper.CallLuaConverter(a.ls, "decode", raw)

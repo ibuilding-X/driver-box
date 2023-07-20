@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/contracts"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
-	"github.com/ibuilding-x/driver-box/internal/driver/common"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/driver/plugins"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
@@ -164,8 +164,8 @@ func timerTaskForScript(L *lua.LState, method string) func() {
 }
 
 // receiveHandler 接收消息回调
-func receiveHandler() contracts.OnReceiveHandler {
-	return func(plugin contracts.Plugin, raw interface{}) (result interface{}, err error) {
+func receiveHandler() plugin.OnReceiveHandler {
+	return func(plugin plugin.Plugin, raw interface{}) (result interface{}, err error) {
 		helper.Logger.Debug("raw data", zap.Any("data", raw))
 		// 协议适配器
 		deviceData, err := plugin.ProtocolAdapter().Decode(raw)

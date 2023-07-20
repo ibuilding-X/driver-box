@@ -4,8 +4,8 @@ package edgex
 
 import (
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/models"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/internal/driver/common"
 )
 
 // Points2Resources points 转 resources

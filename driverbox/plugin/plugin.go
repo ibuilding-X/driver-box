@@ -1,6 +1,6 @@
 // 插件接口
 
-package contracts
+package plugin
 
 import (
 	"encoding/json"

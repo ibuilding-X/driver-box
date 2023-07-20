@@ -1,9 +1,9 @@
 package driverbox
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/contracts"
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/driver/bootstrap"
 	"github.com/ibuilding-x/driver-box/internal/driver/plugins"
 	"github.com/ibuilding-x/driver-box/internal/driver/plugins/httpserver"
@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func RegisterPlugin(name string, plugin contracts.Plugin) error {
+func RegisterPlugin(name string, plugin plugin.Plugin) error {
 	return plugins.Manager.Register("bacnet", &httpserver.Plugin{})
 }
 

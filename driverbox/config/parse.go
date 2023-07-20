@@ -5,7 +5,7 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"github.com/ibuilding-x/driver-box/internal/driver/common"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"io"
 	"io/fs"
 	"os"

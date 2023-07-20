@@ -16,8 +16,8 @@ import (
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/dtos/requests"
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 	models2 "github.com/edgexfoundry/go-mod-core-contracts/v2/models"
-	"github.com/ibuilding-x/driver-box/driverbox/contracts"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 	"sync"
 	"time"
@@ -77,7 +77,7 @@ func (export *EdgexExport) Init() error {
 }
 
 // 导出消息：写入Edgex总线、MQTT上云
-func (export *EdgexExport) ExportTo(deviceData contracts.DeviceData) {
+func (export *EdgexExport) ExportTo(deviceData plugin.DeviceData) {
 	// WriteToMessageBus 设备数据写入消息总线
 	var values []*sdkModels.CommandValue
 	for _, point := range deviceData.Values {
@@ -220,7 +220,7 @@ func (s *EdgexExport) HandleReadCommands(deviceName string, protocols map[string
 
 	for i, _ := range reqs {
 		if _, ok := helper.CoreCache.GetPointByDevice(deviceName, reqs[i].DeviceResourceName); ok {
-			err = helper.Send(deviceName, contracts.ReadMode, contracts.PointData{
+			err = helper.Send(deviceName, plugin.ReadMode, plugin.PointData{
 				PointName: reqs[i].DeviceResourceName,
 				Type:      reqs[i].Type,
 			})
@@ -249,7 +249,7 @@ func (s *EdgexExport) HandleWriteCommands(deviceName string, protocols map[strin
 	}
 	for i, _ := range reqs {
 		if _, ok := helper.CoreCache.GetPointByDevice(deviceName, reqs[i].DeviceResourceName); ok {
-			err := helper.Send(deviceName, contracts.WriteMode, contracts.PointData{
+			err := helper.Send(deviceName, plugin.WriteMode, plugin.PointData{
 				PointName: reqs[i].DeviceResourceName,
 				Type:      reqs[i].Type,
 				Value:     params[i].Value,

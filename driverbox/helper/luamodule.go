@@ -2,7 +2,7 @@ package helper
 
 import (
 	"fmt"
-	"github.com/ibuilding-x/driver-box/driverbox/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
 )
 
@@ -57,13 +57,13 @@ func (lm *LuaModule) WriteToMsgBus(L *lua.LState) int {
 	deviceName := L.ToString(1) // 设备名称
 	points := L.ToTable(2)      // 点位值
 
-	deviceData := contracts.DeviceData{
+	deviceData := plugin.DeviceData{
 		DeviceName: deviceName,
 	}
-	var pd []contracts.PointData
+	var pd []plugin.PointData
 	// 循环点位数据
 	points.ForEach(func(key lua.LValue, value lua.LValue) {
-		pd = append(pd, contracts.PointData{
+		pd = append(pd, plugin.PointData{
 			PointName: key.String(),
 			Value:     value.String(),
 		})

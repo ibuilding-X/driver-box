@@ -2,11 +2,11 @@ package helper
 
 import (
 	"fmt"
-	"github.com/ibuilding-x/driver-box/driverbox/contracts"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 )
 
 // Send 向设备发送数据
-func Send(deviceName string, mode contracts.EncodeMode, value contracts.PointData) (err error) {
+func Send(deviceName string, mode plugin.EncodeMode, value plugin.PointData) (err error) {
 	defer func() {
 		if err2 := recover(); err2 != nil {
 			Logger.Error(fmt.Sprintf("%+v", err2))
@@ -50,7 +50,7 @@ func SendMultiRead(deviceNames []string, pointNames []string) (err error) {
 				Logger.Error(fmt.Sprintf("not found point, point name is %s", pointName))
 				return
 			}
-			err2 := Send(deviceName, contracts.ReadMode, contracts.PointData{
+			err2 := Send(deviceName, plugin.ReadMode, plugin.PointData{
 				PointName: pointName,
 				Type:      point.ValueType,
 			})
