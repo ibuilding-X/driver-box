@@ -6,7 +6,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/response"
 	"github.com/ibuilding-x/driver-box/driverbox/models"
-	"github.com/ibuilding-x/driver-box/internal/driver/bootstrap"
+	"github.com/ibuilding-x/driver-box/internal/bootstrap"
 	"go.uber.org/zap"
 	"io"
 	"net/http"

@@ -5,10 +5,9 @@ ENV GOPROXY=https://goproxy.cn,direct
 
 WORKDIR /build
 
-COPY ./config ./config
-COPY core ./core
-COPY internal/driver ./driver
 COPY ./driver-config ./driver-config
+COPY ./driverbox ./driverbox
+COPY internal/ ./internal
 COPY ./res ./res
 COPY ./go.sum ./go.sum
 COPY ./go.mod ./go.mod
@@ -30,7 +29,6 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/re
     apk del tzdata && \
     rm -rf /var/cache/apk/*
 
-COPY --from=builder /build/app /app
 COPY --from=builder /build/res /res
 COPY --from=builder /build/driver-box /driver-box
 

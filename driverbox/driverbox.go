@@ -4,10 +4,10 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/internal/driver/bootstrap"
-	"github.com/ibuilding-x/driver-box/internal/driver/plugins"
-	"github.com/ibuilding-x/driver-box/internal/driver/plugins/httpserver"
-	"github.com/ibuilding-x/driver-box/internal/driver/restful/route"
+	"github.com/ibuilding-x/driver-box/internal/bootstrap"
+	"github.com/ibuilding-x/driver-box/internal/plugins"
+	"github.com/ibuilding-x/driver-box/internal/plugins/httpserver"
+	"github.com/ibuilding-x/driver-box/internal/restful/route"
 	"go.uber.org/zap"
 )
 

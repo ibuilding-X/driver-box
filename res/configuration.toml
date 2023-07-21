@@ -1,0 +1,117 @@
+MaxEventSize = 0 # value 0 unlimit the maximum event size that can be sent to message bus or core-data.
+
+[Writable]
+LogLevel = "INFO"
+  # Example InsecureSecrets configuration that simulates SecretStore for when EDGEX_SECURITY_SECRET_STORE=false
+  # InsecureSecrets are required for when Redis is used for message bus
+  [Writable.InsecureSecrets]
+    [Writable.InsecureSecrets.DB]
+    path = "redisdb"
+      [Writable.InsecureSecrets.DB.Secrets]
+      username = ""
+      password = ""
+  [Writable.Reading]
+  ReadingUnits = true
+
+[Service]
+HealthCheckInterval = "10s"
+Host = "localhost"
+Port = 59999 # Device serivce are assigned the 599xx range
+ServerBindAddr = ""  # blank value defaults to Service.Host value
+StartupMsg = "device simple started"
+# MaxRequestSize limit the request body size in kilobyte of put command
+MaxRequestSize = 0 # value 0 unlimit the request size.
+RequestTimeout = "20s"
+  [Service.CORSConfiguration]
+  EnableCORS = false
+  CORSAllowCredentials = false
+  CORSAllowedOrigin = "https://localhost"
+  CORSAllowedMethods = "GET, POST, PUT, PATCH, DELETE"
+  CORSAllowedHeaders = "Authorization, Accept, Accept-Language, Content-Language, Content-Type, X-Correlation-ID"
+  CORSExposeHeaders = "Cache-Control, Content-Language, Content-Length, Content-Type, Expires, Last-Modified, Pragma, X-Correlation-ID"
+  CORSMaxAge = 3600
+
+[Registry]
+Host = "localhost"
+Port = 8500
+Type = "consul"
+
+[Clients]
+  [Clients.core-data]
+  Protocol = "http"
+  Host = "localhost"
+  Port = 59880
+
+  [Clients.core-metadata]
+  Protocol = "http"
+  Host = "localhost"
+  Port = 59881
+
+[MessageQueue]
+Protocol = "redis"
+Host = "localhost"
+Port = 6379
+Type = "redis"
+AuthMode = "usernamepassword"  # required for redis messagebus (secure or insecure).
+SecretName = "redisdb"
+PublishTopicPrefix = "edgex/events/device" # /<device-profile-name>/<device-name>/<source-name> will be added to this Publish Topic prefix
+  [MessageQueue.Optional]
+  # Default MQTT Specific options that need to be here to enable environment variable overrides of them
+  # Client Identifiers
+  ClientId = "device-simple"
+  # Connection information
+  Qos = "0" # Quality of Sevice values are 0 (At most once), 1 (At least once) or 2 (Exactly once)
+  KeepAlive = "10" # Seconds (must be 2 or greater)
+  Retained = "false"
+  AutoReconnect = "true"
+  ConnectTimeout = "5" # Seconds
+  SkipCertVerify = "false" # Only used if Cert/Key file or Cert/Key PEMblock are specified
+
+# Example SecretStore configuration.
+# Only used when EDGEX_SECURITY_SECRET_STORE=true
+# Must also add `ADD_SECRETSTORE_TOKENS: "device-simple"` to vault-worker environment so it generates
+# the token and secret store in vault for "device-simple"
+[SecretStore]
+Type = "vault"
+Host = "localhost"
+Port = 8200
+Path = "device-simple/"
+Protocol = "http"
+RootCaCertPath = ""
+ServerName = ""
+SecretsFile = ""
+DisableScrubSecretsFile = false
+TokenFile = "/tmp/edgex/secrets/device-simple/secrets-token.json"
+  [SecretStore.Authentication]
+  AuthType = "X-Vault-Token"
+  [SecretStore.RuntimeTokenProvider]
+  Enabled = false
+  Protocol = "https"
+  Host = "localhost"
+  Port = 59841
+  TrustDomain = "edgexfoundry.org"
+  EndpointSocket = "/tmp/edgex/secrets/spiffe/public/api.sock"
+  RequiredSecrets = "redisdb"
+
+[Device]
+  DataTransform = true
+  MaxCmdOps = 128
+  MaxCmdValueLen = 256
+  ProfilesDir = ""
+  DevicesDir = ""
+  UpdateLastConnected = false
+  AsyncBufferSize = 1
+  EnableAsyncReadings = true
+  Labels = []
+  UseMessageBus = true
+  [Device.Discovery]
+    Enabled = false
+    Interval = "30s"
+
+[DriverConfig]
+  # 日志级别：debug、info、warn、error
+  LoggerLevel = "debug"
+  # 点位值缓存最大时长，单位：秒
+  PointCacheTTL = 900
+	# 默认设备影子服务生命周期，单位：秒
+	DefaultDeviceTTL = 900

@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/internal/driver/plugins/httpclient"
-	"github.com/ibuilding-x/driver-box/internal/driver/plugins/httpserver"
-	"github.com/ibuilding-x/driver-box/internal/driver/plugins/modbus"
-	"github.com/ibuilding-x/driver-box/internal/driver/plugins/mqtt"
-	"github.com/ibuilding-x/driver-box/internal/driver/plugins/tcpserver"
+	"github.com/ibuilding-x/driver-box/internal/plugins/httpclient"
+	"github.com/ibuilding-x/driver-box/internal/plugins/httpserver"
+	"github.com/ibuilding-x/driver-box/internal/plugins/modbus"
+	"github.com/ibuilding-x/driver-box/internal/plugins/mqtt"
+	"github.com/ibuilding-x/driver-box/internal/plugins/tcpserver"
 	"sync"
 )
 

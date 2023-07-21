@@ -3,16 +3,15 @@ package main
 import (
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/export"
-	"github.com/ibuilding-x/driver-box/internal/driver/plugins/httpserver"
+	"github.com/ibuilding-x/driver-box/driverbox/export/edgex"
 	"os"
 )
 
 func main() {
-	localMode("127.0.0.1", "59999", "192.168.16.35")
-	_ = os.Setenv("EDGEX_SECURITY_SECRET_STORE", "false")
+	//localMode("127.0.0.1", "59999", "192.168.16.35")
+	//_ = os.Setenv("EDGEX_SECURITY_SECRET_STORE", "false")
 
-	driverbox.RegisterPlugin("bacnet", &httpserver.Plugin{})
-	driverbox.Start([]export.Export{&export.DefaultExport{}})
+	driverbox.Start([]export.Export{&edgex.EdgexExport{}})
 	select {}
 }
 

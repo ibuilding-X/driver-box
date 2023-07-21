@@ -10,7 +10,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/internal/driver/plugins"
+	"github.com/ibuilding-x/driver-box/internal/plugins"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 	"time"
