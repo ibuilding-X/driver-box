@@ -16,8 +16,6 @@ import (
 	"sync"
 )
 
-var Export export.Export
-
 var Exports []export.Export
 
 var RunningPlugin plugin.Plugin // todo 待删除

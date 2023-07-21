@@ -92,13 +92,16 @@ func initDeviceShadow(defaultTTL int64, configMap map[string]config.Config) {
 		} else {
 			helper.Logger.Warn("device offline...", zap.String("deviceName", deviceName))
 		}
-		if !helper.Export.IsReady() {
-			helper.Logger.Warn("export not ready")
-			return
-		}
-		err := helper.Export.SendStatusChangeNotification(deviceName, online)
-		if err != nil {
-			helper.Logger.Error("send device status change notification error", zap.String("deviceName", deviceName))
+
+		for _, export := range helper.Exports {
+			if !export.IsReady() {
+				helper.Logger.Warn("export not ready")
+				continue
+			}
+			err := export.SendStatusChangeNotification(deviceName, online)
+			if err != nil {
+				helper.Logger.Error("send device status change notification error", zap.String("deviceName", deviceName))
+			}
 		}
 	})
 	// 添加设备
@@ -176,7 +179,9 @@ func receiveHandler() plugin.OnReceiveHandler {
 		// 写入消息总线
 		for _, data := range deviceData {
 			//helper.WriteToMessageBus(data)
-			helper.Export.ExportTo(data)
+			for _, export := range helper.Exports {
+				export.ExportTo(data)
+			}
 		}
 		return
 	}

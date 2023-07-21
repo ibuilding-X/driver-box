@@ -17,7 +17,6 @@ func RegisterPlugin(name string, plugin plugin.Plugin) error {
 
 func Start(exports []export.Export) {
 	//第一步：加载配置文件DriverConfig
-	helper.Export = &export.DefaultExport{}
 
 	//第二步：初始化日志记录器
 	if err := helper.InitLogger("DEBUG"); err != nil {

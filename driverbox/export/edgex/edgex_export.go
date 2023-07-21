@@ -69,6 +69,7 @@ type EdgexExport struct {
 	serviceConfig *ServiceConfig                      // 自定义 EdgeX 配置
 	deviceCh      chan<- []sdkModels.DiscoveredDevice // 设备通道，暂无使用价值
 	asyncCh       chan<- *sdkModels.AsyncValues
+	ready         bool //是否就绪
 }
 
 func (export *EdgexExport) Init() error {
@@ -132,7 +133,7 @@ func NewEdgexExport() *EdgexExport {
 }
 
 func (export *EdgexExport) IsReady() bool {
-	return false
+	return export.ready
 }
 
 // Initialize 初始化
@@ -168,7 +169,7 @@ func (s *EdgexExport) Initialize(lc logger.LoggingClient, asyncCh chan<- *sdkMod
 		}
 		lc.Info("-------------------- end init --------------------")
 	}()
-
+	s.ready = true
 	return nil
 }
 
