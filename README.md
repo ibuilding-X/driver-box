@@ -25,29 +25,14 @@ cd driver-box
 go mod vendor # 国内用户可以切换源：go env -w GOPROXY=https://goproxy.cn,direct
 ```
 
-3. 启动 EdgeX 环境
-
-```bash
-# 默认提供的 docker-compose.yml 采用的是 openyurt 多架构镜像
-docker compose up -d
-
-# 可通过以下命令查看服务状态
-docker compose ps -a
-```
-
 ## 本地运行
 
-1. 修改 main.go 文件
+1. 打开 main.go 文件
 
 ```go
 func main() {
-  _ = os.Setenv("EDGEX_SECURITY_SECRET_STORE", "false")
-
-  // 正式环境需注释掉
-  localMode("127.0.0.1", "59999", "127.0.0.1") // 按照实际情况修改
-
-  sd := driver.Driver{}
-  startup.Bootstrap(serviceName, version, &sd)
+    driverbox.Start([]export.Export{&export.DefaultExport{}})
+    select {}
 }
 ```
 
