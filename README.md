@@ -1,37 +1,73 @@
-# driver-box
+# DriverBox
 
-#### 介绍
-简单易用的设备驱动编排服务
+DriverBox 是一款基于物联网开源框架 Edgex（opens new window）打造的泛化协议接入服务。 以插件化的形式融合了 Modbus、TCP、HTTP、MQTT 等主流协议，同时也支持基于TCP的各类私有化协议对接。
 
-#### 软件架构
-软件架构说明
+我们期望 DriverBox 能够为相关人士提供更加高效、舒适的设备接入体验。 通过对各类设备的通信协议和数据交互形式进行抽象，定义了一套标准流程以涵盖泛化协议的共性处理逻辑，并结合动态解析脚本（Lua、Javascript、Python）填补其中的差异化部分。
 
 
-#### 安装教程
+## 文档
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+[快速开始](https://ibuilding-x.gitee.io/driver-box/quick_start/)
 
-#### 使用说明
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+## 安装
 
-#### 参与贡献
+1. 下载源代码
+
+```bash
+git clone https://gitee.com/iBUILDING-X/driver-box.git
+```
+
+2. 加载 go 依赖
+
+```bash
+cd driver-box
+go mod vendor # 国内用户可以切换源：go env -w GOPROXY=https://goproxy.cn,direct
+```
+
+3. 启动 EdgeX 环境
+
+```bash
+# 默认提供的 docker-compose.yml 采用的是 openyurt 多架构镜像
+docker compose up -d
+
+# 可通过以下命令查看服务状态
+docker compose ps -a
+```
+
+## 本地运行
+
+1. 修改 main.go 文件
+
+```go
+func main() {
+  _ = os.Setenv("EDGEX_SECURITY_SECRET_STORE", "false")
+
+  // 正式环境需注释掉
+  localMode("127.0.0.1", "59999", "127.0.0.1") // 按照实际情况修改
+
+  sd := driver.Driver{}
+  startup.Bootstrap(serviceName, version, &sd)
+}
+```
+
+2. 启动 driver-box
+
+```bash
+go run main.go
+```
+
+## 参与贡献
 
 1.  Fork 本仓库
 2.  新建 Feat_xxx 分支
 3.  提交代码
 4.  新建 Pull Request
 
+## 反馈
 
-#### 特技
+如果您有任何问题，请通过 [issues](https://gitee.com/iBUILDING-X/driver-box/issues) 快速反馈
 
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+## 致谢
+
+- [EdgeX Foundry](https://www.edgexfoundry.org/)
