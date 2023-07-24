@@ -47,7 +47,7 @@ func LoadPlugins() error {
 	for key, _ := range configMap {
 		helper.Logger.Info(key+" begin start", zap.Any("directoryName", key), zap.Any("plugin", configMap[key].ProtocolName))
 		// 获取插件示例
-		plugin, err := plugins.Manager.Get(configMap[key])
+		p, err := plugins.Manager.Get(configMap[key])
 		if err != nil {
 			helper.Logger.Error(err.Error())
 			continue
@@ -59,13 +59,13 @@ func LoadPlugins() error {
 			continue
 		}
 
-		err = plugin.Initialize(helper.Logger, configMap[key], receiveHandler(), ls)
+		err = p.Initialize(helper.Logger, configMap[key], receiveHandler(), ls)
 		if err != nil {
 			return err
 		}
 
 		// 缓存插件
-		helper.CoreCache.AddRunningPlugin(key, plugin)
+		helper.CoreCache.AddRunningPlugin(key, p)
 
 		// 初始化定时任务
 		if configMap[key].Tasks != nil && len(configMap[key].Tasks) > 0 {
@@ -105,8 +105,8 @@ func initDeviceShadow(defaultTTL int64, configMap map[string]config.Config) {
 		}
 	})
 	// 添加设备
-	for _, config := range configMap {
-		for _, model := range config.DeviceModels {
+	for _, c := range configMap {
+		for _, model := range c.DeviceModels {
 			for _, d := range model.Devices {
 				dev := shadow.NewDevice(d.Name, model.Name, nil)
 				_ = helper.DeviceShadow.AddDevice(dev)

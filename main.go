@@ -7,5 +7,4 @@ import (
 
 func main() {
 	driverbox.Start([]export.Export{&export.DefaultExport{}})
-	select {}
 }

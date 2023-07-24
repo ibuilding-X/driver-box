@@ -50,4 +50,5 @@ func Start(exports []export.Export) {
 		}(item)
 	}
 
+	select {}
 }

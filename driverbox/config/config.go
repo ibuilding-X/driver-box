@@ -1,4 +1,4 @@
-// // 核心配置
+// Package config 核心配置
 package config
 
 import (

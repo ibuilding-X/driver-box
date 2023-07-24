@@ -2,11 +2,12 @@ package export
 
 import "github.com/ibuilding-x/driver-box/driverbox/plugin"
 
-type ExportConfig struct {
+type Config struct {
 }
+
 type Export interface {
 	Init() error
-	//导出消息：写入Edgex总线、MQTT上云
+	// ExportTo 导出消息：写入Edgex总线、MQTT上云
 	ExportTo(deviceData plugin.DeviceData)
 
 	SendStatusChangeNotification(deviceName string, online bool) error
@@ -23,7 +24,7 @@ func (export *DefaultExport) Init() error {
 	return nil
 }
 
-// 导出消息：写入Edgex总线、MQTT上云
+// ExportTo 导出消息：写入Edgex总线、MQTT上云
 func (export *DefaultExport) ExportTo(deviceData plugin.DeviceData) {
 
 }
