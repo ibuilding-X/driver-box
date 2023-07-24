@@ -28,7 +28,6 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/re
     apk del tzdata && \
     rm -rf /var/cache/apk/*
 
-COPY --from=builder /build/res /res
 COPY --from=builder /build/driver-box /driver-box
 
 EXPOSE 59999
