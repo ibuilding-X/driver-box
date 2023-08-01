@@ -10,6 +10,9 @@ vendor:
 
 build: vendor build-for-windows build-for-linux build-for-mac
 
+tar: build
+	sh pack.sh
+
 build-for-windows: build-for-windows-amd64 build-for-windows-arm64
 
 build-for-linux: build-for-linux-amd64 build-for-linux-arm64
@@ -33,3 +36,5 @@ build-for-mac-amd64:
 
 build-for-mac-arm64:
 	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(BUILD) $(OUTPUT)/$(APP)-mac-arm64 main.go
+
+
