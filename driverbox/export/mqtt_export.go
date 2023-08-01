@@ -11,16 +11,20 @@ import (
 )
 
 type MqttExport struct {
-	Broker   string `json:"broker"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	ClientID string `json:"client_id"`
-	init     bool
-	client   mqtt.Client
-	handler  mqtt.MessageHandler
+	Broker      string `json:"broker"`
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	ClientID    string `json:"client_id"`
+	init        bool
+	client      mqtt.Client
+	handler     mqtt.MessageHandler
+	ExportTopic string
 }
 
 func (export *MqttExport) Init() error {
+	if len(export.ExportTopic) == 0 {
+		panic("exportTopic is blank")
+	}
 	options := mqtt.NewClientOptions()
 	options.AddBroker(export.Broker)
 	options.SetUsername(export.Username)
@@ -57,7 +61,7 @@ func (export *MqttExport) onConnectionLostHandler(client mqtt.Client, err error)
 func (export *MqttExport) ExportTo(deviceData plugin.DeviceData) {
 	log.Println("export...")
 	bytes, _ := json.Marshal(deviceData)
-	token := export.client.Publish("/driverbox/data/"+export.ClientID, 0, false, bytes)
+	token := export.client.Publish(export.ExportTopic, 0, false, bytes)
 	if token.Error() != nil {
 		log.Fatal(token.Error())
 	}

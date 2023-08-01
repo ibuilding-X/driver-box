@@ -14,11 +14,13 @@ func main() {
 	var clientId string
 	var username string
 	var password string
+	var exportTopic string
 
 	flag.StringVar(&broker, "broker", os.Getenv("MQTT_BROKER"), "mqttExport: broker address")
 	flag.StringVar(&clientId, "clientId", os.Getenv("MQTT_CLIENT_ID"), "mqttExport: clientId")
-	flag.StringVar(&clientId, "username", os.Getenv("MQTT_USERNAME"), "mqttExport: username")
-	flag.StringVar(&clientId, "password", os.Getenv("MQTT_PASSWORD"), "mqttExport: password")
+	flag.StringVar(&username, "username", os.Getenv("MQTT_USERNAME"), "mqttExport: username")
+	flag.StringVar(&password, "password", os.Getenv("MQTT_PASSWORD"), "mqttExport: password")
+	flag.StringVar(&exportTopic, "exportTopic", os.Getenv("MQTT_EXPORT_TOPIC"), "mqttExport: exportTopic")
 	flag.Parse()
 
 	if len(clientId) == 0 {
@@ -26,10 +28,11 @@ func main() {
 	}
 	helper.DriverConfig.DefaultDeviceTTL = 900
 	driverbox.Start([]export.Export{&export.MqttExport{
-		Broker:   broker,
-		ClientID: clientId,
-		Username: username,
-		Password: password,
+		Broker:      broker,
+		ClientID:    clientId,
+		Username:    username,
+		Password:    password,
+		ExportTopic: exportTopic,
 	}})
 }
 
