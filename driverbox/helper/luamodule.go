@@ -70,9 +70,13 @@ func (lm *LuaModule) WriteToMsgBus(L *lua.LState) int {
 	})
 	deviceData.Values = pd
 
+	PointCacheFilter(&deviceData)
+
 	// 发送数据
-	for _, export := range Exports {
-		export.ExportTo(deviceData)
+	if len(deviceData.Values) > 0 {
+		for _, export := range Exports {
+			export.ExportTo(deviceData)
+		}
 	}
 	//WriteToMessageBus(deviceData)
 

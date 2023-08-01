@@ -179,6 +179,10 @@ func receiveHandler() plugin.OnReceiveHandler {
 		// 写入消息总线
 		for _, data := range deviceData {
 			//helper.WriteToMessageBus(data)
+			helper.PointCacheFilter(&data)
+			if len(data.Values) == 0 {
+				continue
+			}
 			for _, export := range helper.Exports {
 				export.ExportTo(data)
 			}
