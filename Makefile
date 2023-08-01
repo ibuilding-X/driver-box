@@ -5,13 +5,11 @@ APP=driver-box
 BUILD=go build -o
 
 vendor:
+	rm -rf $(OUTPUT)/
 	go mod tidy
 	go mod vendor
 
 build: vendor build-for-windows build-for-linux build-for-mac
-
-tar: build
-	sh pack.sh
 
 build-for-windows: build-for-windows-amd64 build-for-windows-arm64
 

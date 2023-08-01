@@ -26,7 +26,7 @@ func main() {
 	if len(clientId) == 0 {
 		clientId = ""
 	}
-	helper.DriverConfig.DefaultDeviceTTL = 900
+	helper.DriverConfig.DefaultDeviceTTL = 5
 	driverbox.Start([]export.Export{&export.MqttExport{
 		Broker:      broker,
 		ClientID:    clientId,
