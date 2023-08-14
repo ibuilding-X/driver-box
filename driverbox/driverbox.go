@@ -6,13 +6,12 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
-	"github.com/ibuilding-x/driver-box/internal/plugins/httpserver"
 	"github.com/ibuilding-x/driver-box/internal/restful/route"
 	"go.uber.org/zap"
 )
 
 func RegisterPlugin(name string, plugin plugin.Plugin) error {
-	return plugins.Manager.Register("bacnet", &httpserver.Plugin{})
+	return plugins.Manager.Register(name, plugin)
 }
 
 func Start(exports []export.Export) {
