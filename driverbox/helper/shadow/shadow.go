@@ -3,7 +3,6 @@ package shadow
 import (
 	"errors"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"sync"
 	"time"
 )
@@ -37,12 +36,16 @@ type DeviceShadow interface {
 
 	// StopStatusListener 停止设备状态监听
 	StopStatusListener()
+
+	// 设备影子过期时间
+	SetDeviceTTL(ttl int)
 }
 
 type deviceShadow struct {
 	m           *sync.Map
 	ticker      *time.Ticker
 	handlerFunc OnlineChangeCallback
+	ttl         int
 }
 
 func NewDeviceShadow() DeviceShadow {
@@ -63,6 +66,10 @@ func (d *deviceShadow) AddDevice(device Device) (err error) {
 	return nil
 }
 
+// 设备影子过期时间
+func (d *deviceShadow) SetDeviceTTL(ttl int) {
+	d.ttl = ttl
+}
 func (d *deviceShadow) GetDevice(deviceName string) (device Device, err error) {
 	if deviceAny, ok := d.m.Load(deviceName); ok {
 		return deviceAny.(Device), nil
@@ -106,7 +113,7 @@ func (d *deviceShadow) SetDevicePoint(deviceName, pointName string, value interf
 func (d *deviceShadow) GetDevicePoint(deviceName, pointName string) (value interface{}, err error) {
 	if deviceAny, ok := d.m.Load(deviceName); ok {
 		device := deviceAny.(Device)
-		if device.online == false || time.Now().Second()-device.updatedAt.Second() > helper.DriverConfig.DefaultDeviceTTL {
+		if device.online == false || time.Now().Second()-device.updatedAt.Second() > d.ttl {
 			return
 		}
 		return device.Points[pointName].Value, nil
@@ -194,7 +201,7 @@ func (d *deviceShadow) checkOnOff() {
 	for range d.ticker.C {
 		d.m.Range(func(key, value any) bool {
 			if device, ok := value.(Device); ok {
-				if device.online && (time.Now().Second()-device.updatedAt.Second()) > helper.DriverConfig.DefaultDeviceTTL {
+				if device.online && (time.Now().Second()-device.updatedAt.Second()) > d.ttl {
 					_ = d.SetOffline(device.Name)
 				}
 			}
