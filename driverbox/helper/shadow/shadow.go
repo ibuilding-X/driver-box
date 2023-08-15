@@ -3,6 +3,7 @@ package shadow
 import (
 	"errors"
 	"fmt"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"sync"
 	"time"
 )
@@ -105,7 +106,7 @@ func (d *deviceShadow) SetDevicePoint(deviceName, pointName string, value interf
 func (d *deviceShadow) GetDevicePoint(deviceName, pointName string) (value interface{}, err error) {
 	if deviceAny, ok := d.m.Load(deviceName); ok {
 		device := deviceAny.(Device)
-		if device.online == false || time.Now().Sub(device.updatedAt) > device.ttl {
+		if device.online == false || time.Now().Second()-device.updatedAt.Second() > helper.DriverConfig.DefaultDeviceTTL {
 			return
 		}
 		return device.Points[pointName].Value, nil
@@ -193,7 +194,7 @@ func (d *deviceShadow) checkOnOff() {
 	for range d.ticker.C {
 		d.m.Range(func(key, value any) bool {
 			if device, ok := value.(Device); ok {
-				if device.online && time.Now().Sub(device.updatedAt) > device.ttl {
+				if device.online && (time.Now().Second()-device.updatedAt.Second()) > helper.DriverConfig.DefaultDeviceTTL {
 					_ = d.SetOffline(device.Name)
 				}
 			}
