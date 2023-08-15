@@ -13,7 +13,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
-	"time"
 )
 
 // LoadPlugins 加载插件并运行
@@ -38,7 +37,7 @@ func LoadPlugins() error {
 	}
 
 	// 初始化本地影子服务
-	initDeviceShadow(helper.DriverConfig.DefaultDeviceTTL, configMap)
+	initDeviceShadow(configMap)
 
 	// 初始化 crontab
 	helper.Crontab = crontab.NewCrontab()
@@ -81,8 +80,7 @@ func LoadPlugins() error {
 }
 
 // 初始化影子服务
-func initDeviceShadow(defaultTTL int64, configMap map[string]config.Config) {
-	shadow.SetDefaultDeviceTTL(time.Duration(defaultTTL) * time.Second)
+func initDeviceShadow(configMap map[string]config.Config) {
 	// 设置影子服务设备生命周期
 	helper.DeviceShadow = shadow.NewDeviceShadow()
 	// 设置回调

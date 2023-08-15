@@ -10,7 +10,7 @@ import (
 type DriverConfig struct {
 	LoggerLevel      string // 日志等级
 	PointCacheTTL    int64  // 点位缓存默认过期时间，单位：秒
-	DefaultDeviceTTL int64  // 默认设备影子生命周期
+	DefaultDeviceTTL int    // 默认设备影子生命周期
 }
 type PointMap map[string]interface{} // 点位 Map，可转换为标准点位数据
 
