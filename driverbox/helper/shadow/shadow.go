@@ -113,7 +113,7 @@ func (d *deviceShadow) SetDevicePoint(deviceName, pointName string, value interf
 func (d *deviceShadow) GetDevicePoint(deviceName, pointName string) (value interface{}, err error) {
 	if deviceAny, ok := d.m.Load(deviceName); ok {
 		device := deviceAny.(Device)
-		if device.online == false || time.Now().Sub(device.updatedAt) > time.Duration(d.ttl) {
+		if device.online == false || time.Now().Sub(device.updatedAt) > time.Duration(d.ttl)*time.Second {
 			return
 		}
 		return device.Points[pointName].Value, nil
@@ -201,7 +201,7 @@ func (d *deviceShadow) checkOnOff() {
 	for range d.ticker.C {
 		d.m.Range(func(key, value any) bool {
 			if device, ok := value.(Device); ok {
-				if device.online && time.Now().Sub(device.updatedAt) > time.Duration(d.ttl) {
+				if device.online && time.Now().Sub(device.updatedAt) > time.Duration(d.ttl)*time.Second {
 					_ = d.SetOffline(device.Name)
 				}
 			}
