@@ -37,7 +37,7 @@ type DeviceShadow interface {
 	// StopStatusListener 停止设备状态监听
 	StopStatusListener()
 
-	// 设备影子过期时间
+	// SetDeviceTTL 设备影子过期时间
 	SetDeviceTTL(ttl int)
 }
 
@@ -66,7 +66,7 @@ func (d *deviceShadow) AddDevice(device Device) (err error) {
 	return nil
 }
 
-// 设备影子过期时间
+// SetDeviceTTL 设备影子过期时间
 func (d *deviceShadow) SetDeviceTTL(ttl int) {
 	d.ttl = ttl
 }
@@ -201,6 +201,11 @@ func (d *deviceShadow) checkOnOff() {
 	for range d.ticker.C {
 		d.m.Range(func(key, value any) bool {
 			if device, ok := value.(Device); ok {
+				// fix: when ttl == 0, device always offline
+				if d.ttl == 0 {
+					return true
+				}
+
 				if device.online && time.Now().Sub(device.updatedAt) > time.Duration(d.ttl)*time.Second {
 					_ = d.SetOffline(device.Name)
 				}
