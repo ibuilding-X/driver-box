@@ -89,14 +89,14 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 		shadowValue, _ := DeviceShadow.GetDevicePoint(deviceData.DeviceName, point.PointName)
 		if shadowValue == point.Value {
 			Logger.Debug("point value = cache, stop sending to messageBus")
-			continue
+		} else {
+			// 点位值类型名称转换
+			points = append(points, point)
 		}
 		// 缓存
 		if err := DeviceShadow.SetDevicePoint(deviceData.DeviceName, point.PointName, point.Value); err != nil {
 			Logger.Error("shadow store point value error", zap.Error(err), zap.Any("deviceName", deviceData.DeviceName))
 		}
-		// 点位值类型名称转换
-		points = append(points, point)
 	}
 	deviceData.Values = points
 }
