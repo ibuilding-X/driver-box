@@ -10,6 +10,7 @@ import (
 var UnknownDeviceErr = errors.New("unknown device")
 var DeviceRepeatErr = errors.New("device already exists")
 var BindPointDataErr = errors.New("bind online point data can't be parsed")
+var UnknownDevicePointErr = errors.New("unknown device point")
 
 type OnlineChangeCallback func(deviceName string, online bool) // 设备上/下线回调
 
@@ -45,7 +46,7 @@ type deviceShadow struct {
 	m           *sync.Map
 	ticker      *time.Ticker
 	handlerFunc OnlineChangeCallback
-	ttl         int
+	ttl         int // 单位：秒
 }
 
 func NewDeviceShadow() DeviceShadow {
@@ -113,10 +114,18 @@ func (d *deviceShadow) SetDevicePoint(deviceName, pointName string, value interf
 func (d *deviceShadow) GetDevicePoint(deviceName, pointName string) (value interface{}, err error) {
 	if deviceAny, ok := d.m.Load(deviceName); ok {
 		device := deviceAny.(Device)
-		if device.online == false || time.Now().Sub(device.updatedAt) > time.Duration(d.ttl)*time.Second {
+		// 1. 设备离线
+		if device.online == false {
 			return
 		}
-		return device.Points[pointName].Value, nil
+		// 2. 点位缓存过期
+		if point, exist := device.Points[pointName]; exist {
+			if time.Since(point.UpdatedAt) > time.Duration(d.ttl)*time.Second {
+				return
+			}
+			return point.Value, nil
+		}
+		return nil, UnknownDevicePointErr
 	} else {
 		return nil, UnknownDeviceErr
 	}
@@ -182,7 +191,7 @@ func (d *deviceShadow) MayBeOffline(deviceName string) (err error) {
 			return
 		}
 		device.disconnectTimes++
-		if time.Now().Sub(device.updatedAt).Seconds() > 60 && device.disconnectTimes >= 3 {
+		if time.Since(device.updatedAt).Seconds() > 60 && device.disconnectTimes >= 3 {
 			return d.SetOffline(deviceName)
 		}
 		// 更新设备信息
@@ -206,7 +215,7 @@ func (d *deviceShadow) checkOnOff() {
 					return true
 				}
 
-				if device.online && time.Now().Sub(device.updatedAt) > time.Duration(d.ttl)*time.Second {
+				if device.online && time.Since(device.updatedAt) > time.Duration(d.ttl)*time.Second {
 					_ = d.SetOffline(device.Name)
 				}
 			}
