@@ -41,6 +41,11 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 			var model config.Model
 			if raw, ok := c.models.Load(deviceModel.Name); ok {
 				model = raw.(config.Model)
+				if model.ModelBase.Name != deviceModel.ModelBase.Name ||
+					model.ModelBase.ModelID != deviceModel.ModelBase.ModelID {
+					return fmt.Errorf("conflict model base information: %v  %v",
+						deviceModel.ModelBase, model.ModelBase)
+				}
 			} else {
 				model = config.Model{
 					ModelBase: deviceModel.ModelBase,
@@ -58,8 +63,19 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 			}
 			for _, device := range deviceModel.Devices {
 				deviceName := device.Name
+				deviceBase := device.DeviceBase
+				deviceBase.ModelName = deviceModel.Name
 				if _, ok := model.Devices[deviceName]; !ok {
-					model.Devices[deviceName] = device.DeviceBase
+					model.Devices[deviceName] = deviceBase
+				}
+				if deviceRaw, ok := c.devices.Load(deviceName); !ok {
+					c.devices.Store(deviceName, deviceBase)
+				} else {
+					storedDeviceBase := deviceRaw.(config.DeviceBase)
+					if storedDeviceBase.ModelName != deviceBase.ModelName {
+						return fmt.Errorf("conflict model for device [%s]: %s -> %s", deviceBase.Name,
+							deviceBase.ModelName, storedDeviceBase.ModelName)
+					}
 				}
 				var protocols map[string]ProtocolProperties
 				if raw, ok := c.deviceProtocols.Load(deviceName); ok {
@@ -105,7 +121,8 @@ type coreCache interface {
 
 func (c *cache) GetModel(modelName string) (model config.ModelBase, ok bool) {
 	if raw, exist := c.models.Load(modelName); exist {
-		model, _ = raw.(config.ModelBase)
+		m, _ := raw.(config.Model)
+		model = m.ModelBase
 		return model, true
 	}
 	return config.ModelBase{}, false
