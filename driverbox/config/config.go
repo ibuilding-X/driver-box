@@ -36,7 +36,7 @@ type Config struct {
 	// 连接配置
 	Connections map[string]interface{} `json:"connections" validate:"required"`
 	// 协议名称（通过协议名称区分连接模式：客户端、服务端）
-	ProtocolName string `json:"protocolName" validate:"required,oneof=http_server tcp_server modbus mqtt bacnet http_client"`
+	ProtocolName string `json:"protocolName" validate:"required"`
 	// 配置唯一key，一般对应目录名称
 	Key string `json:"-" validate:"-"`
 	// 定时任务
