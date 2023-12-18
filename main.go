@@ -34,6 +34,7 @@ func main() {
 		Password:    password,
 		ExportTopic: exportTopic,
 	}})
+	select {}
 }
 
 func localMode() {
