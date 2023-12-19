@@ -1,6 +1,7 @@
 package driverbox
 
 import (
+	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
@@ -16,19 +17,24 @@ func RegisterPlugin(name string, plugin plugin.Plugin) error {
 	return plugins.Manager.Register(name, plugin)
 }
 
-func Start(exports []export.Export) {
+func Start(exports []export.Export) error {
 	//第一步：加载配置文件DriverConfig
-	initEnvConfig()
+	err := initEnvConfig()
+	if err != nil {
+		fmt.Println("init env config error", err)
+		return err
+	}
 
 	//第二步：初始化日志记录器
 	if err := helper.InitLogger("DEBUG"); err != nil {
-		return
+		fmt.Println("init logger error", err)
+		return err
 	}
 
 	//第三步：启动driver-box插件
 	if err := bootstrap.LoadPlugins(); err != nil {
 		helper.Logger.Error(err.Error())
-		return
+		return err
 	}
 
 	// 第四步：启动 REST 服务
@@ -51,7 +57,7 @@ func Start(exports []export.Export) {
 			}
 		}(item)
 	}
-
+	return nil
 }
 
 func initEnvConfig() error {
