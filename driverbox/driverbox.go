@@ -76,5 +76,10 @@ func initEnvConfig() error {
 	} else {
 		helper.EnvConfig.HttpListen = ":8081"
 	}
+
+	logPath := os.Getenv(config.ENV_LOG_PATH)
+	if logPath != "" {
+		helper.EnvConfig.LogPath = logPath
+	}
 	return nil
 }

@@ -13,11 +13,15 @@ const (
 	ENV_CONFIG_PATH = "DRIVERBOX_CONFIG_PATH"
 	//http服务绑定地址
 	ENV_HTTP_LISTEN = "DRIVERBOX_HTTP_LISTEN"
+
+	//日志文件存放路径
+	ENV_LOG_PATH = "DRIVERBOX_LOG_PATH"
 )
 
 type EnvConfig struct {
 	ConfigPath string
 	HttpListen string
+	LogPath    string
 }
 
 type PointMap map[string]interface{} // 点位 Map，可转换为标准点位数据

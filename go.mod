@@ -11,6 +11,7 @@ require (
 	github.com/spf13/cast v1.5.1
 	github.com/yuin/gopher-lua v1.1.0
 	go.uber.org/zap v1.24.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	layeh.com/gopher-json v0.0.0-20201124131017-552bb3c4c3bf
 )
 

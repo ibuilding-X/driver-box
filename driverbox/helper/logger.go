@@ -3,32 +3,68 @@ package helper
 import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
+	"io"
+	"os"
+	"strings"
+	"time"
 )
 
 // Logger 日志记录器
 var Logger *zap.Logger
 
-// InitLogger 初始化日志记录器
-func InitLogger(level string) (err error) {
-	en := zap.NewProductionEncoderConfig()
-	en.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05.000")
-	en.ConsoleSeparator = " | "
-	en.EncodeLevel = zapcore.CapitalLevelEncoder
+// customClock 自定义时钟（时区调整）
+type customClock struct {
+}
 
-	conf := zap.NewProductionConfig()
-	conf.Level = convLoggerLV(level)
-	conf.EncoderConfig = en
-	conf.Encoding = "console"
-	Logger, err = conf.Build()
-	if err != nil {
-		return err
+func (c *customClock) Now() time.Time {
+	timezone := time.FixedZone("Asia/Shanghai", 8*3600)
+	return time.Now().In(timezone)
+}
+
+func (c *customClock) NewTicker(duration time.Duration) *time.Ticker {
+	return time.NewTicker(duration)
+}
+
+// New 实例化
+func InitLogger(level string) (err error) {
+	config := zap.NewProductionConfig()
+	config.Level = convertLevel(level)                                                       // 设置日志级别
+	config.Encoding = "console"                                                              // 输出格式：console、json
+	config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05.000") // 输出时间格式
+	config.EncoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder                           // 输出等级格式
+	config.EncoderConfig.ConsoleSeparator = " | "                                            // 字段分割符
+
+	var options []zap.Option
+	options = append(options, zap.WithCaller(true))          // 输出调用者信息
+	options = append(options, zap.WithClock(&customClock{})) // 设置时区
+
+	var w io.Writer
+	if EnvConfig.LogPath == "" {
+		w = os.Stdout
+	} else {
+		w = &lumberjack.Logger{
+			Filename:   EnvConfig.LogPath,
+			MaxSize:    100,
+			MaxAge:     15,
+			MaxBackups: 10,
+			LocalTime:  true,
+			Compress:   true,
+		}
 	}
+
+	encoder := zapcore.NewConsoleEncoder(config.EncoderConfig)
+	writer := zapcore.NewMultiWriteSyncer(zapcore.AddSync(w))
+	core := zapcore.NewCore(encoder, writer, config.Level)
+
+	Logger = zap.New(core, options...)
+
 	return nil
 }
 
-// convLoggerLV 转换日志等级
-func convLoggerLV(level string) zap.AtomicLevel {
-	switch level {
+// convertLevel 等级转换
+func convertLevel(level string) zap.AtomicLevel {
+	switch strings.ToLower(level) {
 	case "debug":
 		return zap.NewAtomicLevelAt(zap.DebugLevel)
 	case "info":
