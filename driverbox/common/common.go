@@ -3,9 +3,8 @@ package common
 import "errors"
 
 const (
-	CoreConfigPath = "./driver-config" // 本地核心配置文件路径
-	LuaScriptName  = "converter.lua"   // lua 转换器脚本名称
-	CoreConfigName = "config.json"     // 核心配置文件名称
+	LuaScriptName  = "converter.lua" // lua 转换器脚本名称
+	CoreConfigName = "config.json"   // 核心配置文件名称
 )
 
 // AdapterScriptPath 协议适配器脚本路径

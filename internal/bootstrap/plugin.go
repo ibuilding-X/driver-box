@@ -17,6 +17,8 @@ import (
 
 // LoadPlugins 加载插件并运行
 func LoadPlugins() error {
+	//打印环境配置
+	helper.Logger.Info("driver-box environment config", zap.Any("config", helper.EnvConfig))
 	// 加载核心配置
 	configMap, err := ParseFromPath(helper.EnvConfig.ConfigPath)
 	if err != nil {
