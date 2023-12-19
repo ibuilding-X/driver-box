@@ -26,7 +26,7 @@ func InitLuaVM(scriptDir string) (*lua.LState, error) {
 	luajson.Preload(ls)
 	ls.PreloadModule("driverbox", LuaModuleInstance.Loader)
 	// 文件路径
-	filePath := filepath.Join(common.CoreConfigPath, scriptDir, common.LuaScriptName)
+	filePath := filepath.Join(EnvConfig.ConfigPath, scriptDir, common.LuaScriptName)
 	if FileExists(filePath) {
 		// 脚本解析
 		err := ls.DoFile(filePath)

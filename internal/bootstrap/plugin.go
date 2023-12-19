@@ -18,7 +18,7 @@ import (
 // LoadPlugins 加载插件并运行
 func LoadPlugins() error {
 	// 加载核心配置
-	configMap, err := ParseFromPath(common.CoreConfigPath)
+	configMap, err := ParseFromPath(helper.EnvConfig.ConfigPath)
 	if err != nil {
 		return errors.New(common.LoadCoreConfigErr.Error() + ":" + err.Error())
 	}

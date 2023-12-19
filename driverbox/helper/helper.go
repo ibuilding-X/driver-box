@@ -4,7 +4,6 @@ package helper
 
 import (
 	"encoding/json"
-	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
@@ -13,7 +12,6 @@ import (
 	"go.uber.org/zap"
 	"io/fs"
 	"path/filepath"
-	"strings"
 	"sync"
 )
 
@@ -25,7 +23,7 @@ var PluginCacheMap = &sync.Map{} // 插件通用缓存
 
 var Crontab crontab.Crontab // 全局定时任务实例
 
-var DriverConfig config.DriverConfig // 驱动配置
+var EnvConfig config.EnvConfig
 
 // Map2Struct map 转 struct，用于解析连接器配置
 // m：map[string]interface
@@ -36,21 +34,6 @@ func Map2Struct(m interface{}, v interface{}) error {
 		return err
 	}
 	return json.Unmarshal(b, v)
-}
-
-// PointValueType2EdgeX 点位值类型转换为 EdgeX 数据类型
-// int => Int64、float => Float64、string => String
-func PointValueType2EdgeX(valueType string) string {
-	switch strings.ToLower(valueType) {
-	case "int":
-		return common.ValueTypeInt64
-	case "float":
-		return common.ValueTypeFloat64
-	case "string":
-		return common.ValueTypeString
-	default:
-		return valueType
-	}
 }
 
 // GetChildDir 获取指定路径下所有子目录

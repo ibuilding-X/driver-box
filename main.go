@@ -4,7 +4,6 @@ import (
 	"flag"
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/export"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"os"
 )
 
@@ -26,7 +25,6 @@ func main() {
 	if len(clientId) == 0 {
 		clientId = ""
 	}
-	helper.DriverConfig.DefaultDeviceTTL = 5
 	driverbox.Start([]export.Export{&export.MqttExport{
 		Broker:      broker,
 		ClientID:    clientId,

@@ -47,7 +47,7 @@ func (c *Config) Update() http.HandlerFunc {
 
 		// 保存核心配置
 		for _, config := range list {
-			dir := path.Join(common.CoreConfigPath, config.Key)
+			dir := path.Join(helper.EnvConfig.ConfigPath, config.Key)
 			// 删除旧配置
 			_ = os.RemoveAll(dir)
 			// 创建文件夹

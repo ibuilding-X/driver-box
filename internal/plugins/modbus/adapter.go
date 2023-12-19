@@ -226,7 +226,7 @@ func (a *adapter) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
 
 // scriptExists 判断lua脚本是否存在
 func (a *adapter) scriptExists() bool {
-	scriptPath := filepath.Join(common.CoreConfigPath, a.scriptDir, common.LuaScriptName)
+	scriptPath := filepath.Join(helper.EnvConfig.ConfigPath, a.scriptDir, common.LuaScriptName)
 	_, err := os.Stat(scriptPath)
 	return err == nil
 }

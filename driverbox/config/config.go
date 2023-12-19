@@ -7,11 +7,19 @@ import (
 	"strings"
 )
 
-type DriverConfig struct {
-	LoggerLevel      string // 日志等级
-	PointCacheTTL    int64  // 点位缓存默认过期时间，单位：秒
-	DefaultDeviceTTL int    // 默认设备影子生命周期
+// 环境变量配置项
+const (
+	//驱动包存放目录
+	ENV_CONFIG_PATH = "DRIVERBOX_CONFIG_PATH"
+	//http服务绑定地址
+	ENV_HTTP_LISTEN = "DRIVERBOX_HTTP_LISTEN"
+)
+
+type EnvConfig struct {
+	ConfigPath string
+	HttpListen string
 }
+
 type PointMap map[string]interface{} // 点位 Map，可转换为标准点位数据
 
 // ToPoint 转换为标准点位数据

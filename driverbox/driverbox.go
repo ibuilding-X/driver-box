@@ -1,6 +1,7 @@
 package driverbox
 
 import (
+	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -8,6 +9,7 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	"github.com/ibuilding-x/driver-box/internal/restful/route"
 	"go.uber.org/zap"
+	"os"
 )
 
 func RegisterPlugin(name string, plugin plugin.Plugin) error {
@@ -16,6 +18,7 @@ func RegisterPlugin(name string, plugin plugin.Plugin) error {
 
 func Start(exports []export.Export) {
 	//第一步：加载配置文件DriverConfig
+	initEnvConfig()
 
 	//第二步：初始化日志记录器
 	if err := helper.InitLogger("DEBUG"); err != nil {
@@ -49,4 +52,23 @@ func Start(exports []export.Export) {
 		}(item)
 	}
 
+}
+
+func initEnvConfig() error {
+	helper.EnvConfig = config.EnvConfig{}
+	//驱动配置文件存放目录
+	dir := os.Getenv(config.ENV_CONFIG_PATH)
+	if dir == "" {
+		helper.EnvConfig.ConfigPath = "./driver-config"
+	} else {
+		helper.EnvConfig.ConfigPath = dir
+	}
+	//http服务绑定host
+	httpListen := os.Getenv(config.ENV_HTTP_LISTEN)
+	if httpListen != "" {
+		helper.EnvConfig.HttpListen = httpListen
+	} else {
+		helper.EnvConfig.HttpListen = ":8081"
+	}
+	return nil
 }

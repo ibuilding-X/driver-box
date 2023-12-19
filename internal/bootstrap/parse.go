@@ -7,6 +7,7 @@ import (
 	"errors"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"io"
 	"io/fs"
 	"os"
@@ -57,7 +58,7 @@ func ParseFromPath(path string) (list map[string]config.Config, err error) {
 
 	list = make(map[string]config.Config)
 	for i, _ := range dirs {
-		fileName := filepath.Join(common.CoreConfigPath, dirs[i], common.CoreConfigName)
+		fileName := filepath.Join(helper.EnvConfig.ConfigPath, dirs[i], common.CoreConfigName)
 		c, err := parseFromFile(fileName)
 		if err != nil {
 			continue
