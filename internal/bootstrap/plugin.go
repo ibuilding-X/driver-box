@@ -127,7 +127,7 @@ func initDeviceShadow(configMap map[string]config.Config) {
 				continue
 			}
 			duration, err := time.ParseDuration(timerReport)
-			if err == nil && duration.Seconds() > ttl.Seconds() {
+			if err == nil && duration > ttl {
 				ttl = duration
 			}
 		}
