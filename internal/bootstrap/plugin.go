@@ -41,6 +41,9 @@ func LoadPlugins() error {
 	// 初始化本地影子服务
 	initDeviceShadow(configMap)
 
+	//初始化定时上报服务
+	initTimerReport()
+
 	// 初始化 crontab
 	helper.Crontab = crontab.NewCrontab()
 
