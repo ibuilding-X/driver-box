@@ -13,6 +13,7 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
+	"time"
 )
 
 // LoadPlugins 加载插件并运行
@@ -116,6 +117,24 @@ func initDeviceShadow(configMap map[string]config.Config) {
 			}
 		}
 	}
+
+	//设置默认TTL
+	var ttl time.Duration
+	for _, model := range helper.CoreCache.Models() {
+		for _, point := range model.Points {
+			timerReport := point.TimerReport
+			if timerReport == "" {
+				continue
+			}
+			duration, err := time.ParseDuration(timerReport)
+			if err == nil && duration.Seconds() > ttl.Seconds() {
+				ttl = duration
+			}
+		}
+	}
+	defaultTTL := int(ttl / time.Second)
+	helper.Logger.Info("set default ttl", zap.Int("ttl", defaultTTL))
+	helper.DeviceShadow.SetDeviceTTL(defaultTTL)
 }
 
 // 初始化设备 autoEvent
