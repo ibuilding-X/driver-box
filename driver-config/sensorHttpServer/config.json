@@ -11,8 +11,7 @@
 					"valueType":"int",
 					"readWrite":"R",
 					"reportMode":"change",
-					"timerReport":"15m",
-					"realReport":true
+					"timerReport":"15m"
 				}
 			],
 			"deviceActions":[],

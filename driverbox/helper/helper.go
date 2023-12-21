@@ -63,15 +63,19 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 	var points []plugin.PointData
 	for _, point := range deviceData.Values {
 		// 获取点位信息
-		_, ok := CoreCache.GetPointByDevice(deviceData.DeviceName, point.PointName)
+		p, ok := CoreCache.GetPointByDevice(deviceData.DeviceName, point.PointName)
 		if !ok {
 			Logger.Warn("unknown point", zap.Any("deviceName", deviceData.DeviceName), zap.Any("pointName", point.PointName))
 			continue
 		}
+		if p.ReportMode == config.ReportMode_Ignore {
+			Logger.Debug("point report mode is ignore, stop sending to messageBus", zap.String("pointName", p.Name))
+			continue
+		}
 		// 缓存比较
 		shadowValue, _ := DeviceShadow.GetDevicePoint(deviceData.DeviceName, point.PointName)
-		if shadowValue == point.Value {
-			Logger.Debug("point value = cache, stop sending to messageBus")
+		if p.ReportMode == config.ReportMode_Change && shadowValue == point.Value {
+			Logger.Debug("point report mode is change, stop sending to messageBus", zap.String("pointName", p.Name))
 		} else {
 			// 点位值类型名称转换
 			points = append(points, point)

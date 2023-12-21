@@ -18,6 +18,18 @@ const (
 	ENV_LOG_PATH = "DRIVERBOX_LOG_PATH"
 )
 
+// 点位上报模式
+type ReportMode string
+
+var (
+	//实时上报,读到数据即触发
+	ReportMode_Real ReportMode = "realTime"
+	//变化上报,同影子中数值不一致时才触发上报
+	ReportMode_Change ReportMode = "change"
+	//不上报,但会更新影子
+	ReportMode_Ignore ReportMode = "ignore"
+)
+
 type EnvConfig struct {
 	ConfigPath string
 	HttpListen string
@@ -114,14 +126,12 @@ type PointBase struct {
 	ValueType string `json:"valueType" validate:"required,oneof=int float string"`
 	// 读写模式
 	ReadWrite string `json:"readWrite" validate:"required,oneof=int float string"`
-	// 实时上报开关
-	RealReport bool `json:"realReport" validate:"required,boolean"`
 	// 定时上报
 	TimerReport string `json:"timerReport" validate:"required"`
 	// 单位
 	Units string `json:"units" validate:"-"`
 	// 上报模式
-	ReportMode string `json:"reportMode" validate:"required"`
+	ReportMode ReportMode `json:"reportMode" validate:"required"`
 }
 
 // Point 点位数据
