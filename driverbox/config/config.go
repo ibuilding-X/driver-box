@@ -151,6 +151,8 @@ type DeviceBase struct {
 	ModelName string `json:"-" validate:"-"`
 	// 设备描述
 	Description string `json:"description" validate:"required"`
+	// 设备离线阈值，超过该时长没有收到数据视为离线
+	Ttl string `json:"ttl"`
 }
 
 // Device 设备

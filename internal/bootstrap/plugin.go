@@ -13,7 +13,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
-	"time"
 )
 
 // LoadPlugins 加载插件并运行
@@ -112,29 +111,11 @@ func initDeviceShadow(configMap map[string]config.Config) {
 	for _, c := range configMap {
 		for _, model := range c.DeviceModels {
 			for _, d := range model.Devices {
-				dev := shadow.NewDevice(d.Name, model.Name, nil)
+				dev := shadow.NewDevice(d.DeviceBase, model.Name, nil)
 				_ = helper.DeviceShadow.AddDevice(dev)
 			}
 		}
 	}
-
-	//设置默认TTL
-	var ttl time.Duration
-	for _, model := range helper.CoreCache.Models() {
-		for _, point := range model.Points {
-			timerReport := point.TimerReport
-			if timerReport == "" {
-				continue
-			}
-			duration, err := time.ParseDuration(timerReport)
-			if err == nil && duration > ttl {
-				ttl = duration
-			}
-		}
-	}
-	defaultTTL := int(ttl / time.Second)
-	helper.Logger.Info("set default ttl", zap.Int("ttl", defaultTTL))
-	helper.DeviceShadow.SetDeviceTTL(defaultTTL)
 }
 
 // 初始化设备 autoEvent

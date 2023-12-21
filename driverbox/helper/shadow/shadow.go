@@ -37,16 +37,12 @@ type DeviceShadow interface {
 
 	// StopStatusListener 停止设备状态监听
 	StopStatusListener()
-
-	// SetDeviceTTL 设备影子过期时间
-	SetDeviceTTL(ttl int)
 }
 
 type deviceShadow struct {
 	m           *sync.Map
 	ticker      *time.Ticker
 	handlerFunc OnlineChangeCallback
-	ttl         int // 单位：秒
 }
 
 func NewDeviceShadow() DeviceShadow {
@@ -67,10 +63,6 @@ func (d *deviceShadow) AddDevice(device Device) (err error) {
 	return nil
 }
 
-// SetDeviceTTL 设备影子过期时间
-func (d *deviceShadow) SetDeviceTTL(ttl int) {
-	d.ttl = ttl
-}
 func (d *deviceShadow) GetDevice(deviceName string) (device Device, err error) {
 	if deviceAny, ok := d.m.Load(deviceName); ok {
 		return deviceAny.(Device), nil
@@ -120,7 +112,7 @@ func (d *deviceShadow) GetDevicePoint(deviceName, pointName string) (value inter
 		}
 		// 2. 点位缓存过期
 		if point, exist := device.Points[pointName]; exist {
-			if time.Since(point.UpdatedAt) > time.Duration(d.ttl)*time.Second {
+			if time.Since(point.UpdatedAt) > device.ttl {
 				return
 			}
 			return point.Value, nil
@@ -210,12 +202,7 @@ func (d *deviceShadow) checkOnOff() {
 	for range d.ticker.C {
 		d.m.Range(func(key, value any) bool {
 			if device, ok := value.(Device); ok {
-				// fix: when ttl == 0, device always offline
-				if d.ttl == 0 {
-					return true
-				}
-
-				if device.online && time.Since(device.updatedAt) > time.Duration(d.ttl)*time.Second {
+				if device.online && time.Since(device.updatedAt) > device.ttl {
 					_ = d.SetOffline(device.Name)
 				}
 			}
