@@ -2,8 +2,7 @@ package shadow
 
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"go.uber.org/zap"
+	"log"
 	"time"
 )
 
@@ -37,12 +36,12 @@ func NewDevice(device config.DeviceBase, modelName string, points map[string]Dev
 	if device.Ttl != "" {
 		t, err := time.ParseDuration(device.Ttl)
 		if err != nil {
-			helper.Logger.Error("parse ttl error", zap.String("device", device.Name), zap.String("ttl", device.Ttl), zap.Error(err))
+			log.Fatalf("device:%v parse ttl:%v error:%v", device.Name, device.Ttl, err)
 		} else {
 			ttl = t
 		}
 	} else {
-		helper.Logger.Info("device ttl unset, reset default value", zap.String("device", device.Name), zap.Any("ttl", ttl))
+		log.Printf("device:%v ttl unset, reset default value:%v", device.Name, ttl)
 	}
 	return Device{
 		Name:            device.Name,
