@@ -12,6 +12,10 @@ func Send(deviceName string, mode plugin.EncodeMode, value plugin.PointData) (er
 			Logger.Error(fmt.Sprintf("%+v", err2))
 		}
 	}()
+	value.Value, err = ConvPointType(value.Value, value.Type)
+	if err != nil {
+		return err
+	}
 	// 获取插件
 	p, ok := CoreCache.GetRunningPluginByDeviceAndPoint(deviceName, value.PointName)
 	if !ok {
