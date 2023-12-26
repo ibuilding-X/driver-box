@@ -12,7 +12,11 @@ func Send(deviceName string, mode plugin.EncodeMode, value plugin.PointData) (er
 			Logger.Error(fmt.Sprintf("%+v", err2))
 		}
 	}()
-	value.Value, err = ConvPointType(value.Value, value.Type)
+	point, ok := CoreCache.GetPointByDevice(deviceName, value.PointName)
+	if !ok {
+		return fmt.Errorf("not found point, point name is %s", value.PointName)
+	}
+	value.Value, err = ConvPointType(value.Value, point.ValueType)
 	if err != nil {
 		return err
 	}
@@ -48,15 +52,8 @@ func SendMultiRead(deviceNames []string, pointNames []string) (err error) {
 	for i, _ := range deviceNames {
 		deviceName := deviceNames[i]
 		for _, pointName := range pointNames {
-			// 获取点位信息
-			point, ok := CoreCache.GetPointByDevice(deviceName, pointName)
-			if !ok {
-				Logger.Error(fmt.Sprintf("not found point, point name is %s", pointName))
-				return
-			}
 			err2 := Send(deviceName, plugin.ReadMode, plugin.PointData{
 				PointName: pointName,
-				Type:      point.ValueType,
 			})
 			if err2 != nil {
 				Logger.Error(fmt.Sprintf("send error: %s", err2.Error()))

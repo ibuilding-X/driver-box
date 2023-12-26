@@ -26,7 +26,6 @@ type OnReceiveHandler func(plugin Plugin, raw interface{}) (result interface{}, 
 // PointData 点位数据
 type PointData struct {
 	PointName string      `json:"name"`  // 点位名称
-	Type      string      `json:"type"`  // 点位值类型
 	Value     interface{} `json:"value"` // 点位值
 }
 
