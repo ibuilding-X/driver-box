@@ -17,7 +17,7 @@ func ConvPointType(value interface{}, valueType string) (interface{}, error) {
 	case "string":
 		return Conv2String(value)
 	default:
-		return nil, errors.New("point value type must one of (int、float、string)")
+		return nil, fmt.Errorf("point value type must one of (int、float、string) ,unSupport:%v", valueType)
 	}
 }
 
