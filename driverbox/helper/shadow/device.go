@@ -10,7 +10,7 @@ import (
 type Device struct {
 	name            string                 // 设备名称
 	modelName       string                 // 设备模型名称
-	points          map[string]devicePoint // 设备点位列表
+	points          map[string]DevicePoint // 设备点位列表
 	onlineBindPoint string                 // 在线状态绑定点位（支持数据类型：bool、string、int、float）
 	online          bool                   // 在线状态
 	ttl             time.Duration          // 设备离线阈值，超过该时长没有收到数据视为离线
@@ -23,14 +23,14 @@ func (d *Device) SetOnlineBindPoint(pointName string) {
 	d.onlineBindPoint = pointName
 }
 
-// devicePoint 设备点位结构
-type devicePoint struct {
+// DevicePoint 设备点位结构
+type DevicePoint struct {
 	Name      string      // 点位名称
 	Value     interface{} // 点位值
 	UpdatedAt time.Time   // 点位最后更新时间（用于点位缓存过期判断）
 }
 
-func NewDevice(device config.DeviceBase, modelName string, points map[string]devicePoint) Device {
+func NewDevice(device config.DeviceBase, modelName string, points map[string]DevicePoint) Device {
 	//默认24小时无数据上报，视为设备离线
 	ttl := time.Duration(24) * time.Hour
 	if device.Ttl != "" {

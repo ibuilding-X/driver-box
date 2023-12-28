@@ -21,7 +21,7 @@ type DeviceShadow interface {
 
 	SetDevicePoint(deviceName, pointName string, value interface{}) (err error)
 	GetDevicePoint(deviceName, pointName string) (value interface{}, err error)
-	GetDevicePoints(deviceName string) (points map[string]devicePoint, err error)
+	GetDevicePoints(deviceName string) (points map[string]DevicePoint, err error)
 
 	GetDeviceUpdateAt(deviceName string) (time.Time, error)
 
@@ -78,12 +78,12 @@ func (d *deviceShadow) SetDevicePoint(deviceName, pointName string, value interf
 	}
 	device := deviceAny.(Device)
 	if device.points == nil {
-		device.points = make(map[string]devicePoint)
+		device.points = make(map[string]DevicePoint)
 	}
 	// update point value
 	device.updatedAt = time.Now()
 	device.disconnectTimes = 0
-	device.points[pointName] = devicePoint{
+	device.points[pointName] = DevicePoint{
 		Name:      pointName,
 		Value:     value,
 		UpdatedAt: time.Now(),
@@ -127,7 +127,7 @@ func (d *deviceShadow) GetDevicePoint(deviceName, pointName string) (value inter
 	}
 }
 
-func (d *deviceShadow) GetDevicePoints(deviceName string) (points map[string]devicePoint, err error) {
+func (d *deviceShadow) GetDevicePoints(deviceName string) (points map[string]DevicePoint, err error) {
 	if deviceAny, ok := d.m.Load(deviceName); ok {
 		return deviceAny.(Device).points, nil
 	} else {
