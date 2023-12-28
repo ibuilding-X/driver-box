@@ -72,14 +72,6 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 			Logger.Debug("point report mode is ignore, stop sending to messageBus", zap.String("pointName", p.Name))
 			continue
 		}
-		// 缓存比较
-		shadowValue, _ := DeviceShadow.GetDevicePoint(deviceData.DeviceName, point.PointName)
-		if p.ReportMode == config.ReportMode_Change && shadowValue == point.Value {
-			Logger.Debug("point report mode is change, stop sending to messageBus", zap.String("pointName", p.Name))
-		} else {
-			// 点位值类型名称转换
-			points = append(points, point)
-		}
 		//数据类型纠正
 		realValue, err := ConvPointType(point.Value, p.ValueType)
 		if err != nil {
@@ -88,6 +80,16 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 		} else {
 			point.Value = realValue
 		}
+
+		// 缓存比较
+		shadowValue, _ := DeviceShadow.GetDevicePoint(deviceData.DeviceName, point.PointName)
+		if p.ReportMode == config.ReportMode_Change && shadowValue == point.Value {
+			Logger.Debug("point report mode is change, stop sending to messageBus", zap.String("pointName", p.Name))
+		} else {
+			// 点位值类型名称转换
+			points = append(points, point)
+		}
+
 		// 缓存
 		if err := DeviceShadow.SetDevicePoint(deviceData.DeviceName, point.PointName, point.Value); err != nil {
 			Logger.Error("shadow store point value error", zap.Error(err), zap.Any("deviceName", deviceData.DeviceName))
