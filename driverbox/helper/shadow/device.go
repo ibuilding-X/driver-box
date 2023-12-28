@@ -8,9 +8,9 @@ import (
 
 // Device 设备结构
 type Device struct {
-	Name            string                 // 设备名称
-	ModelName       string                 // 设备模型名称
-	Points          map[string]DevicePoint // 设备点位列表
+	name            string                 // 设备名称
+	modelName       string                 // 设备模型名称
+	points          map[string]DevicePoint // 设备点位列表
 	onlineBindPoint string                 // 在线状态绑定点位（支持数据类型：bool、string、int、float）
 	online          bool                   // 在线状态
 	ttl             time.Duration          // 设备离线阈值，超过该时长没有收到数据视为离线
@@ -44,9 +44,9 @@ func NewDevice(device config.DeviceBase, modelName string, points map[string]Dev
 		log.Printf("device:%v ttl unset, reset default value:%v", device.Name, ttl)
 	}
 	return Device{
-		Name:            device.Name,
-		ModelName:       modelName,
-		Points:          points,
+		name:            device.Name,
+		modelName:       modelName,
+		points:          points,
 		onlineBindPoint: "",
 		ttl:             ttl,
 		online:          false, // 默认设备处于离线状态

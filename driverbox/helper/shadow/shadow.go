@@ -55,11 +55,11 @@ func NewDeviceShadow() DeviceShadow {
 }
 
 func (d *deviceShadow) AddDevice(device Device) (err error) {
-	if _, ok := d.m.Load(device.Name); ok {
+	if _, ok := d.m.Load(device.name); ok {
 		return DeviceRepeatErr
 	}
 	device.updatedAt = time.Now()
-	d.m.Store(device.Name, device)
+	d.m.Store(device.name, device)
 	return nil
 }
 
@@ -77,13 +77,13 @@ func (d *deviceShadow) SetDevicePoint(deviceName, pointName string, value interf
 		return UnknownDeviceErr
 	}
 	device := deviceAny.(Device)
-	if device.Points == nil {
-		device.Points = make(map[string]DevicePoint)
+	if device.points == nil {
+		device.points = make(map[string]DevicePoint)
 	}
 	// update point value
 	device.updatedAt = time.Now()
 	device.disconnectTimes = 0
-	device.Points[pointName] = NewDevicePoint(pointName, value)
+	device.points[pointName] = NewDevicePoint(pointName, value)
 	// update device online status
 	if device.onlineBindPoint == pointName { // bind point
 		if online, err := parseOnlineBindPV(value); err == nil {
@@ -111,7 +111,7 @@ func (d *deviceShadow) GetDevicePoint(deviceName, pointName string) (value inter
 			return
 		}
 		// 2. 点位缓存过期
-		if point, exist := device.Points[pointName]; exist {
+		if point, exist := device.points[pointName]; exist {
 			if time.Since(point.UpdatedAt) > device.ttl {
 				return
 			}
@@ -125,7 +125,7 @@ func (d *deviceShadow) GetDevicePoint(deviceName, pointName string) (value inter
 
 func (d *deviceShadow) GetDevicePoints(deviceName string) (points map[string]DevicePoint, err error) {
 	if deviceAny, ok := d.m.Load(deviceName); ok {
-		return deviceAny.(Device).Points, nil
+		return deviceAny.(Device).points, nil
 	} else {
 		return nil, UnknownDeviceErr
 	}
@@ -203,7 +203,7 @@ func (d *deviceShadow) checkOnOff() {
 		d.m.Range(func(key, value any) bool {
 			if device, ok := value.(Device); ok {
 				if device.online && time.Since(device.updatedAt) > device.ttl {
-					_ = d.SetOffline(device.Name)
+					_ = d.SetOffline(device.name)
 				}
 			}
 			return true
