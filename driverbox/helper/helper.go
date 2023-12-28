@@ -80,6 +80,14 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 			// 点位值类型名称转换
 			points = append(points, point)
 		}
+		//数据类型纠正
+		realValue, err := ConvPointType(point.Value, p.ValueType)
+		if err != nil {
+			Logger.Error("convert point value error", zap.Error(err), zap.Any("deviceName", deviceData.DeviceName),
+				zap.String("pointName", p.Name), zap.Any("value", point.Value))
+		} else {
+			point.Value = realValue
+		}
 		// 缓存
 		if err := DeviceShadow.SetDevicePoint(deviceData.DeviceName, point.PointName, point.Value); err != nil {
 			Logger.Error("shadow store point value error", zap.Error(err), zap.Any("deviceName", deviceData.DeviceName))
