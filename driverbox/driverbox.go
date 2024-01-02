@@ -57,6 +57,7 @@ func Start(exports []export.Export) error {
 			}
 		}(item)
 	}
+	helper.Logger.Info("start driver-box success.")
 	return nil
 }
 

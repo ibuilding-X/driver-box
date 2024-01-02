@@ -38,6 +38,18 @@ func parseFromFile(path string) (c config.Config, err error) {
 // ParseFromPath 从指定路径解析所有核心配置文件
 // directoryName => Config, example: http_server_sp200 => Config
 func ParseFromPath(path string) (list map[string]config.Config, err error) {
+	//若目录不存在，则自动创建
+	_, err = os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				return
+			}
+		} else {
+			return
+		}
+	}
 	// 获取所有子目录
 	dirs := make([]string, 0)
 	if err = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {

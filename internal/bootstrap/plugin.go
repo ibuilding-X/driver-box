@@ -25,6 +25,10 @@ func LoadPlugins() error {
 		return errors.New(common.LoadCoreConfigErr.Error() + ":" + err.Error())
 	}
 
+	if len(configMap) == 0 {
+		helper.Logger.Warn("driver-box config is empty", zap.String("path", helper.EnvConfig.ConfigPath))
+	}
+
 	// 核心配置校验
 	for key, _ := range configMap {
 		if err = configMap[key].Validate(); err != nil {
