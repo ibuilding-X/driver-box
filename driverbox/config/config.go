@@ -164,7 +164,7 @@ type Device struct {
 	// 连接 Key
 	ConnectionKey string `json:"connectionKey" validate:"required"`
 	// 协议参数
-	Protocol map[string]string `json:"protocol" validate:"-"`
+	Properties map[string]string `json:"properties" validate:"-"`
 }
 
 // TimerTask 定时任务

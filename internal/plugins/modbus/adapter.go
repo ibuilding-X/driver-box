@@ -69,8 +69,8 @@ func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.P
 	if !ok {
 		return nil, fmt.Errorf("not found device, deviceSn is %s", deviceSn)
 	}
-	slaveID, _ := strconv.Atoi(device.Protocol["unitID"])
-	maxQuantity, err := strconv.Atoi(device.Protocol["maxQuantity"])
+	slaveID, _ := strconv.Atoi(device.Properties["unitID"])
+	maxQuantity, err := strconv.Atoi(device.Properties["maxQuantity"])
 	if err != nil {
 		maxQuantity = 0
 	}

@@ -20,7 +20,7 @@
 					"name":"sensor_1",
 					"description":"传感器1",
 					"connectionKey":"common",
-					"protocol":{}
+					"properties":{}
 				}
 			]
 		}

@@ -9,15 +9,16 @@ import (
 	"sync"
 )
 
-type ProtocolProperties map[string]string
+type DeviceProperties map[string]string
 
 // CoreCache 核心缓存
 var CoreCache coreCache
 
 type cache struct {
-	models             *sync.Map // name => config.Model
-	devices            *sync.Map // deviceSn => config.DeviceBase
-	deviceProtocols    *sync.Map // deviceSn => map[string]map[string]string
+	models  *sync.Map // name => config.Model
+	devices *sync.Map // deviceSn => config.DeviceBase
+	//设备属性
+	deviceProperties   *sync.Map // deviceSn => map[string]map[string]string
 	points             *sync.Map // deviceSn_pointName => config.Point
 	devicePointPlugins *sync.Map // deviceSn_pointName => plugin key
 	runningPlugins     *sync.Map // key => plugin.Plugin
@@ -36,7 +37,7 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 	c := &cache{
 		models:             &sync.Map{},
 		devices:            &sync.Map{},
-		deviceProtocols:    &sync.Map{},
+		deviceProperties:   &sync.Map{},
 		points:             &sync.Map{},
 		devicePointPlugins: &sync.Map{},
 		runningPlugins:     &sync.Map{},
@@ -84,14 +85,14 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 							deviceBase.ModelName, storedDeviceBase.ModelName)
 					}
 				}
-				var protocols map[string]ProtocolProperties
-				if raw, ok := c.deviceProtocols.Load(deviceSn); ok {
-					protocols = raw.(map[string]ProtocolProperties)
+				var properties map[string]DeviceProperties
+				if raw, ok := c.deviceProperties.Load(deviceSn); ok {
+					properties = raw.(map[string]DeviceProperties)
 				} else {
-					protocols = make(map[string]ProtocolProperties)
+					properties = make(map[string]DeviceProperties)
 				}
-				protocols[configMap[key].ProtocolName+"_"+device.ConnectionKey] = device.Protocol
-				c.deviceProtocols.Store(deviceSn, protocols)
+				properties[configMap[key].ProtocolName+"_"+device.ConnectionKey] = device.Properties
+				c.deviceProperties.Store(deviceSn, properties)
 				for _, point := range pointMap {
 					devicePointKey := deviceSn + "_" + point.Name
 					if _, ok := c.points.Load(devicePointKey); ok {
@@ -136,8 +137,8 @@ type coreCache interface {
 	AddRunningPlugin(key string, plugin plugin.Plugin)                                                  // add running plugin
 	Models() (models []config.Model)                                                                    // all model
 	Devices() (devices []config.DeviceBase)
-	GetProtocolsByDevice(deviceSn string) (map[string]ProtocolProperties, bool) // device protocols
-	GetAllRunningPluginKey() (keys []string)                                    // get running plugin keys
+	GetProtocolsByDevice(deviceSn string) (map[string]DeviceProperties, bool) // device protocols
+	GetAllRunningPluginKey() (keys []string)                                  // get running plugin keys
 }
 
 func (c *cache) GetModel(modelName string) (model config.ModelBase, ok bool) {
@@ -158,7 +159,7 @@ func (c *cache) GetDevice(deviceSn string) (device config.DeviceBase, ok bool) {
 }
 
 func (c *cache) GetDeviceByDeviceAndConn(deviceSn, connectionKey string) (device config.Device, ok bool) {
-	if raw, ok := c.deviceProtocols.Load(deviceSn + "_" + connectionKey); ok {
+	if raw, ok := c.deviceProperties.Load(deviceSn + "_" + connectionKey); ok {
 		device, _ := raw.(config.Device)
 		return device, true
 	}
@@ -236,9 +237,9 @@ func (c *cache) Devices() (devices []config.DeviceBase) {
 	return
 }
 
-func (c *cache) GetProtocolsByDevice(deviceSn string) (map[string]ProtocolProperties, bool) {
-	if raw, ok := c.deviceProtocols.Load(deviceSn); ok {
-		protocols, _ := raw.(map[string]ProtocolProperties)
+func (c *cache) GetProtocolsByDevice(deviceSn string) (map[string]DeviceProperties, bool) {
+	if raw, ok := c.deviceProperties.Load(deviceSn); ok {
+		protocols, _ := raw.(map[string]DeviceProperties)
 		return protocols, true
 	}
 	return nil, false
