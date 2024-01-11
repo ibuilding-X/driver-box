@@ -69,7 +69,7 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 				}
 			}
 			for _, device := range deviceModel.Devices {
-				deviceSn := device.Sn
+				deviceSn := device.DeviceSn
 				deviceBase := device.DeviceBase
 				deviceBase.ModelName = deviceModel.Name
 				if _, ok := model.Devices[deviceSn]; !ok {
@@ -80,7 +80,7 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 				} else {
 					storedDeviceBase := deviceRaw.(config.DeviceBase)
 					if storedDeviceBase.ModelName != deviceBase.ModelName {
-						return fmt.Errorf("conflict model for device [%s]: %s -> %s", deviceBase.Sn,
+						return fmt.Errorf("conflict model for device [%s]: %s -> %s", deviceBase.DeviceSn,
 							deviceBase.ModelName, storedDeviceBase.ModelName)
 					}
 				}
