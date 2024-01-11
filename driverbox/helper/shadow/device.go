@@ -8,7 +8,7 @@ import (
 
 // Device 设备结构
 type Device struct {
-	name            string                 // 设备名称
+	sn              string                 // 设备SN
 	modelName       string                 // 设备模型名称
 	points          map[string]DevicePoint // 设备点位列表
 	onlineBindPoint string                 // 在线状态绑定点位（支持数据类型：bool、string、int、float）
@@ -44,7 +44,7 @@ func NewDevice(device config.DeviceBase, modelName string, points map[string]Dev
 		log.Printf("device:%v ttl unset, reset default value:%v", device.Sn, ttl)
 	}
 	return Device{
-		name:            device.Sn,
+		sn:              device.Sn,
 		modelName:       modelName,
 		points:          points,
 		onlineBindPoint: "",

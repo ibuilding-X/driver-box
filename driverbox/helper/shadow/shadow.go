@@ -55,11 +55,11 @@ func NewDeviceShadow() DeviceShadow {
 }
 
 func (d *deviceShadow) AddDevice(device Device) (err error) {
-	if _, ok := d.m.Load(device.name); ok {
+	if _, ok := d.m.Load(device.sn); ok {
 		return DeviceRepeatErr
 	}
 	device.updatedAt = time.Now()
-	d.m.Store(device.name, device)
+	d.m.Store(device.sn, device)
 	return nil
 }
 
@@ -207,7 +207,7 @@ func (d *deviceShadow) checkOnOff() {
 		d.m.Range(func(key, value any) bool {
 			if device, ok := value.(Device); ok {
 				if device.online && time.Since(device.updatedAt) > device.ttl {
-					_ = d.SetOffline(device.name)
+					_ = d.SetOffline(device.sn)
 				}
 			}
 			return true
