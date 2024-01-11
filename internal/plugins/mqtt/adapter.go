@@ -16,12 +16,12 @@ type adapter struct {
 	lock      *sync.Mutex
 }
 
-func (a *adapter) Encode(deviceName string, mode plugin.EncodeMode, value plugin.PointData) (res interface{}, err error) {
+func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.PointData) (res interface{}, err error) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	if mode == plugin.WriteMode {
 		tmp, _ := json.Marshal(value)
-		return helper.CallLuaEncodeConverter(a.ls, deviceName, string(tmp))
+		return helper.CallLuaEncodeConverter(a.ls, deviceSn, string(tmp))
 	}
 	return nil, common.NotSupportEncode
 }

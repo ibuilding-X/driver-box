@@ -45,7 +45,7 @@ func (p *Plugin) ProtocolAdapter() plugin.ProtocolAdapter {
 }
 
 // Connector 此协议不支持获取连接器
-func (p *Plugin) Connector(deviceName, pointName string) (connector plugin.Connector, err error) {
+func (p *Plugin) Connector(deviceSn, pointName string) (connector plugin.Connector, err error) {
 	return nil, common.NotSupportGetConnector
 }
 

@@ -31,7 +31,7 @@ type adapter struct {
 
 // transportationData 通讯数据（编码返回、解码输入数据格式）
 type transportationData struct {
-	DeviceName  string            // 设备名称
+	DeviceSn    string            // 设备SN
 	Mode        plugin.EncodeMode // 读取模式
 	SlaveID     uint8             // 从机 salve id
 	MaxQuantity uint16            // 最长连续读数量
@@ -63,11 +63,11 @@ type extendProps struct {
 }
 
 // Encode 编码数据
-func (a *adapter) Encode(deviceName string, mode plugin.EncodeMode, value plugin.PointData) (res interface{}, err error) {
+func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.PointData) (res interface{}, err error) {
 	// 获取设备数据
-	device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceName, value.PointName)
+	device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceSn, value.PointName)
 	if !ok {
-		return nil, fmt.Errorf("not found device, deviceName is %s", deviceName)
+		return nil, fmt.Errorf("not found device, deviceSn is %s", deviceSn)
 	}
 	slaveID, _ := strconv.Atoi(device.Protocol["unitID"])
 	maxQuantity, err := strconv.Atoi(device.Protocol["maxQuantity"])
@@ -76,22 +76,22 @@ func (a *adapter) Encode(deviceName string, mode plugin.EncodeMode, value plugin
 	}
 	// 响应结果
 	result := transportationData{
-		DeviceName:  deviceName,
+		DeviceSn:    deviceSn,
 		Mode:        mode,
 		MaxQuantity: uint16(maxQuantity),
 		SlaveID:     uint8(slaveID),
 		PointName:   value.PointName,
 	}
-	point, ok := helper.CoreCache.GetPointByDevice(deviceName, value.PointName)
+	point, ok := helper.CoreCache.GetPointByDevice(deviceSn, value.PointName)
 	if !ok {
-		return nil, fmt.Errorf("not found point from core config, deviceName is %s, point name is %s", deviceName, value.PointName)
+		return nil, fmt.Errorf("not found point from core config, deviceSn is %s, point name is %s", deviceSn, value.PointName)
 	}
 	if mode == plugin.WriteMode {
 		ptv := &pointTargetValue{
 			Name:        value.PointName,
 			TargetValue: value.Value,
 		}
-		ext, err := getExtendProps(deviceName, point.Name)
+		ext, err := getExtendProps(deviceSn, point.Name)
 		if err != nil {
 			return nil, fmt.Errorf("extend prop parsed error: %s", err.Error())
 		}
@@ -102,7 +102,7 @@ func (a *adapter) Encode(deviceName string, mode plugin.EncodeMode, value plugin
 		var encodedData string
 		if a.scriptExists() {
 			bytes, _ := json.Marshal(*ptv)
-			encodedData, err = helper.CallLuaEncodeConverter(a.ls, deviceName, string(bytes))
+			encodedData, err = helper.CallLuaEncodeConverter(a.ls, deviceSn, string(bytes))
 			fmt.Printf("----encode----%+v\n", encodedData)
 			if err != nil {
 				return nil, err
@@ -111,7 +111,7 @@ func (a *adapter) Encode(deviceName string, mode plugin.EncodeMode, value plugin
 			err = json.Unmarshal([]byte(encodedData), &eptv)
 			if err != nil {
 				return nil, fmt.Errorf("encode error for device %s, original table is %+v",
-					deviceName, eptv)
+					deviceSn, eptv)
 			}
 			if eptv.Name == ptv.Name {
 				result.Values = eptv.Values
@@ -217,8 +217,8 @@ func (a *adapter) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
 			})
 		}
 		res = append(res, plugin.DeviceData{
-			DeviceName: deviceRawData.DeviceName,
-			Values:     pointDatalist,
+			DeviceSn: deviceRawData.DeviceSn,
+			Values:   pointDatalist,
 		})
 	}
 	return

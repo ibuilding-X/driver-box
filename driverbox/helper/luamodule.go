@@ -51,14 +51,14 @@ func (lm *LuaModule) SetCache(L *lua.LState) int {
 }
 
 // WriteToMsgBus 上报设备数据
-// deviceName：设备名称，例如：sensor_1
+// deviceSn：设备SN，例如：sensor_1
 // points：点位数据，例如（此时以json格式进行说明，lua实际入参格式为 table 类型）：{"onOff":1, "voc": 23}
 func (lm *LuaModule) WriteToMsgBus(L *lua.LState) int {
-	deviceName := L.ToString(1) // 设备名称
-	points := L.ToTable(2)      // 点位值
+	deviceSn := L.ToString(1) // 设备名称
+	points := L.ToTable(2)    // 点位值
 
 	deviceData := plugin.DeviceData{
-		DeviceName: deviceName,
+		DeviceSn: deviceSn,
 	}
 	var pd []plugin.PointData
 	// 循环点位数据

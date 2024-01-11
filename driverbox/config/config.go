@@ -145,14 +145,17 @@ type Point struct {
 
 // DeviceBase 设备基础信息
 type DeviceBase struct {
-	// 设备名称
-	Name string `json:"name" validate:"required"`
+	// 设备SN
+	Sn string `json:"name" validate:"required"`
 	// 模型名称
 	ModelName string `json:"-" validate:"-"`
 	// 设备描述
 	Description string `json:"description" validate:"required"`
 	// 设备离线阈值，超过该时长没有收到数据视为离线
 	Ttl string `json:"ttl"`
+
+	//设备标签
+	Tags []string `json:"tags"`
 }
 
 // Device 设备
@@ -174,12 +177,6 @@ type TimerTask struct {
 	Action interface{} `json:"action" validate:"required"`
 }
 
-// Action todo: 待删除
-type Action struct {
-	DeviceNames []string `json:"devices"`
-	Points      []string `json:"points"`
-}
-
 // ModelCache 模型缓存
 type ModelCache struct {
 	ModelBase
@@ -187,8 +184,9 @@ type ModelCache struct {
 }
 
 type ReadPointsAction struct {
-	DeviceNames []string `json:"devices"`
-	Points      []string `json:"points"`
+	//设备SN列表
+	Devices []string `json:"devices"`
+	Points  []string `json:"points"`
 }
 
 // Validate 核心配置文件校验

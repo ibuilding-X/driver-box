@@ -46,9 +46,9 @@ func (p *Plugin) ProtocolAdapter() plugin.ProtocolAdapter {
 }
 
 // Connector 此协议不支持获取连接器
-func (p *Plugin) Connector(deviceName, pointName string) (connector plugin.Connector, err error) {
+func (p *Plugin) Connector(deviceSn, pointName string) (connector plugin.Connector, err error) {
 	// 获取连接key
-	device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceName, pointName)
+	device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceSn, pointName)
 	if !ok {
 		return nil, errors.New("not found device connection key")
 	}

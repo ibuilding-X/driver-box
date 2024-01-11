@@ -73,7 +73,7 @@ func CallLuaConverter(L *lua.LState, method string, raw interface{}) ([]plugin.D
 }
 
 // CallLuaEncodeConverter 调用 Lua 脚本编码转换器
-func CallLuaEncodeConverter(L *lua.LState, deviceName string, raw interface{}) (string, error) {
+func CallLuaEncodeConverter(L *lua.LState, deviceSn string, raw interface{}) (string, error) {
 	data, ok := raw.(string)
 	if !ok {
 		return "", common.ProtocolDataFormatErr
@@ -85,7 +85,7 @@ func CallLuaEncodeConverter(L *lua.LState, deviceName string, raw interface{}) (
 		NRet:    1,
 		Protect: true,
 		Handler: nil,
-	}, lua.LString(deviceName), lua.LString(data))
+	}, lua.LString(deviceSn), lua.LString(data))
 	defer L.Remove(1)
 	if err != nil {
 		return "", fmt.Errorf("call lua script encode function error: %s", err)

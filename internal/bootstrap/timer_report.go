@@ -69,9 +69,9 @@ func matchAndReportResource(duration time.Duration, ticker *time.Ticker) {
 			for _, device := range model.Devices {
 				var pd []plugin.PointData
 				for _, point := range points {
-					val, e := helper.DeviceShadow.GetDevicePoint(device.Name, point.Name)
+					val, e := helper.DeviceShadow.GetDevicePoint(device.Sn, point.Name)
 					if e != nil {
-						helper.Logger.Debug("获取设备上报点位失败", zap.String("device", device.Name), zap.String("point", point.Name), zap.Error(e))
+						helper.Logger.Debug("获取设备上报点位失败", zap.String("device", device.Sn), zap.String("point", point.Name), zap.Error(e))
 						continue
 					}
 					pd = append(pd, plugin.PointData{
@@ -83,8 +83,8 @@ func matchAndReportResource(duration time.Duration, ticker *time.Ticker) {
 					continue
 				}
 				deviceData := plugin.DeviceData{
-					DeviceName: device.Name,
-					Values:     pd,
+					DeviceSn: device.Sn,
+					Values:   pd,
 				}
 				for _, export := range helper.Exports {
 					export.ExportTo(deviceData)

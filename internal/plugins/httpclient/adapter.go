@@ -17,10 +17,9 @@ type adapter struct {
 
 // transportationData 通讯数据（编码返回、解码输入数据格式）
 type transportationData struct {
-	DeviceName string           `json:"device_name"` // 设备名称
-	Mode       string           `json:"mode"`        // 读取模式
-	Values     plugin.PointData `json:"values"`      // 写入值，仅当 write 模式时使用
-	Protocol   connectorConfig  `json:"protocol"`
+	Mode     string           `json:"mode"`   // 读取模式
+	Values   plugin.PointData `json:"values"` // 写入值，仅当 write 模式时使用
+	Protocol connectorConfig  `json:"protocol"`
 }
 
 // ToJSON 协议数据转 json 字符串
@@ -30,16 +29,15 @@ func (td transportationData) ToJSON() string {
 }
 
 // Encode 编码数据
-func (a *adapter) Encode(deviceName string, mode plugin.EncodeMode, values plugin.PointData) (res interface{}, err error) {
+func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, values plugin.PointData) (res interface{}, err error) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	data := transportationData{
-		DeviceName: "deviceName",
-		Mode:       string(mode),
-		Values:     values,
-		Protocol:   connectorConfig{},
+		Mode:     string(mode),
+		Values:   values,
+		Protocol: connectorConfig{},
 	}
-	return helper.CallLuaEncodeConverter(a.ls, deviceName, data.ToJSON())
+	return helper.CallLuaEncodeConverter(a.ls, deviceSn, data.ToJSON())
 }
 
 // Decode 解码数据，调用动态脚本解析

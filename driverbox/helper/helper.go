@@ -63,9 +63,9 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 	var points []plugin.PointData
 	for _, point := range deviceData.Values {
 		// 获取点位信息
-		p, ok := CoreCache.GetPointByDevice(deviceData.DeviceName, point.PointName)
+		p, ok := CoreCache.GetPointByDevice(deviceData.DeviceSn, point.PointName)
 		if !ok {
-			Logger.Warn("unknown point", zap.Any("deviceName", deviceData.DeviceName), zap.Any("pointName", point.PointName))
+			Logger.Warn("unknown point", zap.Any("deviceSn", deviceData.DeviceSn), zap.Any("pointName", point.PointName))
 			continue
 		}
 		if p.ReportMode == config.ReportMode_Ignore {
@@ -75,14 +75,14 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 		//数据类型纠正
 		realValue, err := ConvPointType(point.Value, p.ValueType)
 		if err != nil {
-			Logger.Error("convert point value error", zap.Error(err), zap.Any("deviceName", deviceData.DeviceName),
+			Logger.Error("convert point value error", zap.Error(err), zap.Any("deviceSn", deviceData.DeviceSn),
 				zap.String("pointName", p.Name), zap.Any("value", point.Value))
 		} else {
 			point.Value = realValue
 		}
 
 		// 缓存比较
-		shadowValue, _ := DeviceShadow.GetDevicePoint(deviceData.DeviceName, point.PointName)
+		shadowValue, _ := DeviceShadow.GetDevicePoint(deviceData.DeviceSn, point.PointName)
 		if p.ReportMode == config.ReportMode_Change && shadowValue == point.Value {
 			Logger.Debug("point report mode is change, stop sending to messageBus", zap.String("pointName", p.Name))
 		} else {
@@ -91,8 +91,8 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 		}
 
 		// 缓存
-		if err := DeviceShadow.SetDevicePoint(deviceData.DeviceName, point.PointName, point.Value); err != nil {
-			Logger.Error("shadow store point value error", zap.Error(err), zap.Any("deviceName", deviceData.DeviceName))
+		if err := DeviceShadow.SetDevicePoint(deviceData.DeviceSn, point.PointName, point.Value); err != nil {
+			Logger.Error("shadow store point value error", zap.Error(err), zap.Any("deviceSn", deviceData.DeviceSn))
 		}
 	}
 	deviceData.Values = points

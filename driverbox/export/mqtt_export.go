@@ -67,8 +67,8 @@ func (export *MqttExport) ExportTo(deviceData plugin.DeviceData) {
 	}
 }
 
-func (export *MqttExport) SendStatusChangeNotification(deviceName string, online bool) error {
-	export.client.Publish("/driverbox/event/"+export.ClientID, 0, false, map[string]any{"deviceName": deviceName, "online": online})
+func (export *MqttExport) SendStatusChangeNotification(deviceSn string, online bool) error {
+	export.client.Publish("/driverbox/event/"+export.ClientID, 0, false, map[string]any{"deviceSn": deviceSn, "online": online})
 	return nil
 }
 

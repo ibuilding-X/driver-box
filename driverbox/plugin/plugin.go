@@ -31,8 +31,8 @@ type PointData struct {
 
 // DeviceData 设备数据
 type DeviceData struct {
-	DeviceName string      `json:"device_name"`
-	Values     []PointData `json:"values"`
+	DeviceSn string      `json:"device_sn"`
+	Values   []PointData `json:"values"`
 }
 
 // ToJSON 设备数据转 json
@@ -48,7 +48,7 @@ type Plugin interface {
 	// ProtocolAdapter 协议适配器
 	ProtocolAdapter() ProtocolAdapter
 	// Connector 连接器
-	Connector(deviceName, pointName string) (connector Connector, err error)
+	Connector(deviceSn, pointName string) (connector Connector, err error)
 	// Destroy 销毁驱动
 	Destroy() error
 }
@@ -62,6 +62,6 @@ type Connector interface {
 // ProtocolAdapter 协议适配器
 // 点位数据 <=> 协议数据
 type ProtocolAdapter interface {
-	Encode(deviceName string, mode EncodeMode, value PointData) (res interface{}, err error) // 编码
-	Decode(raw interface{}) (res []DeviceData, err error)                                    // 解码
+	Encode(deviceSn string, mode EncodeMode, value PointData) (res interface{}, err error) // 编码
+	Decode(raw interface{}) (res []DeviceData, err error)                                  // 解码
 }

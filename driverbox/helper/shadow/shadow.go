@@ -12,26 +12,26 @@ var DeviceRepeatErr = errors.New("device already exists")
 var BindPointDataErr = errors.New("bind online point data can't be parsed")
 var UnknownDevicePointErr = errors.New("unknown device point")
 
-type OnlineChangeCallback func(deviceName string, online bool) // 设备上/下线回调
+type OnlineChangeCallback func(deviceSn string, online bool) // 设备上/下线回调
 
 // DeviceShadow 设备影子
 type DeviceShadow interface {
 	AddDevice(device Device) (err error)
-	GetDevice(deviceName string) (device Device, err error)
+	GetDevice(deviceSn string) (device Device, err error)
 
-	SetDevicePoint(deviceName, pointName string, value interface{}) (err error)
-	GetDevicePoint(deviceName, pointName string) (value interface{}, err error)
-	GetDevicePoints(deviceName string) (points map[string]DevicePoint, err error)
+	SetDevicePoint(deviceSn, pointName string, value interface{}) (err error)
+	GetDevicePoint(deviceSn, pointName string) (value interface{}, err error)
+	GetDevicePoints(deviceSn string) (points map[string]DevicePoint, err error)
 
-	GetDeviceUpdateAt(deviceName string) (time.Time, error)
+	GetDeviceUpdateAt(deviceSn string) (time.Time, error)
 
-	GetDeviceStatus(deviceName string) (online bool, err error)
+	GetDeviceStatus(deviceSn string) (online bool, err error)
 
-	SetOnline(deviceName string) (err error)
-	SetOffline(deviceName string) (err error)
+	SetOnline(deviceSn string) (err error)
+	SetOffline(deviceSn string) (err error)
 
 	// MayBeOffline 可能离线事件（60秒内超过3次判定离线）
-	MayBeOffline(deviceName string) (err error)
+	MayBeOffline(deviceSn string) (err error)
 
 	SetOnlineChangeCallback(handlerFunc OnlineChangeCallback)
 
@@ -63,16 +63,16 @@ func (d *deviceShadow) AddDevice(device Device) (err error) {
 	return nil
 }
 
-func (d *deviceShadow) GetDevice(deviceName string) (device Device, err error) {
-	if deviceAny, ok := d.m.Load(deviceName); ok {
+func (d *deviceShadow) GetDevice(deviceSn string) (device Device, err error) {
+	if deviceAny, ok := d.m.Load(deviceSn); ok {
 		return deviceAny.(Device), nil
 	} else {
 		return Device{}, UnknownDeviceErr
 	}
 }
 
-func (d *deviceShadow) SetDevicePoint(deviceName, pointName string, value interface{}) (err error) {
-	deviceAny, ok := d.m.Load(deviceName)
+func (d *deviceShadow) SetDevicePoint(deviceSn, pointName string, value interface{}) (err error) {
+	deviceAny, ok := d.m.Load(deviceSn)
 	if !ok {
 		return UnknownDeviceErr
 	}
@@ -93,22 +93,22 @@ func (d *deviceShadow) SetDevicePoint(deviceName, pointName string, value interf
 		if online, err := parseOnlineBindPV(value); err == nil {
 			if device.online != online {
 				device.online = online
-				d.handlerCallback(deviceName, online)
+				d.handlerCallback(deviceSn, online)
 			}
 		}
 	} else { // not bind point
 		if device.online != true {
 			device.online = true
-			d.handlerFunc(deviceName, true)
+			d.handlerFunc(deviceSn, true)
 		}
 	}
 	// update
-	d.m.Store(deviceName, device)
+	d.m.Store(deviceSn, device)
 	return
 }
 
-func (d *deviceShadow) GetDevicePoint(deviceName, pointName string) (value interface{}, err error) {
-	if deviceAny, ok := d.m.Load(deviceName); ok {
+func (d *deviceShadow) GetDevicePoint(deviceSn, pointName string) (value interface{}, err error) {
+	if deviceAny, ok := d.m.Load(deviceSn); ok {
 		device := deviceAny.(Device)
 		// 1. 设备离线
 		if device.online == false {
@@ -127,31 +127,31 @@ func (d *deviceShadow) GetDevicePoint(deviceName, pointName string) (value inter
 	}
 }
 
-func (d *deviceShadow) GetDevicePoints(deviceName string) (points map[string]DevicePoint, err error) {
-	if deviceAny, ok := d.m.Load(deviceName); ok {
+func (d *deviceShadow) GetDevicePoints(deviceSn string) (points map[string]DevicePoint, err error) {
+	if deviceAny, ok := d.m.Load(deviceSn); ok {
 		return deviceAny.(Device).points, nil
 	} else {
 		return nil, UnknownDeviceErr
 	}
 }
 
-func (d *deviceShadow) GetDeviceUpdateAt(deviceName string) (time.Time, error) {
-	if deviceAny, ok := d.m.Load(deviceName); ok {
+func (d *deviceShadow) GetDeviceUpdateAt(deviceSn string) (time.Time, error) {
+	if deviceAny, ok := d.m.Load(deviceSn); ok {
 		return deviceAny.(Device).updatedAt, nil
 	} else {
 		return time.Time{}, UnknownDeviceErr
 	}
 }
 
-func (d *deviceShadow) changeOnOff(deviceName string, online bool) (err error) {
-	if deviceAny, ok := d.m.Load(deviceName); ok {
+func (d *deviceShadow) changeOnOff(deviceSn string, online bool) (err error) {
+	if deviceAny, ok := d.m.Load(deviceSn); ok {
 		device := deviceAny.(Device)
 		if device.online != online {
 			device.online = online
 			device.updatedAt = time.Now()
 			device.disconnectTimes = 0
-			d.m.Store(deviceName, device)
-			d.handlerCallback(deviceName, online)
+			d.m.Store(deviceSn, device)
+			d.handlerCallback(deviceSn, online)
 		}
 	} else {
 		return UnknownDeviceErr
@@ -159,8 +159,8 @@ func (d *deviceShadow) changeOnOff(deviceName string, online bool) (err error) {
 	return
 }
 
-func (d *deviceShadow) GetDeviceStatus(deviceName string) (online bool, err error) {
-	if deviceAny, ok := d.m.Load(deviceName); ok {
+func (d *deviceShadow) GetDeviceStatus(deviceSn string) (online bool, err error) {
+	if deviceAny, ok := d.m.Load(deviceSn); ok {
 		device := deviceAny.(Device)
 		return device.online, nil
 	} else {
@@ -168,30 +168,30 @@ func (d *deviceShadow) GetDeviceStatus(deviceName string) (online bool, err erro
 	}
 }
 
-func (d *deviceShadow) SetOnline(deviceName string) (err error) {
-	return d.changeOnOff(deviceName, true)
+func (d *deviceShadow) SetOnline(deviceSn string) (err error) {
+	return d.changeOnOff(deviceSn, true)
 }
 
-func (d *deviceShadow) SetOffline(deviceName string) (err error) {
-	return d.changeOnOff(deviceName, false)
+func (d *deviceShadow) SetOffline(deviceSn string) (err error) {
+	return d.changeOnOff(deviceSn, false)
 }
 
 func (d *deviceShadow) SetOnlineChangeCallback(handlerFunc OnlineChangeCallback) {
 	d.handlerFunc = handlerFunc
 }
 
-func (d *deviceShadow) MayBeOffline(deviceName string) (err error) {
-	if deviceAny, ok := d.m.Load(deviceName); ok {
+func (d *deviceShadow) MayBeOffline(deviceSn string) (err error) {
+	if deviceAny, ok := d.m.Load(deviceSn); ok {
 		device := deviceAny.(Device)
 		if device.online == false {
 			return
 		}
 		device.disconnectTimes++
 		if time.Since(device.updatedAt).Seconds() > 60 && device.disconnectTimes >= 3 {
-			return d.SetOffline(deviceName)
+			return d.SetOffline(deviceSn)
 		}
 		// 更新设备信息
-		d.m.Store(deviceName, device)
+		d.m.Store(deviceSn, device)
 		return
 	} else {
 		return UnknownDeviceErr
@@ -215,9 +215,9 @@ func (d *deviceShadow) checkOnOff() {
 	}
 }
 
-func (d *deviceShadow) handlerCallback(deviceName string, online bool) {
+func (d *deviceShadow) handlerCallback(deviceSn string, online bool) {
 	if d.handlerFunc != nil {
-		go d.handlerFunc(deviceName, online)
+		go d.handlerFunc(deviceSn, online)
 	}
 }
 

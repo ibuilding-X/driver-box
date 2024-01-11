@@ -93,11 +93,11 @@ func initDeviceShadow(configMap map[string]config.Config) {
 	// 设置影子服务设备生命周期
 	helper.DeviceShadow = shadow.NewDeviceShadow()
 	// 设置回调
-	helper.DeviceShadow.SetOnlineChangeCallback(func(deviceName string, online bool) {
+	helper.DeviceShadow.SetOnlineChangeCallback(func(deviceSn string, online bool) {
 		if online {
-			helper.Logger.Info("device online", zap.String("deviceName", deviceName))
+			helper.Logger.Info("device online", zap.String("deviceSn", deviceSn))
 		} else {
-			helper.Logger.Warn("device offline...", zap.String("deviceName", deviceName))
+			helper.Logger.Warn("device offline...", zap.String("deviceSn", deviceSn))
 		}
 
 		for _, export := range helper.Exports {
@@ -105,9 +105,9 @@ func initDeviceShadow(configMap map[string]config.Config) {
 				helper.Logger.Warn("export not ready")
 				continue
 			}
-			err := export.SendStatusChangeNotification(deviceName, online)
+			err := export.SendStatusChangeNotification(deviceSn, online)
 			if err != nil {
-				helper.Logger.Error("send device status change notification error", zap.String("deviceName", deviceName))
+				helper.Logger.Error("send device status change notification error", zap.String("deviceSn", deviceSn))
 			}
 		}
 	})
@@ -132,8 +132,8 @@ func initTimerTasks(L *lua.LState, tasks []config.TimerTask) (err error) {
 			var actions []config.ReadPointsAction
 			_ = json.Unmarshal(b, &actions)
 			for _, action := range actions {
-				if len(action.DeviceNames) > 0 && len(action.Points) > 0 {
-					if err := helper.Crontab.AddFunc(task.Interval+"ms", timerTaskHandler(action.DeviceNames, action.Points)); err != nil {
+				if len(action.Devices) > 0 && len(action.Points) > 0 {
+					if err := helper.Crontab.AddFunc(task.Interval+"ms", timerTaskHandler(action.Devices, action.Points)); err != nil {
 						return err
 					}
 				}
@@ -151,13 +151,13 @@ func initTimerTasks(L *lua.LState, tasks []config.TimerTask) (err error) {
 }
 
 // timerTaskHandler autoEvent处理函数
-func timerTaskHandler(deviceNames []string, pointNames []string) func() {
+func timerTaskHandler(devices []string, pointNames []string) func() {
 	return func() {
 		helper.Logger.Info("begin handle auto event",
 			zap.String("taskType", "read_points"),
-			zap.String("deviceNames", fmt.Sprintf("%+v", deviceNames)),
+			zap.String("devices", fmt.Sprintf("%+v", devices)),
 			zap.String("pointNames", fmt.Sprintf("%+v", pointNames)))
-		if err := helper.SendMultiRead(deviceNames, pointNames); err != nil {
+		if err := helper.SendMultiRead(devices, pointNames); err != nil {
 			helper.Logger.Error("auto event send error", zap.Error(err))
 		}
 	}
