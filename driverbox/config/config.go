@@ -146,7 +146,7 @@ type Point struct {
 // DeviceBase 设备基础信息
 type DeviceBase struct {
 	// 设备SN
-	Sn string `json:"name" validate:"required"`
+	Sn string `json:"sn" validate:"required"`
 	// 模型名称
 	ModelName string `json:"-" validate:"-"`
 	// 设备描述
