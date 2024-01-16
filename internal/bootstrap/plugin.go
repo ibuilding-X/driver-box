@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
@@ -99,17 +100,8 @@ func initDeviceShadow(configMap map[string]config.Config) {
 		} else {
 			helper.Logger.Warn("device offline...", zap.String("deviceSn", deviceSn))
 		}
-
-		for _, export := range helper.Exports {
-			if !export.IsReady() {
-				helper.Logger.Warn("export not ready")
-				continue
-			}
-			err := export.SendStatusChangeNotification(deviceSn, online)
-			if err != nil {
-				helper.Logger.Error("send device status change notification error", zap.String("deviceSn", deviceSn))
-			}
-		}
+		//触发设备在离线事件
+		helper.TriggerEvents(event.EventCodeDeviceStatus, deviceSn, online)
 	})
 	// 添加设备
 	for _, c := range configMap {

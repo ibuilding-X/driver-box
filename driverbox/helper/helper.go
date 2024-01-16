@@ -10,8 +10,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
-	"io/fs"
-	"path/filepath"
 	"sync"
 )
 
@@ -34,28 +32,6 @@ func Map2Struct(m interface{}, v interface{}) error {
 		return err
 	}
 	return json.Unmarshal(b, v)
-}
-
-// GetChildDir 获取指定路径下所有子目录
-func GetChildDir(path string) (list []string, err error) {
-	err = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
-		if d.IsDir() {
-			list = append(list, path)
-		}
-		return nil
-	})
-	return
-}
-
-// GetChildDirName 获取指定路径下所有子目录名称
-func GetChildDirName(path string) (list []string, err error) {
-	err = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
-		if d.IsDir() {
-			list = append(list, d.Name())
-		}
-		return nil
-	})
-	return
 }
 
 func PointCacheFilter(deviceData *plugin.DeviceData) {
@@ -96,4 +72,18 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 		}
 	}
 	deviceData.Values = points
+}
+
+// 触发事件
+func TriggerEvents(eventCode string, key string, value interface{}) {
+	for _, export0 := range Exports {
+		if !export0.IsReady() {
+			Logger.Warn("export not ready")
+			continue
+		}
+		err := export0.OnEvent(eventCode, key, value)
+		if err != nil {
+			Logger.Error("trigger event error", zap.String("eventCode", eventCode), zap.String("key", key), zap.Any("value", value), zap.Error(err))
+		}
+	}
 }

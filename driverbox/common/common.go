@@ -7,9 +7,6 @@ const (
 	CoreConfigName = "config.json"   // 核心配置文件名称
 )
 
-// AdapterScriptPath 协议适配器脚本路径
-const AdapterScriptPath = "./driver-config/converter.lua"
-
 var (
 	InitLoggerErr                       = errors.New("init logger error")                                      // 初始化日志记录器错误
 	NotSupportGetConnector              = errors.New("the protocol does not support getting connector")        // 协议不支持获取连接器

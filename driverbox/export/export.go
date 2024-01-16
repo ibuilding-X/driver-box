@@ -7,8 +7,6 @@ type Export interface {
 	// ExportTo 导出消息：写入Edgex总线、MQTT上云
 	ExportTo(deviceData plugin.DeviceData)
 
-	SendStatusChangeNotification(deviceSn string, online bool) error
-
 	//事件触发回调
 	OnEvent(eventCode string, key string, eventValue interface{}) error
 
