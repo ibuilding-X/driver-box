@@ -3,8 +3,9 @@ package common
 import "errors"
 
 const (
-	LuaScriptName  = "converter.lua" // lua 转换器脚本名称
-	CoreConfigName = "config.json"   // 核心配置文件名称
+	LuaScriptName           = "converter.lua"         // lua 转换器脚本名称
+	CoreConfigName          = "config.json"           // 核心配置文件名称
+	LuaScriptNameForVirtual = "converter_virtual.lua" // lua 转换器脚本名称（提供给虚拟设备）
 )
 
 var (

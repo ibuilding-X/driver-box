@@ -11,6 +11,7 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins/modbus"
 	"github.com/ibuilding-x/driver-box/internal/plugins/mqtt"
 	"github.com/ibuilding-x/driver-box/internal/plugins/tcpserver"
+	"github.com/ibuilding-x/driver-box/internal/plugins/virtual"
 	"sync"
 )
 
@@ -26,6 +27,7 @@ func init() {
 	Manager.Register("tcp_server", new(tcpserver.Plugin))
 	Manager.Register("mqtt", new(mqtt.Plugin))
 	Manager.Register("http_client", new(httpclient.Plugin))
+	Manager.Register("virtual", new(virtual.Plugin))
 }
 
 // manager 管理器

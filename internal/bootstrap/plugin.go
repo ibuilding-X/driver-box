@@ -107,6 +107,10 @@ func initDeviceShadow(configMap map[string]config.Config) {
 	for _, c := range configMap {
 		for _, model := range c.DeviceModels {
 			for _, d := range model.Devices {
+				// 特殊处理：虚拟设备 TTL 值设置
+				if c.ProtocolName == "virtual" {
+					d.Ttl = "8760h"
+				}
 				dev := shadow.NewDevice(d.DeviceBase, model.Name, nil)
 				_ = helper.DeviceShadow.AddDevice(dev)
 			}
