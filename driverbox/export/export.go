@@ -9,5 +9,8 @@ type Export interface {
 
 	SendStatusChangeNotification(deviceSn string, online bool) error
 
+	//事件触发回调
+	OnEvent(eventCode string, key string, eventValue interface{}) error
+
 	IsReady() bool
 }

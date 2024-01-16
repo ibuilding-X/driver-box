@@ -67,6 +67,11 @@ func (export *MqttExport) ExportTo(deviceData plugin.DeviceData) {
 	}
 }
 
+// 继承Export OnEvent接口
+func (export *MqttExport) OnEvent(eventCode string, key string, eventValue interface{}) error {
+	return nil
+}
+
 func (export *MqttExport) SendStatusChangeNotification(deviceSn string, online bool) error {
 	export.client.Publish("/driverbox/event/"+export.ClientID, 0, false, map[string]any{"deviceSn": deviceSn, "online": online})
 	return nil
