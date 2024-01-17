@@ -54,13 +54,11 @@ func Start(exports []export.Export) error {
 	//第五步：启动Export
 	helper.Exports = exports
 	for _, item := range exports {
-		go func(item export.Export) {
-			err := item.Init()
-			if err != nil {
-				panic(err)
-			}
-		}(item)
+		if err := item.Init(); err != nil {
+			return err
+		}
 	}
+
 	if err != nil {
 		helper.TriggerEvents(event.EventCodeServiceStatus, SerialNo, "error")
 	} else {
