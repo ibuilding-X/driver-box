@@ -3,6 +3,7 @@ package driverbox
 import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -12,6 +13,9 @@ import (
 	"go.uber.org/zap"
 	"os"
 )
+
+// 网关编号
+var SerialNo = "driver-box"
 
 func RegisterPlugin(name string, plugin plugin.Plugin) error {
 	return plugins.Manager.Register(name, plugin)
@@ -32,9 +36,9 @@ func Start(exports []export.Export) error {
 	}
 
 	//第三步：启动driver-box插件
-	if err := bootstrap.LoadPlugins(); err != nil {
+	err = bootstrap.LoadPlugins()
+	if err != nil {
 		helper.Logger.Error(err.Error())
-		return err
 	}
 
 	// 第四步：启动 REST 服务
@@ -57,6 +61,12 @@ func Start(exports []export.Export) error {
 			}
 		}(item)
 	}
+	if err != nil {
+		helper.TriggerEvents(event.EventCodeServiceStatus, SerialNo, "error")
+	} else {
+		helper.TriggerEvents(event.EventCodeServiceStatus, SerialNo, "healthy")
+	}
+
 	helper.Logger.Info("start driver-box success.")
 	return nil
 }
