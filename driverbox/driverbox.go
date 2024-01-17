@@ -66,7 +66,7 @@ func Start(exports []export.Export) error {
 	}
 
 	helper.Logger.Info("start driver-box success.")
-	return nil
+	return err
 }
 
 func initEnvConfig() error {
