@@ -75,7 +75,9 @@ func (lm *LuaModule) WriteToMsgBus(L *lua.LState) int {
 	// 发送数据
 	if len(deviceData.Values) > 0 {
 		for _, export := range Exports {
-			export.ExportTo(deviceData)
+			if export.IsReady() {
+				export.ExportTo(deviceData)
+			}
 		}
 	}
 	//WriteToMessageBus(deviceData)

@@ -87,7 +87,9 @@ func matchAndReportResource(duration time.Duration, ticker *time.Ticker) {
 					Values:   pd,
 				}
 				for _, export := range helper.Exports {
-					export.ExportTo(deviceData)
+					if export.IsReady() {
+						export.ExportTo(deviceData)
+					}
 				}
 			}
 		}

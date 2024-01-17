@@ -187,7 +187,9 @@ func receiveHandler() plugin.OnReceiveHandler {
 				continue
 			}
 			for _, export := range helper.Exports {
-				export.ExportTo(data)
+				if export.IsReady() {
+					export.ExportTo(data)
+				}
 			}
 		}
 		return
