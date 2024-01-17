@@ -34,7 +34,7 @@ func (c *cache) AddTag(tag string) (e error) {
 
 // InitCoreCache 初始化核心缓存
 func InitCoreCache(configMap map[string]config.Config) (err error) {
-	c := &cache{
+	CoreCache := &cache{
 		models:             &sync.Map{},
 		devices:            &sync.Map{},
 		deviceProperties:   &sync.Map{},
@@ -47,7 +47,7 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 	for key, _ := range configMap {
 		for _, deviceModel := range configMap[key].DeviceModels {
 			var model config.Model
-			if raw, ok := c.models.Load(deviceModel.Name); ok {
+			if raw, ok := CoreCache.models.Load(deviceModel.Name); ok {
 				model = raw.(config.Model)
 				if model.ModelBase.Name != deviceModel.ModelBase.Name ||
 					model.ModelBase.ModelID != deviceModel.ModelBase.ModelID {
@@ -76,8 +76,8 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 				if _, ok := model.Devices[deviceSn]; !ok {
 					model.Devices[deviceSn] = deviceBase
 				}
-				if deviceRaw, ok := c.devices.Load(deviceSn); !ok {
-					c.devices.Store(deviceSn, deviceBase)
+				if deviceRaw, ok := CoreCache.devices.Load(deviceSn); !ok {
+					CoreCache.devices.Store(deviceSn, deviceBase)
 				} else {
 					storedDeviceBase := deviceRaw.(config.DeviceBase)
 					if storedDeviceBase.ModelName != deviceBase.ModelName {
@@ -86,39 +86,38 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 					}
 				}
 				var properties map[string]DeviceProperties
-				if raw, ok := c.deviceProperties.Load(deviceSn); ok {
+				if raw, ok := CoreCache.deviceProperties.Load(deviceSn); ok {
 					properties = raw.(map[string]DeviceProperties)
 				} else {
 					properties = make(map[string]DeviceProperties)
 				}
 				properties[configMap[key].ProtocolName+"_"+device.ConnectionKey] = device.Properties
-				c.deviceProperties.Store(deviceSn, properties)
+				CoreCache.deviceProperties.Store(deviceSn, properties)
 				for _, point := range pointMap {
 					devicePointKey := deviceSn + "_" + point.Name
-					if _, ok := c.points.Load(devicePointKey); ok {
+					if _, ok := CoreCache.points.Load(devicePointKey); ok {
 						return fmt.Errorf("device %s duplicate point %s found", deviceSn, point.Name)
 					}
-					c.points.Store(devicePointKey, point)
-					c.devicePointPlugins.Store(devicePointKey, key)
-					c.devicePointConn.Store(devicePointKey, device)
+					CoreCache.points.Store(devicePointKey, point)
+					CoreCache.devicePointPlugins.Store(devicePointKey, key)
+					CoreCache.devicePointConn.Store(devicePointKey, device)
 				}
 
 				//根据tag分组存储设备列表
 				for _, tag := range device.Tags {
-					if raw, ok := c.tagDevices.Load(tag); ok {
+					if raw, ok := CoreCache.tagDevices.Load(tag); ok {
 						devices := raw.([]config.DeviceBase)
 						devices = append(devices, deviceBase)
-						c.tagDevices.Store(tag, devices)
+						CoreCache.tagDevices.Store(tag, devices)
 					} else {
-						c.tagDevices.Store(tag, []config.DeviceBase{deviceBase})
+						CoreCache.tagDevices.Store(tag, []config.DeviceBase{deviceBase})
 					}
 				}
 			}
-			c.models.Store(model.Name, model)
+			CoreCache.models.Store(model.Name, model)
 		}
 	}
 
-	CoreCache = c
 	return nil
 }
 
