@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"go.uber.org/zap"
 	"sync"
 )
 
@@ -71,6 +72,10 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 				}
 			}
 			for _, device := range deviceModel.Devices {
+				if device.DeviceSn == "" {
+					Logger.Error("config error , device sn is empty", zap.Any("device", device))
+					continue
+				}
 				deviceSn := device.DeviceSn
 				deviceBase := device.DeviceBase
 				deviceBase.ModelName = deviceModel.Name
