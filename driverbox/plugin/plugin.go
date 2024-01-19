@@ -31,7 +31,7 @@ type PointData struct {
 
 // DeviceData 设备数据
 type DeviceData struct {
-	DeviceSn string      `json:"device_sn"`
+	DeviceSn string      `json:"deviceSn"`
 	Values   []PointData `json:"values"`
 }
 
