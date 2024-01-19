@@ -83,8 +83,8 @@ func matchAndReportResource(duration time.Duration, ticker *time.Ticker) {
 					continue
 				}
 				deviceData := plugin.DeviceData{
-					DeviceSn: device.DeviceSn,
-					Values:   pd,
+					SN:     device.DeviceSn,
+					Values: pd,
 				}
 				for _, export := range helper.Exports {
 					if export.IsReady() {

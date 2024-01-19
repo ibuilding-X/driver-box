@@ -31,7 +31,7 @@ type adapter struct {
 
 // transportationData 通讯数据（编码返回、解码输入数据格式）
 type transportationData struct {
-	DeviceSn    string            // 设备SN
+	SN          string            // 设备SN
 	Mode        plugin.EncodeMode // 读取模式
 	SlaveID     uint8             // 从机 salve id
 	MaxQuantity uint16            // 最长连续读数量
@@ -76,7 +76,7 @@ func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.P
 	}
 	// 响应结果
 	result := transportationData{
-		DeviceSn:    deviceSn,
+		SN:          deviceSn,
 		Mode:        mode,
 		MaxQuantity: uint16(maxQuantity),
 		SlaveID:     uint8(slaveID),
@@ -217,8 +217,8 @@ func (a *adapter) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
 			})
 		}
 		res = append(res, plugin.DeviceData{
-			DeviceSn: deviceRawData.DeviceSn,
-			Values:   pointDatalist,
+			SN:     deviceRawData.SN,
+			Values: pointDatalist,
 		})
 	}
 	return

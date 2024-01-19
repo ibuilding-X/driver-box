@@ -31,8 +31,8 @@ type PointData struct {
 
 // DeviceData 设备数据
 type DeviceData struct {
-	DeviceSn string      `json:"device_sn"`
-	Values   []PointData `json:"values"`
+	SN     string      `json:"sn"`
+	Values []PointData `json:"values"`
 }
 
 // ToJSON 设备数据转 json

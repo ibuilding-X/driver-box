@@ -35,7 +35,7 @@ type connector struct {
 }
 
 type rawData struct {
-	DeviceSn       string          `json:"deviceSn"`
+	SN             string          `json:"sn"`
 	PointRawValues []pointRawValue `json:"points"`
 }
 
@@ -59,7 +59,7 @@ func (c *connector) Send(data interface{}) (err error) {
 }
 
 func (c *connector) sendWriteMode(td transportationData) error {
-	ext, err := getExtendProps(td.DeviceSn, td.PointName)
+	ext, err := getExtendProps(td.SN, td.PointName)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func (c *connector) sendWriteMode(td transportationData) error {
 
 func (c *connector) sendReadMode(td transportationData) error {
 	totalPointRawValues := make([]pointRawValue, 0)
-	ext, err := getExtendProps(td.DeviceSn, td.PointName)
+	ext, err := getExtendProps(td.SN, td.PointName)
 	if err != nil {
 		return err
 	}
@@ -106,12 +106,12 @@ func (c *connector) sendReadMode(td transportationData) error {
 	} else {
 		pointNames = []string{td.PointName}
 	}
-	totalPointRawValues, err = sliceToPointRawValue(rawValues, ext.StartAddress, td.DeviceSn, pointNames)
+	totalPointRawValues, err = sliceToPointRawValue(rawValues, ext.StartAddress, td.SN, pointNames)
 	if err != nil {
 		return err
 	}
 	raw := rawData{
-		DeviceSn:       td.DeviceSn,
+		SN:             td.SN,
 		PointRawValues: totalPointRawValues,
 	}
 	_, err = c.plugin.callback(c.plugin, raw)

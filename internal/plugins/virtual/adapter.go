@@ -79,8 +79,8 @@ func (a *adapter) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
 
 	// 汇总
 	res = append(res, plugin.DeviceData{
-		DeviceSn: v.SN,
-		Values:   vs,
+		SN:     v.SN,
+		Values: vs,
 	})
 
 	return

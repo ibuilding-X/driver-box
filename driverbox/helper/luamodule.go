@@ -58,7 +58,7 @@ func (lm *LuaModule) WriteToMsgBus(L *lua.LState) int {
 	points := L.ToTable(2)    // 点位值
 
 	deviceData := plugin.DeviceData{
-		DeviceSn: deviceSn,
+		SN: deviceSn,
 	}
 	var pd []plugin.PointData
 	// 循环点位数据
