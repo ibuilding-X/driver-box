@@ -132,6 +132,10 @@ func initTimerTasks(L *lua.LState, tasks []config.TimerTask) (err error) {
 			var actions []config.ReadPointsAction
 			_ = json.Unmarshal(b, &actions)
 			for _, action := range actions {
+				if len(task.Interval) == 0 {
+					helper.Logger.Error("timerTask interval is nil")
+					continue
+				}
 				if len(action.Devices) > 0 && len(action.Points) > 0 {
 					if err := helper.Crontab.AddFunc(task.Interval+"ms", timerTaskHandler(action.Devices, action.Points)); err != nil {
 						return err
