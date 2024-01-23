@@ -74,6 +74,10 @@ func matchAndReportResource(duration time.Duration, ticker *time.Ticker) {
 						helper.Logger.Debug("获取设备上报点位失败", zap.String("device", device.DeviceSn), zap.String("point", point.Name), zap.Error(e))
 						continue
 					}
+					if val == nil {
+						helper.Logger.Debug("device point value is nil", zap.String("device", device.DeviceSn), zap.String("point", point.Name))
+						continue
+					}
 					pd = append(pd, plugin.PointData{
 						PointName: point.Name,
 						Value:     val,
