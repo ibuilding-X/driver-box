@@ -30,7 +30,7 @@ func Start(exports []export.Export) error {
 	}
 
 	//第二步：初始化日志记录器
-	if err := helper.InitLogger("DEBUG"); err != nil {
+	if err := helper.InitLogger(os.Getenv("LOG_LEVEL")); err != nil {
 		fmt.Println("init logger error", err)
 		return err
 	}

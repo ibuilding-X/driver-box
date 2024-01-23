@@ -22,6 +22,9 @@ func main() {
 	flag.StringVar(&exportTopic, "exportTopic", os.Getenv("MQTT_EXPORT_TOPIC"), "mqttExport: exportTopic")
 	flag.Parse()
 
+	// 设置日志级别
+	_ = os.Setenv("LOG_LEVEL", "debug")
+
 	if len(clientId) == 0 {
 		clientId = ""
 	}
