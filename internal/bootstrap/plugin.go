@@ -86,6 +86,9 @@ func LoadPlugins() error {
 		helper.Logger.Info("start success", zap.Any("directoryName", key), zap.Any("plugin", configMap[key].ProtocolName))
 	}
 
+	// 修复：所有定时任务添加完成后，启动 crontab
+	helper.Crontab.Start()
+
 	return nil
 }
 
@@ -150,7 +153,7 @@ func initTimerTasks(L *lua.LState, tasks []config.TimerTask) (err error) {
 			}
 		}
 	}
-	helper.Crontab.Start()
+
 	return
 }
 
