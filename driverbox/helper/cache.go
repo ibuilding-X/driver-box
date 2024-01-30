@@ -17,7 +17,7 @@ var CoreCache coreCache
 
 type cache struct {
 	models  *sync.Map // name => config.Model
-	devices *sync.Map // deviceSn => config.DeviceBase
+	devices *sync.Map // deviceSn => config.Device
 	//设备属性
 	deviceProperties   *sync.Map // deviceSn => map[string]map[string]string
 	points             *sync.Map // deviceSn_pointName => config.Point
@@ -25,7 +25,7 @@ type cache struct {
 	runningPlugins     *sync.Map // key => plugin.Plugin
 	devicePointConn    *sync.Map // deviceSn_pointName => config.Device
 	//根据tag分组存储的设备列表
-	tagDevices *sync.Map // tag => []config.DeviceBase
+	tagDevices *sync.Map // tag => []config.Device
 }
 
 func (c *cache) AddTag(tag string) (e error) {
@@ -59,8 +59,8 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 			} else {
 				model = config.Model{
 					ModelBase: deviceModel.ModelBase,
-					Points:    map[string]config.PointBase{},
-					Devices:   map[string]config.DeviceBase{},
+					Points:    map[string]config.Point{},
+					Devices:   map[string]config.Device{},
 				}
 			}
 			pointMap := make(map[string]config.Point)
@@ -68,7 +68,7 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 				point := devicePoint.ToPoint()
 				pointMap[point.Name] = point
 				if _, ok := model.Points[point.Name]; !ok {
-					model.Points[point.Name] = point.PointBase
+					model.Points[point.Name] = point
 				}
 			}
 			for _, device := range deviceModel.Devices {
@@ -77,18 +77,17 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 					continue
 				}
 				deviceSn := device.DeviceSn
-				deviceBase := device.DeviceBase
-				deviceBase.ModelName = deviceModel.Name
+				device.ModelName = deviceModel.Name
 				if _, ok := model.Devices[deviceSn]; !ok {
-					model.Devices[deviceSn] = deviceBase
+					model.Devices[deviceSn] = device
 				}
 				if deviceRaw, ok := c.devices.Load(deviceSn); !ok {
-					c.devices.Store(deviceSn, deviceBase)
+					c.devices.Store(deviceSn, device)
 				} else {
-					storedDeviceBase := deviceRaw.(config.DeviceBase)
-					if storedDeviceBase.ModelName != deviceBase.ModelName {
-						return fmt.Errorf("conflict model for device [%s]: %s -> %s", deviceBase.DeviceSn,
-							deviceBase.ModelName, storedDeviceBase.ModelName)
+					storedDeviceBase := deviceRaw.(config.Device)
+					if storedDeviceBase.ModelName != device.ModelName {
+						return fmt.Errorf("conflict model for device [%s]: %s -> %s", device.DeviceSn,
+							device.ModelName, storedDeviceBase.ModelName)
 					}
 				}
 				var properties map[string]DeviceProperties
@@ -112,11 +111,11 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 				//根据tag分组存储设备列表
 				for _, tag := range device.Tags {
 					if raw, ok := c.tagDevices.Load(tag); ok {
-						devices := raw.([]config.DeviceBase)
-						devices = append(devices, deviceBase)
+						devices := raw.([]config.Device)
+						devices = append(devices, device)
 						c.tagDevices.Store(tag, devices)
 					} else {
-						c.tagDevices.Store(tag, []config.DeviceBase{deviceBase})
+						c.tagDevices.Store(tag, []config.Device{device})
 					}
 				}
 			}
@@ -129,38 +128,37 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 
 // coreCache 核心缓存
 type coreCache interface {
-	GetModel(modelName string) (model config.ModelBase, ok bool)                                 // model info
-	GetDevice(deviceSn string) (device config.DeviceBase, ok bool)                               // device info
+	GetModel(modelName string) (model config.Model, ok bool)                                     // model info
+	GetDevice(deviceSn string) (device config.Device, ok bool)                                   // device info
 	GetDeviceByDeviceAndPoint(deviceSn string, pointName string) (device config.Device, ok bool) // connection config
 	//查询指定标签的设备列表
-	GetDevicesByTag(tag string) (devices []config.DeviceBase)
+	GetDevicesByTag(tag string) (devices []config.Device)
 	AddTag(tag string) (e error)                                                                        //
-	GetPointByModel(modelName string, pointName string) (point config.PointBase, ok bool)               // search point by model
+	GetPointByModel(modelName string, pointName string) (point config.Point, ok bool)                   // search point by model
 	GetPointByDevice(deviceSn string, pointName string) (point config.Point, ok bool)                   // search point by device
 	GetRunningPluginByDeviceAndPoint(deviceSn string, pointName string) (plugin plugin.Plugin, ok bool) // search plugin by device and point
 	GetRunningPluginByKey(key string) (plugin plugin.Plugin, ok bool)                                   // search plugin by directory name
 	AddRunningPlugin(key string, plugin plugin.Plugin)                                                  // add running plugin
 	Models() (models []config.Model)                                                                    // all model
-	Devices() (devices []config.DeviceBase)
+	Devices() (devices []config.Device)
 	GetProtocolsByDevice(deviceSn string) (map[string]DeviceProperties, bool) // device protocols
 	GetAllRunningPluginKey() (keys []string)                                  // get running plugin keys
 }
 
-func (c *cache) GetModel(modelName string) (model config.ModelBase, ok bool) {
+func (c *cache) GetModel(modelName string) (model config.Model, ok bool) {
 	if raw, exist := c.models.Load(modelName); exist {
 		m, _ := raw.(config.Model)
-		model = m.ModelBase
-		return model, true
+		return m, true
 	}
-	return config.ModelBase{}, false
+	return config.Model{}, false
 }
 
-func (c *cache) GetDevice(deviceSn string) (device config.DeviceBase, ok bool) {
+func (c *cache) GetDevice(deviceSn string) (device config.Device, ok bool) {
 	if raw, exist := c.devices.Load(deviceSn); exist {
-		device, _ = raw.(config.DeviceBase)
+		device, _ = raw.(config.Device)
 		return device, true
 	}
-	return config.DeviceBase{}, false
+	return config.Device{}, false
 }
 
 func (c *cache) GetDeviceByDeviceAndConn(deviceSn, connectionKey string) (device config.Device, ok bool) {
@@ -179,20 +177,20 @@ func (c *cache) GetDeviceByDeviceAndPoint(deviceSn, pointName string) (device co
 	return config.Device{}, false
 }
 
-func (c *cache) GetPointByModel(modelName string, pointName string) (point config.PointBase, ok bool) {
+func (c *cache) GetPointByModel(modelName string, pointName string) (point config.Point, ok bool) {
 	if raw, ok := c.models.Load(modelName); ok {
 		model := raw.(config.Model)
 		if pointBase, ok := model.Points[pointName]; ok {
 			return pointBase, true
 		}
-		return config.PointBase{}, false
+		return config.Point{}, false
 	}
-	return config.PointBase{}, false
+	return config.Point{}, false
 }
 
-func (c *cache) GetDevicesByTag(tag string) (devices []config.DeviceBase) {
+func (c *cache) GetDevicesByTag(tag string) (devices []config.Device) {
 	if raw, ok := c.tagDevices.Load(tag); ok {
-		devices, _ = raw.([]config.DeviceBase)
+		devices, _ = raw.([]config.Device)
 		return devices
 	}
 	return
@@ -233,9 +231,9 @@ func (c *cache) Models() (models []config.Model) {
 	return
 }
 
-func (c *cache) Devices() (devices []config.DeviceBase) {
+func (c *cache) Devices() (devices []config.Device) {
 	c.devices.Range(func(key, value any) bool {
-		device, _ := value.(config.DeviceBase)
+		device, _ := value.(config.Device)
 		devices = append(devices, device)
 		return true
 	})

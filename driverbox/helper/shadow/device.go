@@ -30,7 +30,7 @@ type DevicePoint struct {
 	UpdatedAt time.Time   // 点位最后更新时间（用于点位缓存过期判断）
 }
 
-func NewDevice(device config.DeviceBase, modelName string, points map[string]DevicePoint) Device {
+func NewDevice(device config.Device, modelName string, points map[string]DevicePoint) Device {
 	//默认24小时无数据上报，视为设备离线
 	ttl := time.Duration(24) * time.Hour
 	if device.Ttl != "" {

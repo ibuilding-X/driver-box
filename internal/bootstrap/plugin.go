@@ -118,7 +118,7 @@ func initDeviceShadow(configMap map[string]config.Config) {
 				if c.ProtocolName == "virtual" {
 					d.Ttl = "8760h"
 				}
-				dev := shadow.NewDevice(d.DeviceBase, model.Name, nil)
+				dev := shadow.NewDevice(d, model.Name, nil)
 				_ = helper.DeviceShadow.AddDevice(dev)
 			}
 		}

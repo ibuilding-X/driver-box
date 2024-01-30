@@ -49,7 +49,7 @@ func matchAndReportResource(duration time.Duration, ticker *time.Ticker) {
 		stop := true
 		for _, model := range helper.CoreCache.Models() {
 			//提取匹配当前定时周期的点位
-			var points []config.PointBase
+			var points []config.Point
 			for _, point := range model.Points {
 				timerReport := point.TimerReport
 				if timerReport == "" {

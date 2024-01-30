@@ -71,8 +71,8 @@ type Config struct {
 
 type Model struct {
 	ModelBase
-	Points  map[string]PointBase  `json:"points"`
-	Devices map[string]DeviceBase `json:"devices"`
+	Points  map[string]Point  `json:"points"`
+	Devices map[string]Device `json:"devices"`
 }
 
 // ModelBase 模型基础信息
@@ -94,8 +94,8 @@ type DeviceModel struct {
 	Devices []Device `json:"devices" validate:"required"`
 }
 
-// PointBase 点位基础信息
-type PointBase struct {
+// Point 点位数据
+type Point struct {
 	// 点位名称
 	Name string `json:"name" validate:"required"`
 	// 点位描述
@@ -110,19 +110,14 @@ type PointBase struct {
 	Units string `json:"units" validate:"-"`
 	// 上报模式
 	ReportMode ReportMode `json:"reportMode" validate:"required"`
-}
-
-// Point 点位数据
-type Point struct {
-	PointBase
 	// 扩展参数
 	Extends map[string]interface{} `json:"-" validate:"-"`
 }
 
 //------------------------------ 设备 ------------------------------
 
-// DeviceBase 设备基础信息
-type DeviceBase struct {
+// Device 设备
+type Device struct {
 	// 设备SN
 	DeviceSn string `json:"sn" validate:"required"`
 	// 模型名称
@@ -134,11 +129,6 @@ type DeviceBase struct {
 
 	//设备标签
 	Tags []string `json:"tags"`
-}
-
-// Device 设备
-type Device struct {
-	DeviceBase
 	// 连接 Key
 	ConnectionKey string `json:"connectionKey" validate:"required"`
 	// 协议参数
@@ -153,12 +143,6 @@ type TimerTask struct {
 	Type string `json:"type" validate:"required"`
 	// 任务动作
 	Action interface{} `json:"action" validate:"required"`
-}
-
-// ModelCache 模型缓存
-type ModelCache struct {
-	ModelBase
-	Points map[string]PointBase
 }
 
 type ReadPointsAction struct {
