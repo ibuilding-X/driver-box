@@ -76,18 +76,18 @@ func (d *deviceShadow) SetDevicePoint(deviceSn, pointName string, value interfac
 	if !ok {
 		return UnknownDeviceErr
 	}
-	device := deviceAny.(Device)
+	device, _ := deviceAny.(Device)
 	if device.points == nil {
-		device.points = make(map[string]DevicePoint)
+		device.points = &sync.Map{}
 	}
 	// update point value
 	device.updatedAt = time.Now()
 	device.disconnectTimes = 0
-	device.points[pointName] = DevicePoint{
+	device.points.Store(pointName, DevicePoint{
 		Name:      pointName,
 		Value:     value,
 		UpdatedAt: time.Now(),
-	}
+	})
 	// update device online status
 	if device.onlineBindPoint == pointName { // bind point
 		if online, err := parseOnlineBindPV(value); err == nil {
@@ -109,13 +109,14 @@ func (d *deviceShadow) SetDevicePoint(deviceSn, pointName string, value interfac
 
 func (d *deviceShadow) GetDevicePoint(deviceSn, pointName string) (value interface{}, err error) {
 	if deviceAny, ok := d.m.Load(deviceSn); ok {
-		device := deviceAny.(Device)
+		device, _ := deviceAny.(Device)
 		// 1. 设备离线
 		if device.online == false {
 			return
 		}
 		// 2. 点位缓存过期
-		if point, exist := device.points[pointName]; exist {
+		if pointAny, exist := device.points.Load(pointName); exist {
+			point, _ := pointAny.(DevicePoint)
 			if time.Since(point.UpdatedAt) > device.ttl {
 				return
 			}
@@ -129,7 +130,14 @@ func (d *deviceShadow) GetDevicePoint(deviceSn, pointName string) (value interfa
 
 func (d *deviceShadow) GetDevicePoints(deviceSn string) (points map[string]DevicePoint, err error) {
 	if deviceAny, ok := d.m.Load(deviceSn); ok {
-		return deviceAny.(Device).points, nil
+		ps := make(map[string]DevicePoint)
+		deviceAny.(Device).points.Range(func(key, value any) bool {
+			k, _ := key.(string)
+			v, _ := value.(DevicePoint)
+			ps[k] = v
+			return true
+		})
+		return ps, nil
 	} else {
 		return nil, UnknownDeviceErr
 	}

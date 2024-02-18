@@ -3,19 +3,20 @@ package shadow
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"log"
+	"sync"
 	"time"
 )
 
 // Device 设备结构
 type Device struct {
-	deviceSn        string                 // 设备SN
-	modelName       string                 // 设备模型名称
-	points          map[string]DevicePoint // 设备点位列表
-	onlineBindPoint string                 // 在线状态绑定点位（支持数据类型：bool、string、int、float）
-	online          bool                   // 在线状态
-	ttl             time.Duration          // 设备离线阈值，超过该时长没有收到数据视为离线
-	disconnectTimes int                    // 断开连接次数，60秒内超过3次判定离线
-	updatedAt       time.Time              // 更新时间（用于设备离线判断）
+	deviceSn        string        // 设备SN
+	modelName       string        // 设备模型名称
+	points          *sync.Map     // 设备点位列表
+	onlineBindPoint string        // 在线状态绑定点位（支持数据类型：bool、string、int、float）
+	online          bool          // 在线状态
+	ttl             time.Duration // 设备离线阈值，超过该时长没有收到数据视为离线
+	disconnectTimes int           // 断开连接次数，60秒内超过3次判定离线
+	updatedAt       time.Time     // 更新时间（用于设备离线判断）
 }
 
 // SetOnlineBindPoint 设备在线状态绑定指定点位
@@ -43,10 +44,15 @@ func NewDevice(device config.Device, modelName string, points map[string]DeviceP
 	} else {
 		log.Printf("device:%v ttl unset, reset default value:%v", device.DeviceSn, ttl)
 	}
+	// 转换 points
+	ps := &sync.Map{}
+	for k, _ := range points {
+		ps.Store(k, points[k])
+	}
 	return Device{
 		deviceSn:        device.DeviceSn,
 		modelName:       modelName,
-		points:          points,
+		points:          ps,
 		onlineBindPoint: "",
 		ttl:             ttl,
 		online:          false, // 默认设备处于离线状态
