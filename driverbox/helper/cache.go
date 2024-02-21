@@ -143,6 +143,7 @@ type coreCache interface {
 	Devices() (devices []config.Device)
 	GetProtocolsByDevice(deviceSn string) (map[string]DeviceProperties, bool) // device protocols
 	GetAllRunningPluginKey() (keys []string)                                  // get running plugin keys
+	UpdateDeviceProperty(deviceSn string, key string, value string)           // 更新设备属性
 }
 
 func (c *cache) GetModel(modelName string) (model config.Model, ok bool) {
@@ -255,4 +256,14 @@ func (c *cache) GetAllRunningPluginKey() (keys []string) {
 		return true
 	})
 	return
+}
+
+func (c *cache) UpdateDeviceProperty(deviceSn string, key string, value string) {
+	if propertiesAny, ok := c.deviceProperties.Load(deviceSn); ok {
+		properties, _ := propertiesAny.(map[string]DeviceProperties)
+		for k, _ := range properties {
+			properties[k][key] = value
+		}
+		c.deviceProperties.Store(deviceSn, properties)
+	}
 }
