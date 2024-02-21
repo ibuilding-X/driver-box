@@ -8,6 +8,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -21,10 +22,11 @@ func LoadPlugins() error {
 	//打印环境配置
 	helper.Logger.Info("driver-box environment config", zap.Any("config", helper.EnvConfig))
 	// 加载核心配置
-	configMap, err := ParseFromPath(helper.EnvConfig.ConfigPath)
+	err := cmanager.Load(helper.EnvConfig.ConfigPath)
 	if err != nil {
 		return errors.New(common.LoadCoreConfigErr.Error() + ":" + err.Error())
 	}
+	configMap := cmanager.Manager.GetConfigMap()
 
 	if len(configMap) == 0 {
 		helper.Logger.Warn("driver-box config is empty", zap.String("path", helper.EnvConfig.ConfigPath))

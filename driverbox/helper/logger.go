@@ -36,8 +36,9 @@ func InitLogger(level string) (err error) {
 	config.EncoderConfig.ConsoleSeparator = " | "                                            // 字段分割符
 
 	var options []zap.Option
-	options = append(options, zap.WithCaller(true))          // 输出调用者信息
-	options = append(options, zap.WithClock(&customClock{})) // 设置时区
+	options = append(options, zap.AddCaller())                  // 输出调用者信息
+	options = append(options, zap.WithClock(&customClock{}))    // 设置时区
+	options = append(options, zap.AddStacktrace(zap.WarnLevel)) // 错误堆栈信息
 
 	var w io.Writer
 	if EnvConfig.LogPath == "" {
