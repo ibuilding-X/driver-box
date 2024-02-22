@@ -9,9 +9,14 @@ import (
 	"go.uber.org/zap"
 )
 
+// 触发 ExportTo 的类型
+type ExportType string
+
 const (
-	ReadMode  EncodeMode = "read"  // 读模式
-	WriteMode EncodeMode = "write" // 写模式
+	ReadMode       EncodeMode = "read"           // 读模式
+	WriteMode      EncodeMode = "write"          // 写模式
+	RealTimeExport ExportType = "realTimeExport" //实时上报
+	TimerExport    ExportType = "timerExport"    //周期性上报
 )
 
 // EncodeMode 编码模式
@@ -31,8 +36,9 @@ type PointData struct {
 
 // DeviceData 设备数据
 type DeviceData struct {
-	SN     string      `json:"sn"`
-	Values []PointData `json:"values"`
+	SN         string      `json:"sn"`
+	Values     []PointData `json:"values"`
+	ExportType ExportType  //上报类型，底层的变化上报和实时上报等同于RealTimeExport
 }
 
 // ToJSON 设备数据转 json

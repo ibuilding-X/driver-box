@@ -87,8 +87,9 @@ func matchAndReportResource(duration time.Duration, ticker *time.Ticker) {
 					continue
 				}
 				deviceData := plugin.DeviceData{
-					SN:     device.DeviceSn,
-					Values: pd,
+					SN:         device.DeviceSn,
+					Values:     pd,
+					ExportType: plugin.TimerExport,
 				}
 				helper.Logger.Debug("timerReport device points", zap.String("device", device.DeviceSn), zap.Any("data", deviceData))
 				for _, export := range helper.Exports {

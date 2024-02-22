@@ -72,6 +72,7 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 		}
 	}
 	deviceData.Values = points
+	deviceData.ExportType = plugin.RealTimeExport
 }
 
 // 触发事件
