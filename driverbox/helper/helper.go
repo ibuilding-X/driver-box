@@ -44,10 +44,7 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 			Logger.Warn("unknown point", zap.Any("deviceSn", deviceData.SN), zap.Any("pointName", point.PointName))
 			continue
 		}
-		if p.ReportMode == config.ReportMode_Ignore {
-			Logger.Debug("point report mode is ignore, stop sending to messageBus", zap.String("pointName", p.Name))
-			continue
-		}
+
 		//数据类型纠正
 		realValue, err := ConvPointType(point.Value, p.ValueType)
 		if err != nil {
@@ -59,8 +56,11 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 
 		// 缓存比较
 		shadowValue, _ := DeviceShadow.GetDevicePoint(deviceData.SN, point.PointName)
-		if p.ReportMode == config.ReportMode_Change && shadowValue == point.Value {
-			Logger.Debug("point report mode is change, stop sending to messageBus", zap.String("pointName", p.Name))
+
+		if p.ReportMode == config.ReportMode_Period {
+			Logger.Debug("point report mode is period, stop to trigger ExportTo", zap.String("pointName", p.Name))
+		} else if p.ReportMode == config.ReportMode_Change && shadowValue == point.Value {
+			Logger.Debug("point report mode is change, stop to trigger ExportTo", zap.String("pointName", p.Name))
 		} else {
 			// 点位值类型名称转换
 			points = append(points, point)

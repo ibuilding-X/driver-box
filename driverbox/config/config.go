@@ -26,8 +26,8 @@ var (
 	ReportMode_Real ReportMode = "realTime"
 	//变化上报,同影子中数值不一致时才触发上报
 	ReportMode_Change ReportMode = "change"
-	//不上报,但会更新影子
-	ReportMode_Ignore ReportMode = "ignore"
+	//周期上报
+	ReportMode_Period ReportMode = "period"
 )
 
 type EnvConfig struct {
