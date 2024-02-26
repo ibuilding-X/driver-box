@@ -21,6 +21,12 @@ const (
 // 点位上报模式
 type ReportMode string
 
+// 点位读写模式
+type ReadWrite string
+
+// 点位数据类型
+type ValueType string
+
 var (
 	//实时上报,读到数据即触发
 	ReportMode_Real ReportMode = "realTime"
@@ -28,6 +34,18 @@ var (
 	ReportMode_Change ReportMode = "change"
 	//周期上报
 	ReportMode_Period ReportMode = "period"
+	//只读
+	ReadWrite_R ReadWrite = "R"
+	//只写
+	ReadWrite_W ReadWrite = "W"
+	//读写
+	ReadWrite_RW ReadWrite = "RW"
+	//点位类型：整型
+	ValueType_Int ValueType = "int"
+	//点位类型：浮点型
+	ValueType_Float ValueType = "float"
+	//点位类型：字符串
+	ValueType_String ValueType = "string"
 )
 
 type EnvConfig struct {
@@ -101,9 +119,9 @@ type Point struct {
 	// 点位描述
 	Description string `json:"description" validate:"required"`
 	// 值类型
-	ValueType string `json:"valueType" validate:"required,oneof=int float string"`
+	ValueType ValueType `json:"valueType" validate:"required,oneof=int float string"`
 	// 读写模式
-	ReadWrite string `json:"readWrite" validate:"required,oneof=int float string"`
+	ReadWrite ReadWrite `json:"readWrite" validate:"required,oneof=R W RW"`
 	// 定时上报
 	TimerReport string `json:"timerReport" validate:"required"`
 	// 单位

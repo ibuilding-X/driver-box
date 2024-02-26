@@ -66,6 +66,7 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 			pointMap := make(map[string]config.Point)
 			for _, devicePoint := range deviceModel.DevicePoints {
 				point := devicePoint.ToPoint()
+				checkPoint(&deviceModel, &point)
 				pointMap[point.Name] = point
 				if _, ok := model.Points[point.Name]; !ok {
 					model.Points[point.Name] = point
@@ -124,6 +125,25 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 	}
 
 	return nil
+}
+
+// 检查点位配置合法性
+func checkPoint(model *config.DeviceModel, point *config.Point) {
+	if point.Name == "" {
+		Logger.Error("config error , point name is empty", zap.Any("point", point), zap.String("modelName", model.Name))
+	}
+	if point.Description == "" {
+		Logger.Warn("config error , point description is empty", zap.Any("point", point), zap.String("model", model.Name))
+	}
+	if point.ValueType != config.ValueType_Float && point.ValueType != config.ValueType_Int && point.ValueType != config.ValueType_String {
+		Logger.Error("point valueType config error , valid config is: int float string", zap.Any("point", point), zap.String("model", model.Name))
+	}
+	if point.ReadWrite != config.ReadWrite_RW && point.ReadWrite != config.ReadWrite_R && point.ReadWrite != config.ReadWrite_W {
+		Logger.Error("point readWrite config error , valid config is: R W RW", zap.Any("point", point), zap.String("model", model.Name))
+	}
+	if point.ReportMode != config.ReportMode_Real && point.ReportMode != config.ReportMode_Period && point.ReportMode != config.ReportMode_Change {
+		Logger.Error("point readWrite config error , valid config is: realTime change period", zap.Any("point", point), zap.String("model", model.Name))
+	}
 }
 
 // coreCache 核心缓存

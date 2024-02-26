@@ -3,18 +3,19 @@ package helper
 import (
 	"errors"
 	"fmt"
+	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"strconv"
 )
 
 // ConvPointType 点位类型转换
 // 仅支持三种数据类型：int、float、string
-func ConvPointType(value interface{}, valueType string) (interface{}, error) {
+func ConvPointType(value interface{}, valueType config.ValueType) (interface{}, error) {
 	switch valueType {
-	case "int":
+	case config.ValueType_Int:
 		return Conv2Int64(value)
-	case "float":
+	case config.ValueType_Float:
 		return Conv2Float64(value)
-	case "string":
+	case config.ValueType_String:
 		return Conv2String(value)
 	default:
 		return nil, fmt.Errorf("point value type must one of (int、float、string) ,unSupport:%v", valueType)
