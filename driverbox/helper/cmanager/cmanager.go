@@ -111,6 +111,47 @@ func (m *manager) UpdateDeviceArea(sn string, area string) error {
 	return nil
 }
 
+// UpdateDeviceDesc 更新设备描述
+func (m *manager) UpdateDeviceDesc(sn string, desc string) error {
+	// 所有配置
+	for name, _ := range m.configs {
+		// 所有模型
+		for i, model := range m.configs[name].DeviceModels {
+			// 模型下所有设备
+			for j, device := range model.Devices {
+				if device.DeviceSn == sn {
+					// 更新设备描述
+					device.Description = desc
+					m.configs[name].DeviceModels[i].Devices[j] = device
+					// 持久化到文件
+					return m.save(name, m.configs[name])
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// DeleteDevice 删除设备
+func (m *manager) DeleteDevice(sn string) error {
+	// 所有配置
+	for name, _ := range m.configs {
+		// 所有模型
+		for i, model := range m.configs[name].DeviceModels {
+			// 模型下所有设备
+			for j, device := range model.Devices {
+				if device.DeviceSn == sn {
+					// 删除设备
+					m.configs[name].DeviceModels[i].Devices = append(m.configs[name].DeviceModels[i].Devices[:j], m.configs[name].DeviceModels[i].Devices[j+1:]...)
+					// 持久化到文件
+					return m.save(name, m.configs[name])
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // getAllDevice 获取指定配置下所有设备信息
 func (m *manager) getAllDevice(c config.Config) []config.Device {
 	var devices []config.Device

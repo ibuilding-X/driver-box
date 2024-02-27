@@ -164,6 +164,8 @@ type coreCache interface {
 	GetProtocolsByDevice(deviceSn string) (map[string]DeviceProperties, bool) // device protocols
 	GetAllRunningPluginKey() (keys []string)                                  // get running plugin keys
 	UpdateDeviceProperty(deviceSn string, key string, value string)           // 更新设备属性
+	DeleteDevice(sn string)                                                   // 删除设备
+	UpdateDeviceDesc(sn string, desc string)                                  // 更新设备描述
 }
 
 func (c *cache) GetModel(modelName string) (model config.Model, ok bool) {
@@ -285,5 +287,19 @@ func (c *cache) UpdateDeviceProperty(deviceSn string, key string, value string) 
 			properties[k][key] = value
 		}
 		c.deviceProperties.Store(deviceSn, properties)
+	}
+}
+
+// DeleteDevice 删除设备
+func (c *cache) DeleteDevice(sn string) {
+	c.devices.Delete(sn)
+}
+
+// UpdateDeviceDesc 更新设备描述
+func (c *cache) UpdateDeviceDesc(sn string, desc string) {
+	if deviceAny, ok := c.devices.Load(sn); ok {
+		device, _ := deviceAny.(config.Device)
+		device.Description = desc
+		c.devices.Store(sn, device)
 	}
 }
