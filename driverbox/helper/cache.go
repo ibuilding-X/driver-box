@@ -43,6 +43,7 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 		devicePointPlugins: &sync.Map{},
 		runningPlugins:     &sync.Map{},
 		devicePointConn:    &sync.Map{},
+		tagDevices:         &sync.Map{},
 	}
 	CoreCache = c
 
@@ -166,6 +167,7 @@ type coreCache interface {
 	UpdateDeviceProperty(deviceSn string, key string, value string)           // 更新设备属性
 	DeleteDevice(sn string)                                                   // 删除设备
 	UpdateDeviceDesc(sn string, desc string)                                  // 更新设备描述
+	Reset()                                                                   // 重置核心缓存
 }
 
 func (c *cache) GetModel(modelName string) (model config.Model, ok bool) {
@@ -306,4 +308,23 @@ func (c *cache) UpdateDeviceDesc(sn string, desc string) {
 		device.Description = desc
 		c.devices.Store(sn, device)
 	}
+}
+
+func (c *cache) resetSyncMap(m *sync.Map) {
+	m.Range(func(key, value any) bool {
+		m.Delete(key)
+		return true
+	})
+}
+
+// Reset 重置数据
+func (c *cache) Reset() {
+	c.resetSyncMap(c.models)
+	c.resetSyncMap(c.devices)
+	c.resetSyncMap(c.deviceProperties)
+	c.resetSyncMap(c.points)
+	c.resetSyncMap(c.devicePointPlugins)
+	c.resetSyncMap(c.runningPlugins)
+	c.resetSyncMap(c.devicePointConn)
+	c.resetSyncMap(c.tagDevices)
 }
