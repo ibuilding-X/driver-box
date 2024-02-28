@@ -282,11 +282,15 @@ func (c *cache) GetAllRunningPluginKey() (keys []string) {
 
 func (c *cache) UpdateDeviceProperty(deviceSn string, key string, value string) {
 	if propertiesAny, ok := c.deviceProperties.Load(deviceSn); ok {
-		properties, _ := propertiesAny.(map[string]DeviceProperties)
-		for k, _ := range properties {
-			properties[k][key] = value
+		if properties, ok2 := propertiesAny.(map[string]DeviceProperties); ok2 {
+			for k, _ := range properties {
+				if properties[k] == nil {
+					properties[k] = make(DeviceProperties)
+				}
+				properties[k][key] = value
+			}
+			c.deviceProperties.Store(deviceSn, properties)
 		}
-		c.deviceProperties.Store(deviceSn, properties)
 	}
 }
 
