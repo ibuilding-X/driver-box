@@ -53,7 +53,9 @@ func (p *Plugin) Connector(deviceSn, pointName string) (connector plugin.Connect
 
 // Destroy 销毁插件
 func (p *Plugin) Destroy() error {
-	p.ls.Close()
+	if p.ls != nil {
+		p.ls.Close()
+	}
 	return nil
 }
 

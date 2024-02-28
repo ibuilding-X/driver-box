@@ -91,7 +91,9 @@ func (p *Plugin) Connector(deviceSn, pointName string) (plugin.Connector, error)
 
 // Destroy 销毁驱动
 func (p *Plugin) Destroy() error {
-	p.ls.Close()
+	if p.ls != nil {
+		p.ls.Close()
+	}
 	connectors := p.connectors
 	for _, conn := range connectors {
 		conn := conn

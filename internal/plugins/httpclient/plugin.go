@@ -60,7 +60,9 @@ func (p *Plugin) Connector(deviceSn, pointName string) (connector plugin.Connect
 }
 
 func (p *Plugin) Destroy() error {
-	defer p.ls.Close()
+	if p.ls != nil {
+		p.ls.Close()
+	}
 	if len(p.connPool) > 0 {
 		for i, _ := range p.connPool {
 			if err := p.connPool[i].Release(); err != nil {
