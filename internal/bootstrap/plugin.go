@@ -1,7 +1,6 @@
 package bootstrap
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
@@ -129,32 +128,33 @@ func initDeviceShadow(configMap map[string]config.Config) {
 
 // 初始化设备 autoEvent
 func initTimerTasks(L *lua.LState, tasks []config.TimerTask) (err error) {
-	for _, task := range tasks {
-		switch task.Type {
-		case "read_points": // 读点位
-			// action数据格式：[{"devices":["sensor_1"],"points":["onOff"]}]
-			b, _ := json.Marshal(task.Action)
-			var actions []config.ReadPointsAction
-			_ = json.Unmarshal(b, &actions)
-			for _, action := range actions {
-				if len(task.Interval) == 0 {
-					helper.Logger.Error("timerTask interval is nil")
-					continue
-				}
-				if len(action.Devices) > 0 && len(action.Points) > 0 {
-					if err := helper.Crontab.AddFunc(task.Interval+"ms", timerTaskHandler(action.Devices, action.Points)); err != nil {
-						return err
-					}
-				}
-			}
-		case "script": // 执行脚本函数
-			// action数据格式：functionName
-			funcName, _ := task.Action.(string)
-			if err := helper.Crontab.AddFunc(task.Interval+"ms", timerTaskForScript(L, funcName)); err != nil {
-				return err
-			}
-		}
-	}
+	//目前看来几乎用不到该功能，先注释掉
+	//for _, task := range tasks {
+	//	switch task.Type {
+	//	case "read_points": // 读点位
+	//		// action数据格式：[{"devices":["sensor_1"],"points":["onOff"]}]
+	//		b, _ := json.Marshal(task.Action)
+	//		var actions []config.ReadPointsAction
+	//		_ = json.Unmarshal(b, &actions)
+	//		for _, action := range actions {
+	//			if len(task.Interval) == 0 {
+	//				helper.Logger.Error("timerTask interval is nil")
+	//				continue
+	//			}
+	//			if len(action.Devices) > 0 && len(action.Points) > 0 {
+	//				if err := helper.Crontab.AddFunc(task.Interval+"ms", timerTaskHandler(action.Devices, action.Points)); err != nil {
+	//					return err
+	//				}
+	//			}
+	//		}
+	//	case "script": // 执行脚本函数
+	//		// action数据格式：functionName
+	//		funcName, _ := task.Action.(string)
+	//		if err := helper.Crontab.AddFunc(task.Interval+"ms", timerTaskForScript(L, funcName)); err != nil {
+	//			return err
+	//		}
+	//	}
+	//}
 
 	return
 }
