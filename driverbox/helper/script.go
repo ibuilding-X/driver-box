@@ -7,6 +7,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
+	"go.uber.org/zap"
 	luajson "layeh.com/gopher-json"
 	"net/http"
 	"os"
@@ -48,6 +49,12 @@ func FileExists(path string) bool {
 
 // CallLuaConverter 调用 Lua 脚本转换器
 func CallLuaConverter(L *lua.LState, method string, raw interface{}) ([]plugin.DeviceData, error) {
+	defer func() {
+		if err := recover(); err != nil {
+			Logger.Error("call lua script error", zap.Any("error", err))
+		}
+	}()
+
 	data, ok := raw.(string)
 	if !ok {
 		return nil, common.ProtocolDataFormatErr
@@ -74,6 +81,12 @@ func CallLuaConverter(L *lua.LState, method string, raw interface{}) ([]plugin.D
 
 // CallLuaEncodeConverter 调用 Lua 脚本编码转换器
 func CallLuaEncodeConverter(L *lua.LState, deviceSn string, raw interface{}) (string, error) {
+	defer func() {
+		if err := recover(); err != nil {
+			Logger.Error("call lua script error", zap.Any("error", err))
+		}
+	}()
+
 	data, ok := raw.(string)
 	if !ok {
 		return "", common.ProtocolDataFormatErr
@@ -98,6 +111,12 @@ func CallLuaEncodeConverter(L *lua.LState, deviceSn string, raw interface{}) (st
 
 // SafeCallLuaFunc 安全调用 lua 函数，通过锁机制独占时间片
 func SafeCallLuaFunc(L *lua.LState, method string) error {
+	defer func() {
+		if err := recover(); err != nil {
+			Logger.Error("call lua script error", zap.Any("error", err))
+		}
+	}()
+
 	runLock.Lock()
 	defer runLock.Unlock()
 
