@@ -38,7 +38,7 @@ func InitLuaVM(scriptDir string) (*lua.LState, error) {
 			return nil, err
 		}
 		//注册同步锁
-		luaLocks.Store(ls, sync.Mutex{})
+		luaLocks.Store(ls, &sync.Mutex{})
 		return ls, nil
 	} else {
 		Logger.Warn("lua script not found, aborting initializing lua vm")
