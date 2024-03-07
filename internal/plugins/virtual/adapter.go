@@ -8,13 +8,11 @@ import (
 	lua "github.com/yuin/gopher-lua"
 	"os"
 	"path/filepath"
-	"sync"
 )
 
 type adapter struct {
 	scriptDir string
 	ls        *lua.LState
-	lock      *sync.Mutex
 }
 
 type transportationData struct {
@@ -29,8 +27,6 @@ func (td transportationData) ToJson() string {
 }
 
 func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.PointData) (res interface{}, err error) {
-	a.lock.Lock()
-	defer a.lock.Unlock()
 
 	data := transportationData{
 		SN:     deviceSn,
@@ -54,8 +50,6 @@ func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.P
 }
 
 func (a *adapter) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
-	a.lock.Lock()
-	defer a.lock.Unlock()
 
 	v, _ := raw.(transportationData)
 	// lua 脚本处理

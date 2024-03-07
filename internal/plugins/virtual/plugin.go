@@ -5,7 +5,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
-	"sync"
 )
 
 type Plugin struct {
@@ -27,7 +26,6 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, handler plugin.
 	p.adapter = &adapter{
 		scriptDir: c.Key,
 		ls:        ls,
-		lock:      &sync.Mutex{},
 	}
 
 	// 初始化连接

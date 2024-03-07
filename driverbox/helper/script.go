@@ -16,6 +16,9 @@ import (
 
 var runLock = &sync.Mutex{}
 
+// 缓存Lua虚拟机的锁
+var luaLocks = sync.Map{}
+
 // InitLuaVM 编译 lua 脚本
 func InitLuaVM(scriptDir string) (*lua.LState, error) {
 	ls := lua.NewState(lua.Options{
@@ -33,6 +36,8 @@ func InitLuaVM(scriptDir string) (*lua.LState, error) {
 		if err != nil {
 			return nil, err
 		}
+		//注册同步锁
+		luaLocks.Store(ls, sync.Mutex{})
 		return ls, nil
 	} else {
 		Logger.Warn("lua script not found, aborting initializing lua vm")
@@ -52,7 +57,12 @@ func CallLuaConverter(L *lua.LState, method string, raw interface{}) ([]plugin.D
 	if !ok {
 		return nil, common.ProtocolDataFormatErr
 	}
-
+	lock, ok := luaLocks.Load(L)
+	if !ok {
+		return nil, common.ProtocolDataFormatErr
+	}
+	lock.(*sync.Mutex).Lock()
+	defer lock.(*sync.Mutex).Unlock()
 	// 调用脚本函数
 	err := L.CallByParam(lua.P{
 		Fn:      L.GetGlobal(method),
@@ -78,6 +88,13 @@ func CallLuaEncodeConverter(L *lua.LState, deviceSn string, raw interface{}) (st
 	if !ok {
 		return "", common.ProtocolDataFormatErr
 	}
+
+	lock, ok := luaLocks.Load(L)
+	if !ok {
+		return "", common.ProtocolDataFormatErr
+	}
+	lock.(*sync.Mutex).Lock()
+	defer lock.(*sync.Mutex).Unlock()
 
 	// 调用脚本函数
 	err := L.CallByParam(lua.P{
@@ -107,4 +124,10 @@ func SafeCallLuaFunc(L *lua.LState, method string) error {
 	}
 
 	return nil
+}
+
+// 关闭Lua虚拟机
+func Close(L *lua.LState) {
+	L.Close()
+	luaLocks.Delete(L)
 }
