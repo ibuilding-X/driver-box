@@ -55,7 +55,7 @@ func Start(exports []export.Export) error {
 	helper.Exports = exports
 	for _, item := range exports {
 		if err := item.Init(); err != nil {
-			return err
+			helper.Logger.Error("init export error", zap.Error(err))
 		}
 	}
 
