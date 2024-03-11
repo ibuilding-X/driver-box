@@ -147,6 +147,12 @@ func SafeCallLuaFunc(L *lua.LState, method string) error {
 
 // 关闭Lua虚拟机
 func Close(L *lua.LState) {
-	L.Close()
+	if L == nil {
+		return
+	}
+	if !L.IsClosed() {
+		L.Close()
+	}
+
 	luaLocks.Delete(L)
 }
