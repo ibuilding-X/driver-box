@@ -30,6 +30,8 @@ type connector struct {
 	//当前连接的定时扫描任务
 	collectTask *crontab.Future
 	close       bool
+	//是否虚拟链接
+	virtual bool
 }
 
 // 采集组
@@ -50,6 +52,7 @@ type pointGroup struct {
 
 // initCollectTask 启动数据采集任务
 func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
+	c.virtual = bic.Virtual
 	for _, model := range c.plugin.config.DeviceModels {
 		for _, dev := range model.Devices {
 			if dev.ConnectionKey != c.key {
@@ -173,7 +176,13 @@ func (c *connector) Send(raw interface{}) (err error) {
 	// 读
 	case plugin.ReadMode:
 		req := br.req.(btypes.MultiplePropertyData)
-		out, err := device.device.ReadMuti(req)
+		var out btypes.MultiplePropertyData
+		if c.virtual {
+			out, err = mockRead(c.plugin.ls, req)
+		} else {
+			out, err = device.device.ReadMuti(req)
+		}
+
 		if err != nil {
 			return err
 		}
@@ -204,6 +213,9 @@ func (c *connector) Send(raw interface{}) (err error) {
 		}
 	case plugin.WriteMode:
 		write := br.req.(*network.Write)
+		if c.virtual {
+			return mockWrite(c.plugin.ls, write.DeviceSn, write.PointName, write.WriteValue)
+		}
 		if err := device.device.Write(write); err != nil {
 			c.plugin.logger.Error(fmt.Sprintf("write error: %s", err.Error()))
 			return err
@@ -319,6 +331,8 @@ type bacIpConfig struct {
 	LocalSubnet int    `json:"localSubnet"`
 	LocalPort   int    `json:"localPort"`
 	Duration    string `json:"duration"` // 自动采集周期
+	//虚拟设备功能
+	Virtual bool `json:"virtual"`
 }
 
 func initConnector(key string, config map[string]interface{}, p *Plugin) (*connector, error) {

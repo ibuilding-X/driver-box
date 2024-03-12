@@ -54,19 +54,31 @@ func FileExists(path string) bool {
 
 // CallLuaConverter 调用 Lua 脚本转换器
 func CallLuaConverter(L *lua.LState, method string, raw interface{}) ([]plugin.DeviceData, error) {
+	data, ok := raw.(string)
+	if !ok {
+		return nil, common.ProtocolDataFormatErr
+	}
+	// 获取解析结果
+	result, err := CallLuaMethod(L, method, data)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]plugin.DeviceData, 0)
+	err = json.Unmarshal([]byte(result), &res)
+	return res, err
+}
+
+// 执行指定lua方法
+func CallLuaMethod(L *lua.LState, method string, data string) (string, error) {
 	defer func() {
 		if err := recover(); err != nil {
 			Logger.Error("call lua script error", zap.Any("error", err))
 		}
 	}()
 
-	data, ok := raw.(string)
-	if !ok {
-		return nil, common.ProtocolDataFormatErr
-	}
 	lock, ok := luaLocks.Load(L)
 	if !ok {
-		return nil, common.ProtocolDataFormatErr
+		return "", common.ProtocolDataFormatErr
 	}
 	lock.(*sync.Mutex).Lock()
 	defer lock.(*sync.Mutex).Unlock()
@@ -79,14 +91,9 @@ func CallLuaConverter(L *lua.LState, method string, raw interface{}) ([]plugin.D
 	}, lua.LString(data))
 	defer L.Remove(1)
 	if err != nil {
-		return nil, fmt.Errorf("call lua script %s function error: %s", method, err)
+		return "", fmt.Errorf("call lua script %s function error: %s", method, err)
 	}
-
-	// 获取解析结果
-	result := L.Get(-1).String()
-	res := make([]plugin.DeviceData, 0)
-	err = json.Unmarshal([]byte(result), &res)
-	return res, err
+	return L.Get(-1).String(), nil
 }
 
 // CallLuaEncodeConverter 调用 Lua 脚本编码转换器
