@@ -132,11 +132,12 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 					helper.Logger.Warn("bacnet connection is closed, ignore collect task!", zap.String("key", c.key))
 					break
 				}
-				//采集时间未到
-				helper.Logger.Debug("timer read bacnet", zap.Any("group", i), zap.Any("latestTime", group.LatestTime), zap.Any("duration", group.Duration))
+
 				if group.LatestTime.Add(group.Duration).After(time.Now()) {
 					continue
 				}
+				//采集时间未到
+				helper.Logger.Debug("timer read bacnet", zap.Any("group", i), zap.Any("latestTime", group.LatestTime), zap.Any("duration", group.Duration))
 				bac := bacRequest{
 					deviceId: deviceId,
 					mode:     plugin.ReadMode,
