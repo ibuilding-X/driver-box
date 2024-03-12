@@ -13,6 +13,7 @@ func mockRead(L *lua.LState, data btypes.MultiplePropertyData) (btypes.MultipleP
 	for _, object := range data.Objects {
 		data, _ := helper.CallLuaMethod(L, "mockRead", lua.LString(object.DeviceSn), lua.LString(object.Name))
 		objects = append(objects, btypes.Object{
+			ID: object.ID,
 			Properties: []btypes.Property{
 				{
 					Type: btypes.PROP_PRESENT_VALUE,
