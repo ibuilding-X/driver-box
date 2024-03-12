@@ -208,33 +208,6 @@ func (c *connector) Send(raw interface{}) (err error) {
 			c.plugin.logger.Error(fmt.Sprintf("write error: %s", err.Error()))
 			return err
 		}
-
-		//触发读操作，及时或许最新值
-		point, ok := helper.CoreCache.GetPointByDevice(write.DeviceSn, write.PointName)
-		if ok && (point.ReadWrite == config.ReadWrite_R || point.ReadWrite == config.ReadWrite_RW) {
-			//延迟100毫秒触发读操作
-			go func(write *network.Write) {
-				i := 0
-				for i < 10 {
-					i++
-					time.Sleep(time.Duration(i*100) * time.Millisecond)
-					helper.Logger.Info("point write success,try to read new value", zap.String("point", write.PointName))
-					err = helper.Send(write.DeviceSn, plugin.ReadMode, plugin.PointData{
-						PointName: write.PointName,
-					})
-					if err != nil {
-						helper.Logger.Error("point write success, read new value error", zap.String("point", write.PointName), zap.Error(err))
-						break
-					}
-
-					value, _ := helper.DeviceShadow.GetDevicePoint(write.DeviceSn, write.PointName)
-					helper.Logger.Info("point write success, read new value", zap.String("point", write.PointName), zap.Any("expect", write.WriteValue), zap.Any("value", value))
-					if fmt.Sprint(write.WriteValue) == fmt.Sprint(value) {
-						break
-					}
-				}
-			}(write)
-		}
 	default:
 		return common.NotSupportMode
 	}
