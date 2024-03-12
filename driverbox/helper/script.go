@@ -59,7 +59,7 @@ func CallLuaConverter(L *lua.LState, method string, raw interface{}) ([]plugin.D
 		return nil, common.ProtocolDataFormatErr
 	}
 	// 获取解析结果
-	result, err := CallLuaMethod(L, method, data)
+	result, err := CallLuaMethod(L, method, lua.LString(data))
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func CallLuaConverter(L *lua.LState, method string, raw interface{}) ([]plugin.D
 }
 
 // 执行指定lua方法
-func CallLuaMethod(L *lua.LState, method string, data string) (string, error) {
+func CallLuaMethod(L *lua.LState, method string, args ...lua.LValue) (string, error) {
 	defer func() {
 		if err := recover(); err != nil {
 			Logger.Error("call lua script error", zap.Any("error", err))
@@ -88,7 +88,7 @@ func CallLuaMethod(L *lua.LState, method string, data string) (string, error) {
 		NRet:    1,
 		Protect: true,
 		Handler: nil,
-	}, lua.LString(data))
+	}, args...)
 	defer L.Remove(1)
 	if err != nil {
 		return "", fmt.Errorf("call lua script %s function error: %s", method, err)

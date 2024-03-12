@@ -1,7 +1,7 @@
 package bacnet
 
 import (
-	"encoding/json"
+	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
 	lua "github.com/yuin/gopher-lua"
@@ -10,11 +10,7 @@ import (
 func mockRead(L *lua.LState, data btypes.MultiplePropertyData) (out btypes.MultiplePropertyData, err error) {
 	objects := make([]btypes.Object, len(data.Objects))
 	for _, object := range data.Objects {
-		m := make(map[string]string)
-		m["deviceSn"] = object.DeviceSn
-		m["pointName"] = object.Name
-		bytes, _ := json.Marshal(m)
-		data, _ := helper.CallLuaMethod(L, "mockRead", string(bytes))
+		data, _ := helper.CallLuaMethod(L, "mockRead", lua.LString(object.DeviceSn), lua.LString(object.Name))
 		objects = append(objects, btypes.Object{
 			Properties: []btypes.Property{
 				{
@@ -35,11 +31,6 @@ func mockRead(L *lua.LState, data btypes.MultiplePropertyData) (out btypes.Multi
 }
 
 func mockWrite(L *lua.LState, deviceSn, pointName string, value interface{}) error {
-	m := make(map[string]interface{})
-	m["deviceSn"] = deviceSn
-	m["pointName"] = pointName
-	m["value"] = value
-	bytes, _ := json.Marshal(m)
-	_, err := helper.CallLuaMethod(L, "mockWrite", string(bytes))
+	_, err := helper.CallLuaMethod(L, "mockWrite", lua.LString(deviceSn), lua.LString(pointName), lua.LString(fmt.Sprint(value)))
 	return err
 }
