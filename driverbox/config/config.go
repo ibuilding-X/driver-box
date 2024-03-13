@@ -4,6 +4,7 @@ package config
 import (
 	"encoding/json"
 	"github.com/go-playground/validator/v10"
+	"os"
 	"strings"
 )
 
@@ -16,6 +17,9 @@ const (
 
 	//日志文件存放路径
 	ENV_LOG_PATH = "DRIVERBOX_LOG_PATH"
+
+	//是否虚拟设备模式: true:是,false:否
+	ENV_VIRTUAL = "DRIVERBOX_VIRTUAL"
 )
 
 // 点位上报模式
@@ -173,4 +177,9 @@ type ReadPointsAction struct {
 func (c Config) Validate() error {
 	validate := validator.New()
 	return validate.Struct(c)
+}
+
+// 是否处于虚拟运行模式：未建立真实的设备连接
+func IsVirtual() bool {
+	return os.Getenv(ENV_VIRTUAL) == "true"
 }

@@ -52,7 +52,7 @@ type pointGroup struct {
 
 // initCollectTask 启动数据采集任务
 func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
-	c.virtual = bic.Virtual
+	c.virtual = bic.Virtual || config.IsVirtual()
 	for _, model := range c.plugin.config.DeviceModels {
 		for _, dev := range model.Devices {
 			if dev.ConnectionKey != c.key {
