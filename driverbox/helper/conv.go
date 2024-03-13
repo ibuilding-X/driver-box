@@ -49,8 +49,15 @@ func Conv2Int64(value interface{}) (i int64, err error) {
 	case int64:
 		return v, nil
 	case float32:
+		//如何小数不为0，则error
+		if v != float32(int64(v)) {
+			return 0, errors.New(fmt.Sprintf("%T: %v convert to int64 error", v, value))
+		}
 		return int64(v), nil
 	case float64:
+		if v != float64(int64(v)) {
+			return 0, errors.New(fmt.Sprintf("%T: %v convert to int64 error", v, value))
+		}
 		return int64(v), nil
 	case bool:
 		if v {
@@ -58,7 +65,11 @@ func Conv2Int64(value interface{}) (i int64, err error) {
 		}
 		return 0, nil
 	case string:
-		return strconv.ParseInt(v, 10, 64)
+		fv, e := strconv.ParseFloat(v, 64)
+		if e != nil {
+			return 0, e
+		}
+		return Conv2Int64(fv)
 	default:
 		return 0, errors.New(fmt.Sprintf("%T convert to int64 error", v))
 	}
