@@ -198,7 +198,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 			}
 
 			for _, obj := range req.Objects {
-				if obj.ID == object.ID {
+				if obj.ID == object.ID && obj.Name == object.Name {
 					resp.PointName = obj.Name
 					resp.DeviceSn = obj.DeviceSn
 					break
