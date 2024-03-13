@@ -11,13 +11,20 @@ import (
 func mockRead(L *lua.LState, data btypes.MultiplePropertyData) (btypes.MultiplePropertyData, error) {
 	var objects []btypes.Object
 	for _, object := range data.Objects {
-		data, _ := helper.CallLuaMethod(L, "mockRead", lua.LString(object.DeviceSn), lua.LString(object.Name))
+		data, e := helper.CallLuaMethod(L, "mockRead", lua.LString(object.DeviceSn), lua.LString(object.Name))
+		if e != nil {
+			helper.Logger.Error("mockRead error", zap.Error(e))
+		}
+		v, e := helper.Conv2Float64(data)
+		if e != nil {
+			helper.Logger.Error("mockRead error", zap.Error(e))
+		}
 		objects = append(objects, btypes.Object{
 			ID: object.ID,
 			Properties: []btypes.Property{
 				{
 					Type: btypes.PROP_PRESENT_VALUE,
-					Data: data,
+					Data: v,
 				},
 			},
 			DeviceSn: object.DeviceSn,
