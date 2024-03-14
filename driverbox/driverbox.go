@@ -34,11 +34,12 @@ func Start(exports []export.Export) error {
 		fmt.Println("init logger error", err)
 		return err
 	}
-
-	//第三步：启动driver-box插件
-	err = bootstrap.LoadPlugins()
-	if err != nil {
-		helper.Logger.Error(err.Error())
+	//第三步：启动Export
+	helper.Exports = exports
+	for _, item := range exports {
+		if err := item.Init(); err != nil {
+			helper.Logger.Error("init export error", zap.Error(err))
+		}
 	}
 
 	// 第四步：启动 REST 服务
@@ -49,14 +50,10 @@ func Start(exports []export.Export) error {
 		}
 	}()
 
-	// 正式环境需注释掉
-	//localMode("192.168.16.88", "59999", "127.0.0.1")
-	//第五步：启动Export
-	helper.Exports = exports
-	for _, item := range exports {
-		if err := item.Init(); err != nil {
-			helper.Logger.Error("init export error", zap.Error(err))
-		}
+	//第五步：启动driver-box插件
+	err = bootstrap.LoadPlugins()
+	if err != nil {
+		helper.Logger.Error(err.Error())
 	}
 
 	if err != nil {
