@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/models"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
@@ -38,11 +39,11 @@ type extends struct {
 
 // 写命令结构体
 type bacWriteCmd struct {
-	//lua编码需要该字段
-	PointName string      `json:"pointName"`
-	Value     interface{} `json:"value"`
-	Priority  int         `json:"priority"`
-	NullValue bool        `json:"nullValue"`
+	models.PointValue
+	Priority  int  `json:"priority"`
+	NullValue bool `json:"nullValue"`
+	//前置操作，例如空开要先解锁，空调要先开机
+	PreOp []models.PointValue `json:"preOp"`
 }
 
 // Encode 编码
@@ -91,6 +92,19 @@ func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.P
 				return nil, err
 			}
 		}
+		//是否存在前置操作
+		if len(bwc.PreOp) > 0 {
+			for _, op := range bwc.PreOp {
+				err = helper.Send(deviceSn, plugin.WriteMode, plugin.PointData{
+					PointName: op.PointName,
+					Value:     op.Value,
+				})
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+
 		err = bwc.transformData(ext.ObjType)
 		if err != nil {
 			return nil, err
