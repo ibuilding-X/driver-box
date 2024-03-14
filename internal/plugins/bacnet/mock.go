@@ -1,6 +1,7 @@
 package bacnet
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
@@ -8,35 +9,31 @@ import (
 	"go.uber.org/zap"
 )
 
-func mockRead(L *lua.LState, data btypes.MultiplePropertyData) (btypes.MultiplePropertyData, error) {
-	var objects []btypes.Object
+func mockRead(plugin *Plugin, L *lua.LState, data btypes.MultiplePropertyData) error {
 	for _, object := range data.Objects {
-		data, e := helper.CallLuaMethod(L, "mockRead", lua.LString(object.DeviceSn), lua.LString(object.Name))
-		if e != nil {
-			helper.Logger.Error("mockRead error", zap.Error(e))
+		for deviceSn, pointName := range object.Points {
+			mockData, e := helper.CallLuaMethod(L, "mockRead", lua.LString(deviceSn), lua.LString(pointName))
+			if e != nil {
+				helper.Logger.Error("mockRead error", zap.Error(e))
+			}
+			v, e := helper.Conv2Float64(mockData)
+			if e != nil {
+				helper.Logger.Error("mockRead error", zap.Error(e))
+				continue
+			}
+			resp := map[string]interface{}{
+				"deviceSn":  deviceSn,
+				"pointName": pointName,
+				"value":     v,
+			}
+			respJson, err := json.Marshal(resp)
+			_, err = plugin.callback(plugin, string(respJson))
+			if err != nil {
+				helper.Logger.Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
+			}
 		}
-		v, e := helper.Conv2Float64(data)
-		if e != nil {
-			helper.Logger.Error("mockRead error", zap.Error(e))
-		}
-		objects = append(objects, btypes.Object{
-			ID: object.ID,
-			Properties: []btypes.Property{
-				{
-					Type: btypes.PROP_PRESENT_VALUE,
-					Data: v,
-				},
-			},
-			DeviceSn: object.DeviceSn,
-			Name:     object.Name,
-		})
 	}
-	out := btypes.MultiplePropertyData{
-		Objects:    objects,
-		ErrorCode:  data.ErrorCode,
-		ErrorClass: data.ErrorClass,
-	}
-	return out, nil
+	return nil
 }
 
 func mockWrite(L *lua.LState, deviceSn, pointName string, value interface{}) error {

@@ -147,8 +147,9 @@ func createReadReq(deviceSn, pointName string, ext extends) (btypes.MultipleProp
 	rpm := btypes.MultiplePropertyData{}
 	rpm.Objects = []btypes.Object{
 		{
-			Name:     pointName,
-			DeviceSn: deviceSn,
+			Points: map[string]string{
+				deviceSn: pointName,
+			},
 			ID: btypes.ObjectID{
 				Type:     btypes.GetType(ext.ObjType),
 				Instance: btypes.ObjectInstance(ext.Ins),

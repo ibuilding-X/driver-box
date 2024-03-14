@@ -118,9 +118,8 @@ func (id ObjectID) String() string {
 }
 
 type Object struct {
-	//物模型设备SN
-	DeviceSn string
-	//物模型点位名
+	//Bacnet通讯点ID与逻辑点的映射关系： key:deviceSn,value: pointName
+	Points      map[string]string
 	Name        string
 	Description string
 	ID          ObjectID

@@ -84,8 +84,6 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 					continue
 
 				}
-				object.Name = p.Name           //通信时未携带该参数
-				object.DeviceSn = dev.DeviceSn //通信时未携带该参数
 
 				device, err := c.createDevice(dev.Properties)
 				ok := false
@@ -94,15 +92,37 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 					if group.Duration != duration {
 						continue
 					}
+					//当前点位已存在
+					flag := false
+					for _, obj := range group.multiData.Objects {
+						if obj.ID.Instance == object.ID.Instance {
+							if obj.ID.Type != object.ID.Type {
+								helper.Logger.Error("error bacnet config, the same instance has different type")
+							} else {
+								obj.Points[dev.DeviceSn] = p.Name
+							}
+							flag = true
+							break
+						}
+					}
+					if flag {
+						continue
+					}
 					//暂定每批最多20个点
 					if len(group.multiData.Objects) >= 15 {
 						continue
 					}
 					ok = true
+					points := make(map[string]string)
+					points[dev.DeviceSn] = p.Name
+					object.Points = points
 					group.multiData.Objects = append(group.multiData.Objects, object)
 				}
 				//新增一个点位组
 				if !ok {
+					points := make(map[string]string)
+					points[dev.DeviceSn] = p.Name
+					object.Points = points
 					device.pointGroup = append(device.pointGroup, &pointGroup{
 						Duration: duration,
 						multiData: &btypes.MultiplePropertyData{
@@ -175,13 +195,12 @@ func (c *connector) Send(raw interface{}) (err error) {
 	switch br.mode {
 	// 读
 	case plugin.ReadMode:
+		if c.virtual {
+			return mockRead(c.plugin, c.plugin.ls, br.req.(btypes.MultiplePropertyData))
+		}
 		req := br.req.(btypes.MultiplePropertyData)
 		var out btypes.MultiplePropertyData
-		if c.virtual {
-			out, err = mockRead(c.plugin.ls, req)
-		} else {
-			out, err = device.device.ReadMuti(req)
-		}
+		out, err = device.device.ReadMuti(req)
 
 		if err != nil {
 			return err
@@ -198,17 +217,18 @@ func (c *connector) Send(raw interface{}) (err error) {
 			}
 
 			for _, obj := range req.Objects {
-				if obj.DeviceSn == object.DeviceSn && obj.Name == object.Name {
-					resp.PointName = obj.Name
-					resp.DeviceSn = obj.DeviceSn
-					break
+				if obj.ID != object.ID {
+					continue
 				}
-			}
-
-			respJson, err := json.Marshal(resp)
-			_, err = c.plugin.callback(c.plugin, string(respJson))
-			if err != nil {
-				helper.Logger.Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
+				for deviceSn, pointName := range obj.Points {
+					resp.PointName = pointName
+					resp.DeviceSn = deviceSn
+					respJson, err := json.Marshal(resp)
+					_, err = c.plugin.callback(c.plugin, string(respJson))
+					if err != nil {
+						helper.Logger.Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
+					}
+				}
 			}
 		}
 	case plugin.WriteMode:
