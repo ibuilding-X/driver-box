@@ -93,7 +93,6 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 						continue
 					}
 					//当前点位已存在
-					flag := false
 					for _, obj := range group.multiData.Objects {
 						if obj.ID.Instance == object.ID.Instance {
 							if obj.ID.Type != object.ID.Type {
@@ -101,22 +100,22 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 							} else {
 								obj.Points[dev.DeviceSn] = p.Name
 							}
-							flag = true
+							ok = true
 							break
 						}
 					}
-					if flag {
-						continue
+					if ok {
+						break
 					}
 					//暂定每批最多20个点
-					if len(group.multiData.Objects) >= 15 {
-						continue
+					if len(group.multiData.Objects) < 15 {
+						ok = true
+						points := make(map[string]string)
+						points[dev.DeviceSn] = p.Name
+						object.Points = points
+						group.multiData.Objects = append(group.multiData.Objects, object)
+						break
 					}
-					ok = true
-					points := make(map[string]string)
-					points[dev.DeviceSn] = p.Name
-					object.Points = points
-					group.multiData.Objects = append(group.multiData.Objects, object)
 				}
 				//新增一个点位组
 				if !ok {
