@@ -8,7 +8,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
@@ -46,9 +45,6 @@ func LoadPlugins() error {
 
 	// 初始化本地影子服务
 	initDeviceShadow(configMap)
-
-	// 初始化 crontab
-	helper.Crontab = crontab.NewCrontab()
 
 	// 启动插件
 	for key, _ := range configMap {

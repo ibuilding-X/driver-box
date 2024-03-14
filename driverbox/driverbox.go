@@ -6,6 +6,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
@@ -34,6 +35,9 @@ func Start(exports []export.Export) error {
 		fmt.Println("init logger error", err)
 		return err
 	}
+	//第三步：启动定时器
+	helper.Crontab = crontab.NewCrontab()
+
 	//第三步：启动Export
 	helper.Exports = exports
 	for _, item := range exports {
