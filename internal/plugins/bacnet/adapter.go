@@ -42,8 +42,6 @@ type bacWriteCmd struct {
 	models.PointValue
 	Priority  int  `json:"priority"`
 	NullValue bool `json:"nullValue"`
-	//前置操作，例如空开要先解锁，空调要先开机
-	PreOp []models.PointValue `json:"preOp"`
 }
 
 // Encode 编码
@@ -81,6 +79,7 @@ func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.P
 			bwc.NullValue = ext.DefaultNull
 		}
 		bwc.PointName = value.PointName
+		bwc.ModelName = device.ModelName
 		if a.scriptExists() {
 			bytes, err := json.Marshal(bwc)
 			if err != nil {
