@@ -37,8 +37,9 @@ func Start(exports []export.Export) error {
 	}
 	//第三步：启动定时器
 	helper.Crontab = crontab.NewCrontab()
+	helper.Crontab.Start()
 
-	//第三步：启动Export
+	//第四步：启动Export
 	helper.Exports = exports
 	for _, item := range exports {
 		if err := item.Init(); err != nil {
@@ -46,7 +47,7 @@ func Start(exports []export.Export) error {
 		}
 	}
 
-	// 第四步：启动 REST 服务
+	// 第五步：启动 REST 服务
 	go func() {
 		e := route.Register()
 		if e != nil {
@@ -54,7 +55,7 @@ func Start(exports []export.Export) error {
 		}
 	}()
 
-	//第五步：启动driver-box插件
+	//第六步：启动driver-box插件
 	err = bootstrap.LoadPlugins()
 	if err != nil {
 		helper.Logger.Error(err.Error())
