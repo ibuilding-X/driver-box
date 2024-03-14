@@ -12,6 +12,7 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/network"
 	"github.com/spf13/cast"
 	lua "github.com/yuin/gopher-lua"
+	"go.uber.org/zap"
 	"os"
 	"path/filepath"
 )
@@ -94,6 +95,7 @@ func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.P
 		//是否存在前置操作
 		if len(bwc.PreOp) > 0 {
 			for _, op := range bwc.PreOp {
+				helper.Logger.Info("Send preOp", zap.String("deviceSn", deviceSn), zap.String("pointName", op.PointName), zap.Any("value", op.Value))
 				err = helper.Send(deviceSn, plugin.WriteMode, plugin.PointData{
 					PointName: op.PointName,
 					Value:     op.Value,
