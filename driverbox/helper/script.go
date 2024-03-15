@@ -7,6 +7,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
+	"go.uber.org/zap"
 	luajson "layeh.com/gopher-json"
 	"net/http"
 	"os"
@@ -15,6 +16,9 @@ import (
 )
 
 var runLock = &sync.Mutex{}
+
+// 缓存Lua虚拟机的锁
+var luaLocks = sync.Map{}
 
 // InitLuaVM 编译 lua 脚本
 func InitLuaVM(scriptDir string) (*lua.LState, error) {
@@ -26,13 +30,15 @@ func InitLuaVM(scriptDir string) (*lua.LState, error) {
 	luajson.Preload(ls)
 	ls.PreloadModule("driverbox", LuaModuleInstance.Loader)
 	// 文件路径
-	filePath := filepath.Join(common.CoreConfigPath, scriptDir, common.LuaScriptName)
+	filePath := filepath.Join(EnvConfig.ConfigPath, scriptDir, common.LuaScriptName)
 	if FileExists(filePath) {
 		// 脚本解析
 		err := ls.DoFile(filePath)
 		if err != nil {
 			return nil, err
 		}
+		//注册同步锁
+		luaLocks.Store(ls, &sync.Mutex{})
 		return ls, nil
 	} else {
 		Logger.Warn("lua script not found, aborting initializing lua vm")
@@ -52,32 +58,63 @@ func CallLuaConverter(L *lua.LState, method string, raw interface{}) ([]plugin.D
 	if !ok {
 		return nil, common.ProtocolDataFormatErr
 	}
+	// 获取解析结果
+	result, err := CallLuaMethod(L, method, lua.LString(data))
+	if err != nil {
+		return nil, err
+	}
+	res := make([]plugin.DeviceData, 0)
+	err = json.Unmarshal([]byte(result), &res)
+	return res, err
+}
 
+// 执行指定lua方法
+func CallLuaMethod(L *lua.LState, method string, args ...lua.LValue) (string, error) {
+	defer func() {
+		if err := recover(); err != nil {
+			Logger.Error("call lua script error", zap.Any("error", err))
+		}
+	}()
+
+	lock, ok := luaLocks.Load(L)
+	if !ok {
+		return "", common.ProtocolDataFormatErr
+	}
+	lock.(*sync.Mutex).Lock()
+	defer lock.(*sync.Mutex).Unlock()
 	// 调用脚本函数
 	err := L.CallByParam(lua.P{
 		Fn:      L.GetGlobal(method),
 		NRet:    1,
 		Protect: true,
 		Handler: nil,
-	}, lua.LString(data))
+	}, args...)
 	defer L.Remove(1)
 	if err != nil {
-		return nil, fmt.Errorf("call lua script %s function error: %s", method, err)
+		return "", fmt.Errorf("call lua script %s function error: %s", method, err)
 	}
-
-	// 获取解析结果
-	result := L.Get(-1).String()
-	res := make([]plugin.DeviceData, 0)
-	err = json.Unmarshal([]byte(result), &res)
-	return res, err
+	return L.Get(-1).String(), nil
 }
 
 // CallLuaEncodeConverter 调用 Lua 脚本编码转换器
-func CallLuaEncodeConverter(L *lua.LState, deviceName string, raw interface{}) (string, error) {
+func CallLuaEncodeConverter(L *lua.LState, deviceSn string, raw interface{}) (string, error) {
+	defer func() {
+		if err := recover(); err != nil {
+			Logger.Error("call lua script error", zap.Any("error", err))
+		}
+	}()
+
 	data, ok := raw.(string)
 	if !ok {
 		return "", common.ProtocolDataFormatErr
 	}
+
+	lock, ok := luaLocks.Load(L)
+	if !ok {
+		return "", common.ProtocolDataFormatErr
+	}
+	lock.(*sync.Mutex).Lock()
+	defer lock.(*sync.Mutex).Unlock()
 
 	// 调用脚本函数
 	err := L.CallByParam(lua.P{
@@ -85,7 +122,7 @@ func CallLuaEncodeConverter(L *lua.LState, deviceName string, raw interface{}) (
 		NRet:    1,
 		Protect: true,
 		Handler: nil,
-	}, lua.LString(deviceName), lua.LString(data))
+	}, lua.LString(deviceSn), lua.LString(data))
 	defer L.Remove(1)
 	if err != nil {
 		return "", fmt.Errorf("call lua script encode function error: %s", err)
@@ -98,6 +135,12 @@ func CallLuaEncodeConverter(L *lua.LState, deviceName string, raw interface{}) (
 
 // SafeCallLuaFunc 安全调用 lua 函数，通过锁机制独占时间片
 func SafeCallLuaFunc(L *lua.LState, method string) error {
+	defer func() {
+		if err := recover(); err != nil {
+			Logger.Error("call lua script error", zap.Any("error", err))
+		}
+	}()
+
 	runLock.Lock()
 	defer runLock.Unlock()
 
@@ -107,4 +150,16 @@ func SafeCallLuaFunc(L *lua.LState, method string) error {
 	}
 
 	return nil
+}
+
+// 关闭Lua虚拟机
+func Close(L *lua.LState) {
+	if L == nil {
+		return
+	}
+	if !L.IsClosed() {
+		L.Close()
+	}
+
+	luaLocks.Delete(L)
 }

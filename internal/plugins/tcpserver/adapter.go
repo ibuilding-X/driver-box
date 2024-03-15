@@ -6,14 +6,12 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
-	"sync"
 )
 
 // Adapter 协议适配器
 type adapter struct {
 	scriptDir string // 脚本目录名称
 	ls        *lua.LState
-	lock      *sync.Mutex
 }
 
 // protoData 协议数据
@@ -29,13 +27,11 @@ func (pd protoData) ToJSON() string {
 
 // Encode 编码
 // 暂无实现
-func (a *adapter) Encode(deviceName string, mode plugin.EncodeMode, value plugin.PointData) (res interface{}, err error) {
+func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.PointData) (res interface{}, err error) {
 	return nil, common.NotSupportEncode
 }
 
 // Decode 解码
 func (a *adapter) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
-	a.lock.Lock()
-	defer a.lock.Unlock()
 	return helper.CallLuaConverter(a.ls, "decode", raw)
 }

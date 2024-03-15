@@ -8,7 +8,6 @@ import (
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 	"net/http"
-	"sync"
 )
 
 type Plugin struct {
@@ -30,7 +29,6 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, handler plugin.
 	p.adapter = &adapter{
 		scriptDir: c.Key,
 		ls:        ls,
-		lock:      &sync.Mutex{},
 	}
 
 	// 初始化连接池
@@ -46,9 +44,9 @@ func (p *Plugin) ProtocolAdapter() plugin.ProtocolAdapter {
 }
 
 // Connector 此协议不支持获取连接器
-func (p *Plugin) Connector(deviceName, pointName string) (connector plugin.Connector, err error) {
+func (p *Plugin) Connector(deviceSn, pointName string) (connector plugin.Connector, err error) {
 	// 获取连接key
-	device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceName, pointName)
+	device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceSn, pointName)
 	if !ok {
 		return nil, errors.New("not found device connection key")
 	}
@@ -60,7 +58,9 @@ func (p *Plugin) Connector(deviceName, pointName string) (connector plugin.Conne
 }
 
 func (p *Plugin) Destroy() error {
-	defer p.ls.Close()
+	if p.ls != nil {
+		helper.Close(p.ls)
+	}
 	if len(p.connPool) > 0 {
 		for i, _ := range p.connPool {
 			if err := p.connPool[i].Release(); err != nil {

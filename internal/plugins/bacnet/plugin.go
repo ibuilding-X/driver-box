@@ -1,0 +1,81 @@
+package bacnet
+
+import (
+	"github.com/ibuilding-x/driver-box/driverbox/common"
+	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	lua "github.com/yuin/gopher-lua"
+	"go.uber.org/zap"
+)
+
+type Plugin struct {
+	logger   *zap.Logger
+	config   config.Config
+	callback plugin.OnReceiveHandler
+	adapter  plugin.ProtocolAdapter
+	connPool map[string]plugin.Connector
+	ls       *lua.LState
+}
+
+// Initialize 插件初始化
+func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, handler plugin.OnReceiveHandler, ls *lua.LState) (err error) {
+	p.logger = logger
+	p.config = c
+	p.callback = handler
+	p.ls = ls
+
+	// 初始化协议适配器
+	p.adapter = &adapter{
+		scriptDir: c.Key,
+		ls:        ls,
+	}
+
+	// 初始化连接
+	if err = p.initNetworks(); err != nil {
+		return
+	}
+
+	return nil
+}
+
+// ProtocolAdapter 协议适配器
+func (p *Plugin) ProtocolAdapter() plugin.ProtocolAdapter {
+	return p.adapter
+}
+
+// Connector 连接器
+func (p *Plugin) Connector(deviceName, pointName string) (connector plugin.Connector, err error) {
+	if device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceName, pointName); ok {
+		if conn, ok := p.connPool[device.ConnectionKey]; ok {
+			return conn, nil
+		}
+		return nil, common.ConnectorNotFound
+	}
+	return nil, common.DeviceNotFoundError
+}
+
+// Destroy 销毁插件
+func (p *Plugin) Destroy() error {
+	for _, conn := range p.connPool {
+		c := conn.(*connector)
+		c.Close()
+	}
+	if p.ls != nil {
+		helper.Close(p.ls)
+	}
+	return nil
+}
+
+// initNetworks 初始化连接池
+func (p *Plugin) initNetworks() (err error) {
+	p.connPool = make(map[string]plugin.Connector)
+	for connName, conn := range p.config.Connections {
+		if n, err := initConnector(connName, conn.(map[string]interface{}), p); err == nil {
+			p.connPool[connName] = n
+		} else {
+			return err
+		}
+	}
+	return nil
+}

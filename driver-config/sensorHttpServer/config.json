@@ -11,17 +11,16 @@
 					"valueType":"int",
 					"readWrite":"R",
 					"reportMode":"change",
-					"timerReport":"15m",
-					"realReport":true
+					"timerReport":"15m"
 				}
 			],
 			"deviceActions":[],
 			"devices": [
 				{
-					"name":"sensor_1",
+					"sn":"sensor_1",
 					"description":"传感器1",
 					"connectionKey":"common",
-					"protocol":{}
+					"properties":{}
 				}
 			]
 		}

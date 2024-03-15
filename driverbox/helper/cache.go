@@ -6,22 +6,31 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"go.uber.org/zap"
 	"sync"
 )
 
-type ProtocolProperties map[string]string
+type DeviceProperties map[string]string
 
 // CoreCache 核心缓存
 var CoreCache coreCache
 
 type cache struct {
-	models             *sync.Map // name => config.Model
-	devices            *sync.Map // deviceName => config.DeviceBase
-	deviceProtocols    *sync.Map // deviceName => map[string]map[string]string
-	points             *sync.Map // deviceName_pointName => config.Point
-	devicePointPlugins *sync.Map // deviceName_pointName => plugin key
+	models  *sync.Map // name => config.Model
+	devices *sync.Map // deviceSn => config.Device
+	//设备属性
+	deviceProperties   *sync.Map // deviceSn => map[string]map[string]string
+	points             *sync.Map // deviceSn_pointName => config.Point
+	devicePointPlugins *sync.Map // deviceSn_pointName => plugin key
 	runningPlugins     *sync.Map // key => plugin.Plugin
-	devicePointConn    *sync.Map // deviceName_pointName => config.Device
+	devicePointConn    *sync.Map // deviceSn_pointName => config.Device
+	//根据tag分组存储的设备列表
+	tagDevices *sync.Map // tag => []config.Device
+}
+
+func (c *cache) AddTag(tag string) (e error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 // InitCoreCache 初始化核心缓存
@@ -29,12 +38,14 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 	c := &cache{
 		models:             &sync.Map{},
 		devices:            &sync.Map{},
-		deviceProtocols:    &sync.Map{},
+		deviceProperties:   &sync.Map{},
 		points:             &sync.Map{},
 		devicePointPlugins: &sync.Map{},
 		runningPlugins:     &sync.Map{},
 		devicePointConn:    &sync.Map{},
+		tagDevices:         &sync.Map{},
 	}
+	CoreCache = c
 
 	for key, _ := range configMap {
 		for _, deviceModel := range configMap[key].DeviceModels {
@@ -49,129 +60,176 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 			} else {
 				model = config.Model{
 					ModelBase: deviceModel.ModelBase,
-					Points:    map[string]config.PointBase{},
-					Devices:   map[string]config.DeviceBase{},
+					Points:    map[string]config.Point{},
+					Devices:   map[string]config.Device{},
 				}
 			}
 			pointMap := make(map[string]config.Point)
 			for _, devicePoint := range deviceModel.DevicePoints {
 				point := devicePoint.ToPoint()
+				checkPoint(&deviceModel, &point)
 				pointMap[point.Name] = point
 				if _, ok := model.Points[point.Name]; !ok {
-					model.Points[point.Name] = point.PointBase
+					model.Points[point.Name] = point
 				}
 			}
 			for _, device := range deviceModel.Devices {
-				deviceName := device.Name
-				deviceBase := device.DeviceBase
-				deviceBase.ModelName = deviceModel.Name
-				if _, ok := model.Devices[deviceName]; !ok {
-					model.Devices[deviceName] = deviceBase
+				if device.DeviceSn == "" {
+					Logger.Error("config error , device sn is empty", zap.Any("device", device))
+					continue
 				}
-				if deviceRaw, ok := c.devices.Load(deviceName); !ok {
-					c.devices.Store(deviceName, deviceBase)
+				deviceSn := device.DeviceSn
+				device.ModelName = deviceModel.Name
+				if _, ok := model.Devices[deviceSn]; !ok {
+					model.Devices[deviceSn] = device
+				}
+				if deviceRaw, ok := c.devices.Load(deviceSn); !ok {
+					c.devices.Store(deviceSn, device)
 				} else {
-					storedDeviceBase := deviceRaw.(config.DeviceBase)
-					if storedDeviceBase.ModelName != deviceBase.ModelName {
-						return fmt.Errorf("conflict model for device [%s]: %s -> %s", deviceBase.Name,
-							deviceBase.ModelName, storedDeviceBase.ModelName)
+					storedDeviceBase := deviceRaw.(config.Device)
+					if storedDeviceBase.ModelName != device.ModelName {
+						return fmt.Errorf("conflict model for device [%s]: %s -> %s", device.DeviceSn,
+							device.ModelName, storedDeviceBase.ModelName)
 					}
 				}
-				var protocols map[string]ProtocolProperties
-				if raw, ok := c.deviceProtocols.Load(deviceName); ok {
-					protocols = raw.(map[string]ProtocolProperties)
+				var properties map[string]DeviceProperties
+				if raw, ok := c.deviceProperties.Load(deviceSn); ok {
+					properties = raw.(map[string]DeviceProperties)
 				} else {
-					protocols = make(map[string]ProtocolProperties)
+					properties = make(map[string]DeviceProperties)
 				}
-				protocols[configMap[key].ProtocolName+"_"+device.ConnectionKey] = device.Protocol
-				c.deviceProtocols.Store(deviceName, protocols)
+				properties[configMap[key].ProtocolName+"_"+device.ConnectionKey] = device.Properties
+				c.deviceProperties.Store(deviceSn, properties)
 				for _, point := range pointMap {
-					devicePointKey := deviceName + "_" + point.Name
+					devicePointKey := deviceSn + "_" + point.Name
 					if _, ok := c.points.Load(devicePointKey); ok {
-						return fmt.Errorf("device %s duplicate point %s found", deviceName, point.Name)
+						return fmt.Errorf("device %s duplicate point %s found", deviceSn, point.Name)
 					}
 					c.points.Store(devicePointKey, point)
 					c.devicePointPlugins.Store(devicePointKey, key)
 					c.devicePointConn.Store(devicePointKey, device)
+				}
+
+				//根据tag分组存储设备列表
+				for _, tag := range device.Tags {
+					if raw, ok := c.tagDevices.Load(tag); ok {
+						devices := raw.([]config.Device)
+						devices = append(devices, device)
+						c.tagDevices.Store(tag, devices)
+					} else {
+						c.tagDevices.Store(tag, []config.Device{device})
+					}
 				}
 			}
 			c.models.Store(model.Name, model)
 		}
 	}
 
-	CoreCache = c
 	return nil
+}
+
+// 检查点位配置合法性
+func checkPoint(model *config.DeviceModel, point *config.Point) {
+	if point.Name == "" {
+		Logger.Error("config error , point name is empty", zap.Any("point", point), zap.String("modelName", model.Name))
+	}
+	if point.Description == "" {
+		Logger.Warn("config error , point description is empty", zap.Any("point", point), zap.String("model", model.Name))
+	}
+	if point.ValueType != config.ValueType_Float && point.ValueType != config.ValueType_Int && point.ValueType != config.ValueType_String {
+		Logger.Error("point valueType config error , valid config is: int float string", zap.Any("point", point), zap.String("model", model.Name))
+	}
+	if point.ReadWrite != config.ReadWrite_RW && point.ReadWrite != config.ReadWrite_R && point.ReadWrite != config.ReadWrite_W {
+		Logger.Error("point readWrite config error , valid config is: R W RW", zap.Any("point", point), zap.String("model", model.Name))
+	}
+	if point.ReportMode != config.ReportMode_Real && point.ReportMode != config.ReportMode_Period && point.ReportMode != config.ReportMode_Change {
+		Logger.Error("point reportMode config error , valid config is: realTime change period", zap.Any("point", point), zap.String("model", model.Name))
+	}
 }
 
 // coreCache 核心缓存
 type coreCache interface {
-	GetModel(modelName string) (model config.ModelBase, ok bool)                                          // model info
-	GetDevice(deviceName string) (device config.DeviceBase, ok bool)                                      // device info
-	GetDeviceByDeviceAndPoint(deviceName string, pointName string) (device config.Device, ok bool)        // connection config
-	GetPointByModel(modelName string, pointName string) (point config.PointBase, ok bool)                 // search point by model
-	GetPointByDevice(deviceName string, pointName string) (point config.Point, ok bool)                   // search point by device
-	GetRunningPluginByDeviceAndPoint(deviceName string, pointName string) (plugin plugin.Plugin, ok bool) // search plugin by device and point
-	GetRunningPluginByKey(key string) (plugin plugin.Plugin, ok bool)                                     // search plugin by directory name
-	AddRunningPlugin(key string, plugin plugin.Plugin)                                                    // add running plugin
-	Models() (models []config.Model)                                                                      // all model
-	Devices() (devices []config.DeviceBase)
-	GetProtocolsByDevice(deviceName string) (map[string]ProtocolProperties, bool) // device protocols
-	GetAllRunningPluginKey() (keys []string)                                      // get running plugin keys
+	GetModel(modelName string) (model config.Model, ok bool)                                     // model info
+	GetDevice(deviceSn string) (device config.Device, ok bool)                                   // device info
+	GetDeviceByDeviceAndPoint(deviceSn string, pointName string) (device config.Device, ok bool) // connection config
+	//查询指定标签的设备列表
+	GetDevicesByTag(tag string) (devices []config.Device)
+	AddTag(tag string) (e error)                                                                        //
+	GetPointByModel(modelName string, pointName string) (point config.Point, ok bool)                   // search point by model
+	GetPointByDevice(deviceSn string, pointName string) (point config.Point, ok bool)                   // search point by device
+	GetRunningPluginByDeviceAndPoint(deviceSn string, pointName string) (plugin plugin.Plugin, ok bool) // search plugin by device and point
+	GetRunningPluginByKey(key string) (plugin plugin.Plugin, ok bool)                                   // search plugin by directory name
+	AddRunningPlugin(key string, plugin plugin.Plugin)                                                  // add running plugin
+	Models() (models []config.Model)                                                                    // all model
+	Devices() (devices []config.Device)
+	GetProtocolsByDevice(deviceSn string) (map[string]DeviceProperties, bool) // device protocols
+	GetAllRunningPluginKey() (keys []string)                                  // get running plugin keys
+	UpdateDeviceProperty(deviceSn string, key string, value string)           // 更新设备属性
+	DeleteDevice(sn string)                                                   // 删除设备
+	UpdateDeviceDesc(sn string, desc string)                                  // 更新设备描述
+	Reset()                                                                   // 重置核心缓存
 }
 
-func (c *cache) GetModel(modelName string) (model config.ModelBase, ok bool) {
+func (c *cache) GetModel(modelName string) (model config.Model, ok bool) {
 	if raw, exist := c.models.Load(modelName); exist {
 		m, _ := raw.(config.Model)
-		model = m.ModelBase
-		return model, true
+		return m, true
 	}
-	return config.ModelBase{}, false
+	return config.Model{}, false
 }
 
-func (c *cache) GetDevice(deviceName string) (device config.DeviceBase, ok bool) {
-	if raw, exist := c.devices.Load(deviceName); exist {
-		device, _ = raw.(config.DeviceBase)
-		return device, true
-	}
-	return config.DeviceBase{}, false
-}
-
-func (c *cache) GetDeviceByDeviceAndConn(deviceName, connectionKey string) (device config.Device, ok bool) {
-	if raw, ok := c.deviceProtocols.Load(deviceName + "_" + connectionKey); ok {
-		device, _ := raw.(config.Device)
-		return device, true
-	}
-	return config.Device{}, false
-}
-
-func (c *cache) GetDeviceByDeviceAndPoint(deviceName, pointName string) (device config.Device, ok bool) {
-	if raw, ok := c.devicePointConn.Load(deviceName + "_" + pointName); ok {
+func (c *cache) GetDevice(deviceSn string) (device config.Device, ok bool) {
+	if raw, exist := c.devices.Load(deviceSn); exist {
 		device, _ = raw.(config.Device)
 		return device, true
 	}
 	return config.Device{}, false
 }
 
-func (c *cache) GetPointByModel(modelName string, pointName string) (point config.PointBase, ok bool) {
+func (c *cache) GetDeviceByDeviceAndConn(deviceSn, connectionKey string) (device config.Device, ok bool) {
+	if raw, ok := c.deviceProperties.Load(deviceSn + "_" + connectionKey); ok {
+		device, _ := raw.(config.Device)
+		return device, true
+	}
+	return config.Device{}, false
+}
+
+func (c *cache) GetDeviceByDeviceAndPoint(deviceSn, pointName string) (device config.Device, ok bool) {
+	if raw, ok := c.devicePointConn.Load(deviceSn + "_" + pointName); ok {
+		device, _ = raw.(config.Device)
+		return device, true
+	}
+	return config.Device{}, false
+}
+
+func (c *cache) GetPointByModel(modelName string, pointName string) (point config.Point, ok bool) {
 	if raw, ok := c.models.Load(modelName); ok {
 		model := raw.(config.Model)
 		if pointBase, ok := model.Points[pointName]; ok {
 			return pointBase, true
 		}
-		return config.PointBase{}, false
+		return config.Point{}, false
 	}
-	return config.PointBase{}, false
+	return config.Point{}, false
 }
 
-func (c *cache) GetPointByDevice(deviceName string, pointName string) (point config.Point, ok bool) {
-	if raw, ok := c.points.Load(deviceName + "_" + pointName); ok {
+func (c *cache) GetDevicesByTag(tag string) (devices []config.Device) {
+	if raw, ok := c.tagDevices.Load(tag); ok {
+		devices, _ = raw.([]config.Device)
+		return devices
+	}
+	return
+}
+
+func (c *cache) GetPointByDevice(deviceSn string, pointName string) (point config.Point, ok bool) {
+	if raw, ok := c.points.Load(deviceSn + "_" + pointName); ok {
 		return raw.(config.Point), true
 	}
 	return config.Point{}, false
 }
 
-func (c *cache) GetRunningPluginByDeviceAndPoint(deviceName, pointName string) (plugin plugin.Plugin, ok bool) {
-	if key, ok := c.devicePointPlugins.Load(fmt.Sprintf("%s_%s", deviceName, pointName)); ok {
+func (c *cache) GetRunningPluginByDeviceAndPoint(deviceSn, pointName string) (plugin plugin.Plugin, ok bool) {
+	if key, ok := c.devicePointPlugins.Load(fmt.Sprintf("%s_%s", deviceSn, pointName)); ok {
 		return c.GetRunningPluginByKey(key.(string))
 	}
 	return nil, false
@@ -198,18 +256,18 @@ func (c *cache) Models() (models []config.Model) {
 	return
 }
 
-func (c *cache) Devices() (devices []config.DeviceBase) {
+func (c *cache) Devices() (devices []config.Device) {
 	c.devices.Range(func(key, value any) bool {
-		device, _ := value.(config.DeviceBase)
+		device, _ := value.(config.Device)
 		devices = append(devices, device)
 		return true
 	})
 	return
 }
 
-func (c *cache) GetProtocolsByDevice(deviceName string) (map[string]ProtocolProperties, bool) {
-	if raw, ok := c.deviceProtocols.Load(deviceName); ok {
-		protocols, _ := raw.(map[string]ProtocolProperties)
+func (c *cache) GetProtocolsByDevice(deviceSn string) (map[string]DeviceProperties, bool) {
+	if raw, ok := c.deviceProperties.Load(deviceSn); ok {
+		protocols, _ := raw.(map[string]DeviceProperties)
 		return protocols, true
 	}
 	return nil, false
@@ -222,4 +280,51 @@ func (c *cache) GetAllRunningPluginKey() (keys []string) {
 		return true
 	})
 	return
+}
+
+func (c *cache) UpdateDeviceProperty(deviceSn string, key string, value string) {
+	if propertiesAny, ok := c.deviceProperties.Load(deviceSn); ok {
+		if properties, ok2 := propertiesAny.(map[string]DeviceProperties); ok2 {
+			for k, _ := range properties {
+				if properties[k] == nil {
+					properties[k] = make(DeviceProperties)
+				}
+				properties[k][key] = value
+			}
+			c.deviceProperties.Store(deviceSn, properties)
+		}
+	}
+}
+
+// DeleteDevice 删除设备
+func (c *cache) DeleteDevice(sn string) {
+	c.devices.Delete(sn)
+}
+
+// UpdateDeviceDesc 更新设备描述
+func (c *cache) UpdateDeviceDesc(sn string, desc string) {
+	if deviceAny, ok := c.devices.Load(sn); ok {
+		device, _ := deviceAny.(config.Device)
+		device.Description = desc
+		c.devices.Store(sn, device)
+	}
+}
+
+func (c *cache) resetSyncMap(m *sync.Map) {
+	m.Range(func(key, value any) bool {
+		m.Delete(key)
+		return true
+	})
+}
+
+// Reset 重置数据
+func (c *cache) Reset() {
+	c.resetSyncMap(c.models)
+	c.resetSyncMap(c.devices)
+	c.resetSyncMap(c.deviceProperties)
+	c.resetSyncMap(c.points)
+	c.resetSyncMap(c.devicePointPlugins)
+	c.resetSyncMap(c.runningPlugins)
+	c.resetSyncMap(c.devicePointConn)
+	c.resetSyncMap(c.tagDevices)
 }

@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 	"log"
@@ -67,8 +68,11 @@ func (export *MqttExport) ExportTo(deviceData plugin.DeviceData) {
 	}
 }
 
-func (export *MqttExport) SendStatusChangeNotification(deviceName string, online bool) error {
-	export.client.Publish("/driverbox/event/"+export.ClientID, 0, false, map[string]any{"deviceName": deviceName, "online": online})
+// 继承Export OnEvent接口
+func (export *MqttExport) OnEvent(eventCode string, key string, eventValue interface{}) error {
+	if event.EventCodeDeviceStatus == eventCode {
+		export.client.Publish("/driverbox/event/"+export.ClientID, 0, false, map[string]any{"deviceSn": key, "online": eventValue})
+	}
 	return nil
 }
 

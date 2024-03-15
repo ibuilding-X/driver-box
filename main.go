@@ -4,7 +4,6 @@ import (
 	"flag"
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/export"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"os"
 )
 
@@ -23,10 +22,12 @@ func main() {
 	flag.StringVar(&exportTopic, "exportTopic", os.Getenv("MQTT_EXPORT_TOPIC"), "mqttExport: exportTopic")
 	flag.Parse()
 
+	// 设置日志级别
+	_ = os.Setenv("LOG_LEVEL", "debug")
+
 	if len(clientId) == 0 {
 		clientId = ""
 	}
-	helper.DriverConfig.DefaultDeviceTTL = 5
 	driverbox.Start([]export.Export{&export.MqttExport{
 		Broker:      broker,
 		ClientID:    clientId,
@@ -34,6 +35,7 @@ func main() {
 		Password:    password,
 		ExportTopic: exportTopic,
 	}})
+	select {}
 }
 
 func localMode() {

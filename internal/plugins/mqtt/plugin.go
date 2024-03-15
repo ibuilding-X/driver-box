@@ -8,7 +8,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
-	"sync"
 )
 
 type Plugin struct {
@@ -31,7 +30,6 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, handler plugin.
 	p.adapter = &adapter{
 		scriptDir: c.Key,
 		ls:        ls,
-		lock:      &sync.Mutex{},
 	}
 
 	// 初始化连接池
@@ -72,12 +70,12 @@ func (p *Plugin) ProtocolAdapter() plugin.ProtocolAdapter {
 }
 
 // Connector 连接器
-func (p *Plugin) Connector(deviceName, pointName string) (plugin.Connector, error) {
+func (p *Plugin) Connector(deviceSn, pointName string) (plugin.Connector, error) {
 	deviceModels := p.config.DeviceModels
 	for _, deviceModel := range deviceModels {
 		devices := deviceModel.Devices
 		for _, device := range devices {
-			if device.Name == deviceName {
+			if device.DeviceSn == deviceSn {
 				conn, ok := p.connectors[device.ConnectionKey]
 				if !ok {
 					return nil, common.ConnectorNotFound
@@ -91,7 +89,9 @@ func (p *Plugin) Connector(deviceName, pointName string) (plugin.Connector, erro
 
 // Destroy 销毁驱动
 func (p *Plugin) Destroy() error {
-	p.ls.Close()
+	if p.ls != nil {
+		helper.Close(p.ls)
+	}
 	connectors := p.connectors
 	for _, conn := range connectors {
 		conn := conn

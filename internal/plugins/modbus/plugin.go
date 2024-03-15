@@ -46,9 +46,9 @@ func (p *Plugin) ProtocolAdapter() plugin.ProtocolAdapter {
 }
 
 // Connector 连接器
-func (p *Plugin) Connector(deviceName, pointName string) (conn plugin.Connector, err error) {
+func (p *Plugin) Connector(deviceSn, pointName string) (conn plugin.Connector, err error) {
 	// 获取连接key
-	device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceName, pointName)
+	device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceSn, pointName)
 	if !ok {
 		return nil, errors.New("not found device connection key")
 	}
@@ -68,7 +68,7 @@ func (p *Plugin) Connector(deviceName, pointName string) (conn plugin.Connector,
 // Destroy 销毁驱动插件
 func (p *Plugin) Destroy() error {
 	if p.ls != nil {
-		p.ls.Close()
+		helper.Close(p.ls)
 	}
 	return nil
 }

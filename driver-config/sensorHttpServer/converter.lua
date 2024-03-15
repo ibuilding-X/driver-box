@@ -7,7 +7,7 @@ function decode(raw)
     if string.find(data.path, "on") then
         local devices = {
             {
-                ["device_name"] = "sensor_1",
+                ["device_sn"] = "sensor_1",
                 ["values"] = {
                     {
                         ["name"] = "onOff",
@@ -22,7 +22,7 @@ function decode(raw)
     if string.find(data.path, "off") then
         local devices = {
             {
-                ["device_name"] = "sensor_1",
+                ["device_sn"] = "sensor_1",
                 ["values"] = {
                     {
                         ["name"] = "onOff",

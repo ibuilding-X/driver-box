@@ -7,6 +7,7 @@ import (
 	"errors"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"io"
 	"io/fs"
 	"os"
@@ -37,6 +38,18 @@ func parseFromFile(path string) (c config.Config, err error) {
 // ParseFromPath 从指定路径解析所有核心配置文件
 // directoryName => Config, example: http_server_sp200 => Config
 func ParseFromPath(path string) (list map[string]config.Config, err error) {
+	//若目录不存在，则自动创建
+	_, err = os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				return
+			}
+		} else {
+			return
+		}
+	}
 	// 获取所有子目录
 	dirs := make([]string, 0)
 	if err = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
@@ -57,7 +70,7 @@ func ParseFromPath(path string) (list map[string]config.Config, err error) {
 
 	list = make(map[string]config.Config)
 	for i, _ := range dirs {
-		fileName := filepath.Join(common.CoreConfigPath, dirs[i], common.CoreConfigName)
+		fileName := filepath.Join(helper.EnvConfig.ConfigPath, dirs[i], common.CoreConfigName)
 		c, err := parseFromFile(fileName)
 		if err != nil {
 			continue

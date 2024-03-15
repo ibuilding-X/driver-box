@@ -3,21 +3,22 @@ package helper
 import (
 	"errors"
 	"fmt"
+	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"strconv"
 )
 
 // ConvPointType 点位类型转换
 // 仅支持三种数据类型：int、float、string
-func ConvPointType(value interface{}, valueType string) (interface{}, error) {
+func ConvPointType(value interface{}, valueType config.ValueType) (interface{}, error) {
 	switch valueType {
-	case "int":
+	case config.ValueType_Int:
 		return Conv2Int64(value)
-	case "float":
+	case config.ValueType_Float:
 		return Conv2Float64(value)
-	case "string":
+	case config.ValueType_String:
 		return Conv2String(value)
 	default:
-		return nil, errors.New("point value type must one of (int、float、string)")
+		return nil, fmt.Errorf("point value type must one of (int、float、string) ,unSupport:%v", valueType)
 	}
 }
 
@@ -48,8 +49,15 @@ func Conv2Int64(value interface{}) (i int64, err error) {
 	case int64:
 		return v, nil
 	case float32:
+		//如何小数不为0，则error
+		if v != float32(int64(v)) {
+			return 0, errors.New(fmt.Sprintf("%T: %v convert to int64 error", v, value))
+		}
 		return int64(v), nil
 	case float64:
+		if v != float64(int64(v)) {
+			return 0, errors.New(fmt.Sprintf("%T: %v convert to int64 error", v, value))
+		}
 		return int64(v), nil
 	case bool:
 		if v {
@@ -57,7 +65,11 @@ func Conv2Int64(value interface{}) (i int64, err error) {
 		}
 		return 0, nil
 	case string:
-		return strconv.ParseInt(v, 10, 64)
+		fv, e := strconv.ParseFloat(v, 64)
+		if e != nil {
+			return 0, e
+		}
+		return Conv2Int64(fv)
 	default:
 		return 0, errors.New(fmt.Sprintf("%T convert to int64 error", v))
 	}

@@ -4,14 +4,60 @@ package config
 import (
 	"encoding/json"
 	"github.com/go-playground/validator/v10"
+	"os"
 	"strings"
 )
 
-type DriverConfig struct {
-	LoggerLevel      string // 日志等级
-	PointCacheTTL    int64  // 点位缓存默认过期时间，单位：秒
-	DefaultDeviceTTL int    // 默认设备影子生命周期
+// 环境变量配置项
+const (
+	//驱动包存放目录
+	ENV_CONFIG_PATH = "DRIVERBOX_CONFIG_PATH"
+	//http服务绑定地址
+	ENV_HTTP_LISTEN = "DRIVERBOX_HTTP_LISTEN"
+
+	//日志文件存放路径
+	ENV_LOG_PATH = "DRIVERBOX_LOG_PATH"
+
+	//是否虚拟设备模式: true:是,false:否
+	ENV_VIRTUAL = "DRIVERBOX_VIRTUAL"
+)
+
+// 点位上报模式
+type ReportMode string
+
+// 点位读写模式
+type ReadWrite string
+
+// 点位数据类型
+type ValueType string
+
+var (
+	//实时上报,读到数据即触发
+	ReportMode_Real ReportMode = "realTime"
+	//变化上报,同影子中数值不一致时才触发上报
+	ReportMode_Change ReportMode = "change"
+	//周期上报
+	ReportMode_Period ReportMode = "period"
+	//只读
+	ReadWrite_R ReadWrite = "R"
+	//只写
+	ReadWrite_W ReadWrite = "W"
+	//读写
+	ReadWrite_RW ReadWrite = "RW"
+	//点位类型：整型
+	ValueType_Int ValueType = "int"
+	//点位类型：浮点型
+	ValueType_Float ValueType = "float"
+	//点位类型：字符串
+	ValueType_String ValueType = "string"
+)
+
+type EnvConfig struct {
+	ConfigPath string
+	HttpListen string
+	LogPath    string
 }
+
 type PointMap map[string]interface{} // 点位 Map，可转换为标准点位数据
 
 // ToPoint 转换为标准点位数据
@@ -47,8 +93,8 @@ type Config struct {
 
 type Model struct {
 	ModelBase
-	Points  map[string]PointBase  `json:"points"`
-	Devices map[string]DeviceBase `json:"devices"`
+	Points  map[string]Point  `json:"points"`
+	Devices map[string]Device `json:"devices"`
 }
 
 // ModelBase 模型基础信息
@@ -66,78 +112,49 @@ type DeviceModel struct {
 	ModelBase
 	// 模型点位列表
 	DevicePoints []PointMap `json:"devicePoints" validate:"required"`
-	// 模型操作列表
-	DeviceActions []DeviceAction `json:"deviceActions" validate:""`
 	// 设备列表
 	Devices []Device `json:"devices" validate:"required"`
 }
 
-// DeviceAction 设备操作
-type DeviceAction struct {
-	// 操作名称
-	Name string `json:"name" validate:"required"`
-	// 读写类型：RW、R、W
-	ReadWrite string `json:"readWrite" validate:"required|oneof=R W RW"`
-	// 资源操作列表
-	ResourceOperations []ResourceOperation `json:"resourceOperations" validate:""`
-}
-
-// ResourceOperation 资源操作
-type ResourceOperation struct {
-	// 设备资源名称
-	DeviceResource string `json:"deviceResource" validate:"-"`
-	// 资源默认值
-	DefaultValue string `json:"defaultValue" validate:"-"`
-	// 资源扩展参数
-	Mappings map[string]string `json:"mappings" validate:"-"`
-}
-
-// PointBase 点位基础信息
-type PointBase struct {
+// Point 点位数据
+type Point struct {
 	// 点位名称
 	Name string `json:"name" validate:"required"`
 	// 点位描述
 	Description string `json:"description" validate:"required"`
 	// 值类型
-	ValueType string `json:"valueType" validate:"required,oneof=int float string"`
+	ValueType ValueType `json:"valueType" validate:"required,oneof=int float string"`
 	// 读写模式
-	ReadWrite string `json:"readWrite" validate:"required,oneof=int float string"`
-	// 实时上报开关
-	RealReport bool `json:"realReport" validate:"required,boolean"`
-	// 定时上报
+	ReadWrite ReadWrite `json:"readWrite" validate:"required,oneof=R W RW"`
+	// 定时上报,该字段的逻辑迁移至ibuilding，后续可能废弃
 	TimerReport string `json:"timerReport" validate:"required"`
 	// 单位
 	Units string `json:"units" validate:"-"`
 	// 上报模式
-	ReportMode string `json:"reportMode" validate:"required"`
-}
-
-// Point 点位数据
-type Point struct {
-	PointBase
+	ReportMode ReportMode `json:"reportMode" validate:"required"`
 	// 扩展参数
 	Extends map[string]interface{} `json:"-" validate:"-"`
 }
 
 //------------------------------ 设备 ------------------------------
 
-// DeviceBase 设备基础信息
-type DeviceBase struct {
-	// 设备名称
-	Name string `json:"name" validate:"required"`
+// Device 设备
+type Device struct {
+	// 设备SN
+	DeviceSn string `json:"sn" validate:"required"`
 	// 模型名称
 	ModelName string `json:"-" validate:"-"`
 	// 设备描述
 	Description string `json:"description" validate:"required"`
-}
+	// 设备离线阈值，超过该时长没有收到数据视为离线
+	Ttl string `json:"ttl"`
 
-// Device 设备
-type Device struct {
-	DeviceBase
+	//设备标签
+	Tags []string `json:"tags"`
 	// 连接 Key
 	ConnectionKey string `json:"connectionKey" validate:"required"`
 	// 协议参数
-	Protocol map[string]string `json:"protocol" validate:"-"`
+	Properties map[string]string `json:"properties" validate:"-"`
 }
 
 // TimerTask 定时任务
@@ -150,25 +167,19 @@ type TimerTask struct {
 	Action interface{} `json:"action" validate:"required"`
 }
 
-// Action todo: 待删除
-type Action struct {
-	DeviceNames []string `json:"devices"`
-	Points      []string `json:"points"`
-}
-
-// ModelCache 模型缓存
-type ModelCache struct {
-	ModelBase
-	Points map[string]PointBase
-}
-
 type ReadPointsAction struct {
-	DeviceNames []string `json:"devices"`
-	Points      []string `json:"points"`
+	//设备SN列表
+	Devices []string `json:"devices"`
+	Points  []string `json:"points"`
 }
 
 // Validate 核心配置文件校验
 func (c Config) Validate() error {
 	validate := validator.New()
 	return validate.Struct(c)
+}
+
+// 是否处于虚拟运行模式：未建立真实的设备连接
+func IsVirtual() bool {
+	return os.Getenv(ENV_VIRTUAL) == "true"
 }

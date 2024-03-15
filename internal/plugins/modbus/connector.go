@@ -35,7 +35,7 @@ type connector struct {
 }
 
 type rawData struct {
-	DeviceName     string          `json:"deviceName"`
+	SN             string          `json:"sn"`
 	PointRawValues []pointRawValue `json:"points"`
 }
 
@@ -59,7 +59,7 @@ func (c *connector) Send(data interface{}) (err error) {
 }
 
 func (c *connector) sendWriteMode(td transportationData) error {
-	ext, err := getExtendProps(td.DeviceName, td.PointName)
+	ext, err := getExtendProps(td.SN, td.PointName)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func (c *connector) sendWriteMode(td transportationData) error {
 
 func (c *connector) sendReadMode(td transportationData) error {
 	totalPointRawValues := make([]pointRawValue, 0)
-	ext, err := getExtendProps(td.DeviceName, td.PointName)
+	ext, err := getExtendProps(td.SN, td.PointName)
 	if err != nil {
 		return err
 	}
@@ -106,12 +106,12 @@ func (c *connector) sendReadMode(td transportationData) error {
 	} else {
 		pointNames = []string{td.PointName}
 	}
-	totalPointRawValues, err = sliceToPointRawValue(rawValues, ext.StartAddress, td.DeviceName, pointNames)
+	totalPointRawValues, err = sliceToPointRawValue(rawValues, ext.StartAddress, td.SN, pointNames)
 	if err != nil {
 		return err
 	}
 	raw := rawData{
-		DeviceName:     td.DeviceName,
+		SN:             td.SN,
 		PointRawValues: totalPointRawValues,
 	}
 	_, err = c.plugin.callback(c.plugin, raw)
@@ -121,12 +121,12 @@ func (c *connector) sendReadMode(td transportationData) error {
 	return nil
 }
 
-func sliceToPointRawValue(rawValues []uint16, startAddress uint16, deviceName string, pointNames []string) ([]pointRawValue, error) {
+func sliceToPointRawValue(rawValues []uint16, startAddress uint16, deviceSn string, pointNames []string) ([]pointRawValue, error) {
 	pointRawValues := make([]pointRawValue, len(pointNames))
 	//fmt.Printf("%+v\n", rawValues)
 	for idx, pointName := range pointNames {
 		//fmt.Printf("slicing %s", ppd.PointName)
-		ext, err := getExtendProps(deviceName, pointName)
+		ext, err := getExtendProps(deviceSn, pointName)
 		if err != nil {
 			return nil, err
 		}
@@ -145,10 +145,10 @@ func sliceToPointRawValue(rawValues []uint16, startAddress uint16, deviceName st
 	return pointRawValues, nil
 }
 
-func getExtendProps(deviceName, pointName string) (ext extendProps, err error) {
-	point, ok := helper.CoreCache.GetPointByDevice(deviceName, pointName)
+func getExtendProps(deviceSn, pointName string) (ext extendProps, err error) {
+	point, ok := helper.CoreCache.GetPointByDevice(deviceSn, pointName)
 	if !ok {
-		err = fmt.Errorf("point %s not found for device %s", pointName, deviceName)
+		err = fmt.Errorf("point %s not found for device %s", pointName, deviceSn)
 	}
 	err = helper.Map2Struct(point.Extends, &ext)
 	address, registerType, err := castStartingAddress(point.Extends["startAddress"])

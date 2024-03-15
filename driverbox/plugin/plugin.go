@@ -9,9 +9,14 @@ import (
 	"go.uber.org/zap"
 )
 
+// 触发 ExportTo 的类型
+type ExportType string
+
 const (
-	ReadMode  EncodeMode = "read"  // 读模式
-	WriteMode EncodeMode = "write" // 写模式
+	ReadMode       EncodeMode = "read"           // 读模式
+	WriteMode      EncodeMode = "write"          // 写模式
+	RealTimeExport ExportType = "realTimeExport" //实时上报
+	TimerExport    ExportType = "timerExport"    //周期性上报
 )
 
 // EncodeMode 编码模式
@@ -26,14 +31,14 @@ type OnReceiveHandler func(plugin Plugin, raw interface{}) (result interface{}, 
 // PointData 点位数据
 type PointData struct {
 	PointName string      `json:"name"`  // 点位名称
-	Type      string      `json:"type"`  // 点位值类型
 	Value     interface{} `json:"value"` // 点位值
 }
 
 // DeviceData 设备数据
 type DeviceData struct {
-	DeviceName string      `json:"device_name"`
+	SN         string      `json:"sn"`
 	Values     []PointData `json:"values"`
+	ExportType ExportType  //上报类型，底层的变化上报和实时上报等同于RealTimeExport
 }
 
 // ToJSON 设备数据转 json
@@ -49,7 +54,7 @@ type Plugin interface {
 	// ProtocolAdapter 协议适配器
 	ProtocolAdapter() ProtocolAdapter
 	// Connector 连接器
-	Connector(deviceName, pointName string) (connector Connector, err error)
+	Connector(deviceSn, pointName string) (connector Connector, err error)
 	// Destroy 销毁驱动
 	Destroy() error
 }
@@ -63,6 +68,6 @@ type Connector interface {
 // ProtocolAdapter 协议适配器
 // 点位数据 <=> 协议数据
 type ProtocolAdapter interface {
-	Encode(deviceName string, mode EncodeMode, value PointData) (res interface{}, err error) // 编码
-	Decode(raw interface{}) (res []DeviceData, err error)                                    // 解码
+	Encode(deviceSn string, mode EncodeMode, value PointData) (res interface{}, err error) // 编码
+	Decode(raw interface{}) (res []DeviceData, err error)                                  // 解码
 }
