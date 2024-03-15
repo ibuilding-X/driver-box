@@ -115,7 +115,7 @@ func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.P
 		}
 		if req, err := createWriteReq(bwc, ext); err == nil {
 			req.DeviceSn = deviceSn
-			req.PointName = value.PointName
+			req.PointName = bwc.PointName
 			return bacRequest{
 				req:      req,
 				mode:     mode,
