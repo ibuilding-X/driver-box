@@ -36,6 +36,7 @@ const (
 	MultiStateValue   ObjectType = 19
 	TrendLog          ObjectType = 20
 	CharacterString   ObjectType = 40
+	LargeAnalogValue  ObjectType = 46
 )
 
 const (
@@ -53,6 +54,7 @@ const (
 	MultiStateOutputStr  = "MultiStateOutput"
 	TrendLogStr          = "TrendLog"
 	CharacterStringStr   = "CharacterString"
+	LargeAnalogValueStr  = "LargeAnalogValue"
 )
 
 var objTypeMap = map[ObjectType]string{
@@ -87,6 +89,7 @@ var objStrTypeMap = map[string]ObjectType{
 	MultiStateOutputStr:  MultiStateOutput,
 	TrendLogStr:          TrendLog,
 	CharacterStringStr:   CharacterString,
+	LargeAnalogValueStr:  LargeAnalogValue,
 }
 
 func GetType(s string) ObjectType {
