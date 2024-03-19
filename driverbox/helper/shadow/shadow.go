@@ -37,6 +37,9 @@ type DeviceShadow interface {
 
 	// StopStatusListener 停止设备状态监听
 	StopStatusListener()
+
+	// All 所有设备影子数据
+	All() map[string][]DevicePoint
 }
 
 type deviceShadow struct {
@@ -208,6 +211,25 @@ func (d *deviceShadow) MayBeOffline(deviceSn string) (err error) {
 
 func (d *deviceShadow) StopStatusListener() {
 	d.ticker.Stop()
+}
+
+// All 获取影子所有设备数据
+func (d *deviceShadow) All() map[string][]DevicePoint {
+	list := make(map[string][]DevicePoint)
+	d.m.Range(func(key, value any) bool {
+		sn, _ := key.(string)
+		device, _ := value.(Device)
+		// 获取所有点位数据
+		points := make([]DevicePoint, 0)
+		device.points.Range(func(_, value2 any) bool {
+			dp, _ := value2.(DevicePoint)
+			points = append(points, dp)
+			return true
+		})
+		list[sn] = points
+		return true
+	})
+	return list
 }
 
 func (d *deviceShadow) checkOnOff() {
