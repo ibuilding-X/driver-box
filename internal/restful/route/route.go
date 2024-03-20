@@ -23,6 +23,7 @@ func Register() error {
 	sdc := controller.NewShadow()
 	http.HandleFunc(V1Prefix+"shadow/all", sdc.All)
 	http.HandleFunc(V1Prefix+"shadow/device", sdc.Device)
+	http.HandleFunc(V1Prefix+"shadow/devicePoint", sdc.DevicePoint)
 
 	return http.ListenAndServe(":8081", nil)
 }

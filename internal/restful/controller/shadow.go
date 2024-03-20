@@ -12,6 +12,7 @@ import (
 
 var (
 	snRequiredErr         = errors.New("sn is required")
+	snPointRequiredErr    = errors.New("sn and point is required")
 	unknownDevicePointErr = errors.New("unknown device point")
 )
 
@@ -39,7 +40,6 @@ func (s *Shadow) All(w http.ResponseWriter, _ *http.Request) {
 func (s *Shadow) Device(w http.ResponseWriter, r *http.Request) {
 	// 获取查询参数
 	sn := r.URL.Query().Get("sn")
-	point := r.URL.Query().Get("point")
 
 	switch r.Method {
 	case http.MethodGet: // 查询
@@ -47,15 +47,7 @@ func (s *Shadow) Device(w http.ResponseWriter, r *http.Request) {
 			s.commonController.Error(w, http.StatusBadRequest, snRequiredErr, nil)
 			return
 		}
-		var result any
-		var err error
-		if point == "" {
-			// 查询设备
-			result, err = s.queryDevice(sn)
-		} else {
-			// 查询点位
-			result, err = s.queryDevicePoint(sn, point)
-		}
+		result, err := s.queryDevice(sn)
 		if err != nil {
 			s.commonController.Error(w, http.StatusBadRequest, err, nil)
 			return
@@ -86,6 +78,26 @@ func (s *Shadow) Device(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
+}
+
+// DevicePoint 获取设备点位数据
+func (s *Shadow) DevicePoint(w http.ResponseWriter, r *http.Request) {
+	// 获取查询参数
+	sn := r.URL.Query().Get("sn")
+	point := r.URL.Query().Get("point")
+
+	if sn == "" || point == "" {
+		s.commonController.Error(w, http.StatusBadRequest, snPointRequiredErr, nil)
+		return
+	}
+
+	// 查询点位
+	result, err := s.queryDevicePoint(sn, point)
+	if err != nil {
+		s.commonController.Error(w, http.StatusBadRequest, err, nil)
+		return
+	}
+	s.commonController.Success(w, result)
 }
 
 // queryDevice 查询设备数据
