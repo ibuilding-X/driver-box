@@ -38,8 +38,8 @@ type DeviceShadow interface {
 	// StopStatusListener 停止设备状态监听
 	StopStatusListener()
 
-	// All 所有设备影子数据
-	All() map[string][]DevicePoint
+	// GetDevices 获取所有设备
+	GetDevices() []Device
 }
 
 type deviceShadow struct {
@@ -213,20 +213,13 @@ func (d *deviceShadow) StopStatusListener() {
 	d.ticker.Stop()
 }
 
-// All 获取影子所有设备数据
-func (d *deviceShadow) All() map[string][]DevicePoint {
-	list := make(map[string][]DevicePoint)
-	d.m.Range(func(key, value any) bool {
-		sn, _ := key.(string)
-		device, _ := value.(Device)
-		// 获取所有点位数据
-		points := make([]DevicePoint, 0)
-		device.points.Range(func(_, value2 any) bool {
-			dp, _ := value2.(DevicePoint)
-			points = append(points, dp)
-			return true
-		})
-		list[sn] = points
+// GetDevices 获取所有设备
+func (d *deviceShadow) GetDevices() []Device {
+	list := make([]Device, 0)
+	d.m.Range(func(_, value any) bool {
+		if device, ok := value.(Device); ok {
+			list = append(list, device)
+		}
 		return true
 	})
 	return list

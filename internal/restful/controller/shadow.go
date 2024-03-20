@@ -4,27 +4,20 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/internal/restful/request"
-	"github.com/julienschmidt/httprouter"
 	"io"
 	"net/http"
 )
 
 var (
-	unknownDeviceErr      = errors.New("unknown device")
+	snRequiredErr         = errors.New("sn is required")
+	snPointRequiredErr    = errors.New("sn and point is required")
 	unknownDevicePointErr = errors.New("unknown device point")
-	setDevicePointErr     = errors.New("set device point error")
 )
-
-type h map[string]any
 
 type Shadow struct {
 	*commonController
-}
-
-type pointValue struct {
-	Point string `json:"point"`
-	Value any    `json:"value"`
 }
 
 func NewShadow() *Shadow {
@@ -34,60 +27,107 @@ func NewShadow() *Shadow {
 }
 
 // All 获取影子所有设备数据
-func (s *Shadow) All(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	list := helper.DeviceShadow.All()
-	s.commonController.Success(writer, list)
+func (s *Shadow) All(w http.ResponseWriter, _ *http.Request) {
+	devices := helper.DeviceShadow.GetDevices()
+	result := make([]shadow.DeviceAPI, 0)
+	for _, device := range devices {
+		result = append(result, device.ToDeviceAPI())
+	}
+	s.commonController.Success(w, result)
 }
 
-// QueryDevice 查询影子指定设备所有信息
-func (s *Shadow) QueryDevice(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	sn := params.ByName("sn")
-	points, err := helper.DeviceShadow.GetDevicePoints(sn)
-	if err != nil {
-		s.commonController.Error(writer, http.StatusBadRequest, unknownDeviceErr, nil)
-		return
-	}
-	s.commonController.Success(writer, points)
-}
+// Device 设备相关操作
+func (s *Shadow) Device(w http.ResponseWriter, r *http.Request) {
+	// 获取查询参数
+	sn := r.URL.Query().Get("sn")
 
-// QueryDevicePoint 查询指定设备点位信息
-func (s *Shadow) QueryDevicePoint(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	sn := params.ByName("sn")
-	point := params.ByName("point")
-	v, err := helper.DeviceShadow.GetDevicePoint(sn, point)
-	if err != nil {
-		s.commonController.Error(writer, http.StatusBadRequest, unknownDevicePointErr, nil)
-		return
-	}
-	s.commonController.Success(writer, h{
-		"value": v,
-	})
-}
-
-// UpdateDevicePoints 更新设备点位信息
-func (s *Shadow) UpdateDevicePoints(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	sn := params.ByName("sn")
-	// 读取 body
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		s.commonController.Error(w, http.StatusInternalServerError, err, nil)
-		return
-	}
-	defer r.Body.Close()
-	// 解析 body
-	var req request.UpdateDevicePointsReq
-	err = json.Unmarshal(body, &req)
-	if err != nil {
-		s.commonController.Error(w, http.StatusBadRequest, err, nil)
-		return
-	}
-	// 设置
-	for i, _ := range req {
-		err = helper.DeviceShadow.SetDevicePoint(sn, req[i].Point, req[i].Value)
+	switch r.Method {
+	case http.MethodGet: // 查询
+		if sn == "" {
+			s.commonController.Error(w, http.StatusBadRequest, snRequiredErr, nil)
+			return
+		}
+		result, err := s.queryDevice(sn)
+		if err != nil {
+			s.commonController.Error(w, http.StatusBadRequest, err, nil)
+			return
+		}
+		s.commonController.Success(w, result)
+	case http.MethodPost: // 更新
+		// 读取 body
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			s.commonController.Error(w, http.StatusBadRequest, err, nil)
+			return
+		}
+		defer r.Body.Close()
+		// 解析 body
+		var req request.UpdateDeviceReq
+		err = json.Unmarshal(body, &req)
+		if err != nil {
+			s.commonController.Error(w, http.StatusBadRequest, err, nil)
+			return
+		}
+		err = s.updateDevice(req)
 		if err != nil {
 			s.commonController.Error(w, http.StatusInternalServerError, err, nil)
 			return
 		}
+		s.commonController.Success(w, nil)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
 	}
-	s.commonController.Success(w, nil)
+}
+
+// DevicePoint 获取设备点位数据
+func (s *Shadow) DevicePoint(w http.ResponseWriter, r *http.Request) {
+	// 获取查询参数
+	sn := r.URL.Query().Get("sn")
+	point := r.URL.Query().Get("point")
+
+	if sn == "" || point == "" {
+		s.commonController.Error(w, http.StatusBadRequest, snPointRequiredErr, nil)
+		return
+	}
+
+	// 查询点位
+	result, err := s.queryDevicePoint(sn, point)
+	if err != nil {
+		s.commonController.Error(w, http.StatusBadRequest, err, nil)
+		return
+	}
+	s.commonController.Success(w, result)
+}
+
+// queryDevice 查询设备数据
+func (s *Shadow) queryDevice(sn string) (any, error) {
+	device, err := helper.DeviceShadow.GetDevice(sn)
+	if err != nil {
+		return nil, err
+	}
+	return device.ToDeviceAPI(), nil
+}
+
+// queryDevicePoint 查询指定点位数据
+func (s *Shadow) queryDevicePoint(sn string, point string) (any, error) {
+	device, err := helper.DeviceShadow.GetDevice(sn)
+	if err != nil {
+		return nil, err
+	}
+	if result, ok := device.GetDevicePointAPI(point); ok {
+		return result, nil
+	}
+	return nil, unknownDevicePointErr
+}
+
+// updateDevice 更新设备影子数据
+func (s *Shadow) updateDevice(data request.UpdateDeviceReq) error {
+	for i, _ := range data {
+		err := helper.DeviceShadow.SetDevicePoint(data[i].SN, data[i].Name, data[i].Value)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

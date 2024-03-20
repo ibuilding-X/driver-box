@@ -19,6 +19,16 @@ type Device struct {
 	updatedAt       time.Time     // 更新时间（用于设备离线判断）
 }
 
+// DeviceAPI 对外开放设备数据
+type DeviceAPI struct {
+	SN              string           `json:"sn"`
+	Points          []DevicePointAPI `json:"points"`
+	Online          bool             `json:"online"`
+	TTL             string           `json:"ttl"`
+	DisconnectTimes int              `json:"disconnect_times"`
+	UpdatedAt       string           `json:"updated_at"`
+}
+
 // SetOnlineBindPoint 设备在线状态绑定指定点位
 func (d *Device) SetOnlineBindPoint(pointName string) {
 	d.onlineBindPoint = pointName
@@ -29,6 +39,13 @@ type DevicePoint struct {
 	Name      string      // 点位名称
 	Value     interface{} // 点位值
 	UpdatedAt time.Time   // 点位最后更新时间（用于点位缓存过期判断）
+}
+
+// DevicePointAPI 对外开放设备点位
+type DevicePointAPI struct {
+	Name      string `json:"name"`
+	Value     any    `json:"value"`
+	UpdatedAt string `json:"updated_at"`
 }
 
 func NewDevice(device config.Device, modelName string, points map[string]DevicePoint) Device {
@@ -57,4 +74,49 @@ func NewDevice(device config.Device, modelName string, points map[string]DeviceP
 		ttl:             ttl,
 		online:          false, // 默认设备处于离线状态
 	}
+}
+
+// ToDeviceAPI 转换设备 API
+func (d *Device) ToDeviceAPI() DeviceAPI {
+	device := DeviceAPI{
+		SN:              d.deviceSn,
+		Points:          make([]DevicePointAPI, 0),
+		Online:          false,
+		TTL:             d.ttl.String(),
+		DisconnectTimes: d.disconnectTimes,
+		UpdatedAt:       d.updatedAt.Format("2006-01-02 15:04:05"),
+	}
+	// 重组点位
+	d.points.Range(func(_, value any) bool {
+		if point, ok := value.(DevicePoint); ok {
+			device.Points = append(device.Points, point.ToDevicePointAPI())
+		}
+		return true
+	})
+	return device
+}
+
+func (dp DevicePoint) ToDevicePointAPI() DevicePointAPI {
+	return DevicePointAPI{
+		Name:      dp.Name,
+		Value:     dp.Value,
+		UpdatedAt: dp.UpdatedAt.Format("2006-01-02 15:04:05"),
+	}
+}
+
+// GetDevicePoint 获取设备指定点位数据
+func (d *Device) GetDevicePoint(pointName string) (DevicePoint, bool) {
+	if v, ok := d.points.Load(pointName); ok {
+		point, _ := v.(DevicePoint)
+		return point, true
+	}
+	return DevicePoint{}, false
+}
+
+// GetDevicePointAPI 获取设备指定点位数据（开放 API 使用）
+func (d *Device) GetDevicePointAPI(pointName string) (DevicePointAPI, bool) {
+	if point, ok := d.GetDevicePoint(pointName); ok {
+		return point.ToDevicePointAPI(), true
+	}
+	return DevicePointAPI{}, false
 }

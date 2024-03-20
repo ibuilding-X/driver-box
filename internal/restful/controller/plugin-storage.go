@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/response"
-	"github.com/julienschmidt/httprouter"
 	"io"
 	"net/http"
 )
@@ -19,9 +18,9 @@ func NewPluginStorage() *PluginStorage {
 
 // Get 获取信息
 // 返回数据结构：{"key":"value"}
-func (ps *PluginStorage) Get(w http.ResponseWriter, request *http.Request, params httprouter.Params) {
+func (ps *PluginStorage) Get(w http.ResponseWriter, r *http.Request) {
 	// 获取查询 Key
-	key := params.ByName("key")
+	key := r.URL.Query().Get("key")
 	if key == "" {
 		response.String(w, http.StatusBadRequest, "key cannot be empty")
 		return
@@ -38,7 +37,7 @@ func (ps *PluginStorage) Get(w http.ResponseWriter, request *http.Request, param
 
 // Set 存储信息
 // body 示例：{"key", "value"}
-func (ps *PluginStorage) Set(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (ps *PluginStorage) Set(w http.ResponseWriter, r *http.Request) {
 	// 读取 body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
