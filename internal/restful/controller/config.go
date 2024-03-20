@@ -7,7 +7,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper/response"
 	"github.com/ibuilding-x/driver-box/driverbox/models"
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
-	"github.com/julienschmidt/httprouter"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
@@ -18,7 +17,7 @@ import (
 type Config struct {
 }
 
-func (c *Config) Update(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (c *Config) Update(w http.ResponseWriter, r *http.Request) {
 	// ------------------------------------------------------------
 	// 配置文件覆盖更新
 	// ------------------------------------------------------------
