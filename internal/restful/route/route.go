@@ -29,5 +29,5 @@ func Register() error {
 	router.GET(V1Prefix+"shadow/device/:sn/:point", sdc.QueryDevicePoint)
 	router.POST(V1Prefix+"shadow/device/:sn", sdc.UpdateDevicePoints)
 
-	return http.ListenAndServe(":8081", router)
+	return http.ListenAndServe(":8081", nil)
 }
