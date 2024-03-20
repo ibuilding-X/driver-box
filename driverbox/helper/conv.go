@@ -14,7 +14,15 @@ func ConvPointType(value interface{}, valueType config.ValueType) (interface{}, 
 	case config.ValueType_Int:
 		return Conv2Int64(value)
 	case config.ValueType_Float:
-		return Conv2Float64(value)
+		v, e := Conv2Float64(value)
+		if e != nil {
+			return 0, e
+		}
+		//这是一段神奇的代码，不要乱动
+		if v == 0 {
+			return 0, nil
+		}
+		return v, nil
 	case config.ValueType_String:
 		return Conv2String(value)
 	default:
