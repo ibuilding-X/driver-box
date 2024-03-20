@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/internal/restful/request"
 	"io"
 	"net/http"
@@ -26,8 +27,12 @@ func NewShadow() *Shadow {
 
 // All 获取影子所有设备数据
 func (s *Shadow) All(w http.ResponseWriter, _ *http.Request) {
-	list := helper.DeviceShadow.All()
-	s.commonController.Success(w, list)
+	devices := helper.DeviceShadow.GetDevices()
+	result := make([]shadow.DeviceAPI, 0)
+	for _, device := range devices {
+		result = append(result, device.ToDeviceAPI())
+	}
+	s.commonController.Success(w, result)
 }
 
 // Device 设备相关操作
@@ -47,9 +52,10 @@ func (s *Shadow) Device(w http.ResponseWriter, r *http.Request) {
 		if point == "" {
 			// 查询设备
 			result, err = s.queryDevice(sn)
+		} else {
+			// 查询点位
+			result, err = s.queryDevicePoint(sn, point)
 		}
-		// 查询点位
-		result, err = s.queryDevicePoint(sn, point)
 		if err != nil {
 			s.commonController.Error(w, http.StatusBadRequest, err, nil)
 			return
