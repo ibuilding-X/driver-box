@@ -205,7 +205,7 @@ func (bwc *bacWriteCmd) transformData(objType string) error {
 }
 
 func validObjType(objType string) bool {
-	b1 := objType == btypes.AnalogInputStr || objType == btypes.AnalogValueStr || objType == btypes.AnalogOutputStr
+	b1 := objType == btypes.AnalogInputStr || objType == btypes.AnalogValueStr || objType == btypes.AnalogOutputStr || objType == btypes.LargeAnalogValueStr
 	b2 := objType == btypes.BinaryInputStr || objType == btypes.BinaryValueStr || objType == btypes.BinaryOutputStr
 	b3 := objType == btypes.MultiStateInputStr || objType == btypes.MultiStateValueStr || objType == btypes.MultiStateOutputStr
 	return b1 || b2 || b3
