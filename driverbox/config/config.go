@@ -36,8 +36,6 @@ var (
 	ReportMode_Real ReportMode = "realTime"
 	//变化上报,同影子中数值不一致时才触发上报
 	ReportMode_Change ReportMode = "change"
-	//周期上报
-	ReportMode_Period ReportMode = "period"
 	//只读
 	ReadWrite_R ReadWrite = "R"
 	//只写

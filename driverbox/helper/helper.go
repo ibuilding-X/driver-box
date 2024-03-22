@@ -58,9 +58,7 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 		shadowValue, _ := DeviceShadow.GetDevicePoint(deviceData.SN, point.PointName)
 
 		// 如果是周期上报模式，且缓存中有值，停止触发
-		if p.ReportMode == config.ReportMode_Period && shadowValue != nil {
-			Logger.Debug("point report mode is period, stop to trigger ExportTo", zap.String("pointName", p.Name))
-		} else if p.ReportMode == config.ReportMode_Change && shadowValue == point.Value {
+		if p.ReportMode == config.ReportMode_Change && shadowValue == point.Value {
 			Logger.Debug("point report mode is change, stop to trigger ExportTo", zap.String("pointName", p.Name))
 		} else {
 			// 点位值类型名称转换

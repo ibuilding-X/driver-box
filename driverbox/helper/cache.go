@@ -142,7 +142,7 @@ func checkPoint(model *config.DeviceModel, point *config.Point) {
 	if point.ReadWrite != config.ReadWrite_RW && point.ReadWrite != config.ReadWrite_R && point.ReadWrite != config.ReadWrite_W {
 		Logger.Error("point readWrite config error , valid config is: R W RW", zap.Any("point", point), zap.String("model", model.Name))
 	}
-	if point.ReportMode != config.ReportMode_Real && point.ReportMode != config.ReportMode_Period && point.ReportMode != config.ReportMode_Change {
+	if point.ReportMode != config.ReportMode_Real && point.ReportMode != config.ReportMode_Change {
 		Logger.Error("point reportMode config error , valid config is: realTime change period", zap.Any("point", point), zap.String("model", model.Name))
 	}
 }
