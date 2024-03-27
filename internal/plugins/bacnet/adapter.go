@@ -105,11 +105,17 @@ func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.P
 				}
 			}
 		}
-
-		err = bwc.transformData(ext.ObjType)
-		if err != nil {
+		// begin--临时bugfix
+		point, ok = helper.CoreCache.GetPointByDevice(deviceSn, bwc.PointName)
+		if !ok {
+			return nil, common.PointNotFoundError
+		}
+		var ext extends
+		if err = helper.Map2Struct(point.Extends, &ext); err != nil {
 			return nil, err
 		}
+		// end--临时bugfix
+		err = bwc.transformData(ext.ObjType)
 		if err != nil {
 			return nil, err
 		}
