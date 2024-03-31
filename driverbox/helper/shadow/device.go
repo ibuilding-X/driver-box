@@ -81,7 +81,7 @@ func (d *Device) ToDeviceAPI() DeviceAPI {
 	device := DeviceAPI{
 		SN:              d.deviceSn,
 		Points:          make([]DevicePointAPI, 0),
-		Online:          false,
+		Online:          d.online,
 		TTL:             d.ttl.String(),
 		DisconnectTimes: d.disconnectTimes,
 		UpdatedAt:       d.updatedAt.Format("2006-01-02 15:04:05"),
