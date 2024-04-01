@@ -254,19 +254,39 @@ type readResponse struct {
 
 func convertObj2Resp(object *btypes.Object) (resp *readResponse, err error) {
 	resp = &readResponse{}
+	online := true
 	for _, prop := range object.Properties {
 		switch prop.Type {
 		case btypes.PROP_PRESENT_VALUE:
 			resp.Value = prop.Data
 		case btypes.PROP_STATUS_FLAGS:
 			status := make(map[string]string)
-			bitValues := prop.Data.(*btypes.BitString).GetValue()
-			status["alarm"] = cast.ToString(bitValues[0])
-			status["fault"] = cast.ToString(bitValues[1])
-			status["overridden"] = cast.ToString(bitValues[2])
-			status["outofservice"] = cast.ToString(bitValues[3])
+			bitString, ok := prop.Data.(*btypes.BitString)
+			if !ok {
+				return nil, fmt.Errorf("read status flags error")
+			}
+			bitValues := bitString.GetValue()
+			for i := 0; i < int(bitString.BitUsed); i++ {
+				if i == 0 {
+					status["alarm"] = cast.ToString(bitValues[i])
+				} else if i == 1 {
+					status["fault"] = cast.ToString(bitValues[i])
+				} else if i == 2 {
+					status["overridden"] = cast.ToString(bitValues[i])
+				} else if i == 3 {
+					status["outofservice"] = cast.ToString(bitValues[i])
+				}
+				if bitValues[i] {
+					online = false
+				}
+			}
 			resp.Status = status
+		case btypes.PROP_RELIABILITY:
+			online = prop.Data == 0
 		}
+	}
+	if !online {
+		return nil, fmt.Errorf("point is offline")
 	}
 	if resp.Value == nil {
 		return nil, fmt.Errorf("read value is nil")
