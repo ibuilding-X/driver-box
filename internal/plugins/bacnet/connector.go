@@ -254,7 +254,7 @@ type readResponse struct {
 
 func convertObj2Resp(object *btypes.Object) (resp *readResponse, err error) {
 	resp = &readResponse{}
-	online := true
+	normal := true
 	for _, prop := range object.Properties {
 		switch prop.Type {
 		case btypes.PROP_PRESENT_VALUE:
@@ -277,16 +277,14 @@ func convertObj2Resp(object *btypes.Object) (resp *readResponse, err error) {
 					status["outofservice"] = cast.ToString(bitValues[i])
 				}
 				if bitValues[i] {
-					online = false
+					normal = false
 				}
 			}
 			resp.Status = status
-		case btypes.PROP_RELIABILITY:
-			online = prop.Data == 0
 		}
 	}
-	if !online {
-		return nil, fmt.Errorf("point is offline")
+	if !normal {
+		return nil, fmt.Errorf("point is abnormal")
 	}
 	if resp.Value == nil {
 		return nil, fmt.Errorf("read value is nil")
