@@ -140,7 +140,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 		helper.Logger.Warn("bacnet connection duration is empty, use default 5s", zap.String("key", c.key))
 		duration = "5s"
 	}
-
+	//注册定时采集任务
 	future, err := helper.Crontab.AddFunc(duration, func() {
 		//遍历所有通讯设备
 		for deviceId, device := range c.devices {
@@ -167,11 +167,21 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 						Objects: group.multiData.Objects,
 					},
 				}
-				err := c.Send(bac)
-				group.LatestTime = time.Now()
-				if err != nil {
+				if err = c.Send(bac); err != nil {
 					helper.Logger.Error("read error", zap.Error(err))
+					//通讯失败，触发离线
+					devices := make(map[string]interface{})
+					for _, obj := range group.multiData.Objects {
+						for deviceSn, pointName := range obj.Points {
+							if devices[deviceSn] != nil {
+								continue
+							}
+							devices[deviceSn] = pointName
+							_ = helper.DeviceShadow.MayBeOffline(deviceSn)
+						}
+					}
 				}
+				group.LatestTime = time.Now()
 			}
 
 		}
