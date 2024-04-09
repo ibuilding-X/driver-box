@@ -2,9 +2,10 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/response"
 	"github.com/ibuilding-x/driver-box/driverbox/models"
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
 	"go.uber.org/zap"
@@ -17,7 +18,7 @@ import (
 type Config struct {
 }
 
-func (c *Config) Update(w http.ResponseWriter, r *http.Request) {
+func (c *Config) Update(r *http.Request) (any, error) {
 	// ------------------------------------------------------------
 	// 配置文件覆盖更新
 	// ------------------------------------------------------------
@@ -25,8 +26,7 @@ func (c *Config) Update(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		helper.Logger.Error("read body error", zap.Error(err))
-		response.String(w, http.StatusInternalServerError, "read body error: %s", err)
-		return
+		return nil, fmt.Errorf("read body error: %s", err)
 	}
 	defer r.Body.Close()
 
@@ -35,13 +35,11 @@ func (c *Config) Update(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &list)
 	if err != nil {
 		helper.Logger.Error("config json decode error", zap.Error(err))
-		response.String(w, http.StatusInternalServerError, "config json decode error: %s", err)
-		return
+		return nil, fmt.Errorf("config json decode error: %s", err)
 	}
 	if len(list) == 0 {
 		helper.Logger.Error("request body is empty")
-		response.String(w, http.StatusInternalServerError, "request body is empty")
-		return
+		return nil, errors.New("request body is empty")
 	}
 
 	// 保存核心配置
@@ -96,9 +94,8 @@ func (c *Config) Update(w http.ResponseWriter, r *http.Request) {
 	// 4. 加载 plugins
 	err = bootstrap.LoadPlugins()
 	if err != nil {
-		response.String(w, http.StatusInternalServerError, "reload plugins error: %s", err)
-		return
+		return nil, fmt.Errorf("load plugins error: %s", err)
 	}
 
-	w.WriteHeader(http.StatusOK)
+	return nil, nil
 }
