@@ -3,7 +3,7 @@ package restful
 import (
 	"encoding/json"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/internal/restful/response"
+	"github.com/ibuilding-x/driver-box/driverbox/restful/response"
 	"go.uber.org/zap"
 	"net/http"
 )

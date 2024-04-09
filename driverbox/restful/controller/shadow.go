@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
-	"github.com/ibuilding-x/driver-box/internal/restful/request"
+	"github.com/ibuilding-x/driver-box/driverbox/restful/request"
 	"io"
 	"net/http"
 )
