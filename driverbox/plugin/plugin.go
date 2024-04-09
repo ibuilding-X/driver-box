@@ -31,10 +31,17 @@ type PointData struct {
 	Value     interface{} `json:"value"` // 点位值
 }
 
+// 设备事件模型
+type EventData struct {
+	Code  string      `json:"code"` //事件Code
+	Value interface{} `json:"value"`
+}
+
 // DeviceData 设备数据
 type DeviceData struct {
 	SN         string      `json:"sn"`
 	Values     []PointData `json:"values"`
+	Events     []EventData `json:"events"`
 	ExportType ExportType  //上报类型，底层的变化上报和实时上报等同于RealTimeExport
 }
 
