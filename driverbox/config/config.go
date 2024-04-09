@@ -83,8 +83,6 @@ type Config struct {
 	ProtocolName string `json:"protocolName" validate:"required"`
 	// 配置唯一key，一般对应目录名称
 	Key string `json:"-" validate:"-"`
-	// 定时任务
-	Tasks []TimerTask `json:"timerTasks" validate:"-"`
 }
 
 //------------------------------ 设备模型 ------------------------------

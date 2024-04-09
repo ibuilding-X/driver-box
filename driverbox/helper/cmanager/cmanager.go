@@ -76,7 +76,6 @@ func (m *manager) MergeConfig(c config.Config) error {
 				DeviceModels: models,
 				Connections:  connections,
 				ProtocolName: c.ProtocolName,
-				Tasks:        make([]config.TimerTask, 0),
 			}
 			folderName = name
 		}

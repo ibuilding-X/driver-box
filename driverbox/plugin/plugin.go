@@ -5,6 +5,7 @@ package plugin
 import (
 	"encoding/json"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/event"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )
@@ -16,14 +17,10 @@ const (
 	ReadMode       EncodeMode = "read"           // 读模式
 	WriteMode      EncodeMode = "write"          // 写模式
 	RealTimeExport ExportType = "realTimeExport" //实时上报
-	TimerExport    ExportType = "timerExport"    //周期性上报
 )
 
 // EncodeMode 编码模式
 type EncodeMode string
-
-// H map[string]interface{} 别名
-type H map[string]interface{}
 
 // PointData 点位数据
 type PointData struct {
@@ -31,18 +28,12 @@ type PointData struct {
 	Value     interface{} `json:"value"` // 点位值
 }
 
-// 设备事件模型
-type EventData struct {
-	Code  string      `json:"code"` //事件Code
-	Value interface{} `json:"value"`
-}
-
 // DeviceData 设备数据
 type DeviceData struct {
-	SN         string      `json:"sn"`
-	Values     []PointData `json:"values"`
-	Events     []EventData `json:"events"`
-	ExportType ExportType  //上报类型，底层的变化上报和实时上报等同于RealTimeExport
+	SN         string       `json:"sn"`
+	Values     []PointData  `json:"values"`
+	Events     []event.Data `json:"events"`
+	ExportType ExportType   //上报类型，底层的变化上报和实时上报等同于RealTimeExport
 }
 
 // ToJSON 设备数据转 json

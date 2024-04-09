@@ -10,7 +10,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
-	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )
 
@@ -69,13 +68,6 @@ func LoadPlugins() error {
 		// 缓存插件
 		helper.CoreCache.AddRunningPlugin(key, p)
 
-		// 初始化定时任务
-		if configMap[key].Tasks != nil && len(configMap[key].Tasks) > 0 {
-			if err = initTimerTasks(ls, configMap[key].Tasks); err != nil {
-				return err
-			}
-		}
-
 		helper.Logger.Info("start success", zap.Any("directoryName", key), zap.Any("plugin", configMap[key].ProtocolName))
 	}
 
@@ -111,62 +103,6 @@ func initDeviceShadow(configMap map[string]config.Config) {
 				dev := shadow.NewDevice(d, model.Name, nil)
 				_ = helper.DeviceShadow.AddDevice(dev)
 			}
-		}
-	}
-}
-
-// 初始化设备 autoEvent
-func initTimerTasks(L *lua.LState, tasks []config.TimerTask) (err error) {
-	//目前看来几乎用不到该功能，先注释掉
-	//for _, task := range tasks {
-	//	switch task.Type {
-	//	case "read_points": // 读点位
-	//		// action数据格式：[{"devices":["sensor_1"],"points":["onOff"]}]
-	//		b, _ := json.Marshal(task.Action)
-	//		var actions []config.ReadPointsAction
-	//		_ = json.Unmarshal(b, &actions)
-	//		for _, action := range actions {
-	//			if len(task.Interval) == 0 {
-	//				helper.Logger.Error("timerTask interval is nil")
-	//				continue
-	//			}
-	//			if len(action.Devices) > 0 && len(action.Points) > 0 {
-	//				if err := helper.Crontab.AddFunc(task.Interval+"ms", timerTaskHandler(action.Devices, action.Points)); err != nil {
-	//					return err
-	//				}
-	//			}
-	//		}
-	//	case "script": // 执行脚本函数
-	//		// action数据格式：functionName
-	//		funcName, _ := task.Action.(string)
-	//		if err := helper.Crontab.AddFunc(task.Interval+"ms", timerTaskForScript(L, funcName)); err != nil {
-	//			return err
-	//		}
-	//	}
-	//}
-
-	return
-}
-
-// timerTaskHandler autoEvent处理函数
-func timerTaskHandler(devices []string, pointNames []string) func() {
-	return func() {
-		helper.Logger.Info("begin handle auto event",
-			zap.String("taskType", "read_points"),
-			zap.String("devices", fmt.Sprintf("%+v", devices)),
-			zap.String("pointNames", fmt.Sprintf("%+v", pointNames)))
-		if err := helper.SendMultiRead(devices, pointNames); err != nil {
-			helper.Logger.Error("auto event send error", zap.Error(err))
-		}
-	}
-}
-
-// 定时任务 - 执行脚本函数
-func timerTaskForScript(L *lua.LState, method string) func() {
-	return func() {
-		helper.Logger.Info("begin handle auto event", zap.String("taskType", "script"))
-		if err := helper.SafeCallLuaFunc(L, method); err != nil {
-			helper.Logger.Error("auto event error", zap.Error(err))
 		}
 	}
 }
