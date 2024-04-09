@@ -9,7 +9,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
@@ -62,7 +61,7 @@ func LoadPlugins() error {
 			continue
 		}
 
-		err = p.Initialize(helper.Logger, configMap[key], receiveHandler(), ls)
+		err = p.Initialize(helper.Logger, configMap[key], ls)
 		if err != nil {
 			return err
 		}
@@ -169,32 +168,5 @@ func timerTaskForScript(L *lua.LState, method string) func() {
 		if err := helper.SafeCallLuaFunc(L, method); err != nil {
 			helper.Logger.Error("auto event error", zap.Error(err))
 		}
-	}
-}
-
-// receiveHandler 接收消息回调
-func receiveHandler() plugin.OnReceiveHandler {
-	return func(plugin plugin.Plugin, raw interface{}) (result interface{}, err error) {
-		helper.Logger.Debug("raw data", zap.Any("data", raw))
-		// 协议适配器
-		deviceData, err := plugin.ProtocolAdapter().Decode(raw)
-		helper.Logger.Debug("decode data", zap.Any("data", deviceData))
-		if err != nil {
-			return nil, err
-		}
-		// 写入消息总线
-		for _, data := range deviceData {
-			//helper.WriteToMessageBus(data)
-			helper.PointCacheFilter(&data)
-			if len(data.Values) == 0 {
-				continue
-			}
-			for _, export := range helper.Exports {
-				if export.IsReady() {
-					export.ExportTo(data)
-				}
-			}
-		}
-		return
 	}
 }

@@ -25,9 +25,6 @@ type EncodeMode string
 // H map[string]interface{} 别名
 type H map[string]interface{}
 
-// OnReceiveHandler 接收数据回调函数
-type OnReceiveHandler func(plugin Plugin, raw interface{}) (result interface{}, err error)
-
 // PointData 点位数据
 type PointData struct {
 	PointName string      `json:"name"`  // 点位名称
@@ -50,7 +47,7 @@ func (d DeviceData) ToJSON() string {
 // Plugin 驱动插件
 type Plugin interface {
 	// Initialize 初始化日志、配置、接收回调
-	Initialize(logger *zap.Logger, c config.Config, handler OnReceiveHandler, ls *lua.LState) (err error)
+	Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error)
 	// ProtocolAdapter 协议适配器
 	ProtocolAdapter() ProtocolAdapter
 	// Connector 连接器

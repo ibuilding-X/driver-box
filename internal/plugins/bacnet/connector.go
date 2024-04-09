@@ -233,7 +233,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 					resp.PointName = pointName
 					resp.DeviceSn = deviceSn
 					respJson, err := json.Marshal(resp)
-					_, err = c.plugin.callback(c.plugin, string(respJson))
+					_, err = helper.OnReceiveHandler(c.plugin, string(respJson))
 					if err != nil {
 						helper.Logger.Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
 					}

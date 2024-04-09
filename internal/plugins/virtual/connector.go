@@ -22,7 +22,8 @@ func (c *connector) Send(data interface{}) (err error) {
 				v.Points[i].Value = value
 			}
 		}
-		if _, err = c.plugin.callback(c.plugin, v); err != nil {
+
+		if _, err = helper.OnReceiveHandler(c.plugin, v); err != nil {
 			return err
 		}
 	case plugin.WriteMode: // 写操作

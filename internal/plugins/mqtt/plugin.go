@@ -11,19 +11,17 @@ import (
 )
 
 type Plugin struct {
-	logger     *zap.Logger             // 日志
-	config     config.Config           // 配置
-	callback   plugin.OnReceiveHandler // 回调
-	adapter    *adapter                // 适配
-	connectors map[string]*connector   // mqtt连接池
-	ls         *lua.LState             // lua 虚拟机
+	logger     *zap.Logger           // 日志
+	config     config.Config         // 配置
+	adapter    *adapter              // 适配
+	connectors map[string]*connector // mqtt连接池
+	ls         *lua.LState           // lua 虚拟机
 }
 
 // Initialize 初始化日志、配置、接收回调
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, handler plugin.OnReceiveHandler, ls *lua.LState) (err error) {
+func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error) {
 	p.logger = logger
 	p.config = c
-	p.callback = handler
 	p.ls = ls
 
 	// 初始化协议适配器

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
@@ -54,7 +55,7 @@ func (c *connector) startServer(opts connectorConfig) {
 			Body:   string(body),
 		}
 		// 调用回调函数
-		if _, err = c.plugin.callback(c.plugin, data.ToJSON()); err != nil {
+		if _, err = helper.OnReceiveHandler(c.plugin, data.ToJSON()); err != nil {
 			c.plugin.logger.Error("http_server callback error", zap.Error(err))
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":    -1,

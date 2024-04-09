@@ -10,16 +10,14 @@ import (
 type Plugin struct {
 	logger    *zap.Logger
 	config    config.Config
-	callback  plugin.OnReceiveHandler
 	adapter   *adapter
 	connector plugin.Connector
 	ls        *lua.LState
 }
 
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, handler plugin.OnReceiveHandler, ls *lua.LState) (err error) {
+func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error) {
 	p.logger = logger
 	p.config = c
-	p.callback = handler
 	p.ls = ls
 
 	// 初始化适配器

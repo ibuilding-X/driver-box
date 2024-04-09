@@ -103,3 +103,27 @@ func tryReadNewValue(deviceSn, pointName string, expectValue interface{}) {
 		}
 	}(deviceSn, pointName, expectValue)
 }
+
+// 插件收到通讯消息后，触发该回调方法进行消息解码和设备数据解析
+func OnReceiveHandler(plugin plugin.Plugin, raw interface{}) (result interface{}, err error) {
+	Logger.Debug("raw data", zap.Any("data", raw))
+	// 协议适配器
+	deviceData, err := plugin.ProtocolAdapter().Decode(raw)
+	Logger.Debug("decode data", zap.Any("data", deviceData))
+	if err != nil {
+		return nil, err
+	}
+	// 写入消息总线
+	for _, data := range deviceData {
+		PointCacheFilter(&data)
+		if len(data.Values) == 0 {
+			continue
+		}
+		for _, export := range Exports {
+			if export.IsReady() {
+				export.ExportTo(data)
+			}
+		}
+	}
+	return
+}

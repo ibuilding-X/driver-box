@@ -114,7 +114,7 @@ func (c *connector) sendReadMode(td transportationData) error {
 		SN:             td.SN,
 		PointRawValues: totalPointRawValues,
 	}
-	_, err = c.plugin.callback(c.plugin, raw)
+	_, err = helper.OnReceiveHandler(c.plugin, raw)
 	if err != nil {
 		return err
 	}
