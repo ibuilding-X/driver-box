@@ -5,6 +5,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 	"github.com/simonvetter/modbus"
 	"github.com/spf13/cast"
 	"go.uber.org/zap"
@@ -114,7 +115,7 @@ func (c *connector) sendReadMode(td transportationData) error {
 		SN:             td.SN,
 		PointRawValues: totalPointRawValues,
 	}
-	_, err = helper.OnReceiveHandler(c.plugin, raw)
+	_, err = callback.OnReceiveHandler(c.plugin, raw)
 	if err != nil {
 		return err
 	}

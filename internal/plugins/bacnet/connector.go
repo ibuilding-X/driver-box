@@ -8,6 +8,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/network"
@@ -233,7 +234,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 					resp.PointName = pointName
 					resp.DeviceSn = deviceSn
 					respJson, err := json.Marshal(resp)
-					_, err = helper.OnReceiveHandler(c.plugin, string(respJson))
+					_, err = callback.OnReceiveHandler(c.plugin, string(respJson))
 					if err != nil {
 						helper.Logger.Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
 					}

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 )
 
 type connector struct {
@@ -97,7 +97,7 @@ func (conn *connector) onReceiveHandler(_ mqtt.Client, message mqtt.Message) {
 		return
 	}
 	// 执行回调 写入消息总线
-	_, err = helper.OnReceiveHandler(conn.plugin, string(msgJson))
+	_, err = callback.OnReceiveHandler(conn.plugin, string(msgJson))
 	if err != nil {
 		conn.plugin.logger.Error(fmt.Sprintf("decode error: %s", err.Error()))
 	}

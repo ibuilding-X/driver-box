@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -95,7 +95,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 	if err != nil {
 		return
 	}
-	_, err = helper.OnReceiveHandler(c.plugin, string(bodyByte))
+	_, err = callback.OnReceiveHandler(c.plugin, string(bodyByte))
 	return
 }
 

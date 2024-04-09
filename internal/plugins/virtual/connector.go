@@ -3,6 +3,7 @@ package virtual
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 )
 
 type connector struct {
@@ -23,7 +24,7 @@ func (c *connector) Send(data interface{}) (err error) {
 			}
 		}
 
-		if _, err = helper.OnReceiveHandler(c.plugin, v); err != nil {
+		if _, err = callback.OnReceiveHandler(c.plugin, v); err != nil {
 			return err
 		}
 	case plugin.WriteMode: // 写操作

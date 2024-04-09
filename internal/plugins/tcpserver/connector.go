@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 	"go.uber.org/zap"
 	"net"
 )
@@ -73,7 +74,7 @@ func (c *connector) handelConn(conn net.Conn) {
 		}
 		data := protoData{Raw: string(buf[:n])}
 		// 接收数据，调用回调函数
-		if _, err = helper.OnReceiveHandler(c.plugin, data.ToJSON()); err != nil {
+		if _, err = callback.OnReceiveHandler(c.plugin, data.ToJSON()); err != nil {
 			c.plugin.logger.Error("tcp_server callback error", zap.Error(err))
 		}
 	}

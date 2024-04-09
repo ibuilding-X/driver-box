@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
@@ -27,7 +28,7 @@ func mockRead(plugin *Plugin, L *lua.LState, data btypes.MultiplePropertyData) e
 				"value":     v,
 			}
 			respJson, err := json.Marshal(resp)
-			_, err = helper.OnReceiveHandler(plugin, string(respJson))
+			_, err = callback.OnReceiveHandler(plugin, string(respJson))
 			if err != nil {
 				helper.Logger.Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
 			}
