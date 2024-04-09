@@ -2,11 +2,13 @@ package modbus
 
 import (
 	"errors"
+	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
+	"strconv"
 )
 
 // Plugin 驱动插件
@@ -29,10 +31,73 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState)
 		scriptDir: c.Key,
 		ls:        ls,
 	}
+	p.connPool = make(map[string]*connector)
 
-	// 初始化连接池
-	if err = p.initConnPool(); err != nil {
-		return
+	for key, connConfig := range c.Connections {
+		cc := new(connectorConfig)
+		if err = helper.Map2Struct(connConfig, cc); err != nil {
+			return fmt.Errorf("convert connector config error: %v", err)
+		}
+		c2, err := newConnector(p, cc)
+		if err != nil {
+			return fmt.Errorf("init connector error: %v", err)
+		}
+		p.connPool[key] = c2
+	}
+
+	for _, dm := range c.DeviceModels {
+		for _, device := range dm.Devices {
+			connectionKey := device.ConnectionKey
+			conn, ok := p.connPool[connectionKey]
+			if !ok {
+				return fmt.Errorf("connection not found: %v", connectionKey)
+			}
+			uintID, ok := device.Properties["uintID"]
+			if !ok {
+				uintID = "1"
+			}
+			uintIdVal, err := strconv.ParseUint(uintID, 10, 8)
+			if err != nil {
+				return fmt.Errorf("convert slave id error: %v", err)
+			}
+			slaveId := uint8(uintIdVal)
+			pointConfigMap, ok := conn.devices[slaveId]
+			if !ok {
+				pointConfigMap = map[primaryTable][]*pointConfig{
+					Coil:            make([]*pointConfig, 0),
+					DiscreteInput:   make([]*pointConfig, 0),
+					InputRegister:   make([]*pointConfig, 0),
+					HoldingRegister: make([]*pointConfig, 0),
+				}
+			}
+			pointMap, ok := conn.pointMap[device.DeviceSn]
+			if !ok {
+				pointMap = make(map[string]*pointConfig)
+			}
+
+			for _, point := range dm.DevicePoints {
+				tp := point.ToPoint()
+				pc, err := convToPointConfig(tp.Extends)
+				if err != nil {
+					return fmt.Errorf("convToPointConfig error: %v", err)
+				}
+				pc.DeviceSn = device.DeviceSn
+				pc.Name = tp.Name
+				pc.ReadWrite = string(tp.ReadWrite)
+				pc.SlaveId = slaveId
+				pointConfigMap[pc.RegisterType] = append(pointConfigMap[pc.RegisterType], pc)
+				pointMap[pc.Name] = pc
+			}
+			conn.devices[slaveId] = pointConfigMap
+			conn.pointMap[device.DeviceSn] = pointMap
+		}
+	}
+
+	for key, conn := range p.connPool {
+		logger.Info(fmt.Sprintf("starting connection %s poll taskGroup", key))
+		if err = conn.startPollTasks(); err != nil {
+			return fmt.Errorf("start poll taskGroups error: %v", err)
+		}
 	}
 
 	return nil
@@ -65,26 +130,11 @@ func (p *Plugin) Connector(deviceSn, pointName string) (conn plugin.Connector, e
 
 // Destroy 销毁驱动插件
 func (p *Plugin) Destroy() error {
+	for _, conn := range p.connPool {
+		conn.polling = false
+	}
 	if p.ls != nil {
-		helper.Close(p.ls)
+		p.ls.Close()
 	}
 	return nil
-}
-
-// initConnPool 初始化连接池
-func (p *Plugin) initConnPool() (err error) {
-	p.connPool = make(map[string]*connector)
-	for key, _ := range p.config.Connections {
-		var c connectorConfig
-		if err = helper.Map2Struct(p.config.Connections[key], &c); err != nil {
-			return
-		}
-		conn := &connector{
-			plugin: p,
-			config: c,
-		}
-		conn.connect()
-		p.connPool[key] = conn
-	}
-	return
 }
