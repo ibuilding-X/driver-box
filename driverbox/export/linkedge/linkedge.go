@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/restful"
+	"github.com/ibuilding-x/driver-box/internal/restful/route"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 	"io"
@@ -40,153 +42,104 @@ type service struct {
 }
 
 func (linkedge *service) NewService() error {
-
 	// 创建联动场景
-	http.HandleFunc("/linkedge/create", func(writer http.ResponseWriter, request *http.Request) {
+	restful.HandleFunc(route.LinkEdgeCreate, func(request *http.Request) (any, error) {
 		data, err := readBody(request)
 		if err != nil {
 			err = fmt.Errorf("Incoming reading ignored. Unable to read request body: %s", err.Error())
 			helper.Logger.Error(err.Error())
-			http.Error(writer, fail(err), http.StatusBadRequest)
-			return
+			return false, err
 		}
 		err = linkedge.Create(data)
 		if err != nil {
 			err = fmt.Errorf("create linkEdge error: %s", err.Error())
 			helper.Logger.Error(err.Error())
-			http.Error(writer, fail(err), http.StatusBadRequest)
-			return
+			return false, err
 		}
-		writer.Write([]byte(ok(true)))
+		return true, nil
 	})
 
 	// 预览联动场景
-	http.HandleFunc("/linkedge/preview", func(writer http.ResponseWriter, request *http.Request) {
+	restful.HandleFunc(route.LinkEdgeTryTrigger, func(request *http.Request) (any, error) {
 		// 读取请求参数
-		body, err := io.ReadAll(request.Body)
+		data, err := readBody(request)
 		if err != nil {
-			http.Error(writer, "request parameter error", http.StatusBadRequest)
-			return
+			return false, err
 		}
-		defer request.Body.Close()
 		// 解析数据
 		var config ModelConfig
-		err = json.Unmarshal(body, &config)
+		err = json.Unmarshal(data, &config)
 		if err != nil {
-			http.Error(writer, "json decode error", http.StatusBadRequest)
-			return
+			return false, err
 		}
 		// 执行
-		err = linkedge.Preview(config)
+		err = linkedge.triggerLinkEdge("", 0, config)
 		if err != nil {
 			err = fmt.Errorf("preview linkEdge error: %s", err.Error())
 			helper.Logger.Error(err.Error())
-			http.Error(writer, fail(err), http.StatusBadRequest)
-			return
+			return false, err
 		}
-		_, _ = writer.Write([]byte(ok(true)))
+		return true, nil
 	})
 
 	//删除联动场景
-	http.HandleFunc("/linkedge/delete", func(writer http.ResponseWriter, request *http.Request) {
+	restful.HandleFunc(route.LinkEdgeDelete, func(request *http.Request) (any, error) {
 		err := linkedge.Delete(request.FormValue("id"))
-		if err != nil {
-			err = fmt.Errorf("delete failed %s", err)
-			helper.Logger.Error(err.Error())
-			http.Error(writer, fail(err), http.StatusBadRequest)
-			return
-		}
-		writer.Write([]byte(ok(true)))
+		return err != nil, err
 	})
 
 	//触发联动场景
-	http.HandleFunc("/linkedge/trigger", func(writer http.ResponseWriter, request *http.Request) {
+	restful.HandleFunc(route.LinkEdgeTrigger, func(request *http.Request) (any, error) {
 		helper.Logger.Info(fmt.Sprintf("trigger linkEdge:%s from:", request.FormValue("id"), request.FormValue("source")))
 		err := linkedge.TriggerLinkEdge(request.FormValue("id"))
-		if err == nil {
-			writer.Write([]byte(ok(nil)))
-		} else {
-			err = fmt.Errorf("trigger failed: %s", err)
-			helper.Logger.Error(err.Error())
-			http.Error(writer, fail(err), http.StatusBadRequest)
-		}
+		return err != nil, err
 	})
 
 	//查看场景联动
-	http.HandleFunc("/linkedge/get", func(writer http.ResponseWriter, request *http.Request) {
+	restful.HandleFunc(route.LinkEdgeGet, func(request *http.Request) (any, error) {
 		helper.Logger.Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
-		config, err := linkedge.getLinkEdge(request.FormValue("id"))
-		if err != nil {
-			err = fmt.Errorf("unable to find link edge: %s", err)
-			helper.Logger.Error(err.Error())
-			http.Error(writer, fail(err), http.StatusBadRequest)
-			return
-		}
-		writer.Write([]byte(ok(config)))
+		return linkedge.getLinkEdge(request.FormValue("id"))
 	})
 
 	// 查看场景联动列表
-	http.HandleFunc("/linkedge/list", func(writer http.ResponseWriter, request *http.Request) {
+	restful.HandleFunc(route.LinkEdgeList, func(request *http.Request) (any, error) {
 		// 获取查询参数
 		tag := request.URL.Query().Get("tag")
-		configs, err := linkedge.GetList(tag)
-		if err != nil {
-			err = fmt.Errorf("list link edge failed: %s", err)
-			helper.Logger.Error(err.Error())
-			http.Error(writer, fail(err), http.StatusBadRequest)
-			return
-		}
-		writer.Write([]byte(ok(configs)))
+		return linkedge.GetList(tag)
 	})
 
-	http.HandleFunc("/linkedge/update", func(writer http.ResponseWriter, request *http.Request) {
+	restful.HandleFunc(route.LinkEdgeUpdate, func(request *http.Request) (any, error) {
 		body, err := readBody(request)
 		if err != nil {
-			err = fmt.Errorf("read body error: %v", err)
-			helper.Logger.Error(err.Error())
-			http.Error(writer, fail(err), http.StatusBadRequest)
-			return
+			return false, err
 		}
 		var model ModelConfig
 		err = json.Unmarshal(body, &model)
 		if err != nil {
-			err = fmt.Errorf("unmarshal body [%s] error: %v", string(body), err)
-			helper.Logger.Error(err.Error())
-			http.Error(writer, fail(err), http.StatusBadRequest)
-			return
+			return false, err
 		}
 		_, err = linkedge.getLinkEdge(model.Id)
 		if err != nil {
-			err = fmt.Errorf("fail to find link edge [%s] error: %v", model.Id, err)
-			helper.Logger.Error(err.Error())
-			http.Error(writer, fail(err), http.StatusBadRequest)
-			return
+			return false, err
 		}
 		err = linkedge.Update(body)
 		if err != nil {
-			err = fmt.Errorf("update link edge [%s] error: %v", model.Id, err)
-			helper.Logger.Error(err.Error())
-			http.Error(writer, fail(err), http.StatusBadRequest)
-			return
+			return false, err
 		} else {
-			writer.Write([]byte(ok(true)))
+			return true, nil
 		}
 	})
 
 	//更新场景联动状态
-	http.HandleFunc("/linkedge/status", func(writer http.ResponseWriter, request *http.Request) {
+	restful.HandleFunc(route.LinkEdgeStatus, func(request *http.Request) (any, error) {
 		helper.Logger.Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
 		config, err := linkedge.getLinkEdge(request.FormValue("id"))
 		if err != nil {
-			err = fmt.Errorf("unable to find link edge: %s", err)
-			helper.Logger.Error(err.Error())
-			http.Error(writer, fail(err), http.StatusBadRequest)
-			return
+			return false, fmt.Errorf("unable to find link edge: %s", err)
 		}
 		enable := request.FormValue("enable")
 		if enable != "true" && enable != "false" {
-			http.Error(writer, fail(fmt.Errorf("invalid formField[enable] value")), http.StatusBadRequest)
-			return
+			return false, fmt.Errorf("invalid formField[enable] value")
 		}
 		config.Enable = "true" == enable
 
@@ -195,24 +148,18 @@ func (linkedge *service) NewService() error {
 		jsonEncoder.SetEscapeHTML(false)
 		err = jsonEncoder.Encode(config)
 		if err != nil {
-			err = fmt.Errorf("encode %v error: %v", config, err)
-			helper.Logger.Error(err.Error())
-			http.Error(writer, fail(err), http.StatusBadRequest)
-			return
+			return false, fmt.Errorf("encode %v error: %v", config, err)
 		}
 		if err = linkedge.Update(bf.Bytes()); err == nil {
-			writer.Write([]byte(ok(true)))
+			return true, nil
 		} else {
-			err = fmt.Errorf("update %v error: %v", config, err)
-			helper.Logger.Error(err.Error())
-			http.Error(writer, fail(err), http.StatusBadRequest)
+			return false, fmt.Errorf("update %v error: %v", config, err)
 		}
 	})
 
 	// 获取最后一次执行的场景信息
-	http.HandleFunc("/linkedge/getLast", func(w http.ResponseWriter, r *http.Request) {
-		config, _ := linkedge.GetLast()
-		_, _ = w.Write([]byte(ok(config)))
+	restful.HandleFunc(route.LinkEdgeGetLast, func(r *http.Request) (any, error) {
+		return linkedge.GetLast()
 	})
 
 	//启动场景联动

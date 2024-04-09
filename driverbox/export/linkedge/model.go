@@ -86,6 +86,11 @@ func (mc ModelConfig) hasTag(tag string) bool {
 	return false
 }
 
+// 获取该场景最近一次执行时间
+func (mc ModelConfig) GetExecuteTime() time.Time {
+	return mc.executeTime
+}
+
 type baseTrigger struct {
 	Type triggerType `json:"type"`
 }
