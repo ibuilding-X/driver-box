@@ -76,7 +76,7 @@ func initEnvConfig() error {
 	//驱动配置文件存放目录
 	dir := os.Getenv(config.ENV_CONFIG_PATH)
 	if dir == "" {
-		helper.EnvConfig.ConfigPath = "./driver-config"
+		helper.EnvConfig.ConfigPath = "./config/driver"
 	} else {
 		helper.EnvConfig.ConfigPath = dir
 	}

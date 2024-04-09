@@ -20,6 +20,9 @@ const (
 
 	//是否虚拟设备模式: true:是,false:否
 	ENV_VIRTUAL = "DRIVERBOX_VIRTUAL"
+
+	//场景联动配置存放目录
+	ENV_LINKEDGE_CONFIG_PATH = "EXPORT_LINKEDGE_CONFIG_PATH"
 )
 
 // 点位上报模式
