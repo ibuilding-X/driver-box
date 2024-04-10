@@ -25,10 +25,7 @@ type connector struct {
 	key          string
 	plugin       *Plugin
 	client       *modbus.ModbusClient
-	maxLen       uint16    // 最长连续读个数
 	minInterval  uint      // 读取间隔
-	polling      bool      // 执行轮询
-	lastPoll     time.Time // 上次轮询
 	latestIoTime time.Time // 最近一次执行IO的时间
 	mutex        sync.Mutex
 	//通讯设备集合
@@ -79,17 +76,12 @@ func (p *Plugin) initNetworks(config config.Config) {
 				if dev.ConnectionKey != conn.key {
 					continue
 				}
-				conn.createPointGroup(model, dev)
+				conn.createPointGroup(connectionConfig, model, dev)
 			}
 		}
 
 		//启动采集任务
-		duration := connectionConfig.Duration
-		if duration == "" {
-			helper.Logger.Warn("modbus connection duration is empty, use default 5s", zap.String("key", conn.key))
-			duration = "5s"
-		}
-		conn.collectTask, err = conn.initCollectTask(duration)
+		conn.collectTask, err = conn.initCollectTask(connectionConfig)
 		p.connPool[key] = conn
 		if err != nil {
 			helper.Logger.Error("init connector collect task error", zap.Any("connection", connConfig), zap.Error(err))
@@ -125,10 +117,10 @@ func (p *Plugin) Connector(deviceSn, pointName string) (conn plugin.Connector, e
 // Destroy 销毁驱动插件
 func (p *Plugin) Destroy() error {
 	for _, conn := range p.connPool {
-		conn.polling = false
+		conn.Close()
 	}
 	if p.ls != nil {
-		p.ls.Close()
+		helper.Close(p.ls)
 	}
 	return nil
 }

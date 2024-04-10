@@ -24,10 +24,7 @@ func newConnector(plugin *Plugin, cf *ConnectionConfig) (*connector, error) {
 	if minInterval == 0 {
 		minInterval = 100
 	}
-	maxLen := cf.MaxLen
-	if maxLen == 0 {
-		maxLen = 32
-	}
+
 	retry := cf.Retry
 	if retry == 0 {
 		retry = 3
@@ -44,7 +41,6 @@ func newConnector(plugin *Plugin, cf *ConnectionConfig) (*connector, error) {
 	conn := &connector{
 		plugin:      plugin,
 		client:      client,
-		maxLen:      maxLen,
 		minInterval: minInterval,
 		retry:       retry,
 		virtual:     cf.Virtual || config.IsVirtual(),
@@ -53,7 +49,12 @@ func newConnector(plugin *Plugin, cf *ConnectionConfig) (*connector, error) {
 	return conn, err
 }
 
-func (c *connector) initCollectTask(duration string) (*crontab.Future, error) {
+func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, error) {
+	duration := conf.Duration
+	if duration == "" {
+		helper.Logger.Warn("modbus connection duration is empty, use default 5s")
+		duration = "5s"
+	}
 	//注册定时采集任务
 	return helper.Crontab.AddFunc(duration, func() {
 		//遍历所有通讯设备
@@ -98,7 +99,11 @@ func (c *connector) initCollectTask(duration string) (*crontab.Future, error) {
 }
 
 // 采集任务分组
-func (c *connector) createPointGroup(model config.DeviceModel, dev config.Device) {
+func (c *connector) createPointGroup(conf *ConnectionConfig, model config.DeviceModel, dev config.Device) {
+	maxLen := conf.MaxLen
+	if maxLen == 0 {
+		maxLen = 32
+	}
 	for _, point := range model.DevicePoints {
 		p := point.ToPoint()
 		if p.ReadWrite != config.ReadWrite_R && p.ReadWrite != config.ReadWrite_RW {
@@ -153,7 +158,7 @@ func (c *connector) createPointGroup(model config.DeviceModel, dev config.Device
 				end = ext.Address + ext.Quantity
 			}
 			//超过最大长度，拆成新的一组
-			if end-start <= c.maxLen {
+			if end-start <= maxLen {
 				group.points = append(group.points, ext)
 				ok = true
 				group.Address = start
@@ -206,6 +211,12 @@ func (c *connector) Release() (err error) {
 		return err
 	}
 	return
+}
+
+func (c *connector) Close() {
+	c.close = true
+	c.collectTask.Disable()
+	c.client.Close()
 }
 
 // ensureInterval 确保与前一次IO至少间隔minInterval毫秒
