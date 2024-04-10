@@ -37,14 +37,12 @@ func newConnector(plugin *Plugin, cf *connectorConfig) (*connector, error) {
 	}
 	conn := &connector{
 		plugin:      plugin,
-		pollFreq:    freq,
 		maxLen:      maxLen,
 		minInterval: minInterval,
 		retry:       3,
 		virtual:     cf.Virtual || config.IsVirtual(),
 	}
 	conn.devices = make(map[string]*slaveDevice)
-	conn.pointMap = make(map[string]map[string]*pointConfig)
 	url := fmt.Sprintf("%s://%s", cf.Mode, cf.Address)
 	client, err := modbus.NewClient(&modbus.ClientConfiguration{
 		URL:      url,
@@ -64,7 +62,14 @@ func newConnector(plugin *Plugin, cf *connectorConfig) (*connector, error) {
 }
 
 func (c *connector) initCollectTask(cf *connectorConfig) (err error) {
-	err = c.createPointGroup(err)
+	for _, model := range c.plugin.config.DeviceModels {
+		for _, dev := range model.Devices {
+			if dev.ConnectionKey != c.key {
+				continue
+			}
+			c.createPointGroup(model, dev)
+		}
+	}
 	//注册定时采集任务
 	duration := cf.Duration
 	if duration == "" {
@@ -98,12 +103,12 @@ func (c *connector) initCollectTask(cf *connectorConfig) (err error) {
 					helper.Logger.Error("read error", zap.Error(err))
 					//通讯失败，触发离线
 					devices := make(map[string]interface{})
-					for _, pconfig := range group.points {
-						if devices[pconfig.DeviceSn] != nil {
+					for _, point := range group.points {
+						if devices[point.DeviceSn] != nil {
 							continue
 						}
-						devices[pconfig.DeviceSn] = pconfig.PointName
-						_ = helper.DeviceShadow.MayBeOffline(pconfig.DeviceSn)
+						devices[point.DeviceSn] = point.Name
+						_ = helper.DeviceShadow.MayBeOffline(point.DeviceSn)
 					}
 				}
 				group.LatestTime = time.Now()
@@ -120,90 +125,83 @@ func (c *connector) initCollectTask(cf *connectorConfig) (err error) {
 }
 
 // 采集任务分组
-func (c *connector) createPointGroup(err error) error {
-	for _, model := range c.plugin.config.DeviceModels {
-		for _, dev := range model.Devices {
-			if dev.ConnectionKey != c.key {
+func (c *connector) createPointGroup(model config.DeviceModel, dev config.Device) {
+	for _, point := range model.DevicePoints {
+		p := point.ToPoint()
+		if p.ReadWrite != config.ReadWrite_R && p.ReadWrite != config.ReadWrite_RW {
+			continue
+		}
+		ext, err := convToPointExtend(p.Extends)
+		if err != nil {
+			helper.Logger.Error("error modbus point config", zap.String("deviceSn", dev.DeviceSn), zap.Any("point", point), zap.Error(err))
+			continue
+		}
+		duration, err := time.ParseDuration(ext.Duration)
+		if err != nil {
+			helper.Logger.Error("error modbus duration config", zap.String("deviceSn", dev.DeviceSn), zap.Any("config", p.Extends), zap.Error(err))
+			duration = time.Second
+		}
+
+		device, err := c.createDevice(dev.Properties)
+		if err != nil {
+			helper.Logger.Error("error modbus device config", zap.String("deviceSn", dev.DeviceSn), zap.Any("config", p.Extends), zap.Error(err))
+			continue
+		}
+		ok := false
+		for _, group := range device.pointGroup {
+			//相同采集频率为同一组
+			if group.Duration != duration {
 				continue
 			}
-			for _, point := range model.DevicePoints {
-				p := point.ToPoint()
-				if p.ReadWrite != config.ReadWrite_R && p.ReadWrite != config.ReadWrite_RW {
-					continue
-				}
-				var ext pointConfig
-				if err = helper.Map2Struct(p.Extends, &ext); err != nil {
-					helper.Logger.Error("error bacnet config", zap.Any("config", p.Extends), zap.Error(err))
-					continue
-				}
-				//未设置，则默认每秒采集一次
-				if ext.Duration == "" {
-					ext.Duration = "1s"
-				}
-				duration, err := time.ParseDuration(ext.Duration)
-				if err != nil {
-					helper.Logger.Error("error bacnet duration config", zap.String("deviceSn", dev.DeviceSn), zap.Any("config", p.Extends), zap.Error(err))
-					duration = time.Second
-				}
-
-				device, err := c.createDevice(dev.Properties)
-				ok := false
-				for _, group := range device.pointGroup {
-					//相同采集频率为同一组
-					if group.Duration != duration {
-						continue
-					}
-					//不同寄存器类型不为一组
-					if group.RegisterType != ext.RegisterType {
-						continue
-					}
-					//
-					//当前点位已存在
-					for _, obj := range group.points {
-						if obj.Address == ext.Address {
-							obj.DeviceSn = dev.DeviceSn
-							obj.PointName = p.Name
-							ok = true
-							break
-						}
-					}
-					if ok {
-						break
-					}
-					//如果ext和group中的其他addres区间长度不超过maxLen，则添加到group中
-					start := group.Address
-					if start > ext.Address {
-						start = ext.Address
-					}
-					end := group.Address + group.Quantity
-					if end < ext.Address+ext.Quantity {
-						end = ext.Address + ext.Quantity
-					}
-					//超过最大长度，拆成新的一组
-					if end-start <= c.maxLen {
-						group.points = append(group.points, &ext)
-						ok = true
-						group.Address = start
-						group.Quantity = end - start
-						break
-					}
-				}
-				//新增一个点位组
-				if !ok {
-					ext.DeviceSn = dev.DeviceSn
-					ext.PointName = p.Name
-					device.pointGroup = append(device.pointGroup, &pointGroup{
-						unitID:   device.unitID,
-						Duration: duration,
-						points: []*pointConfig{
-							&ext,
-						},
-					})
+			//不同寄存器类型不为一组
+			if group.RegisterType != ext.RegisterType {
+				continue
+			}
+			//
+			//当前点位已存在
+			for _, obj := range group.points {
+				if obj.Address == ext.Address {
+					obj.DeviceSn = dev.DeviceSn
+					obj.Name = p.Name
+					ok = true
+					break
 				}
 			}
+			if ok {
+				break
+			}
+			//如果ext和group中的其他addres区间长度不超过maxLen，则添加到group中
+			start := group.Address
+			if start > ext.Address {
+				start = ext.Address
+			}
+			end := group.Address + group.Quantity
+			if end < ext.Address+ext.Quantity {
+				end = ext.Address + ext.Quantity
+			}
+			//超过最大长度，拆成新的一组
+			if end-start <= c.maxLen {
+				group.points = append(group.points, ext)
+				ok = true
+				group.Address = start
+				group.Quantity = end - start
+				break
+			}
+		}
+		//新增一个点位组
+		if !ok {
+			ext.DeviceSn = dev.DeviceSn
+			ext.Name = p.Name
+			device.pointGroup = append(device.pointGroup, &pointGroup{
+				unitID:   device.unitID,
+				Duration: duration,
+				points: []*PointExtend{
+					ext,
+				},
+			})
 		}
 	}
-	return err
+
 }
 
 // Send 发送数据
@@ -237,63 +235,12 @@ func (c *connector) Release() (err error) {
 	return
 }
 
-type primaryTable string
-
-const (
-	Coil            primaryTable = "COIL"             // 线圈
-	DiscreteInput   primaryTable = "DISCRETE_INPUT"   // 离散输入
-	InputRegister   primaryTable = "INPUT_REGISTER"   // 离散寄存器
-	HoldingRegister primaryTable = "HOLDING_REGISTER" // 保持寄存器
-)
-
-func getPrimaryTable(registerType string) *primaryTable {
-	for _, pt := range []primaryTable{Coil, DiscreteInput, InputRegister, HoldingRegister} {
-		if registerType == string(pt) {
-			return &pt
-		}
-	}
-	return nil
-}
-
-type taskGroup struct {
-	slaveId      uint8          // 从机地址
-	registerType primaryTable   // 寄存器类型
-	address      uint16         // 起始地址
-	length       uint16         // 长度
-	points       []*pointConfig // 当前的分组所包含的所有点位
-}
-
-func newTaskGroup(slaveId uint8, point *pointConfig) *taskGroup {
-	return &taskGroup{
-		slaveId:      slaveId,
-		registerType: point.RegisterType,
-		address:      point.Address,
-		length:       point.Quantity,
-		points:       []*pointConfig{point},
-	}
-}
-
-func (tg *taskGroup) addPoint(point *pointConfig) {
-	tg.points = append(tg.points, point)
-}
-
-func isWritable(rw string) bool {
-	return strings.Contains(strings.ToUpper(rw), "W")
-}
-
-func (c *connector) ensureFreq() {
-	nt := c.lastReq.Add(time.Duration(c.pollFreq) * time.Millisecond)
-	if time.Now().Before(nt) {
-		time.Sleep(time.Until(nt))
-	}
-	c.lastPoll = time.Now()
-}
-
 func (c *connector) ensureInterval() {
-	np := c.lastReq.Add(time.Duration(c.minInterval) * time.Millisecond)
+	np := c.latestIoTime.Add(time.Duration(c.minInterval) * time.Millisecond)
 	if time.Now().Before(np) {
 		time.Sleep(time.Until(np))
 	}
+	c.latestIoTime = time.Now()
 }
 
 func (c *connector) sendReadCommand(group pointGroup) error {
@@ -370,7 +317,7 @@ func (c *connector) sendReadCommand(group pointGroup) error {
 		}
 		pointReadValue := plugin.PointReadValue{
 			SN:        point.DeviceSn,
-			PointName: point.PointName,
+			PointName: point.Name,
 			Value:     value,
 		}
 		_, err = callback.OnReceiveHandler(c.plugin, pointReadValue)
@@ -435,11 +382,6 @@ func mergeBitsIntoUint16(num, startPos, bitCount int, regValue uint16) uint16 {
 	return replacedValue
 }
 
-type PointValue struct {
-	Name  string      `json:"name"`
-	Value interface{} `json:"value"`
-}
-
 func (c *connector) sendWriteCommand(pc writeValue) error {
 
 	var values []uint16
@@ -464,13 +406,11 @@ func (c *connector) sendWriteCommand(pc writeValue) error {
 				if v > (1<<pc.BitLen - 1) {
 					return fmt.Errorf("too large value %v to set in %d bits", v, pc.BitLen)
 				}
-				c.ensureInterval()
 				uint16s, err := c.read(pc.unitID, string(pc.RegisterType), pc.Address, pc.Quantity)
 				uint16Val := uint16s[0]
 				if pc.ByteSwap {
 					uint16Val = (uint16Val << 8) | (uint16Val >> 8)
 				}
-				c.lastReq = time.Now()
 				if err != nil {
 					return fmt.Errorf("read original register error: %v", err)
 				}
@@ -499,13 +439,11 @@ func (c *connector) sendWriteCommand(pc writeValue) error {
 				} else if v < 0 {
 					return fmt.Errorf("negative value %v not allowed to set in bits", v)
 				}
-				c.ensureInterval()
 				uint16s, err := c.read(pc.unitID, string(pc.RegisterType), pc.Address, pc.Quantity)
 				uint16Val := uint16s[0]
 				if pc.ByteSwap {
 					uint16Val = (uint16Val << 8) | (uint16Val >> 8)
 				}
-				c.lastReq = time.Now()
 				if err != nil {
 					return fmt.Errorf("read original register error: %v", err)
 				}
@@ -676,7 +614,6 @@ func (c *connector) sendWriteCommand(pc writeValue) error {
 	default:
 		return fmt.Errorf("unsupported write register type: %v", pc)
 	}
-	c.ensureInterval()
 	var err error
 	for i := 0; i < c.retry; i++ {
 		if err = c.write(pc.unitID, pc.RegisterType, pc.Address, values); err == nil {
@@ -686,31 +623,7 @@ func (c *connector) sendWriteCommand(pc writeValue) error {
 	if err != nil {
 		return fmt.Errorf("write [%v] error: %v", pc, err)
 	}
-	c.lastReq = time.Now()
 	return nil
-}
-
-func divideStrings(str1, str2 string) (string, error) {
-	// 验证输入是否为合法数字
-	_, err := strconv.ParseFloat(str1, 64)
-	if err != nil {
-		return "", fmt.Errorf("第一个字符串不是合法的数字")
-	}
-
-	_, err = strconv.ParseFloat(str2, 64)
-	if err != nil {
-		return "", fmt.Errorf("第二个字符串不是合法的数字")
-	}
-
-	// 将字符串转换为浮点数进行除法运算
-	num1, _ := strconv.ParseFloat(str1, 64)
-	num2, _ := strconv.ParseFloat(str2, 64)
-	result := num1 / num2
-
-	// 将结果转换为字符串
-	resultStr := strconv.FormatFloat(result, 'f', -1, 64)
-
-	return resultStr, nil
 }
 
 func reverseUint16s(in []uint16) {
@@ -720,41 +633,41 @@ func reverseUint16s(in []uint16) {
 }
 
 // castModbusAddress modbus 地址转换
-func castModbusAddress(i interface{}) (address uint16, registerType primaryTable, err error) {
+func castModbusAddress(i interface{}) (address uint16, err error) {
 	s := cast.ToString(i)
 	if strings.HasPrefix(s, "0x") { //check hex format
 		addr, err := strconv.ParseInt(s[2:], 16, 32)
 		if err != nil {
-			return 0, "", err
+			return 0, err
 		}
-		return cast.ToUint16(addr), "", nil
+		return cast.ToUint16(addr), nil
 	} else if strings.HasSuffix(s, "d") {
 		addr, err := strconv.Atoi(strings.ReplaceAll(s, "d", ""))
 		if err != nil {
-			return 0, "", err
+			return 0, err
 		}
-		return cast.ToUint16(addr), "", nil
+		return cast.ToUint16(addr), nil
 	} else if len(s) == 5 { //handle modbus format
 		res, err := cast.ToUint16E(s)
 		if err != nil {
-			return 0, "", err
+			return 0, err
 		}
 		if res > 0 && res < 10000 {
-			return res - 1, Coil, nil
+			return res - 1, nil
 		} else if res > 10000 && res < 20000 {
-			return res - 10001, DiscreteInput, nil
+			return res - 10001, nil
 		} else if res > 30000 && res < 40000 {
-			return res - 30001, InputRegister, nil
+			return res - 30001, nil
 		} else if res > 40000 && res < 50000 {
-			return res - 40001, HoldingRegister, nil
+			return res - 40001, nil
 		}
 	}
 
 	res, err := cast.ToUint16E(i)
 	if err != nil {
-		return 0, "", err
+		return 0, err
 	}
-	return res, "", nil
+	return res, nil
 }
 
 // read 读操作
@@ -763,6 +676,7 @@ func (c *connector) read(slaveId uint8, registerType string, address, quantity u
 	if err = c.client.SetUnitId(slaveId); err != nil {
 		return nil, err
 	}
+	c.ensureInterval()
 	switch strings.ToUpper(registerType) {
 	case string(Coil):
 		responseData, err := c.client.ReadCoils(address, quantity)
@@ -826,6 +740,7 @@ func (c *connector) write(slaveID uint8, registerType primaryTable, address uint
 	if err != nil {
 		return
 	}
+	c.ensureInterval()
 	switch registerType {
 	case Coil:
 		bools := uint16SliceToBool(values)
@@ -838,65 +753,57 @@ func (c *connector) write(slaveID uint8, registerType primaryTable, address uint
 	return
 }
 
-func convToPointConfig(extends map[string]interface{}) (*pointConfig, error) {
-	pc := new(pointConfig)
-	err := helper.Map2Struct(extends, pc)
-	if err != nil {
-		return nil, fmt.Errorf("convert %v to point config error: %s", extends, err.Error())
+func convToPointExtend(extends map[string]interface{}) (*PointExtend, error) {
+	extend := new(PointExtend)
+	if err := helper.Map2Struct(extends, extend); err != nil {
+		helper.Logger.Error("error modbus config", zap.Any("config", extends), zap.Error(err))
+		return nil, err
 	}
+	//未设置，则默认每秒采集一次
+	if extend.Duration == "" {
+		extend.Duration = "1s"
+	}
+	//寄存器地址换算
 	startAddress, ok := extends["startAddress"]
 	if !ok {
 		return nil, fmt.Errorf("start address missed")
 	}
-	address, registerType, err := castModbusAddress(startAddress)
+	address, err := castModbusAddress(startAddress)
 	if err != nil {
 		return nil, fmt.Errorf("convert start address error: %s", err.Error())
 	}
-	pc.Address = address
-	if registerType != "" {
-		pc.RegisterType = registerType
-	}
-	if getPrimaryTable(string(pc.RegisterType)) == nil {
-		return nil, fmt.Errorf("incorrect register type: %s", pc.RegisterType)
-	}
-	switch pc.RegisterType {
+	extend.Address = address
+
+	switch extend.RegisterType {
 	case Coil, DiscreteInput: // 线圈及离散输入仅支持读一个
-		pc.Quantity = 1
+		extend.Quantity = 1
 	case InputRegister, HoldingRegister:
-		switch strings.ToUpper(pc.RawType) {
+		switch strings.ToUpper(extend.RawType) {
 		case strings.ToUpper(common.ValueTypeUint16), strings.ToUpper(common.ValueTypeInt16):
-			pc.Quantity = 1
+			extend.Quantity = 1
 		case strings.ToUpper(common.ValueTypeUint32), strings.ToUpper(common.ValueTypeInt32), strings.ToUpper(common.ValueTypeFloat32):
-			pc.Quantity = 2
+			extend.Quantity = 2
 		case strings.ToUpper(common.ValueTypeUint64), strings.ToUpper(common.ValueTypeInt64), strings.ToUpper(common.ValueTypeFloat64):
-			pc.Quantity = 4
+			extend.Quantity = 4
 		case strings.ToUpper(common.ValueTypeString):
-			if pc.Quantity == 0 {
-				pc.Quantity = 1
+			if extend.Quantity == 0 {
+				extend.Quantity = 1
 			}
 		default:
-			return nil, fmt.Errorf("unsupported raw type %s", pc.RawType)
+			return nil, fmt.Errorf("unsupported raw type %s", extend.RawType)
 		}
 	default:
-		return nil, fmt.Errorf("unsuported register type: %s", pc.RegisterType)
+		return nil, fmt.Errorf("unsuported register type: %s", extend.RegisterType)
 	}
-
-	if pc.Quantity == 0 {
-		pc.Quantity = 1
-	}
-
-	return pc, nil
+	return extend, nil
 }
-func (c *connector) createDevice(properties map[string]string) (d *slaveDevice, err error) {
-	var dp deviceProtocol
-	if err = helper.Map2Struct(properties, &dp); err != nil {
-		return nil, err
-	}
 
-	if len(dp.unitID) == 0 {
+func (c *connector) createDevice(properties map[string]string) (d *slaveDevice, err error) {
+	unitID := properties["unitID"]
+	if len(unitID) == 0 {
 		return nil, errors.New("none unitID")
 	}
-	uintIdVal, err := strconv.ParseUint(dp.unitID, 10, 8)
+	uintIdVal, err := strconv.ParseUint(unitID, 10, 8)
 
 	if err != nil {
 		return nil, err
@@ -907,6 +814,6 @@ func (c *connector) createDevice(properties map[string]string) (d *slaveDevice, 
 		unitID:     uint8(uintIdVal),
 		pointGroup: group,
 	}
-	c.devices[dp.unitID] = d
+	c.devices[unitID] = d
 	return d, nil
 }

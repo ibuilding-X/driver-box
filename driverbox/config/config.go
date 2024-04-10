@@ -69,7 +69,7 @@ func (pm PointMap) ToPoint() Point {
 	// 扩展参数
 	p.Extends = make(map[string]interface{})
 	for key, _ := range pm {
-		if !strings.Contains("name,description,valueType,readWrite,defaultValue", key) {
+		if !strings.Contains("name,description,valueType,readWrite,defaultValue,scale", key) {
 			p.Extends[key] = pm[key]
 		}
 	}
