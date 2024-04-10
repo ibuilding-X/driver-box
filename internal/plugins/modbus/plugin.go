@@ -2,27 +2,49 @@ package modbus
 
 import (
 	"errors"
-	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/simonvetter/modbus"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
+	"sync"
+	"time"
 )
 
 // Plugin 驱动插件
 type Plugin struct {
-	logger   *zap.Logger            // 日志记录器
-	config   config.Config          // 核心配置
 	adapter  plugin.ProtocolAdapter // 协议适配器
 	connPool map[string]*connector  // 连接器
 	ls       *lua.LState            // lua 虚拟机
 }
 
+// connector 连接器
+type connector struct {
+	key          string
+	plugin       *Plugin
+	client       *modbus.ModbusClient
+	maxLen       uint16    // 最长连续读个数
+	minInterval  uint      // 读取间隔
+	polling      bool      // 执行轮询
+	lastPoll     time.Time // 上次轮询
+	latestIoTime time.Time // 最近一次执行IO的时间
+	mutex        sync.Mutex
+	//通讯设备集合
+	retry int
+
+	devices map[string]*slaveDevice
+	//当前连接的定时扫描任务
+	collectTask *crontab.Future
+	//当前连接是否已关闭
+	close bool
+	//是否虚拟链接
+	virtual bool
+}
+
 // Initialize 插件初始化
 func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error) {
-	p.logger = logger
-	p.config = c
 	p.ls = ls
 
 	// 初始化协议适配器
@@ -31,25 +53,48 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState)
 		scriptEnable: helper.ScriptExists(c.Key),
 	}
 	//初始化连接池
-	return p.initNetworks()
+	p.initNetworks(c)
+	return nil
 }
 
 // 初始化Modbus连接池
-func (p *Plugin) initNetworks() (err error) {
+func (p *Plugin) initNetworks(config config.Config) {
 	p.connPool = make(map[string]*connector)
-
-	for key, connConfig := range p.config.Connections {
-		cc := new(connectorConfig)
-		if err = helper.Map2Struct(connConfig, cc); err != nil {
-			return fmt.Errorf("convert connector config error: %v", err)
+	//某个连接配置有问题，不影响其他连接的建立
+	for key, connConfig := range config.Connections {
+		connectionConfig := new(ConnectionConfig)
+		if err := helper.Map2Struct(connConfig, connectionConfig); err != nil {
+			helper.Logger.Error("convert connector config error", zap.Any("connection", connConfig), zap.Error(err))
+			continue
 		}
-		c2, err := newConnector(p, cc)
+		conn, err := newConnector(p, connectionConfig)
 		if err != nil {
-			return fmt.Errorf("init connector error: %v", err)
+			helper.Logger.Error("init connector error", zap.Any("connection", connConfig), zap.Error(err))
+			continue
 		}
-		p.connPool[key] = c2
+
+		//生成点位采集组
+		for _, model := range config.DeviceModels {
+			for _, dev := range model.Devices {
+				if dev.ConnectionKey != conn.key {
+					continue
+				}
+				conn.createPointGroup(model, dev)
+			}
+		}
+
+		//启动采集任务
+		duration := connectionConfig.Duration
+		if duration == "" {
+			helper.Logger.Warn("modbus connection duration is empty, use default 5s", zap.String("key", conn.key))
+			duration = "5s"
+		}
+		conn.collectTask, err = conn.initCollectTask(duration)
+		p.connPool[key] = conn
+		if err != nil {
+			helper.Logger.Error("init connector collect task error", zap.Any("connection", connConfig), zap.Error(err))
+		}
 	}
-	return nil
 }
 
 // ProtocolAdapter 适配器

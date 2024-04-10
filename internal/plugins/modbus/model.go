@@ -2,10 +2,7 @@ package modbus
 
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/simonvetter/modbus"
-	"sync"
 	"time"
 )
 
@@ -18,15 +15,14 @@ const (
 	HoldingRegister primaryTable = "HOLDING_REGISTER" // 保持寄存器
 )
 
-// connectorConfig 连接器配置
-type connectorConfig struct {
+// ConnectionConfig 连接器配置
+type ConnectionConfig struct {
 	Address     string `json:"address"`     // 地址：例如：127.0.0.1:502
 	Mode        string `json:"mode"`        // 连接模式：rtuovertcp、rtu
 	BaudRate    uint   `json:"baudRate"`    // 波特率（仅串口模式）
 	DataBits    uint   `json:"dataBits"`    // 数据位（仅串口模式）
 	StopBits    uint   `json:"stopBits"`    // 停止位（仅串口模式）
 	Parity      uint   `json:"parity"`      // 奇偶性校验（仅串口模式）
-	PollFreq    uint64 `json:"pollFreq"`    // 读取周期，
 	MaxLen      uint16 `json:"maxLen"`      // 最长连续读个数
 	MinInterval uint   `json:"minInterval"` // 最小读取间隔
 	Timeout     int    `json:"timeout"`     // 请求超时
@@ -52,29 +48,6 @@ type PointExtend struct {
 	RawType      string       `json:"rawType"`
 	ByteSwap     bool         `json:"byteSwap"`
 	WordSwap     bool         `json:"wordSwap"`
-}
-
-// connector 连接器
-type connector struct {
-	key          string
-	plugin       *Plugin
-	client       *modbus.ModbusClient
-	maxLen       uint16    // 最长连续读个数
-	minInterval  uint      // 读取间隔
-	polling      bool      // 执行轮询
-	lastPoll     time.Time // 上次轮询
-	latestIoTime time.Time // 最近一次执行IO的时间
-	mutex        sync.Mutex
-	//通讯设备集合
-	retry int
-
-	devices map[string]*slaveDevice
-	//当前连接的定时扫描任务
-	collectTask *crontab.Future
-	//当前连接是否已关闭
-	close bool
-	//是否虚拟链接
-	virtual bool
 }
 
 // 采集组

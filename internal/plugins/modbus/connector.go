@@ -7,6 +7,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 	"github.com/simonvetter/modbus"
@@ -18,11 +19,7 @@ import (
 	"time"
 )
 
-func newConnector(plugin *Plugin, cf *connectorConfig) (*connector, error) {
-	freq := cf.PollFreq
-	if freq == 0 {
-		freq = 1000
-	}
+func newConnector(plugin *Plugin, cf *ConnectionConfig) (*connector, error) {
 	minInterval := cf.MinInterval
 	if minInterval == 0 {
 		minInterval = 100
@@ -35,48 +32,30 @@ func newConnector(plugin *Plugin, cf *connectorConfig) (*connector, error) {
 	if retry == 0 {
 		retry = 3
 	}
-	conn := &connector{
-		plugin:      plugin,
-		maxLen:      maxLen,
-		minInterval: minInterval,
-		retry:       3,
-		virtual:     cf.Virtual || config.IsVirtual(),
-	}
-	conn.devices = make(map[string]*slaveDevice)
-	url := fmt.Sprintf("%s://%s", cf.Mode, cf.Address)
+
 	client, err := modbus.NewClient(&modbus.ClientConfiguration{
-		URL:      url,
+		URL:      fmt.Sprintf("%s://%s", cf.Mode, cf.Address),
 		Speed:    cf.BaudRate,
 		DataBits: cf.DataBits,
 		Parity:   cf.Parity,
 		StopBits: cf.StopBits,
 		Timeout:  time.Duration(cf.Timeout) * time.Millisecond,
 	})
-	if err != nil {
-		return nil, fmt.Errorf("modbus init connection error: %s", err.Error())
+	conn := &connector{
+		plugin:      plugin,
+		client:      client,
+		maxLen:      maxLen,
+		minInterval: minInterval,
+		retry:       retry,
+		virtual:     cf.Virtual || config.IsVirtual(),
+		devices:     make(map[string]*slaveDevice),
 	}
-	conn.client = client
-	//启动采集任务
-	err = conn.initCollectTask(cf)
 	return conn, err
 }
 
-func (c *connector) initCollectTask(cf *connectorConfig) (err error) {
-	for _, model := range c.plugin.config.DeviceModels {
-		for _, dev := range model.Devices {
-			if dev.ConnectionKey != c.key {
-				continue
-			}
-			c.createPointGroup(model, dev)
-		}
-	}
+func (c *connector) initCollectTask(duration string) (*crontab.Future, error) {
 	//注册定时采集任务
-	duration := cf.Duration
-	if duration == "" {
-		helper.Logger.Warn("modbus connection duration is empty, use default 5s", zap.String("key", c.key))
-		duration = "5s"
-	}
-	future, err := helper.Crontab.AddFunc(duration, func() {
+	return helper.Crontab.AddFunc(duration, func() {
 		//遍历所有通讯设备
 		for unitID, device := range c.devices {
 			if len(device.pointGroup) == 0 {
@@ -99,7 +78,7 @@ func (c *connector) initCollectTask(cf *connectorConfig) (err error) {
 					mode:  plugin.ReadMode,
 					value: group,
 				}
-				if err = c.Send(bac); err != nil {
+				if err := c.Send(bac); err != nil {
 					helper.Logger.Error("read error", zap.Error(err))
 					//通讯失败，触发离线
 					devices := make(map[string]interface{})
@@ -116,12 +95,6 @@ func (c *connector) initCollectTask(cf *connectorConfig) (err error) {
 
 		}
 	})
-	if err != nil {
-		return err
-	} else {
-		c.collectTask = future
-		return nil
-	}
 }
 
 // 采集任务分组
@@ -235,6 +208,7 @@ func (c *connector) Release() (err error) {
 	return
 }
 
+// ensureInterval 确保与前一次IO至少间隔minInterval毫秒
 func (c *connector) ensureInterval() {
 	np := c.latestIoTime.Add(time.Duration(c.minInterval) * time.Millisecond)
 	if time.Now().Before(np) {
@@ -311,7 +285,7 @@ func (c *connector) sendReadCommand(group pointGroup) error {
 				out = swapWords(out, point.WordSwap)
 				value = string(out)
 			default:
-				c.plugin.logger.Error(fmt.Sprintf("unsupported raw type: %v", point))
+				helper.Logger.Error(fmt.Sprintf("unsupported raw type: %v", point))
 				continue
 			}
 		}
