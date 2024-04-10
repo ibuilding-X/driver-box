@@ -529,6 +529,46 @@ func (linkEdge *service) checkConditions(conditions []interface{}) error {
 			if yearDay > end.YearDay() {
 				return errors.New("execution time has expired")
 			}
+		case ConditionYears:
+			var condition yearsCondition
+			if err = json.Unmarshal(bytes, &condition); err != nil {
+				return err
+			}
+			if !condition.Verify(time.Now().Year()) {
+				return errors.New("mismatch years condition")
+			}
+		case ConditionMonths:
+			var condition monthsCondition
+			if err = json.Unmarshal(bytes, &condition); err != nil {
+				return err
+			}
+			if !condition.Verify(int(time.Now().Month())) {
+				return errors.New("mismatch months condition")
+			}
+		case ConditionDays:
+			var condition daysCondition
+			if err = json.Unmarshal(bytes, &condition); err != nil {
+				return err
+			}
+			if !condition.Verify(time.Now().Day()) {
+				return errors.New("mismatch days condition")
+			}
+		case ConditionWeeks:
+			var condition weeksCondition
+			if err = json.Unmarshal(bytes, &condition); err != nil {
+				return err
+			}
+			if !condition.Verify(int(time.Now().Weekday())) {
+				return errors.New("mismatch weeks condition")
+			}
+		case ConditionTimes:
+			var condition timesCondition
+			if err = json.Unmarshal(bytes, &condition); err != nil {
+				return err
+			}
+			if !condition.Verify(time.Now()) {
+				return errors.New("mismatch times condition")
+			}
 		}
 	}
 	return nil

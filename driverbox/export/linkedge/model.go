@@ -20,7 +20,18 @@ const (
 	// ConditionLastTime 执行条件 持续时间
 	ConditionLastTime conditionType = "lastTime"
 	// ConditionDateInterval 日期间隔，示例：01-01 ～ 05-01
+	// Deprecated: 已废弃，请拆分为多个条件，例如：年（数组）、月（数组）、日（数组）、周（数组）、时间段（数组）
 	ConditionDateInterval conditionType = "dateInterval"
+	// ConditionYears 执行条件-年（数组）
+	ConditionYears conditionType = "years"
+	// ConditionMonths 执行条件-月（数组）
+	ConditionMonths conditionType = "months"
+	// ConditionDays 执行条件-日（数组）
+	ConditionDays conditionType = "days"
+	// ConditionWeeks 执行条件-周（数组）
+	ConditionWeeks conditionType = "weeks"
+	// ConditionTimes 执行条件-时间段（数组）
+	ConditionTimes conditionType = "times"
 
 	// 执行类型：设置设备点位
 	ActionTypeDevicePoint ActionType = "devicePoint"
@@ -143,6 +154,42 @@ type dateIntervalCondition struct {
 	baseCondition
 	BeginDate string `json:"begin_date"`
 	EndDate   string `json:"end_date"`
+}
+
+// yearsCondition 条件 - 年份
+// demo: 2021-2025 表示2021年到2025年
+type yearsCondition struct {
+	baseCondition
+	Years []int `json:"years"`
+}
+
+// monthsCondition 条件 - 月份
+// demo: 1-12 表示1月到12月
+type monthsCondition struct {
+	baseCondition
+	Months []int `json:"months"`
+}
+
+// daysCondition 条件 - 日期
+// demo: 1-31 表示1号到31号
+type daysCondition struct {
+	baseCondition
+	Days []int `json:"days"`
+}
+
+// weeksCondition 条件 - 星期
+// demo: 1-7 表示星期一到星期日
+type weeksCondition struct {
+	baseCondition
+	Weeks []int `json:"weeks"`
+}
+
+// timesCondition 条件 - 时间段
+// 示例：begin_time: "08:00", end_time: "18:00"
+type timesCondition struct {
+	baseCondition
+	BeginTime string `json:"begin_time"`
+	EndTime   string `json:"end_time"`
 }
 
 type baseAction struct {
