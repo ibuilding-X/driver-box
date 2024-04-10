@@ -4,6 +4,7 @@ package helper
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
@@ -50,9 +51,19 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 		if err != nil {
 			Logger.Error("convert point value error", zap.Error(err), zap.Any("deviceSn", deviceData.SN),
 				zap.String("pointName", p.Name), zap.Any("value", point.Value))
-		} else {
-			point.Value = realValue
+			continue
 		}
+
+		//精度换算
+		if p.Scale != 0 {
+			realValue, err = multiplyWithFloat64(realValue, p.Scale)
+			if err != nil {
+				Logger.Error("multiplyWithFloat64 error", zap.Error(err), zap.Any("deviceSn", deviceData.SN))
+				continue
+			}
+		}
+
+		point.Value = realValue
 
 		// 缓存比较
 		shadowValue, _ := DeviceShadow.GetDevicePoint(deviceData.SN, point.PointName)
@@ -85,5 +96,28 @@ func TriggerEvents(eventCode string, key string, value interface{}) {
 		if err != nil {
 			Logger.Error("trigger event error", zap.String("eventCode", eventCode), zap.String("key", key), zap.Any("value", value), zap.Error(err))
 		}
+	}
+}
+
+func multiplyWithFloat64(value interface{}, scale float64) (float64, error) {
+	switch v := value.(type) {
+	case float64:
+		return v * scale, nil
+	case int16:
+		return float64(v) * scale, nil
+	case uint16:
+		return float64(v) * scale, nil
+	case uint32:
+		return float64(v) * scale, nil
+	case int32:
+		return float64(v) * scale, nil
+	case int64:
+		return float64(v) * scale, nil
+	case uint64:
+		return float64(v) * scale, nil
+	case float32:
+		return float64(v) * scale, nil
+	default:
+		return 0, fmt.Errorf("cannot multiply %T with float64", value)
 	}
 }

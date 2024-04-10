@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"errors"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -9,49 +10,68 @@ import (
 )
 
 // Send 向设备发送数据
-func Send(deviceSn string, mode plugin.EncodeMode, value plugin.PointData) (err error) {
+func Send(deviceSn string, mode plugin.EncodeMode, pointData plugin.PointData) error {
 	defer func() {
 		if err2 := recover(); err2 != nil {
 			Logger.Error(fmt.Sprintf("%+v", err2))
 		}
 	}()
-	point, ok := CoreCache.GetPointByDevice(deviceSn, value.PointName)
+	point, ok := CoreCache.GetPointByDevice(deviceSn, pointData.PointName)
 	if !ok {
-		return fmt.Errorf("not found point, point name is %s", value.PointName)
+		return fmt.Errorf("not found point, point name is %s", pointData.PointName)
 	}
-	value.Value, err = ConvPointType(value.Value, point.ValueType)
-	if err != nil {
-		return err
+
+	//精度换算
+	if mode == plugin.WriteMode && point.Scale != 0 {
+		value, err := ConvPointType(pointData.Value, point.ValueType)
+		if err != nil {
+			return err
+		}
+		if point.Scale != 0 {
+			value, err = divideStrings(value, point.Scale)
+			if err != nil {
+				return err
+			}
+		}
+		pointData.Value = value
 	}
+
+	//判断点位操作有效性
+	if mode == plugin.WriteMode && point.ReadWrite == config.ReadWrite_R {
+		return errors.New("point is readonly, can not write")
+	} else if mode == plugin.ReadMode && point.ReadWrite == config.ReadWrite_W {
+		return errors.New("point is writeOnly, can not read")
+	}
+
 	// 获取插件
-	p, ok := CoreCache.GetRunningPluginByDeviceAndPoint(deviceSn, value.PointName)
+	p, ok := CoreCache.GetRunningPluginByDeviceAndPoint(deviceSn, pointData.PointName)
 	if !ok {
 		return fmt.Errorf("not found running plugin, device name is %s", deviceSn)
 	}
 	// 获取连接
-	conn, err := p.Connector(deviceSn, value.PointName)
+	conn, err := p.Connector(deviceSn, pointData.PointName)
 	if err != nil {
 		_ = DeviceShadow.MayBeOffline(deviceSn)
-		return
+		return err
 	}
 	// 释放连接
 	defer conn.Release()
 	// 协议适配器
 	adapter := p.ProtocolAdapter()
-	res, err := adapter.Encode(deviceSn, mode, value)
+	res, err := adapter.Encode(deviceSn, mode, pointData)
 	if err != nil {
-		return
+		return err
 	}
 	// 发送数据
 	if err = conn.Send(res); err != nil {
 		_ = DeviceShadow.MayBeOffline(deviceSn)
-		return
+		return err
 	}
 	//点位写成功后，立即触发读取操作以及时更新影子状态
 	if mode == plugin.WriteMode {
-		tryReadNewValue(deviceSn, value.PointName, value.Value)
+		tryReadNewValue(deviceSn, pointData.PointName, pointData.Value)
 	}
-	return
+	return err
 }
 
 // SendMultiRead 发送多个点位读取命令，多用于 autoEvent
@@ -102,4 +122,15 @@ func tryReadNewValue(deviceSn, pointName string, expectValue interface{}) {
 			}
 		}
 	}(deviceSn, pointName, expectValue)
+}
+
+func divideStrings(value interface{}, scale float64) (float64, error) {
+	switch v := value.(type) {
+	case float64:
+		return v / scale, nil
+	case int64:
+		return float64(v) / scale, nil
+	default:
+		return 0, fmt.Errorf("cannot divide %T with float64", value)
+	}
 }

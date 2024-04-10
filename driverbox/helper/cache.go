@@ -145,6 +145,10 @@ func checkPoint(model *config.DeviceModel, point *config.Point) {
 	if point.ReportMode != config.ReportMode_Real && point.ReportMode != config.ReportMode_Change {
 		Logger.Error("point reportMode config error , valid config is: realTime change period", zap.Any("point", point), zap.String("model", model.Name))
 	}
+	//存在精度换算时，点位类型要求float
+	if point.Scale != 0 && point.ValueType != config.ValueType_Float {
+		Logger.Error("point scale config error , valid config is: float", zap.Any("point", point), zap.String("model", model.Name))
+	}
 }
 
 // coreCache 核心缓存

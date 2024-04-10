@@ -2,49 +2,36 @@ package modbus
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
+	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 	"github.com/simonvetter/modbus"
 	"github.com/spf13/cast"
+	"go.uber.org/zap"
 	"math"
-	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
-// connectorConfig 连接器配置
-type connectorConfig struct {
-	Address     string `json:"address"`     // 地址：例如：127.0.0.1:502
-	Mode        string `json:"mode"`        // 连接模式：rtuovertcp、rtu
-	BaudRate    uint   `json:"baudRate"`    // 波特率（仅串口模式）
-	DataBits    uint   `json:"dataBits"`    // 数据位（仅串口模式）
-	StopBits    uint   `json:"stopBits"`    // 停止位（仅串口模式）
-	Parity      uint   `json:"parity"`      // 奇偶性校验（仅串口模式）
-	PollFreq    uint64 `json:"pollFreq"`    // 读取周期，
-	MaxLen      uint16 `json:"maxLen"`      // 最长连续读个数
-	MinInterval uint   `json:"minInterval"` // 最小读取间隔
-	Timeout     int    `json:"timeout"`     // 请求超时
-	Retry       int    `json:"retry"`       // 重试次数
-}
-
-func newConnector(plugin *Plugin, config *connectorConfig) (*connector, error) {
-	freq := config.PollFreq
+func newConnector(plugin *Plugin, cf *connectorConfig) (*connector, error) {
+	freq := cf.PollFreq
 	if freq == 0 {
 		freq = 1000
 	}
-	minInterval := config.MinInterval
+	minInterval := cf.MinInterval
 	if minInterval == 0 {
 		minInterval = 100
 	}
-	maxLen := config.MaxLen
+	maxLen := cf.MaxLen
 	if maxLen == 0 {
 		maxLen = 32
 	}
-	retry := config.Retry
+	retry := cf.Retry
 	if retry == 0 {
 		retry = 3
 	}
@@ -54,49 +41,186 @@ func newConnector(plugin *Plugin, config *connectorConfig) (*connector, error) {
 		maxLen:      maxLen,
 		minInterval: minInterval,
 		retry:       3,
+		virtual:     cf.Virtual || config.IsVirtual(),
 	}
-	conn.devices = make(map[uint8]map[primaryTable][]*pointConfig)
+	conn.devices = make(map[string]*slaveDevice)
 	conn.pointMap = make(map[string]map[string]*pointConfig)
-	url := fmt.Sprintf("%s://%s", config.Mode, config.Address)
+	url := fmt.Sprintf("%s://%s", cf.Mode, cf.Address)
 	client, err := modbus.NewClient(&modbus.ClientConfiguration{
 		URL:      url,
-		Speed:    config.BaudRate,
-		DataBits: config.DataBits,
-		Parity:   config.Parity,
-		StopBits: config.StopBits,
-		Timeout:  time.Duration(config.Timeout) * time.Millisecond,
+		Speed:    cf.BaudRate,
+		DataBits: cf.DataBits,
+		Parity:   cf.Parity,
+		StopBits: cf.StopBits,
+		Timeout:  time.Duration(cf.Timeout) * time.Millisecond,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("modbus init connection error: %s", err.Error())
 	}
 	conn.client = client
-	return conn, nil
+	//启动采集任务
+	err = conn.initCollectTask(cf)
+	return conn, err
 }
 
-// connector 连接器
-type connector struct {
-	plugin      *Plugin
-	client      *modbus.ModbusClient
-	maxLen      uint16    // 最长连续读个数
-	minInterval uint      // 读取间隔
-	polling     bool      // 执行轮询
-	pollFreq    uint64    // 轮询间隔
-	lastPoll    time.Time // 上次轮询
-	lastReq     time.Time // 上次执行
-	mutex       sync.Mutex
-	devices     map[uint8]map[primaryTable][]*pointConfig
-	pointMap    map[string]map[string]*pointConfig
-	retry       int
+func (c *connector) initCollectTask(cf *connectorConfig) (err error) {
+	err = c.createPointGroup(err)
+	//注册定时采集任务
+	duration := cf.Duration
+	if duration == "" {
+		helper.Logger.Warn("modbus connection duration is empty, use default 5s", zap.String("key", c.key))
+		duration = "5s"
+	}
+	future, err := helper.Crontab.AddFunc(duration, func() {
+		//遍历所有通讯设备
+		for unitID, device := range c.devices {
+			if len(device.pointGroup) == 0 {
+				helper.Logger.Warn("device has none read point", zap.String("unitID", unitID))
+				continue
+			}
+			//批量遍历通讯设备下的点位，并将结果关联至物模型设备
+			for i, group := range device.pointGroup {
+				if c.close {
+					helper.Logger.Warn("modbus connection is closed, ignore collect task!", zap.String("key", c.key))
+					break
+				}
+
+				if group.LatestTime.Add(group.Duration).After(time.Now()) {
+					continue
+				}
+				//采集时间未到
+				helper.Logger.Debug("timer read modbus", zap.Any("group", i), zap.Any("latestTime", group.LatestTime), zap.Any("duration", group.Duration))
+				bac := command{
+					mode:  plugin.ReadMode,
+					value: group,
+				}
+				if err = c.Send(bac); err != nil {
+					helper.Logger.Error("read error", zap.Error(err))
+					//通讯失败，触发离线
+					devices := make(map[string]interface{})
+					for _, pconfig := range group.points {
+						if devices[pconfig.DeviceSn] != nil {
+							continue
+						}
+						devices[pconfig.DeviceSn] = pconfig.PointName
+						_ = helper.DeviceShadow.MayBeOffline(pconfig.DeviceSn)
+					}
+				}
+				group.LatestTime = time.Now()
+			}
+
+		}
+	})
+	if err != nil {
+		return err
+	} else {
+		c.collectTask = future
+		return nil
+	}
+}
+
+// 采集任务分组
+func (c *connector) createPointGroup(err error) error {
+	for _, model := range c.plugin.config.DeviceModels {
+		for _, dev := range model.Devices {
+			if dev.ConnectionKey != c.key {
+				continue
+			}
+			for _, point := range model.DevicePoints {
+				p := point.ToPoint()
+				if p.ReadWrite != config.ReadWrite_R && p.ReadWrite != config.ReadWrite_RW {
+					continue
+				}
+				var ext pointConfig
+				if err = helper.Map2Struct(p.Extends, &ext); err != nil {
+					helper.Logger.Error("error bacnet config", zap.Any("config", p.Extends), zap.Error(err))
+					continue
+				}
+				//未设置，则默认每秒采集一次
+				if ext.Duration == "" {
+					ext.Duration = "1s"
+				}
+				duration, err := time.ParseDuration(ext.Duration)
+				if err != nil {
+					helper.Logger.Error("error bacnet duration config", zap.String("deviceSn", dev.DeviceSn), zap.Any("config", p.Extends), zap.Error(err))
+					duration = time.Second
+				}
+
+				device, err := c.createDevice(dev.Properties)
+				ok := false
+				for _, group := range device.pointGroup {
+					//相同采集频率为同一组
+					if group.Duration != duration {
+						continue
+					}
+					//不同寄存器类型不为一组
+					if group.RegisterType != ext.RegisterType {
+						continue
+					}
+					//
+					//当前点位已存在
+					for _, obj := range group.points {
+						if obj.Address == ext.Address {
+							obj.DeviceSn = dev.DeviceSn
+							obj.PointName = p.Name
+							ok = true
+							break
+						}
+					}
+					if ok {
+						break
+					}
+					//如果ext和group中的其他addres区间长度不超过maxLen，则添加到group中
+					start := group.Address
+					if start > ext.Address {
+						start = ext.Address
+					}
+					end := group.Address + group.Quantity
+					if end < ext.Address+ext.Quantity {
+						end = ext.Address + ext.Quantity
+					}
+					//超过最大长度，拆成新的一组
+					if end-start <= c.maxLen {
+						group.points = append(group.points, &ext)
+						ok = true
+						group.Address = start
+						group.Quantity = end - start
+						break
+					}
+				}
+				//新增一个点位组
+				if !ok {
+					ext.DeviceSn = dev.DeviceSn
+					ext.PointName = p.Name
+					device.pointGroup = append(device.pointGroup, &pointGroup{
+						unitID:   device.unitID,
+						Duration: duration,
+						points: []*pointConfig{
+							&ext,
+						},
+					})
+				}
+			}
+		}
+	}
+	return err
 }
 
 // Send 发送数据
 func (c *connector) Send(data interface{}) (err error) {
-	err = c.sendWriteCommand(data)
-	if err != nil {
-		c.plugin.logger.Error(fmt.Sprintf("write %v error: %v", data, err))
-	} else {
-		c.plugin.logger.Info(fmt.Sprintf("write %v succeeded", data))
+	cmd := data.(command)
+	switch cmd.mode {
+	// 读
+	case plugin.ReadMode:
+		group := cmd.value.(pointGroup)
+		err = c.sendReadCommand(group)
+	case plugin.WriteMode:
+		value := cmd.value.(writeValue)
+		err = c.sendWriteCommand(value)
+	default:
+		return common.NotSupportMode
 	}
+
 	return
 }
 
@@ -153,66 +277,6 @@ func (tg *taskGroup) addPoint(point *pointConfig) {
 	tg.points = append(tg.points, point)
 }
 
-func (c *connector) startPollTasks() error {
-	taskGroups := make([]*taskGroup, 0)
-	for slaveId, registerGroups := range c.devices {
-		for registerType, points := range registerGroups {
-			pointsToRead := make([]*pointConfig, 0)
-			for _, point := range points {
-				if isReadable(point.ReadWrite) {
-					pointsToRead = append(pointsToRead, point)
-				}
-			}
-			sort.Slice(pointsToRead, func(i, j int) bool {
-				p1 := pointsToRead[i]
-				p2 := pointsToRead[j]
-				return p1.Address < p2.Address
-			})
-			for _, pointToRead := range pointsToRead {
-				ttn := len(taskGroups)
-				if ttn == 0 {
-					taskGroups = append(taskGroups, newTaskGroup(slaveId, pointToRead))
-					continue
-				}
-				pre := taskGroups[ttn-1]
-				if pre.slaveId == slaveId && pre.registerType == registerType &&
-					pre.address+pre.length >= pointToRead.Address {
-					// 相同从机、相同类型寄存器、前后连续地址相连则进行整合
-					totalRegNum := pointToRead.Address + pointToRead.Quantity - pre.address
-					if totalRegNum <= c.maxLen {
-						pre.length = totalRegNum
-						pre.addPoint(pointToRead)
-					} else {
-						taskGroups = append(taskGroups, newTaskGroup(slaveId, pointToRead))
-					}
-				} else {
-					taskGroups = append(taskGroups, newTaskGroup(slaveId, pointToRead))
-				}
-			}
-		}
-	}
-	c.lastPoll = time.Now()
-	c.lastReq = time.Now()
-	c.polling = true
-	go func() {
-		for c.polling {
-			c.ensureFreq()
-			for _, tg := range taskGroups {
-				err := c.executePollTask(tg)
-				if err != nil {
-					c.plugin.logger.Error(fmt.Sprintf("execute poll task error: %v", err))
-				}
-				c.lastReq = time.Now()
-			}
-		}
-	}()
-	return nil
-}
-
-func isReadable(rw string) bool {
-	return strings.Contains(strings.ToUpper(rw), "R")
-}
-
 func isWritable(rw string) bool {
 	return strings.Contains(strings.ToUpper(rw), "W")
 }
@@ -232,50 +296,25 @@ func (c *connector) ensureInterval() {
 	}
 }
 
-func (c *connector) executePollTask(tg *taskGroup) error {
-	c.ensureInterval()
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+func (c *connector) sendReadCommand(group pointGroup) error {
 	err := c.client.Open()
 	if err != nil {
-		offlineDeviceNames := make(map[string]bool)
-		//devSN去重
-		for _, point := range tg.points {
-			if _, ok := offlineDeviceNames[point.DeviceSn]; !ok {
-				offlineDeviceNames[point.DeviceSn] = true
-			}
-		}
-		for devSn, _ := range offlineDeviceNames {
-			err := helper.DeviceShadow.MayBeOffline(devSn)
-			if err != nil {
-				c.plugin.logger.Warn(fmt.Sprintf("set offline device error: %v", err))
-			}
-		}
-		return fmt.Errorf("open modbus client error: %s", err.Error())
+		return err
 	}
 	defer func() {
 		err = c.client.Close()
 		if err != nil {
-			c.plugin.logger.Error(fmt.Sprintf("close plugin error: %v", err))
+			helper.Logger.Error(fmt.Sprintf("close plugin error: %v", err))
 		}
 	}()
-	values, err := c.read(tg.slaveId, string(tg.registerType), tg.address, tg.length)
+	values, err := c.read(group.unitID, string(group.RegisterType), group.Address, group.Quantity)
 	if err != nil {
-		return fmt.Errorf("read %+v error: %s", tg, err.Error())
+		return err
 	}
-	devicePointsMap := make(map[string][]PointValue)
 	// 转化数据并上报
-	for _, point := range tg.points {
-		deviceSn := point.DeviceSn
-		devicePoints, ok := devicePointsMap[deviceSn]
-		if !ok {
-			devicePoints = make([]PointValue, 0)
-		}
-		pointValue := PointValue{
-			Name: point.Name,
-		}
+	for _, point := range group.points {
 		var value interface{}
-		start := point.Address - tg.address
+		start := point.Address - group.Address
 		rawValues := values[start : start+point.Quantity]
 		reverseUint16s(rawValues)
 		switch point.RegisterType {
@@ -329,52 +368,17 @@ func (c *connector) executePollTask(tg *taskGroup) error {
 				continue
 			}
 		}
-		if point.Scale == "" {
-			pointValue.Value = value
-		} else {
-			scale, err := strconv.ParseFloat(point.Scale, 64)
-			if err != nil {
-				c.plugin.logger.Error(fmt.Sprintf("parse scale error: %s -> %s", point.Name, point.Scale))
-				continue
-			}
-			res, err := multiplyWithFloat64(value, scale)
-			if err != nil {
-				c.plugin.logger.Error(fmt.Sprintf("multiply error: %s -> %v * %s", point.Name, value, point.Scale))
-				continue
-			}
-			pointValue.Value = res
+		pointReadValue := plugin.PointReadValue{
+			SN:        point.DeviceSn,
+			PointName: point.PointName,
+			Value:     value,
 		}
-		devicePoints = append(devicePoints, pointValue)
-		devicePointsMap[deviceSn] = devicePoints
-	}
-	_, err = callback.OnReceiveHandler(c.plugin, devicePointsMap)
-	if err != nil {
-		return fmt.Errorf("upload data error: %v", err)
+		_, err = callback.OnReceiveHandler(c.plugin, pointReadValue)
+		if err != nil {
+			helper.Logger.Error("error modbus callback", zap.Any("data", pointReadValue), zap.Error(err))
+		}
 	}
 	return nil
-}
-
-func multiplyWithFloat64(value interface{}, scale float64) (float64, error) {
-	switch v := value.(type) {
-	case float64:
-		return v * scale, nil
-	case int16:
-		return float64(v) * scale, nil
-	case uint16:
-		return float64(v) * scale, nil
-	case uint32:
-		return float64(v) * scale, nil
-	case int32:
-		return float64(v) * scale, nil
-	case int64:
-		return float64(v) * scale, nil
-	case uint64:
-		return float64(v) * scale, nil
-	case float32:
-		return float64(v) * scale, nil
-	default:
-		return 0, fmt.Errorf("cannot multiply %T with float64", value)
-	}
 }
 
 func getBytesFromUint16s(values []uint16, byteSwap bool) (out []byte) {
@@ -436,24 +440,10 @@ type PointValue struct {
 	Value interface{} `json:"value"`
 }
 
-func (c *connector) sendWriteCommand(data interface{}) error {
-	cmd, ok := data.(command)
-	if !ok {
-		return fmt.Errorf("convert to command error: %v", data)
-	}
-	pointMap, ok := c.pointMap[cmd.device]
-	if !ok {
-		return fmt.Errorf("unable to find device point map: %v", cmd.device)
-	}
-	pc, ok := pointMap[cmd.point]
-	if !ok {
-		return fmt.Errorf("unable to get point configuration: %v->%v", cmd.device, cmd.point)
-	}
-	if !isWritable(pc.ReadWrite) {
-		return fmt.Errorf("unable to write read only point： %v", pc)
-	}
+func (c *connector) sendWriteCommand(pc writeValue) error {
+
 	var values []uint16
-	value := cmd.value
+	value := pc.Value
 	switch pc.RegisterType {
 	case Coil: // 线圈固定长度1
 		i, err := helper.Conv2Int64(value)
@@ -463,13 +453,6 @@ func (c *connector) sendWriteCommand(data interface{}) error {
 		values = []uint16{uint16(i & 1)}
 	case HoldingRegister:
 		valueStr := fmt.Sprintf("%v", value)
-		if pc.Scale != "" {
-			v, err := divideStrings(valueStr, pc.Scale)
-			if err != nil {
-				return fmt.Errorf("process value scale error: %v", err)
-			}
-			valueStr = v
-		}
 		switch strings.ToUpper(pc.RawType) {
 		case strings.ToUpper(common.ValueTypeUint16):
 			v, err := strconv.ParseUint(valueStr, 10, 16)
@@ -482,7 +465,7 @@ func (c *connector) sendWriteCommand(data interface{}) error {
 					return fmt.Errorf("too large value %v to set in %d bits", v, pc.BitLen)
 				}
 				c.ensureInterval()
-				uint16s, err := c.read(pc.SlaveId, string(pc.RegisterType), pc.Address, pc.Quantity)
+				uint16s, err := c.read(pc.unitID, string(pc.RegisterType), pc.Address, pc.Quantity)
 				uint16Val := uint16s[0]
 				if pc.ByteSwap {
 					uint16Val = (uint16Val << 8) | (uint16Val >> 8)
@@ -517,7 +500,7 @@ func (c *connector) sendWriteCommand(data interface{}) error {
 					return fmt.Errorf("negative value %v not allowed to set in bits", v)
 				}
 				c.ensureInterval()
-				uint16s, err := c.read(pc.SlaveId, string(pc.RegisterType), pc.Address, pc.Quantity)
+				uint16s, err := c.read(pc.unitID, string(pc.RegisterType), pc.Address, pc.Quantity)
 				uint16Val := uint16s[0]
 				if pc.ByteSwap {
 					uint16Val = (uint16Val << 8) | (uint16Val >> 8)
@@ -696,7 +679,7 @@ func (c *connector) sendWriteCommand(data interface{}) error {
 	c.ensureInterval()
 	var err error
 	for i := 0; i < c.retry; i++ {
-		if err = c.write(pc.SlaveId, pc.RegisterType, pc.Address, values); err == nil {
+		if err = c.write(pc.unitID, pc.RegisterType, pc.Address, values); err == nil {
 			break
 		}
 	}
@@ -855,22 +838,6 @@ func (c *connector) write(slaveID uint8, registerType primaryTable, address uint
 	return
 }
 
-type pointConfig struct {
-	DeviceSn     string
-	Name         string
-	ReadWrite    string
-	SlaveId      uint8
-	RegisterType primaryTable `json:"primaryTable"`
-	Address      uint16
-	Quantity     uint16 `json:"quantity"`
-	Bit          int    `json:"bit"`
-	BitLen       int    `json:"bitLen"`
-	RawType      string `json:"rawType"`
-	ByteSwap     bool   `json:"byteSwap"`
-	WordSwap     bool   `json:"wordSwap"`
-	Scale        string `json:"scale"`
-}
-
 func convToPointConfig(extends map[string]interface{}) (*pointConfig, error) {
 	pc := new(pointConfig)
 	err := helper.Map2Struct(extends, pc)
@@ -919,4 +886,27 @@ func convToPointConfig(extends map[string]interface{}) (*pointConfig, error) {
 	}
 
 	return pc, nil
+}
+func (c *connector) createDevice(properties map[string]string) (d *slaveDevice, err error) {
+	var dp deviceProtocol
+	if err = helper.Map2Struct(properties, &dp); err != nil {
+		return nil, err
+	}
+
+	if len(dp.unitID) == 0 {
+		return nil, errors.New("none unitID")
+	}
+	uintIdVal, err := strconv.ParseUint(dp.unitID, 10, 8)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var group []*pointGroup
+	d = &slaveDevice{
+		unitID:     uint8(uintIdVal),
+		pointGroup: group,
+	}
+	c.devices[dp.unitID] = d
+	return d, nil
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
-	"strconv"
 )
 
 // Plugin 驱动插件
@@ -28,12 +27,18 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState)
 
 	// 初始化协议适配器
 	p.adapter = &adapter{
-		scriptDir: c.Key,
-		ls:        ls,
+		ls:           ls,
+		scriptEnable: helper.ScriptExists(c.Key),
 	}
+	//初始化连接池
+	return p.initNetworks()
+}
+
+// 初始化Modbus连接池
+func (p *Plugin) initNetworks() (err error) {
 	p.connPool = make(map[string]*connector)
 
-	for key, connConfig := range c.Connections {
+	for key, connConfig := range p.config.Connections {
 		cc := new(connectorConfig)
 		if err = helper.Map2Struct(connConfig, cc); err != nil {
 			return fmt.Errorf("convert connector config error: %v", err)
@@ -44,62 +49,6 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState)
 		}
 		p.connPool[key] = c2
 	}
-
-	for _, dm := range c.DeviceModels {
-		for _, device := range dm.Devices {
-			connectionKey := device.ConnectionKey
-			conn, ok := p.connPool[connectionKey]
-			if !ok {
-				return fmt.Errorf("connection not found: %v", connectionKey)
-			}
-			uintID, ok := device.Properties["uintID"]
-			if !ok {
-				uintID = "1"
-			}
-			uintIdVal, err := strconv.ParseUint(uintID, 10, 8)
-			if err != nil {
-				return fmt.Errorf("convert slave id error: %v", err)
-			}
-			slaveId := uint8(uintIdVal)
-			pointConfigMap, ok := conn.devices[slaveId]
-			if !ok {
-				pointConfigMap = map[primaryTable][]*pointConfig{
-					Coil:            make([]*pointConfig, 0),
-					DiscreteInput:   make([]*pointConfig, 0),
-					InputRegister:   make([]*pointConfig, 0),
-					HoldingRegister: make([]*pointConfig, 0),
-				}
-			}
-			pointMap, ok := conn.pointMap[device.DeviceSn]
-			if !ok {
-				pointMap = make(map[string]*pointConfig)
-			}
-
-			for _, point := range dm.DevicePoints {
-				tp := point.ToPoint()
-				pc, err := convToPointConfig(tp.Extends)
-				if err != nil {
-					return fmt.Errorf("convToPointConfig error: %v", err)
-				}
-				pc.DeviceSn = device.DeviceSn
-				pc.Name = tp.Name
-				pc.ReadWrite = string(tp.ReadWrite)
-				pc.SlaveId = slaveId
-				pointConfigMap[pc.RegisterType] = append(pointConfigMap[pc.RegisterType], pc)
-				pointMap[pc.Name] = pc
-			}
-			conn.devices[slaveId] = pointConfigMap
-			conn.pointMap[device.DeviceSn] = pointMap
-		}
-	}
-
-	for key, conn := range p.connPool {
-		logger.Info(fmt.Sprintf("starting connection %s poll taskGroup", key))
-		if err = conn.startPollTasks(); err != nil {
-			return fmt.Errorf("start poll taskGroups error: %v", err)
-		}
-	}
-
 	return nil
 }
 

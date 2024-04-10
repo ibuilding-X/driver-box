@@ -131,6 +131,8 @@ type Point struct {
 	Units string `json:"units" validate:"-"`
 	// 上报模式
 	ReportMode ReportMode `json:"reportMode" validate:"required"`
+	//数值精度
+	Scale float64 `json:"scale"`
 	// 扩展参数
 	Extends map[string]interface{} `json:"-" validate:"-"`
 }

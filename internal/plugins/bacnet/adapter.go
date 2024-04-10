@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/models"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
@@ -40,7 +39,7 @@ type extends struct {
 
 // 写命令结构体
 type bacWriteCmd struct {
-	models.PointValue
+	plugin.PointWriteValue
 	Priority  int  `json:"priority"`
 	NullValue bool `json:"nullValue"`
 }
