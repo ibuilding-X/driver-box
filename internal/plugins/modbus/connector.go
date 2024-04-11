@@ -70,10 +70,11 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 					break
 				}
 
+				//采集时间未到
 				if group.LatestTime.Add(group.Duration).After(time.Now()) {
 					continue
 				}
-				//采集时间未到
+
 				helper.Logger.Debug("timer read modbus", zap.Any("group", i), zap.Any("latestTime", group.LatestTime), zap.Any("duration", group.Duration))
 				bac := command{
 					mode:  plugin.ReadMode,

@@ -11,6 +11,7 @@ type EncodeMode string
 const (
 	ReadMode       EncodeMode = "read"           // 读模式
 	WriteMode      EncodeMode = "write"          // 写模式
+	BatchWriteMode EncodeMode = "batchWrite"     // 批量写模式
 	RealTimeExport ExportType = "realTimeExport" //实时上报
 )
 
@@ -18,6 +19,7 @@ const (
 type PointData struct {
 	PointName string      `json:"name"`  // 点位名称
 	Value     interface{} `json:"value"` // 点位值
+	Points    []PointData `json:"-"`     //批量读写时使用
 }
 
 // DeviceData 设备数据

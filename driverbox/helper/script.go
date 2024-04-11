@@ -15,8 +15,6 @@ import (
 	"sync"
 )
 
-var runLock = &sync.Mutex{}
-
 // 缓存Lua虚拟机的锁
 var luaLocks = sync.Map{}
 
@@ -131,25 +129,6 @@ func CallLuaEncodeConverter(L *lua.LState, deviceSn string, raw interface{}) (st
 	// 获取解析结果
 	result := L.Get(-1).String()
 	return result, err
-}
-
-// SafeCallLuaFunc 安全调用 lua 函数，通过锁机制独占时间片
-func SafeCallLuaFunc(L *lua.LState, method string) error {
-	defer func() {
-		if err := recover(); err != nil {
-			Logger.Error("call lua script error", zap.Any("error", err))
-		}
-	}()
-
-	runLock.Lock()
-	defer runLock.Unlock()
-
-	L.Push(L.GetGlobal(method))
-	if err := L.PCall(0, 0, nil); err != nil {
-		return fmt.Errorf("call lua script %s function error: %s", method, err)
-	}
-
-	return nil
 }
 
 // 关闭Lua虚拟机

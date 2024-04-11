@@ -16,6 +16,14 @@ func Send(deviceSn string, mode plugin.EncodeMode, pointData plugin.PointData) e
 			Logger.Error(fmt.Sprintf("%+v", err2))
 		}
 	}()
+	if mode == plugin.BatchWriteMode {
+		return sendBatchWrite(deviceSn, pointData)
+	}
+	return sendSinglePoint(deviceSn, mode, pointData)
+}
+
+// 单点操作
+func sendSinglePoint(deviceSn string, mode plugin.EncodeMode, pointData plugin.PointData) error {
 	point, ok := CoreCache.GetPointByDevice(deviceSn, pointData.PointName)
 	if !ok {
 		return fmt.Errorf("not found point, point name is %s", pointData.PointName)
@@ -74,19 +82,8 @@ func Send(deviceSn string, mode plugin.EncodeMode, pointData plugin.PointData) e
 	return err
 }
 
-// SendMultiRead 发送多个点位读取命令，多用于 autoEvent
-func SendMultiRead(devicesSn []string, pointNames []string) (err error) {
-	for i, _ := range devicesSn {
-		deviceSn := devicesSn[i]
-		for _, pointName := range pointNames {
-			err2 := Send(deviceSn, plugin.ReadMode, plugin.PointData{
-				PointName: pointName,
-			})
-			if err2 != nil {
-				Logger.Error(fmt.Sprintf("send error: %s", err2.Error()))
-			}
-		}
-	}
+// SendMultiWrite 发送多个点位写命令
+func sendBatchWrite(devicesSn string, points plugin.PointData) (err error) {
 
 	return
 }
