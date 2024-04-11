@@ -114,6 +114,8 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 			helper.Logger.Error("error modbus point config", zap.String("deviceSn", dev.DeviceSn), zap.Any("point", point), zap.Error(err))
 			continue
 		}
+		ext.Name = p.Name
+		ext.DeviceSn = dev.DeviceSn
 		duration, err := time.ParseDuration(ext.Duration)
 		if err != nil {
 			helper.Logger.Error("error modbus duration config", zap.String("deviceSn", dev.DeviceSn), zap.Any("config", p.Extends), zap.Error(err))
@@ -171,9 +173,12 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 			ext.DeviceSn = dev.DeviceSn
 			ext.Name = p.Name
 			device.pointGroup = append(device.pointGroup, &pointGroup{
-				unitID:   device.unitID,
-				Duration: duration,
-				points: []*PointExtend{
+				unitID:       device.unitID,
+				Duration:     duration,
+				RegisterType: ext.RegisterType,
+				Address:      ext.Address,
+				Quantity:     ext.Quantity,
+				points: []*Point{
 					ext,
 				},
 			})
@@ -188,7 +193,7 @@ func (c *connector) Send(data interface{}) (err error) {
 	switch cmd.mode {
 	// 读
 	case plugin.ReadMode:
-		group := cmd.value.(pointGroup)
+		group := cmd.value.(*pointGroup)
 		err = c.sendReadCommand(group)
 	case plugin.WriteMode:
 		value := cmd.value.(writeValue)
@@ -228,7 +233,7 @@ func (c *connector) ensureInterval() {
 	c.latestIoTime = time.Now()
 }
 
-func (c *connector) sendReadCommand(group pointGroup) error {
+func (c *connector) sendReadCommand(group *pointGroup) error {
 	err := c.client.Open()
 	if err != nil {
 		return err
@@ -738,8 +743,8 @@ func (c *connector) write(slaveID uint8, registerType primaryTable, address uint
 	return
 }
 
-func convToPointExtend(extends map[string]interface{}) (*PointExtend, error) {
-	extend := new(PointExtend)
+func convToPointExtend(extends map[string]interface{}) (*Point, error) {
+	extend := new(Point)
 	if err := helper.Map2Struct(extends, extend); err != nil {
 		helper.Logger.Error("error modbus config", zap.Any("config", extends), zap.Error(err))
 		return nil, err
@@ -787,6 +792,10 @@ func (c *connector) createDevice(properties map[string]string) (d *slaveDevice, 
 	unitID := properties["unitID"]
 	if len(unitID) == 0 {
 		return nil, errors.New("none unitID")
+	}
+	d, ok := c.devices[unitID]
+	if ok {
+		return d, nil
 	}
 	uintIdVal, err := strconv.ParseUint(unitID, 10, 8)
 

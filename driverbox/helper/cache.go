@@ -139,6 +139,10 @@ func checkPoint(model *config.DeviceModel, point *config.Point) {
 	if point.ValueType != config.ValueType_Float && point.ValueType != config.ValueType_Int && point.ValueType != config.ValueType_String {
 		Logger.Error("point valueType config error , valid config is: int float string", zap.Any("point", point), zap.String("model", model.Name))
 	}
+	if point.ReportMode == "" {
+		Logger.Warn("config error , point reportMode is empty, set default to real")
+		point.ReportMode = config.ReportMode_Real
+	}
 	if point.ReadWrite != config.ReadWrite_RW && point.ReadWrite != config.ReadWrite_R && point.ReadWrite != config.ReadWrite_W {
 		Logger.Error("point readWrite config error , valid config is: R W RW", zap.Any("point", point), zap.String("model", model.Name))
 	}

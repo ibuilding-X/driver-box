@@ -31,8 +31,8 @@ type ConnectionConfig struct {
 	Virtual     bool   `json:"virtual"`     //虚拟设备功能
 }
 
-// PointExtend modbus点位扩展属性
-type PointExtend struct {
+// Point modbus点位
+type Point struct {
 	config.Point
 	//冗余设备相关信息
 	DeviceSn string
@@ -71,7 +71,7 @@ type pointGroup struct {
 	Address uint16
 	//数量
 	Quantity uint16
-	points   []*PointExtend
+	points   []*Point
 }
 
 // Connector#Send接入入参

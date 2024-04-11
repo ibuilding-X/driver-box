@@ -65,6 +65,7 @@ func (p *Plugin) initNetworks(config config.Config) {
 			continue
 		}
 		conn, err := newConnector(p, connectionConfig)
+		conn.key = key
 		if err != nil {
 			helper.Logger.Error("init connector error", zap.Any("connection", connConfig), zap.Error(err))
 			continue
