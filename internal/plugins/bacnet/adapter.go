@@ -6,6 +6,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/core"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/network"
@@ -42,6 +43,10 @@ type bacWriteCmd struct {
 	plugin.PointWriteValue
 	Priority  int  `json:"priority"`
 	NullValue bool `json:"nullValue"`
+}
+
+func (a *adapter) BatchEncode(deviceSn string, mode plugin.EncodeMode, value []plugin.PointData) (res interface{}, err error) {
+	return nil, common.NotSupportEncode
 }
 
 // Encode 编码
@@ -95,7 +100,7 @@ func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.P
 		if len(bwc.PreOp) > 0 {
 			for _, op := range bwc.PreOp {
 				helper.Logger.Info("Send preOp", zap.String("deviceSn", deviceSn), zap.String("pointName", op.PointName), zap.Any("value", op.Value))
-				err = helper.Send(deviceSn, plugin.WriteMode, plugin.PointData{
+				err = core.SendSinglePoint(deviceSn, plugin.WriteMode, plugin.PointData{
 					PointName: op.PointName,
 					Value:     op.Value,
 				})

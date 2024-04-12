@@ -2,6 +2,7 @@ package httpclient
 
 import (
 	"encoding/json"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
@@ -24,6 +25,9 @@ type transportationData struct {
 func (td transportationData) ToJSON() string {
 	b, _ := json.Marshal(td)
 	return string(b)
+}
+func (a *adapter) BatchEncode(deviceSn string, mode plugin.EncodeMode, value []plugin.PointData) (res interface{}, err error) {
+	return nil, common.NotSupportEncode
 }
 
 // Encode 编码数据

@@ -3,6 +3,7 @@ package modbus
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
@@ -37,6 +38,9 @@ func (a *adapter) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
 		})
 	}
 	return
+}
+func (a *adapter) BatchEncode(deviceSn string, mode plugin.EncodeMode, value []plugin.PointData) (res interface{}, err error) {
+	return nil, common.NotSupportEncode
 }
 
 // Encode 编码数据

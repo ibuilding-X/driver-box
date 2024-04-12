@@ -10,6 +10,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/restful/route"
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
+	"github.com/ibuilding-x/driver-box/internal/core"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	"go.uber.org/zap"
 	"os"
@@ -93,4 +94,21 @@ func initEnvConfig() error {
 		helper.EnvConfig.LogPath = logPath
 	}
 	return nil
+}
+
+// 触发某个设备点位的读取动作，指令会下发值驱动层
+func ReadPoint(deviceSn string, pointName string) error {
+	return core.SendSinglePoint(deviceSn, plugin.ReadMode, plugin.PointData{
+		PointName: pointName,
+	})
+}
+
+// 触发某个设备点位的写入操作
+func WritePoint(deviceSn string, pointData plugin.PointData) error {
+	return core.SendSinglePoint(deviceSn, plugin.WriteMode, pointData)
+}
+
+// 批量写点位
+func WritePoints(deviceSn string, pointData []plugin.PointData) error {
+	return core.SendBatchWrite(deviceSn, pointData)
 }

@@ -1,47 +1,28 @@
-package helper
+package core
 
 import (
 	"errors"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 	"time"
 )
 
-// Send 向设备发送数据
-func Send(deviceSn string, mode plugin.EncodeMode, pointData plugin.PointData) error {
-	defer func() {
-		if err2 := recover(); err2 != nil {
-			Logger.Error(fmt.Sprintf("%+v", err2))
-		}
-	}()
-	if mode == plugin.BatchWriteMode {
-		return sendBatchWrite(deviceSn, pointData)
-	}
-	return sendSinglePoint(deviceSn, mode, pointData)
-}
-
 // 单点操作
-func sendSinglePoint(deviceSn string, mode plugin.EncodeMode, pointData plugin.PointData) error {
-	point, ok := CoreCache.GetPointByDevice(deviceSn, pointData.PointName)
+func SendSinglePoint(deviceSn string, mode plugin.EncodeMode, pointData plugin.PointData) error {
+	point, ok := helper.CoreCache.GetPointByDevice(deviceSn, pointData.PointName)
 	if !ok {
 		return fmt.Errorf("not found point, point name is %s", pointData.PointName)
 	}
 
 	//精度换算
-	if mode == plugin.WriteMode && point.Scale != 0 {
-		value, err := ConvPointType(pointData.Value, point.ValueType)
+	if mode == plugin.WriteMode {
+		err := pointValueProcess(&pointData, point)
 		if err != nil {
 			return err
 		}
-		if point.Scale != 0 {
-			value, err = divideStrings(value, point.Scale)
-			if err != nil {
-				return err
-			}
-		}
-		pointData.Value = value
 	}
 
 	//判断点位操作有效性
@@ -52,14 +33,14 @@ func sendSinglePoint(deviceSn string, mode plugin.EncodeMode, pointData plugin.P
 	}
 
 	// 获取插件
-	p, ok := CoreCache.GetRunningPluginByDeviceAndPoint(deviceSn, pointData.PointName)
+	p, ok := helper.CoreCache.GetRunningPluginByDeviceAndPoint(deviceSn, pointData.PointName)
 	if !ok {
 		return fmt.Errorf("not found running plugin, device name is %s", deviceSn)
 	}
 	// 获取连接
 	conn, err := p.Connector(deviceSn, pointData.PointName)
 	if err != nil {
-		_ = DeviceShadow.MayBeOffline(deviceSn)
+		_ = helper.DeviceShadow.MayBeOffline(deviceSn)
 		return err
 	}
 	// 释放连接
@@ -72,7 +53,7 @@ func sendSinglePoint(deviceSn string, mode plugin.EncodeMode, pointData plugin.P
 	}
 	// 发送数据
 	if err = conn.Send(res); err != nil {
-		_ = DeviceShadow.MayBeOffline(deviceSn)
+		_ = helper.DeviceShadow.MayBeOffline(deviceSn)
 		return err
 	}
 	//点位写成功后，立即触发读取操作以及时更新影子状态
@@ -82,15 +63,27 @@ func sendSinglePoint(deviceSn string, mode plugin.EncodeMode, pointData plugin.P
 	return err
 }
 
-// SendMultiWrite 发送多个点位写命令
-func sendBatchWrite(devicesSn string, points plugin.PointData) (err error) {
-
-	return
+func pointValueProcess(pointData *plugin.PointData, point config.Point) error {
+	if point.Scale == 0 {
+		return nil
+	}
+	value, err := helper.ConvPointType(pointData.Value, point.ValueType)
+	if err != nil {
+		return err
+	}
+	if point.Scale != 0 {
+		value, err = divideStrings(value, point.Scale)
+		if err != nil {
+			return err
+		}
+	}
+	pointData.Value = value
+	return nil
 }
 
 // 尝试读取期望点位值
 func tryReadNewValue(deviceSn, pointName string, expectValue interface{}) {
-	point, ok := CoreCache.GetPointByDevice(deviceSn, pointName)
+	point, ok := helper.CoreCache.GetPointByDevice(deviceSn, pointName)
 	if !ok {
 		return
 	}
@@ -103,17 +96,17 @@ func tryReadNewValue(deviceSn, pointName string, expectValue interface{}) {
 		for i < 10 {
 			i++
 			time.Sleep(time.Duration(i*100) * time.Millisecond)
-			Logger.Info("point write success,try to read new value", zap.String("point", pointName))
-			err := Send(deviceSn, plugin.ReadMode, plugin.PointData{
+			helper.Logger.Info("point write success,try to read new value", zap.String("point", pointName))
+			err := SendSinglePoint(deviceSn, plugin.ReadMode, plugin.PointData{
 				PointName: pointName,
 			})
 			if err != nil {
-				Logger.Error("point write success, read new value error", zap.String("point", pointName), zap.Error(err))
+				helper.Logger.Error("point write success, read new value error", zap.String("point", pointName), zap.Error(err))
 				break
 			}
 
-			value, _ := DeviceShadow.GetDevicePoint(deviceSn, pointName)
-			Logger.Info("point write success, read new value", zap.String("point", pointName), zap.Any("expect", expectValue), zap.Any("value", value))
+			value, _ := helper.DeviceShadow.GetDevicePoint(deviceSn, pointName)
+			helper.Logger.Info("point write success, read new value", zap.String("point", pointName), zap.Any("expect", expectValue), zap.Any("value", value))
 			if fmt.Sprint(expectValue) == fmt.Sprint(value) {
 				break
 			}

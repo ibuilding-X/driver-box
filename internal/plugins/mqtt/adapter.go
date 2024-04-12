@@ -14,6 +14,9 @@ type adapter struct {
 	ls        *lua.LState
 }
 
+func (a *adapter) BatchEncode(deviceSn string, mode plugin.EncodeMode, value []plugin.PointData) (res interface{}, err error) {
+	return nil, common.NotSupportEncode
+}
 func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.PointData) (res interface{}, err error) {
 	if mode == plugin.WriteMode {
 		tmp, _ := json.Marshal(value)

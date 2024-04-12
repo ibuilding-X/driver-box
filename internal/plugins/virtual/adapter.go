@@ -25,7 +25,9 @@ func (td transportationData) ToJson() string {
 	b, _ := json.Marshal(td)
 	return string(b)
 }
-
+func (a *adapter) BatchEncode(deviceSn string, mode plugin.EncodeMode, value []plugin.PointData) (res interface{}, err error) {
+	return nil, common.NotSupportEncode
+}
 func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.PointData) (res interface{}, err error) {
 
 	data := transportationData{

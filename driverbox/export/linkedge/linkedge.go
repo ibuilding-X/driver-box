@@ -9,6 +9,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/restful"
 	"github.com/ibuilding-x/driver-box/driverbox/restful/route"
+	"github.com/ibuilding-x/driver-box/internal/core"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 	"io"
@@ -404,7 +405,7 @@ func (linkEdge *service) triggerLinkEdge(id string, depth int, conf ...ModelConf
 				helper.Logger.Error(fmt.Sprintf("execute linkEdge:%s action error:%s", id, e.Error()))
 				continue
 			}
-			err := helper.Send(devicePointAction.DeviceSn, plugin.WriteMode, plugin.PointData{
+			err := core.SendSinglePoint(devicePointAction.DeviceSn, plugin.WriteMode, plugin.PointData{
 				PointName: devicePointAction.DevicePoint,
 				Value:     devicePointAction.Value,
 			})

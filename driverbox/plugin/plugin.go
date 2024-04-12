@@ -37,5 +37,7 @@ type Connector interface {
 // 点位数据 <=> 协议数据
 type ProtocolAdapter interface {
 	Encode(deviceSn string, mode EncodeMode, value PointData) (res interface{}, err error) // 编码
-	Decode(raw interface{}) (res []DeviceData, err error)                                  // 解码
+	//批量点位编码
+	BatchEncode(deviceSn string, mode EncodeMode, value []PointData) (res interface{}, err error) // 编码
+	Decode(raw interface{}) (res []DeviceData, err error)                                         // 解码
 }

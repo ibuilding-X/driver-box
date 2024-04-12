@@ -19,7 +19,6 @@ const (
 type PointData struct {
 	PointName string      `json:"name"`  // 点位名称
 	Value     interface{} `json:"value"` // 点位值
-	Points    []PointData `json:"-"`     //批量读写时使用
 }
 
 // DeviceData 设备数据
