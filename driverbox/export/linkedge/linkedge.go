@@ -725,6 +725,10 @@ func (linkEdge *service) GetLast() (c ModelConfig, err error) {
 			c = config
 		}
 	}
+	// 判断执行时间，若执行时间为空，则返回空
+	if c.executeTime.IsZero() {
+		return ModelConfig{}, nil
+	}
 	return
 }
 
