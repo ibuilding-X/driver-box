@@ -86,6 +86,8 @@ type Config struct {
 	ProtocolName string `json:"protocolName" validate:"required"`
 	// 配置唯一key，一般对应目录名称
 	Key string `json:"-" validate:"-"`
+	// 模型索引
+	modelIndexes map[string]int
 }
 
 //------------------------------ 设备模型 ------------------------------
@@ -113,6 +115,8 @@ type DeviceModel struct {
 	DevicePoints []PointMap `json:"devicePoints" validate:"required"`
 	// 设备列表
 	Devices []Device `json:"devices" validate:"required"`
+	// 设备索引
+	deviceIndexes map[string]int
 }
 
 // Point 点位数据
@@ -183,4 +187,44 @@ func (c Config) Validate() error {
 // 是否处于虚拟运行模式：未建立真实的设备连接
 func IsVirtual() bool {
 	return os.Getenv(ENV_VIRTUAL) == "true"
+}
+
+// UpdateIndexAndClean 更新索引并清理无效数据
+// 1. 更新模型、设备索引
+// 2. 移除无效连接
+func (c Config) UpdateIndexAndClean() Config {
+	c.modelIndexes = make(map[string]int)
+
+	usefulConnKeys := make(map[string]struct{})
+	// 遍历模型
+	for i, _ := range c.DeviceModels {
+		c.modelIndexes[c.DeviceModels[i].Name] = i
+		c.DeviceModels[i].deviceIndexes = make(map[string]int)
+		// 遍历设备
+		for j, _ := range c.DeviceModels[i].Devices {
+			usefulConnKeys[c.DeviceModels[i].Devices[j].ConnectionKey] = struct{}{}
+			c.DeviceModels[i].deviceIndexes[c.DeviceModels[i].Devices[j].DeviceSn] = j
+		}
+	}
+
+	// 移除无效连接
+	connections := make(map[string]interface{})
+	for k, _ := range usefulConnKeys {
+		if _, ok := c.Connections[k]; ok {
+			connections[k] = c.Connections[k]
+		}
+	}
+	c.Connections = connections
+
+	return c
+}
+
+// GetModelIndexes 获取模型索引
+func (c Config) GetModelIndexes() map[string]int {
+	return c.modelIndexes
+}
+
+// GetDeviceIndexes 获取设备索引
+func (dm DeviceModel) GetDeviceIndexes() map[string]int {
+	return dm.deviceIndexes
 }
