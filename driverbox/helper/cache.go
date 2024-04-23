@@ -5,6 +5,7 @@ package helper
 import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 	"sync"
@@ -175,7 +176,8 @@ type coreCache interface {
 	UpdateDeviceProperty(deviceSn string, key string, value string)           // 更新设备属性
 	DeleteDevice(sn string)                                                   // 删除设备
 	UpdateDeviceDesc(sn string, desc string)                                  // 更新设备描述
-	Reset()                                                                   // 重置核心缓存
+	Reset()
+	AddOrUpdateDevice(device config.Device) error // 添加或更新设备
 }
 
 func (c *cache) GetModel(modelName string) (model config.Model, ok bool) {
@@ -335,4 +337,12 @@ func (c *cache) Reset() {
 	c.resetSyncMap(c.runningPlugins)
 	c.resetSyncMap(c.devicePointConn)
 	c.resetSyncMap(c.tagDevices)
+}
+
+// AddOrUpdateDevice 添加或更新设备
+func (c *cache) AddOrUpdateDevice(device config.Device) error {
+	// 更新缓存信息
+	c.devices.Store(device.DeviceSn, device)
+	// 持久化
+	return cmanager.AddOrUpdateDevice(device)
 }
