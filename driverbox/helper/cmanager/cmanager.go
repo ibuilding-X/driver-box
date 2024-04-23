@@ -108,8 +108,16 @@ func RemoveDevice(modelName string, deviceName string) error {
 	return instance.RemoveDevice(modelName, deviceName)
 }
 
+func RemoveDeviceBySN(deviceSN string) error {
+	return instance.RemoveDeviceBySN(deviceSN)
+}
+
 func AddConfig(c config.Config) error {
 	return instance.AddConfig(c)
+}
+
+func BatchRemoveDevice(sns []string) error {
+	return instance.BatchRemoveDevice(sns)
 }
 
 // SetConfigPath 设置配置目录
@@ -283,7 +291,41 @@ func (m *manager) RemoveDeviceBySN(sn string) error {
 
 // BatchRemoveDevice 批量删除设备
 func (m *manager) BatchRemoveDevice(sns []string) error {
-	// todo 待实现
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
+	// 便于检索
+	snMap := make(map[string]struct{})
+	for _, sn := range sns {
+		snMap[sn] = struct{}{}
+	}
+
+	for s, conf := range m.configs {
+		var changed bool
+		for i, model := range conf.DeviceModels {
+			if len(model.Devices) > 0 {
+				newDevice := make([]config.Device, 0, len(model.Devices))
+				for _, device := range model.Devices {
+					if _, exist := snMap[device.DeviceSn]; exist {
+						// 删除
+						changed = true
+					} else {
+						// 保留
+						newDevice = append(newDevice, device)
+					}
+				}
+				// 更新设备列表
+				if changed {
+					m.configs[s].DeviceModels[i].Devices = newDevice
+				}
+			}
+		}
+		if changed {
+			m.configs[s] = conf.UpdateIndexAndClean()
+			return m.saveConfig(s)
+		}
+	}
+
 	return nil
 }
 
