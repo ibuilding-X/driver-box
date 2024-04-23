@@ -47,6 +47,9 @@ type Manager interface {
 	GetDevice(modelName string, deviceName string) (config.Device, bool)
 	AddOrUpdateDevice(device config.Device) error
 	RemoveDevice(modelName string, deviceName string) error
+	RemoveDeviceBySN(deviceSN string) error
+
+	BatchRemoveDevice(sns []string) error
 
 	AddConfig(c config.Config) error
 }
@@ -253,6 +256,35 @@ func (m *manager) RemoveDevice(modelName string, deviceName string) error {
 		}
 	}
 	return ErrUnknownDevice
+}
+
+// RemoveDeviceBySN 根据 SN 删除设备
+// 提示：性能消耗过高，推荐使用 RemoveDevice 方法进行删除
+func (m *manager) RemoveDeviceBySN(sn string) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
+	for s, conf := range m.configs {
+		// 遍历所有模型
+		for i, model := range conf.DeviceModels {
+			// 遍历所有设备
+			for j, device := range model.Devices {
+				if device.DeviceSn == sn {
+					m.configs[s].DeviceModels[i].Devices = append(model.Devices[:j], model.Devices[j+1:]...)
+					m.configs[s] = conf.UpdateIndexAndClean()
+					return m.saveConfig(s)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// BatchRemoveDevice 批量删除设备
+func (m *manager) BatchRemoveDevice(sns []string) error {
+	// todo 待实现
+	return nil
 }
 
 // AddConfig 新增配置

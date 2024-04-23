@@ -162,6 +162,13 @@ type Device struct {
 	Properties map[string]string `json:"properties" validate:"-"`
 }
 
+// DeviceReservedProperties 设备预留属性
+type DeviceReservedProperties struct {
+	Area  string
+	PID   string
+	SysID string
+}
+
 // TimerTask 定时任务
 type TimerTask struct {
 	// 间隔（单位：毫秒）

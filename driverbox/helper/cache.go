@@ -177,7 +177,9 @@ type coreCache interface {
 	DeleteDevice(sn string)                                                   // 删除设备
 	UpdateDeviceDesc(sn string, desc string)                                  // 更新设备描述
 	Reset()
-	AddOrUpdateDevice(device config.Device) error // 添加或更新设备
+	AddOrUpdateDevice(device config.Device) error                                                    // 添加或更新设备
+	GetDeviceReservedProperties(deviceSn string) (reserved config.DeviceReservedProperties, ok bool) // 获取设备预留属性
+	UpdateDeviceReservedProperties(deviceSn string, reserved config.DeviceReservedProperties)        // 更新设备预留属性
 }
 
 func (c *cache) GetModel(modelName string) (model config.Model, ok bool) {
@@ -345,4 +347,31 @@ func (c *cache) AddOrUpdateDevice(device config.Device) error {
 	c.devices.Store(device.DeviceSn, device)
 	// 持久化
 	return cmanager.AddOrUpdateDevice(device)
+}
+
+// GetDeviceReservedProperties 获取设备预留属性
+func (c *cache) GetDeviceReservedProperties(deviceSn string) (reserved config.DeviceReservedProperties, ok bool) {
+	if raw, ok := c.devices.Load(deviceSn); ok {
+		device, _ := raw.(config.Device)
+		return config.DeviceReservedProperties{
+			Area:  device.Properties["_area"],
+			PID:   device.Properties["_pid"],
+			SysID: device.Properties["_sysid"],
+		}, true
+	}
+	return config.DeviceReservedProperties{}, false
+}
+
+// UpdateDeviceReservedProperties 更新设备预留属性
+func (c *cache) UpdateDeviceReservedProperties(deviceSn string, reserved config.DeviceReservedProperties) {
+	if deviceAny, ok := c.devices.Load(deviceSn); ok {
+		device, _ := deviceAny.(config.Device)
+		device.Properties["_area"] = reserved.Area
+		device.Properties["_pid"] = reserved.PID
+		device.Properties["_sysid"] = reserved.SysID
+		// 更新缓存
+		c.devices.Store(deviceSn, device)
+		// 持久化
+		_ = cmanager.AddOrUpdateDevice(device)
+	}
 }
