@@ -33,6 +33,8 @@ var (
 	ErrConfigNotExist = errors.New("config not exist")
 )
 
+var instance = New()
+
 type Manager interface {
 	SetConfigPath(path string)
 	SetConfigFileName(name string)
@@ -65,6 +67,46 @@ func New() Manager {
 		configs:    make(map[string]config.Config),
 		mux:        &sync.RWMutex{},
 	}
+}
+
+func SetConfigPath(path string) {
+	instance.SetConfigPath(path)
+}
+
+func SetConfigFileName(name string) {
+	instance.SetConfigFileName(name)
+}
+
+func SetScriptFileName(name string) {
+	instance.SetScriptFileName(name)
+}
+
+func LoadConfig() error {
+	return instance.LoadConfig()
+}
+
+func GetConfigs() map[string]config.Config {
+	return instance.GetConfigs()
+}
+
+func GetModel(modelName string) (config.DeviceModel, bool) {
+	return instance.GetModel(modelName)
+}
+
+func GetDevice(modelName string, deviceName string) (config.Device, bool) {
+	return instance.GetDevice(modelName, deviceName)
+}
+
+func AddOrUpdateDevice(device config.Device) error {
+	return instance.AddOrUpdateDevice(device)
+}
+
+func RemoveDevice(modelName string, deviceName string) error {
+	return instance.RemoveDevice(modelName, deviceName)
+}
+
+func AddConfig(c config.Config) error {
+	return instance.AddConfig(c)
 }
 
 // SetConfigPath 设置配置目录

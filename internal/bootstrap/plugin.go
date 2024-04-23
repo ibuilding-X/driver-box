@@ -18,13 +18,12 @@ func LoadPlugins() error {
 	//打印环境配置
 	helper.Logger.Info("driver-box environment config", zap.Any("config", helper.EnvConfig))
 	// 加载核心配置
-	manager := cmanager.New()
-	manager.SetConfigPath(helper.EnvConfig.ConfigPath)
-	err := manager.LoadConfig()
+	cmanager.SetConfigPath(helper.EnvConfig.ConfigPath)
+	err := cmanager.LoadConfig()
 	if err != nil {
 		return errors.New(common.LoadCoreConfigErr.Error() + ":" + err.Error())
 	}
-	configMap := manager.GetConfigs()
+	configMap := cmanager.GetConfigs()
 
 	if len(configMap) == 0 {
 		helper.Logger.Warn("driver-box config is empty", zap.String("path", helper.EnvConfig.ConfigPath))
