@@ -191,7 +191,7 @@ func IsVirtual() bool {
 
 // UpdateIndexAndClean 更新索引并清理无效数据
 // 1. 更新模型、设备索引
-// 2. 移除无效连接
+// 2. 移除无效连接（关闭）
 func (c Config) UpdateIndexAndClean() Config {
 	c.modelIndexes = make(map[string]int)
 
@@ -208,13 +208,13 @@ func (c Config) UpdateIndexAndClean() Config {
 	}
 
 	// 移除无效连接
-	connections := make(map[string]interface{})
-	for k, _ := range usefulConnKeys {
-		if _, ok := c.Connections[k]; ok {
-			connections[k] = c.Connections[k]
-		}
-	}
-	c.Connections = connections
+	//connections := make(map[string]interface{})
+	//for k, _ := range usefulConnKeys {
+	//	if _, ok := c.Connections[k]; ok {
+	//		connections[k] = c.Connections[k]
+	//	}
+	//}
+	//c.Connections = connections
 
 	return c
 }
