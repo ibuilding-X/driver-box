@@ -17,6 +17,7 @@ const (
 
 // ConnectionConfig 连接器配置
 type ConnectionConfig struct {
+	Enable      bool   `json:"enable"`      //当前连接是否可用
 	Address     string `json:"address"`     // 地址：例如：127.0.0.1:502
 	Mode        string `json:"mode"`        // 连接模式：rtuovertcp、rtu
 	BaudRate    uint   `json:"baudRate"`    // 波特率（仅串口模式）
