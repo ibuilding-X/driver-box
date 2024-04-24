@@ -13,7 +13,7 @@ type Device struct {
 // 写入某个设备点位
 func (s *Device) WritePoint(r *http.Request) (any, error) {
 	sn := r.URL.Query().Get("sn")
-	point := r.URL.Query().Get("name")
+	point := r.URL.Query().Get("point")
 	value := r.URL.Query().Get("value")
 	return nil, core.SendSinglePoint(sn, plugin.WriteMode, plugin.PointData{
 		PointName: point,
@@ -24,7 +24,7 @@ func (s *Device) WritePoint(r *http.Request) (any, error) {
 // 读取某个设备点位
 func (s *Device) ReadPoint(r *http.Request) (any, error) {
 	sn := r.URL.Query().Get("sn")
-	point := r.URL.Query().Get("name")
+	point := r.URL.Query().Get("point")
 	e := core.SendSinglePoint(sn, plugin.ReadMode, plugin.PointData{
 		PointName: point,
 	})
