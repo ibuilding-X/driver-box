@@ -29,6 +29,9 @@ func newConnector(plugin *Plugin, cf *ConnectionConfig) (*connector, error) {
 	if retry == 0 {
 		retry = 3
 	}
+	if cf.Timeout <= 0 {
+		cf.Timeout = 1000
+	}
 
 	client, err := modbus.NewClient(&modbus.ClientConfiguration{
 		URL:      fmt.Sprintf("%s://%s", cf.Mode, cf.Address),
@@ -651,6 +654,8 @@ func castModbusAddress(i interface{}) (address uint16, err error) {
 			return res - 30001, nil
 		} else if res > 40000 && res < 50000 {
 			return res - 40001, nil
+		} else {
+			return 0, fmt.Errorf("invalid modbus address: %v", s)
 		}
 	}
 

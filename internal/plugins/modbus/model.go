@@ -17,18 +17,18 @@ const (
 
 // ConnectionConfig 连接器配置
 type ConnectionConfig struct {
-	Address     string `json:"address"`     // 地址：例如：127.0.0.1:502
-	Mode        string `json:"mode"`        // 连接模式：rtuovertcp、rtu
-	BaudRate    uint   `json:"baudRate"`    // 波特率（仅串口模式）
-	DataBits    uint   `json:"dataBits"`    // 数据位（仅串口模式）
-	StopBits    uint   `json:"stopBits"`    // 停止位（仅串口模式）
-	Parity      uint   `json:"parity"`      // 奇偶性校验（仅串口模式）
-	MaxLen      uint16 `json:"maxLen"`      // 最长连续读个数
-	MinInterval uint   `json:"minInterval"` // 最小读取间隔
-	Timeout     int    `json:"timeout"`     // 请求超时
-	Retry       int    `json:"retry"`       // 重试次数
-	Duration    string `json:"duration"`    // 自动采集周期
-	Virtual     bool   `json:"virtual"`     //虚拟设备功能
+	Address     string `json:"address"`      // 地址：例如：127.0.0.1:502
+	Mode        string `json:"mode"`         // 连接模式：rtuovertcp、rtu
+	BaudRate    uint   `json:"baud_rate"`    // 波特率（仅串口模式）
+	DataBits    uint   `json:"data_bits"`    // 数据位（仅串口模式）
+	StopBits    uint   `json:"stop_bits"`    // 停止位（仅串口模式）
+	Parity      uint   `json:"parity"`       // 奇偶性校验（仅串口模式）
+	MaxLen      uint16 `json:"max_len"`      // 最长连续读个数
+	MinInterval uint   `json:"min_interval"` // 最小读取间隔
+	Timeout     int    `json:"timeout"`      // 请求超时
+	Retry       int    `json:"retry"`        // 重试次数
+	Duration    string `json:"duration"`     // 自动采集周期
+	Virtual     bool   `json:"virtual"`      //虚拟设备功能
 }
 
 // Point modbus点位
