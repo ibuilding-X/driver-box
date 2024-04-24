@@ -63,8 +63,8 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 			}
 		}
 
-		//仅浮点类型作小数保留位数加工
-		if p.ValueType == config.ValueType_Float {
+		//浮点类型,且readValue包含小数时作小数保留位数加工
+		if p.ValueType == config.ValueType_Float && realValue != 0 {
 			realValue = fmt.Sprintf("%.*f", p.Decimals, realValue)
 		}
 
