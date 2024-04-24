@@ -225,7 +225,6 @@ func (c *connector) Release() (err error) {
 func (c *connector) Close() {
 	c.close = true
 	c.collectTask.Disable()
-	c.client.Close()
 }
 
 // ensureInterval 确保与前一次IO至少间隔minInterval毫秒
