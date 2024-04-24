@@ -425,6 +425,10 @@ func (m *manager) saveConfig(key string) error {
 	if err != nil {
 		return fmt.Errorf("config json encode error: %w", err)
 	}
+	// 创建目录
+	if err = os.MkdirAll(filepath.Join(m.root, key), 0755); err != nil {
+		return fmt.Errorf("config dir create error: %w", err)
+	}
 	// 写入文件
 	fileName := filepath.Join(m.root, key, m.configName)
 	if err := os.WriteFile(fileName, bytes, 0644); err != nil {
