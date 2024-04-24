@@ -31,7 +31,7 @@ type connector struct {
 	//通讯设备集合
 	retry int
 
-	devices map[string]*slaveDevice
+	devices map[uint8]*slaveDevice
 	//当前连接的定时扫描任务
 	collectTask *crontab.Future
 	//当前连接是否已关闭

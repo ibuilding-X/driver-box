@@ -47,7 +47,7 @@ func newConnector(plugin *Plugin, cf *ConnectionConfig) (*connector, error) {
 		minInterval: minInterval,
 		retry:       retry,
 		virtual:     cf.Virtual || config.IsVirtual(),
-		devices:     make(map[string]*slaveDevice),
+		devices:     make(map[uint8]*slaveDevice),
 	}
 	return conn, err
 }
@@ -67,7 +67,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 		//遍历所有通讯设备
 		for unitID, device := range c.devices {
 			if len(device.pointGroup) == 0 {
-				helper.Logger.Warn("device has none read point", zap.String("unitID", unitID))
+				helper.Logger.Warn("device has none read point", zap.Uint8("unitID", unitID))
 				continue
 			}
 			//批量遍历通讯设备下的点位，并将结果关联至物模型设备
@@ -798,25 +798,30 @@ func convToPointExtend(extends map[string]interface{}) (*Point, error) {
 }
 
 func (c *connector) createDevice(properties map[string]string) (d *slaveDevice, err error) {
-	unitID := properties["unitID"]
-	if len(unitID) == 0 {
-		return nil, errors.New("none unitID")
-	}
+	unitID, err := getUnitId(properties)
 	d, ok := c.devices[unitID]
 	if ok {
 		return d, nil
 	}
-	uintIdVal, err := strconv.ParseUint(unitID, 10, 8)
-
-	if err != nil {
-		return nil, err
-	}
 
 	var group []*pointGroup
 	d = &slaveDevice{
-		unitID:     uint8(uintIdVal),
+		unitID:     unitID,
 		pointGroup: group,
 	}
 	c.devices[unitID] = d
 	return d, nil
+}
+
+func getUnitId(properties map[string]string) (uint8, error) {
+	unitID := properties["unitID"]
+	if len(unitID) == 0 {
+		return 0, errors.New("none unitID")
+	}
+	v, e := strconv.ParseUint(unitID, 10, 8)
+	if e != nil {
+		return 0, e
+	} else {
+		return uint8(v), nil
+	}
 }

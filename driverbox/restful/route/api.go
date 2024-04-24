@@ -1,5 +1,10 @@
 package route
 
+// 设备写操作
+const DevicePointWrite = V1Prefix + "device/writePoint"
+
+const DevicePointRead = V1Prefix + "device/readPoint"
+
 // 创建场景联动
 const LinkEdgeCreate = V1Prefix + "linkedge/create"
 
