@@ -63,6 +63,11 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 			}
 		}
 
+		//仅浮点类型作小数保留位数加工
+		if p.ValueType == config.ValueType_Float {
+			realValue = fmt.Sprintf("%.*f", p.Decimals, realValue)
+		}
+
 		point.Value = realValue
 
 		// 缓存比较

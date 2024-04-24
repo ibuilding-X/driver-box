@@ -137,6 +137,9 @@ type Point struct {
 	ReportMode ReportMode `json:"reportMode" validate:"required"`
 	//数值精度
 	Scale float64 `json:"scale"`
+
+	//保留小数位数
+	Decimals int `json:"decimals"`
 	// 扩展参数
 	Extends map[string]interface{} `json:"-" validate:"-"`
 }
