@@ -60,6 +60,10 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 	}
 	//注册定时采集任务
 	return helper.Crontab.AddFunc(duration, func() {
+		if !conf.Enable {
+			helper.Logger.Warn("modbus connection is disabled, ignore collect task!", zap.String("key", c.key))
+			return
+		}
 		//遍历所有通讯设备
 		for unitID, device := range c.devices {
 			if len(device.pointGroup) == 0 {
@@ -225,7 +229,6 @@ func (c *connector) Release() (err error) {
 func (c *connector) Close() {
 	c.close = true
 	c.collectTask.Disable()
-	c.client.Close()
 }
 
 // ensureInterval 确保与前一次IO至少间隔minInterval毫秒
