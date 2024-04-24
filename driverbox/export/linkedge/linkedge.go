@@ -91,7 +91,7 @@ func (linkedge *service) NewService() error {
 
 	//触发联动场景
 	restful.HandleFunc(route.LinkEdgeTrigger, func(request *http.Request) (any, error) {
-		helper.Logger.Info(fmt.Sprintf("trigger linkEdge:%s from:", request.FormValue("id"), request.FormValue("source")))
+		helper.Logger.Info(fmt.Sprintf("trigger linkEdge:%s from: %s", request.FormValue("id"), request.FormValue("source")))
 		err := linkedge.TriggerLinkEdge(request.FormValue("id"))
 		return err != nil, err
 	})
@@ -377,7 +377,7 @@ func (linkEdge *service) triggerLinkEdge(id string, depth int, conf ...ModelConf
 	//执行动作
 	for _, action := range config.Action {
 		bytes, e := json.Marshal(action)
-		helper.Logger.Info(fmt.Sprintf("will doAction:", string(bytes)))
+		helper.Logger.Info(fmt.Sprintf("will doAction: %s", string(bytes)))
 		if e != nil {
 			helper.Logger.Error(fmt.Sprintf("execute linkEdge:%s action error:%s", id, e.Error()))
 			continue
