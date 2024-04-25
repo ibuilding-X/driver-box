@@ -53,13 +53,8 @@ func newConnector(plugin *Plugin, cf *ConnectionConfig) (*connector, error) {
 }
 
 func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, error) {
-	duration := conf.Duration
-	if duration == "" {
-		helper.Logger.Warn("modbus connection duration is empty, use default 5s")
-		duration = "5s"
-	}
 	//注册定时采集任务
-	return helper.Crontab.AddFunc(duration, func() {
+	return helper.Crontab.AddFunc("1s", func() {
 		if !conf.Enable {
 			helper.Logger.Warn("modbus connection is disabled, ignore collect task!", zap.String("key", c.key))
 			return

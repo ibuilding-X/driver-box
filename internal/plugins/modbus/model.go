@@ -28,7 +28,6 @@ type ConnectionConfig struct {
 	MinInterval uint   `json:"minInterval"` // 最小读取间隔
 	Timeout     int    `json:"timeout"`     // 请求超时
 	Retry       int    `json:"retry"`       // 重试次数
-	Duration    string `json:"duration"`    // 自动采集周期
 	Virtual     bool   `json:"virtual"`     //虚拟设备功能
 }
 
