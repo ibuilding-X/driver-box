@@ -31,6 +31,8 @@ var (
 	ErrUnknownDevice = errors.New("unknown device")
 	// ErrConfigNotExist is the error returned when the config file does not exist.
 	ErrConfigNotExist = errors.New("config not exist")
+	// ErrConfigEmpty is the error returned when the config file is empty.
+	ErrConfigEmpty = errors.New("config is empty")
 )
 
 var instance = New()
@@ -172,6 +174,9 @@ func (m *manager) LoadConfig() error {
 		c, err := m.parseConfigFromFile(path)
 		if err != nil {
 			if errors.Is(err, ErrConfigNotExist) {
+				continue
+			}
+			if errors.Is(err, ErrConfigEmpty) {
 				continue
 			}
 			return err
@@ -396,6 +401,10 @@ func (m *manager) parseConfigFromFile(path string) (config.Config, error) {
 	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return config.Config{}, err
+	}
+	// 空文件校验
+	if len(bytes) == 0 {
+		return config.Config{}, ErrConfigEmpty
 	}
 	// json 解析
 	var c config.Config
