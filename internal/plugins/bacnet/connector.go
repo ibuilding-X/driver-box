@@ -136,13 +136,8 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 		}
 	}
 
-	duration := bic.Duration
-	if duration == "" {
-		helper.Logger.Warn("bacnet connection duration is empty, use default 5s", zap.String("key", c.key))
-		duration = "5s"
-	}
 	//注册定时采集任务
-	future, err := helper.Crontab.AddFunc(duration, func() {
+	future, err := helper.Crontab.AddFunc("1s", func() {
 		//遍历所有通讯设备
 		for deviceId, device := range c.devices {
 			if len(device.pointGroup) == 0 {
@@ -378,7 +373,6 @@ type bacIpConfig struct {
 	LocalIp     string `json:"localIp"`
 	LocalSubnet int    `json:"localSubnet"`
 	LocalPort   int    `json:"localPort"`
-	Duration    string `json:"duration"` // 自动采集周期
 	//虚拟设备功能
 	Virtual bool `json:"virtual"`
 }
