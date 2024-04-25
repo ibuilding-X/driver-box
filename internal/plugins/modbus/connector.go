@@ -88,7 +88,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 					value: group,
 				}
 				if err := c.Send(bac); err != nil {
-					helper.Logger.Error("read error", zap.Any("connection", conf), zap.Any("command", bac), zap.Error(err))
+					helper.Logger.Error("read error", zap.Any("connection", conf), zap.Any("group", group), zap.Error(err))
 					//通讯失败，触发离线
 					devices := make(map[string]interface{})
 					for _, point := range group.points {
