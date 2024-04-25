@@ -70,8 +70,8 @@ func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.P
 			return nil, err
 		}
 		return command{
-			mode: plugin.WriteMode,
-			value: writeValue{
+			Mode: plugin.WriteMode,
+			Value: writeValue{
 				unitID:       unitId,
 				RegisterType: ext.RegisterType,
 				Address:      ext.Address,
@@ -86,8 +86,8 @@ func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.P
 		}, nil
 	}
 	res = command{
-		value: value.Value,
-		mode:  mode,
+		Value: value.Value,
+		Mode:  mode,
 	}
 	return res, nil
 }

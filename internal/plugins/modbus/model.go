@@ -61,7 +61,7 @@ type slaveDevice struct {
 
 type pointGroup struct {
 	// 从机地址
-	unitID uint8
+	UnitID uint8
 	//采集间隔
 	Duration time.Duration
 	//寄存器类型
@@ -72,13 +72,13 @@ type pointGroup struct {
 	Address uint16
 	//数量
 	Quantity uint16
-	points   []*Point
+	Points   []*Point
 }
 
 // Connector#Send接入入参
 type command struct {
-	mode  plugin.EncodeMode // 模式
-	value interface{}
+	Mode  plugin.EncodeMode // 模式
+	Value interface{}
 }
 
 // 写操作时 command的value类型

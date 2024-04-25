@@ -84,14 +84,14 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 
 				helper.Logger.Debug("timer read modbus", zap.Any("group", i), zap.Any("latestTime", group.LatestTime), zap.Any("duration", group.Duration))
 				bac := command{
-					mode:  plugin.ReadMode,
-					value: group,
+					Mode:  plugin.ReadMode,
+					Value: group,
 				}
 				if err := c.Send(bac); err != nil {
 					helper.Logger.Error("read error", zap.Any("connection", conf), zap.Any("group", group), zap.Error(err))
 					//通讯失败，触发离线
 					devices := make(map[string]interface{})
-					for _, point := range group.points {
+					for _, point := range group.Points {
 						if devices[point.DeviceSn] != nil {
 							continue
 						}
@@ -147,7 +147,7 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 			}
 			//
 			//当前点位已存在
-			for _, obj := range group.points {
+			for _, obj := range group.Points {
 				if obj.Address == ext.Address {
 					obj.DeviceSn = dev.DeviceSn
 					obj.Name = p.Name
@@ -169,7 +169,7 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 			}
 			//超过最大长度，拆成新的一组
 			if end-start <= maxLen {
-				group.points = append(group.points, ext)
+				group.Points = append(group.Points, ext)
 				ok = true
 				group.Address = start
 				group.Quantity = end - start
@@ -181,12 +181,12 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 			ext.DeviceSn = dev.DeviceSn
 			ext.Name = p.Name
 			device.pointGroup = append(device.pointGroup, &pointGroup{
-				unitID:       device.unitID,
+				UnitID:       device.unitID,
 				Duration:     duration,
 				RegisterType: ext.RegisterType,
 				Address:      ext.Address,
 				Quantity:     ext.Quantity,
-				points: []*Point{
+				Points: []*Point{
 					ext,
 				},
 			})
@@ -198,13 +198,13 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 // Send 发送数据
 func (c *connector) Send(data interface{}) (err error) {
 	cmd := data.(command)
-	switch cmd.mode {
+	switch cmd.Mode {
 	// 读
 	case plugin.ReadMode:
-		group := cmd.value.(*pointGroup)
+		group := cmd.Value.(*pointGroup)
 		err = c.sendReadCommand(group)
 	case plugin.WriteMode:
-		value := cmd.value.(writeValue)
+		value := cmd.Value.(writeValue)
 		err = c.sendWriteCommand(value)
 	default:
 		return common.NotSupportMode
@@ -251,12 +251,12 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 			helper.Logger.Error(fmt.Sprintf("close plugin error: %v", err))
 		}
 	}()
-	values, err := c.read(group.unitID, string(group.RegisterType), group.Address, group.Quantity)
+	values, err := c.read(group.UnitID, string(group.RegisterType), group.Address, group.Quantity)
 	if err != nil {
 		return err
 	}
 	// 转化数据并上报
-	for _, point := range group.points {
+	for _, point := range group.Points {
 		var value interface{}
 		start := point.Address - group.Address
 		rawValues := values[start : start+point.Quantity]
