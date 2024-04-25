@@ -129,8 +129,6 @@ type Point struct {
 	ValueType ValueType `json:"valueType" validate:"required,oneof=int float string"`
 	// 读写模式
 	ReadWrite ReadWrite `json:"readWrite" validate:"required,oneof=R W RW"`
-	// 定时上报,该字段的逻辑迁移至ibuilding，后续可能废弃
-	TimerReport string `json:"timerReport" validate:"required"`
 	// 单位
 	Units string `json:"units" validate:"-"`
 	// 上报模式

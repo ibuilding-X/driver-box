@@ -136,6 +136,7 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 			continue
 		}
 		ok := false
+		//同一寄存器地址可能通过位运算对应多个点位，也需要将该点加入group
 		for _, group := range device.pointGroup {
 			//相同采集频率为同一组
 			if group.Duration != duration {
@@ -145,19 +146,7 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 			if group.RegisterType != ext.RegisterType {
 				continue
 			}
-			//
-			//当前点位已存在
-			for _, obj := range group.Points {
-				if obj.Address == ext.Address {
-					obj.DeviceSn = dev.DeviceSn
-					obj.Name = p.Name
-					ok = true
-					break
-				}
-			}
-			if ok {
-				break
-			}
+
 			//如果ext和group中的其他addres区间长度不超过maxLen，则添加到group中
 			start := group.Address
 			if start > ext.Address {

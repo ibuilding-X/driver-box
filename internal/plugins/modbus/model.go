@@ -40,7 +40,6 @@ type Point struct {
 
 	//点位采集周期
 	Duration     string `json:"duration"`
-	SlaveId      uint8
 	Address      uint16
 	RegisterType primaryTable `json:"primaryTable"`
 	Quantity     uint16       `json:"quantity"`
