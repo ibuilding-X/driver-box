@@ -216,13 +216,18 @@ func (c Config) UpdateIndexAndClean() Config {
 	}
 
 	// 移除无效连接
-	//connections := make(map[string]interface{})
-	//for k, _ := range usefulConnKeys {
-	//	if _, ok := c.Connections[k]; ok {
-	//		connections[k] = c.Connections[k]
-	//	}
-	//}
-	//c.Connections = connections
+	for k, _ := range c.Connections {
+		// 是否为自动发现连接
+		if connIsSupportDiscover(c.Connections[k]) {
+			continue
+		}
+		// 是否为有效连接
+		if _, ok := usefulConnKeys[k]; ok {
+			continue
+		}
+		// 移除无效连接
+		delete(c.Connections, k)
+	}
 
 	return c
 }
@@ -235,4 +240,14 @@ func (c Config) GetModelIndexes() map[string]int {
 // GetDeviceIndexes 获取设备索引
 func (dm DeviceModel) GetDeviceIndexes() map[string]int {
 	return dm.deviceIndexes
+}
+
+// connIsSupportDiscover 连接是否支持自动发现设备
+func connIsSupportDiscover(conn any) bool {
+	if m, ok := conn.(map[string]interface{}); ok {
+		if _, ok := m["discover"]; ok && (m["discover"] == true || m["discover"] == "true" || m["discover"] == 1 || m["discover"] == "1") {
+			return true
+		}
+	}
+	return false
 }
