@@ -198,8 +198,11 @@ func (c *connector) Send(data interface{}) (err error) {
 		group := cmd.Value.(*pointGroup)
 		err = c.sendReadCommand(group)
 	case plugin.WriteMode:
-		value := cmd.Value.(writeValue)
-		err = c.sendWriteCommand(value)
+		values := cmd.Value.([]*writeValue)
+		for _, value := range values {
+			err = c.sendWriteCommand(value)
+		}
+
 	default:
 		return common.NotSupportMode
 	}
@@ -373,7 +376,7 @@ func mergeBitsIntoUint16(num, startPos, bitCount int, regValue uint16) uint16 {
 	return replacedValue
 }
 
-func (c *connector) sendWriteCommand(pc writeValue) error {
+func (c *connector) sendWriteCommand(pc *writeValue) error {
 	var err error
 	for i := 0; i < c.retry; i++ {
 		if err = c.write(pc.unitID, pc.RegisterType, pc.Address, pc.Value); err == nil {

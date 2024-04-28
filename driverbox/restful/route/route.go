@@ -29,6 +29,7 @@ func Register() error {
 	//设备API
 	d := &controller.Device{}
 	restful.HandleFunc(DevicePointWrite, d.WritePoint)
+	restful.HandleFunc(DevicePointsWrite, d.WritePoints)
 	restful.HandleFunc(DevicePointRead, d.ReadPoint)
 
 	return http.ListenAndServe(":8081", nil)

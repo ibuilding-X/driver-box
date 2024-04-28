@@ -13,11 +13,11 @@ type batchWrite struct {
 
 // SendBatchWrite 发送多个点位写命令
 func SendBatchWrite(deviceSn string, points []plugin.PointData) (err error) {
-	group := make(map[plugin.Connector]*batchWrite)
+	var connector plugin.Connector
 	defer func() {
 		// 释放连接
-		for c, _ := range group {
-			_ = c.Release()
+		if connector != nil {
+			connector.Release()
 		}
 	}()
 	//按照点位的协议、连接分组
@@ -31,42 +31,35 @@ func SendBatchWrite(deviceSn string, points []plugin.PointData) (err error) {
 		if err != nil {
 			return err
 		}
-		// 获取插件
+
+		// 获取连接
+		if connector != nil {
+			continue
+		}
 		p, ok := helper.CoreCache.GetRunningPluginByDeviceAndPoint(deviceSn, pd.PointName)
 		if !ok {
 			return fmt.Errorf("not found running plugin, device name is %s", deviceSn)
 		}
-		// 获取连接，相同连接的点位归为一组
-		conn, err := p.Connector(deviceSn, pd.PointName)
+		connector, err = p.Connector(deviceSn, pd.PointName)
 		if err != nil {
 			_ = helper.DeviceShadow.MayBeOffline(deviceSn)
 			return err
 		}
-		bw := group[conn]
-		if bw.points == nil {
-			bw = &batchWrite{
-				points:    make([]plugin.PointData, 0),
-				connector: p,
-			}
-		}
-		bw.points = append(bw.points, pd)
 	}
 	//按连接批量下发
-	for conn, bw := range group {
-		adapter := conn.ProtocolAdapter()
-		res, err := adapter.Encode(deviceSn, plugin.WriteMode, bw.points...)
-		if err != nil {
-			return err
-		}
-		// 发送数据
-		if err = conn.Send(res); err != nil {
-			_ = helper.DeviceShadow.MayBeOffline(deviceSn)
-			return err
-		}
-		//点位写成功后，立即触发读取操作以及时更新影子状态
-		for _, pointData := range bw.points {
-			tryReadNewValue(deviceSn, pointData.PointName, pointData.Value)
-		}
+	adapter := connector.ProtocolAdapter()
+	res, err := adapter.Encode(deviceSn, plugin.WriteMode, points...)
+	if err != nil {
+		return err
+	}
+	// 发送数据
+	if err = connector.Send(res); err != nil {
+		_ = helper.DeviceShadow.MayBeOffline(deviceSn)
+		return err
+	}
+	//点位写成功后，立即触发读取操作以及时更新影子状态
+	for _, pointData := range points {
+		tryReadNewValue(deviceSn, pointData.PointName, pointData.Value)
 	}
 	return
 }

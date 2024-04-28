@@ -51,8 +51,8 @@ func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 	return nil, fmt.Errorf("unsupported mode %v", plugin.ReadMode)
 }
 
-func (c *connector) batchWriteEncode(deviceSn string, points []plugin.PointData) ([]writeValue, error) {
-	var values []writeValue
+func (c *connector) batchWriteEncode(deviceSn string, points []plugin.PointData) ([]*writeValue, error) {
+	values := make([]*writeValue, 0)
 	for _, p := range points {
 		wv, err := c.getWriteValue(deviceSn, p)
 		if err != nil {
@@ -60,7 +60,7 @@ func (c *connector) batchWriteEncode(deviceSn string, points []plugin.PointData)
 		}
 		//仅保持寄存器支持批量
 		if wv.RegisterType != HoldingRegister {
-			values = append(values, wv)
+			values = append(values, &wv)
 			continue
 		}
 
@@ -98,11 +98,12 @@ func (c *connector) batchWriteEncode(deviceSn string, points []plugin.PointData)
 		if ok {
 			continue
 		}
-		values = append(values, wv)
+		values = append(values, &wv)
 	}
 	return values, nil
 }
-func (c *connector) getWriteValue(deviceSn string, value plugin.PointData) (writeValue, error) {
+func (c *connector) getWriteValue(deviceSn string, pointData plugin.PointData) (writeValue, error) {
+	value := pointData.Value
 	d, ok := helper.CoreCache.GetDevice(deviceSn)
 	if !ok {
 		return writeValue{}, errors.New("device not found")
@@ -111,14 +112,14 @@ func (c *connector) getWriteValue(deviceSn string, value plugin.PointData) (writ
 	if err != nil {
 		return writeValue{}, err
 	}
-	p, ok := helper.CoreCache.GetPointByDevice(deviceSn, value.PointName)
+	p, ok := helper.CoreCache.GetPointByDevice(deviceSn, pointData.PointName)
 	if !ok {
 		return writeValue{}, errors.New("point not found")
 	}
 
 	ext, err := convToPointExtend(p.Extends)
 	if err != nil {
-		helper.Logger.Error("error modbus point config", zap.String("deviceSn", deviceSn), zap.Any("point", value.PointName), zap.Error(err))
+		helper.Logger.Error("error modbus point config", zap.String("deviceSn", deviceSn), zap.Any("point", pointData.PointName), zap.Error(err))
 		return writeValue{}, err
 	}
 	var values []uint16

@@ -3,6 +3,9 @@ package route
 // 设备写操作
 const DevicePointWrite = V1Prefix + "device/writePoint"
 
+// 批量写入某个设备的点位
+const DevicePointsWrite = V1Prefix + "device/writePoints"
+
 const DevicePointRead = V1Prefix + "device/readPoint"
 
 // 创建场景联动
