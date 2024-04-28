@@ -4,15 +4,17 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 	"go.uber.org/zap"
 	"net"
 )
 
 type connector struct {
-	config connectorConfig
-	plugin *Plugin
-	conn   net.Listener
+	config  connectorConfig
+	plugin  *Plugin
+	conn    net.Listener
+	adapter plugin.ProtocolAdapter
 }
 
 // connectorConfig 连接器配置
@@ -22,6 +24,10 @@ type connectorConfig struct {
 	BuffSize uint   `json:"buffSize"`
 }
 
+// ProtocolAdapter 协议适配器
+func (p *connector) ProtocolAdapter() plugin.ProtocolAdapter {
+	return p.adapter
+}
 func (c *connector) Send(raw interface{}) (err error) {
 	return nil
 }
@@ -74,7 +80,7 @@ func (c *connector) handelConn(conn net.Conn) {
 		}
 		data := protoData{Raw: string(buf[:n])}
 		// 接收数据，调用回调函数
-		if _, err = callback.OnReceiveHandler(c.plugin, data.ToJSON()); err != nil {
+		if _, err = callback.OnReceiveHandler(c, data.ToJSON()); err != nil {
 			c.plugin.logger.Error("tcp_server callback error", zap.Error(err))
 		}
 	}

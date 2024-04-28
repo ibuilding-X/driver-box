@@ -15,14 +15,15 @@ import (
 
 // Plugin 驱动插件
 type Plugin struct {
-	adapter  plugin.ProtocolAdapter // 协议适配器
-	connPool map[string]*connector  // 连接器
-	ls       *lua.LState            // lua 虚拟机
+	connPool map[string]*connector // 连接器
+	ls       *lua.LState           // lua 虚拟机
+	config   config.Config
 }
 
 // connector 连接器
 type connector struct {
-	key          string
+	plugin.Connection
+	config       *ConnectionConfig
 	plugin       *Plugin
 	client       *modbus.ModbusClient
 	minInterval  uint      // 读取间隔
@@ -43,12 +44,7 @@ type connector struct {
 // Initialize 插件初始化
 func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error) {
 	p.ls = ls
-
-	// 初始化协议适配器
-	p.adapter = &adapter{
-		ls:           ls,
-		scriptEnable: helper.ScriptExists(c.Key),
-	}
+	p.config = c
 	//初始化连接池
 	p.initNetworks(c)
 	return nil
@@ -65,7 +61,7 @@ func (p *Plugin) initNetworks(config config.Config) {
 			continue
 		}
 		conn, err := newConnector(p, connectionConfig)
-		conn.key = key
+		conn.ConnectionKey = key
 		if err != nil {
 			helper.Logger.Error("init connector error", zap.Any("connection", connConfig), zap.Error(err))
 			continue
@@ -74,7 +70,7 @@ func (p *Plugin) initNetworks(config config.Config) {
 		//生成点位采集组
 		for _, model := range config.DeviceModels {
 			for _, dev := range model.Devices {
-				if dev.ConnectionKey != conn.key {
+				if dev.ConnectionKey != conn.ConnectionKey {
 					continue
 				}
 				conn.createPointGroup(connectionConfig, model, dev)
@@ -88,11 +84,6 @@ func (p *Plugin) initNetworks(config config.Config) {
 			helper.Logger.Error("init connector collect task error", zap.Any("connection", connConfig), zap.Error(err))
 		}
 	}
-}
-
-// ProtocolAdapter 适配器
-func (p *Plugin) ProtocolAdapter() plugin.ProtocolAdapter {
-	return p.adapter
 }
 
 // Connector 连接器

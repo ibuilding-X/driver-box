@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 	"go.uber.org/zap"
 	"io"
@@ -16,13 +17,19 @@ type connectorConfig struct {
 }
 
 type connector struct {
-	plugin *Plugin
-	server *http.Server
+	plugin  *Plugin
+	server  *http.Server
+	adapter plugin.ProtocolAdapter // 协议适配器
 }
 
 // Release 释放资源
 func (c *connector) Release() (err error) {
 	return c.server.Shutdown(context.Background())
+}
+
+// ProtocolAdapter 协议适配器
+func (p *connector) ProtocolAdapter() plugin.ProtocolAdapter {
+	return p.adapter
 }
 
 // Send 被动接收数据模式，无需实现
@@ -55,7 +62,7 @@ func (c *connector) startServer(opts connectorConfig) {
 			Body:   string(body),
 		}
 		// 调用回调函数
-		if _, err = callback.OnReceiveHandler(c.plugin, data.ToJSON()); err != nil {
+		if _, err = callback.OnReceiveHandler(c, data.ToJSON()); err != nil {
 			c.plugin.logger.Error("http_server callback error", zap.Error(err))
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":    -1,

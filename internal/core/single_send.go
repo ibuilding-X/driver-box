@@ -46,7 +46,7 @@ func SendSinglePoint(deviceSn string, mode plugin.EncodeMode, pointData plugin.P
 	// 释放连接
 	defer conn.Release()
 	// 协议适配器
-	adapter := p.ProtocolAdapter()
+	adapter := conn.ProtocolAdapter()
 	res, err := adapter.Encode(deviceSn, mode, pointData)
 	if err != nil {
 		return err

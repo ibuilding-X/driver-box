@@ -7,10 +7,10 @@ import (
 )
 
 // 插件收到通讯消息后，触发该回调方法进行消息解码和设备数据解析
-func OnReceiveHandler(plugin plugin.Plugin, raw interface{}) (result interface{}, err error) {
+func OnReceiveHandler(connector plugin.Connector, raw interface{}) (result interface{}, err error) {
 	helper.Logger.Debug("raw data", zap.Any("data", raw))
 	// 协议适配器
-	deviceData, err := plugin.ProtocolAdapter().Decode(raw)
+	deviceData, err := connector.ProtocolAdapter().Decode(raw)
 	helper.Logger.Debug("decode data", zap.Any("data", deviceData))
 	if err != nil {
 		return nil, err

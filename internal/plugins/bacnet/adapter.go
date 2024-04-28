@@ -45,12 +45,12 @@ type bacWriteCmd struct {
 	NullValue bool `json:"nullValue"`
 }
 
-func (a *adapter) BatchEncode(deviceSn string, mode plugin.EncodeMode, value []plugin.PointData) (res interface{}, err error) {
-	return nil, common.NotSupportEncode
-}
-
 // Encode 编码
-func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.PointData) (res interface{}, err error) {
+func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
+	if len(values) != 1 {
+		return nil, common.NotSupportEncode
+	}
+	value := values[0]
 	device, ok := helper.CoreCache.GetDevice(deviceSn)
 	if !ok {
 		return nil, common.DeviceNotFoundError

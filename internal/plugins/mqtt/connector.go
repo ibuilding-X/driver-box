@@ -4,14 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 )
 
 type connector struct {
-	plugin *Plugin
-	client mqtt.Client
-	topics []string
-	name   string
+	plugin  *Plugin
+	client  mqtt.Client
+	topics  []string
+	name    string
+	adapter plugin.ProtocolAdapter
 }
 
 type EncodeData struct {
@@ -19,6 +21,10 @@ type EncodeData struct {
 	Payload string `json:"payload"`
 }
 
+// ProtocolAdapter 协议适配器
+func (conn *connector) ProtocolAdapter() plugin.ProtocolAdapter {
+	return conn.adapter
+}
 func (conn *connector) Send(data interface{}) error {
 	res := []byte(data.(string))
 	var encodeData EncodeData
@@ -97,7 +103,7 @@ func (conn *connector) onReceiveHandler(_ mqtt.Client, message mqtt.Message) {
 		return
 	}
 	// 执行回调 写入消息总线
-	_, err = callback.OnReceiveHandler(conn.plugin, string(msgJson))
+	_, err = callback.OnReceiveHandler(conn, string(msgJson))
 	if err != nil {
 		conn.plugin.logger.Error(fmt.Sprintf("decode error: %s", err.Error()))
 	}

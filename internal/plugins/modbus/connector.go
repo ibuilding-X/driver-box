@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-func newConnector(plugin *Plugin, cf *ConnectionConfig) (*connector, error) {
+func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 	minInterval := cf.MinInterval
 	if minInterval == 0 {
 		minInterval = 100
@@ -42,7 +42,12 @@ func newConnector(plugin *Plugin, cf *ConnectionConfig) (*connector, error) {
 		Timeout:  time.Duration(cf.Timeout) * time.Millisecond,
 	})
 	conn := &connector{
-		plugin:      plugin,
+		Connection: plugin.Connection{
+			Ls:           p.ls,
+			ScriptEnable: helper.ScriptExists(p.config.Key),
+		},
+		config:      cf,
+		plugin:      p,
 		client:      client,
 		minInterval: minInterval,
 		retry:       retry,
@@ -56,7 +61,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 	//注册定时采集任务
 	return helper.Crontab.AddFunc("1s", func() {
 		if !conf.Enable {
-			helper.Logger.Warn("modbus connection is disabled, ignore collect task!", zap.String("key", c.key))
+			helper.Logger.Warn("modbus connection is disabled, ignore collect task!", zap.String("key", c.ConnectionKey))
 			return
 		}
 		//遍历所有通讯设备
@@ -68,7 +73,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 			//批量遍历通讯设备下的点位，并将结果关联至物模型设备
 			for i, group := range device.pointGroup {
 				if c.close {
-					helper.Logger.Warn("modbus connection is closed, ignore collect task!", zap.String("key", c.key))
+					helper.Logger.Warn("modbus connection is closed, ignore collect task!", zap.String("key", c.ConnectionKey))
 					break
 				}
 
@@ -177,6 +182,11 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 		}
 	}
 
+}
+
+// ProtocolAdapter 协议适配器
+func (p *connector) ProtocolAdapter() plugin.ProtocolAdapter {
+	return p
 }
 
 // Send 发送数据
@@ -301,7 +311,7 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 			PointName: point.Name,
 			Value:     value,
 		}
-		_, err = callback.OnReceiveHandler(c.plugin, pointReadValue)
+		_, err = callback.OnReceiveHandler(c, pointReadValue)
 		if err != nil {
 			helper.Logger.Error("error modbus callback", zap.Any("data", pointReadValue), zap.Error(err))
 		}
@@ -364,240 +374,9 @@ func mergeBitsIntoUint16(num, startPos, bitCount int, regValue uint16) uint16 {
 }
 
 func (c *connector) sendWriteCommand(pc writeValue) error {
-
-	var values []uint16
-	value := pc.Value
-	switch pc.RegisterType {
-	case Coil: // 线圈固定长度1
-		i, err := helper.Conv2Int64(value)
-		if err != nil {
-			return fmt.Errorf("convert cmd  error: %v", err)
-		}
-		values = []uint16{uint16(i & 1)}
-	case HoldingRegister:
-		valueStr := fmt.Sprintf("%v", value)
-		switch strings.ToUpper(pc.RawType) {
-		case strings.ToUpper(common.ValueTypeUint16):
-			v, err := strconv.ParseUint(valueStr, 10, 16)
-			if err != nil {
-				return fmt.Errorf("convert value %v to uint16 error: %v", value, err)
-			}
-			// TODO: 位写
-			if pc.BitLen > 0 {
-				if v > (1<<pc.BitLen - 1) {
-					return fmt.Errorf("too large value %v to set in %d bits", v, pc.BitLen)
-				}
-				uint16s, err := c.read(pc.unitID, string(pc.RegisterType), pc.Address, pc.Quantity)
-				uint16Val := uint16s[0]
-				if pc.ByteSwap {
-					uint16Val = (uint16Val << 8) | (uint16Val >> 8)
-				}
-				if err != nil {
-					return fmt.Errorf("read original register error: %v", err)
-				}
-				intoUint16 := mergeBitsIntoUint16(int(v), pc.Bit, pc.BitLen, uint16Val)
-				if pc.ByteSwap {
-					intoUint16 = (intoUint16 << 8) | (intoUint16 >> 8)
-				}
-				values = []uint16{intoUint16}
-				break
-			}
-			out := make([]byte, 2)
-			if pc.ByteSwap {
-				binary.LittleEndian.PutUint16(out, uint16(v))
-			} else {
-				binary.BigEndian.PutUint16(out, uint16(v))
-			}
-			values = []uint16{binary.BigEndian.Uint16(out)}
-		case strings.ToUpper(common.ValueTypeInt16):
-			v, err := strconv.ParseInt(valueStr, 10, 16)
-			if err != nil {
-				return fmt.Errorf("convert value %v to int16 error: %v", value, err)
-			}
-			if pc.BitLen > 0 {
-				if v > (1<<pc.BitLen - 1) {
-					return fmt.Errorf("too large value %v to set in %d bits", v, pc.BitLen)
-				} else if v < 0 {
-					return fmt.Errorf("negative value %v not allowed to set in bits", v)
-				}
-				uint16s, err := c.read(pc.unitID, string(pc.RegisterType), pc.Address, pc.Quantity)
-				uint16Val := uint16s[0]
-				if pc.ByteSwap {
-					uint16Val = (uint16Val << 8) | (uint16Val >> 8)
-				}
-				if err != nil {
-					return fmt.Errorf("read original register error: %v", err)
-				}
-				intoUint16 := mergeBitsIntoUint16(int(v), pc.Bit, pc.BitLen, uint16Val)
-				if pc.ByteSwap {
-					intoUint16 = (intoUint16 << 8) | (intoUint16 >> 8)
-				}
-				values = []uint16{intoUint16}
-				break
-			}
-			out := make([]byte, 2)
-			if pc.ByteSwap {
-				binary.LittleEndian.PutUint16(out, uint16(v))
-			} else {
-				binary.BigEndian.PutUint16(out, uint16(v))
-			}
-			values = []uint16{binary.BigEndian.Uint16(out)}
-		case strings.ToUpper(common.ValueTypeUint32):
-			v, err := strconv.ParseUint(valueStr, 10, 32)
-			if err != nil {
-				return fmt.Errorf("convert value %v to uint32 error: %v", value, err)
-			}
-			out := make([]byte, 4)
-			if pc.ByteSwap {
-				binary.LittleEndian.PutUint32(out, uint32(v))
-			} else {
-				binary.BigEndian.PutUint32(out, uint32(v))
-			}
-			if pc.WordSwap {
-				out[0], out[1], out[2], out[3] =
-					out[2], out[3], out[0], out[1]
-			}
-			values = []uint16{binary.BigEndian.Uint16([]byte{out[2], out[3]}),
-				binary.BigEndian.Uint16([]byte{out[0], out[1]})}
-		case strings.ToUpper(common.ValueTypeInt32):
-			v, err := strconv.ParseInt(valueStr, 10, 32)
-			if err != nil {
-				return fmt.Errorf("convert value %v to int32 error: %v", value, err)
-			}
-			out := make([]byte, 4)
-			if pc.ByteSwap {
-				binary.LittleEndian.PutUint32(out, uint32(v))
-			} else {
-				binary.BigEndian.PutUint32(out, uint32(v))
-			}
-			if pc.WordSwap {
-				out[0], out[1], out[2], out[3] =
-					out[2], out[3], out[0], out[1]
-			}
-			values = []uint16{binary.BigEndian.Uint16([]byte{out[2], out[3]}),
-				binary.BigEndian.Uint16([]byte{out[0], out[1]})}
-		case strings.ToUpper(common.ValueTypeFloat32):
-			v, err := strconv.ParseFloat(valueStr, 32)
-			if err != nil {
-				return fmt.Errorf("convert value %v to float32 error: %v", value, err)
-			}
-			v32 := float32(v)
-			bits := math.Float32bits(v32)
-			out := make([]byte, 4)
-			if pc.ByteSwap {
-				binary.LittleEndian.PutUint32(out, bits)
-			} else {
-				binary.BigEndian.PutUint32(out, bits)
-			}
-			if pc.WordSwap {
-				out[0], out[1], out[2], out[3] =
-					out[2], out[3], out[0], out[1]
-			}
-			values = []uint16{binary.BigEndian.Uint16([]byte{out[2], out[3]}),
-				binary.BigEndian.Uint16([]byte{out[0], out[1]})}
-		case strings.ToUpper(common.ValueTypeUint64):
-			v, err := strconv.ParseUint(valueStr, 10, 64)
-			if err != nil {
-				return fmt.Errorf("convert value %v to uint64 error: %v", value, err)
-			}
-			out := make([]byte, 8)
-			if pc.ByteSwap {
-				binary.LittleEndian.PutUint64(out, v)
-			} else {
-				binary.BigEndian.PutUint64(out, v)
-			}
-			if pc.WordSwap {
-				out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7] =
-					out[2], out[3], out[0], out[1], out[6], out[7], out[4], out[5]
-			}
-			values = []uint16{
-				binary.BigEndian.Uint16([]byte{out[6], out[7]}),
-				binary.BigEndian.Uint16([]byte{out[4], out[5]}),
-				binary.BigEndian.Uint16([]byte{out[2], out[3]}),
-				binary.BigEndian.Uint16([]byte{out[0], out[1]}),
-			}
-		case strings.ToUpper(common.ValueTypeInt64):
-			v, err := strconv.ParseInt(valueStr, 10, 64)
-			if err != nil {
-				return fmt.Errorf("convert value %v to int64 error: %v", value, err)
-			}
-			out := make([]byte, 8)
-			if pc.ByteSwap {
-				binary.LittleEndian.PutUint64(out, uint64(v))
-			} else {
-				binary.BigEndian.PutUint64(out, uint64(v))
-			}
-			if pc.WordSwap {
-				out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7] =
-					out[2], out[3], out[0], out[1], out[6], out[7], out[4], out[5]
-			}
-			values = []uint16{
-				binary.BigEndian.Uint16([]byte{out[6], out[7]}),
-				binary.BigEndian.Uint16([]byte{out[4], out[5]}),
-				binary.BigEndian.Uint16([]byte{out[2], out[3]}),
-				binary.BigEndian.Uint16([]byte{out[0], out[1]}),
-			}
-		case strings.ToUpper(common.ValueTypeFloat64):
-			v, err := strconv.ParseFloat(valueStr, 64)
-			if err != nil {
-				return fmt.Errorf("convert value %v to float64 error: %v", value, err)
-			}
-			out := make([]byte, 8)
-			if pc.ByteSwap {
-				binary.LittleEndian.PutUint64(out, math.Float64bits(v))
-			} else {
-				binary.BigEndian.PutUint64(out, math.Float64bits(v))
-			}
-			if pc.WordSwap {
-				out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7] =
-					out[2], out[3], out[0], out[1], out[6], out[7], out[4], out[5]
-			}
-			values = []uint16{
-				binary.BigEndian.Uint16([]byte{out[6], out[7]}),
-				binary.BigEndian.Uint16([]byte{out[4], out[5]}),
-				binary.BigEndian.Uint16([]byte{out[2], out[3]}),
-				binary.BigEndian.Uint16([]byte{out[0], out[1]}),
-			}
-		case strings.ToUpper(common.ValueTypeString):
-			valueBytes := []byte(valueStr)
-			if len(valueBytes) > int(pc.Quantity*2) {
-				return fmt.Errorf("too long string [%v] to set in %d registers", valueStr, pc.Quantity)
-			}
-			if pc.ByteSwap {
-				for i := 0; i < len(valueBytes); i += 2 {
-					if i+1 < len(valueBytes) {
-						valueBytes[i], valueBytes[i+1] = valueBytes[i+1], valueBytes[i]
-					}
-				}
-			}
-			if pc.WordSwap {
-				for i := 0; i < len(valueBytes); i += 4 {
-					if i+3 < len(valueBytes) {
-						valueBytes[i], valueBytes[i+1], valueBytes[i+2], valueBytes[i+3] =
-							valueBytes[i+2], valueBytes[i+3], valueBytes[i], valueBytes[i+1]
-					}
-				}
-			}
-			values = make([]uint16, pc.Quantity)
-			for i := 0; i < len(valueBytes); i += 2 {
-				if i+1 < len(valueBytes) {
-					values[i/2] = binary.BigEndian.Uint16(valueBytes[i : i+2])
-				} else {
-					values[i/2] = binary.BigEndian.Uint16([]byte{valueBytes[i], 0})
-				}
-			}
-			for i := 0; i < len(values)/2; i++ {
-				values[i], values[len(values)-1-i] = values[len(values)-1-i], values[i]
-			}
-		default:
-			return fmt.Errorf("unsupported raw type: %v", pc)
-		}
-	default:
-		return fmt.Errorf("unsupported write register type: %v", pc)
-	}
 	var err error
 	for i := 0; i < c.retry; i++ {
-		if err = c.write(pc.unitID, pc.RegisterType, pc.Address, values); err == nil {
+		if err = c.write(pc.unitID, pc.RegisterType, pc.Address, pc.Value); err == nil {
 			break
 		}
 	}

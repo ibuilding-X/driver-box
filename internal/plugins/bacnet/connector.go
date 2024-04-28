@@ -24,6 +24,7 @@ const (
 
 type connector struct {
 	key     string
+	adapter plugin.ProtocolAdapter
 	plugin  *Plugin
 	network *network.Network
 	//通讯设备集合
@@ -190,6 +191,11 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 	}
 }
 
+// ProtocolAdapter 协议适配器
+func (p *connector) ProtocolAdapter() plugin.ProtocolAdapter {
+	return p.adapter
+}
+
 func (c *connector) Send(raw interface{}) (err error) {
 	br := raw.(bacRequest)
 	device, ok := c.devices[br.deviceId]
@@ -201,7 +207,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 	// 读
 	case plugin.ReadMode:
 		if c.virtual {
-			return mockRead(c.plugin, c.plugin.ls, br.req.(btypes.MultiplePropertyData))
+			return mockRead(c, c.plugin.ls, br.req.(btypes.MultiplePropertyData))
 		}
 		req := br.req.(btypes.MultiplePropertyData)
 		var out btypes.MultiplePropertyData
@@ -229,7 +235,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 					resp.PointName = pointName
 					resp.DeviceSn = deviceSn
 					respJson, err := json.Marshal(resp)
-					_, err = callback.OnReceiveHandler(c.plugin, string(respJson))
+					_, err = callback.OnReceiveHandler(c, string(respJson))
 					if err != nil {
 						helper.Logger.Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
 					}
@@ -411,6 +417,10 @@ func initConnector(key string, config map[string]interface{}, p *Plugin) (*conne
 					network: n,
 					plugin:  p,
 					devices: make(map[string]*device),
+					adapter: &adapter{
+						scriptDir: p.config.Key,
+						ls:        p.ls,
+					},
 				}
 				//启动数据采集任务
 				err = c.initCollectTask(&bic)

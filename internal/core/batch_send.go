@@ -36,7 +36,7 @@ func SendBatchWrite(deviceSn string, points []plugin.PointData) (err error) {
 		if !ok {
 			return fmt.Errorf("not found running plugin, device name is %s", deviceSn)
 		}
-		// 获取连接
+		// 获取连接，相同连接的点位归为一组
 		conn, err := p.Connector(deviceSn, pd.PointName)
 		if err != nil {
 			_ = helper.DeviceShadow.MayBeOffline(deviceSn)
@@ -53,8 +53,8 @@ func SendBatchWrite(deviceSn string, points []plugin.PointData) (err error) {
 	}
 	//按连接批量下发
 	for conn, bw := range group {
-		adapter := bw.connector.ProtocolAdapter()
-		res, err := adapter.BatchEncode(deviceSn, plugin.BatchWriteMode, bw.points)
+		adapter := conn.ProtocolAdapter()
+		res, err := adapter.Encode(deviceSn, plugin.WriteMode, bw.points...)
 		if err != nil {
 			return err
 		}

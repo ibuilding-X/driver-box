@@ -27,12 +27,9 @@ func (pd protoData) ToJSON() string {
 	b, _ := json.Marshal(pd)
 	return string(b)
 }
-func (a *adapter) BatchEncode(deviceSn string, mode plugin.EncodeMode, value []plugin.PointData) (res interface{}, err error) {
-	return nil, common.NotSupportEncode
-}
 
 // Encode 编码数据，无需实现
-func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, values plugin.PointData) (res interface{}, err error) {
+func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
 	return nil, common.NotSupportEncode
 }
 

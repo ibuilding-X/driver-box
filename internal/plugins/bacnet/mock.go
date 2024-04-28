@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func mockRead(plugin *Plugin, L *lua.LState, data btypes.MultiplePropertyData) error {
+func mockRead(plugin *connector, L *lua.LState, data btypes.MultiplePropertyData) error {
 	for _, object := range data.Objects {
 		for deviceSn, pointName := range object.Points {
 			mockData, e := helper.CallLuaMethod(L, "mockRead", lua.LString(deviceSn), lua.LString(pointName))

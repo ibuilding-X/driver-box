@@ -1,35 +1,32 @@
 package modbus
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
+	"math"
+	"strconv"
+	"strings"
 )
 
-// Adapter 协议适配器
-type adapter struct {
-	scriptEnable bool //是否存在动态脚本
-	ls           *lua.LState
-}
-
 // Decode 解码数据
-func (a *adapter) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
+func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
 	readValue, ok := raw.(plugin.PointReadValue)
 	if !ok {
 		return nil, fmt.Errorf("unexpected raw: %v", raw)
 	}
 
-	if a.scriptEnable {
+	if c.ScriptEnable {
 		resBytes, err := json.Marshal(readValue)
 		if err != nil {
 			return nil, fmt.Errorf("marshal result [%v] error: %v", res, err)
 		}
-		return helper.CallLuaConverter(a.ls, "decode", string(resBytes))
+		return helper.CallLuaConverter(c.Ls, "decode", string(resBytes))
 	} else {
 		res = append(res, plugin.DeviceData{
 			SN: readValue.SN,
@@ -41,53 +38,322 @@ func (a *adapter) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
 	}
 	return
 }
-func (a *adapter) BatchEncode(deviceSn string, mode plugin.EncodeMode, value []plugin.PointData) (res interface{}, err error) {
-	return nil, common.NotSupportEncode
-}
 
 // Encode 编码数据
-func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.PointData) (res interface{}, err error) {
-	if mode == plugin.ReadMode {
-		return nil, fmt.Errorf("unsupported mode %v", plugin.ReadMode)
-	}
+func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
 	if mode == plugin.WriteMode {
-		d, ok := helper.CoreCache.GetDevice(deviceSn)
-		if !ok {
-			return nil, errors.New("device not found")
-		}
-		unitId, err := getUnitId(d.Properties)
+		writeValues, err := c.batchWriteEncode(deviceSn, values)
+		return command{
+			Mode:  plugin.WriteMode,
+			Value: writeValues,
+		}, err
+	}
+	return nil, fmt.Errorf("unsupported mode %v", plugin.ReadMode)
+}
+
+func (c *connector) batchWriteEncode(deviceSn string, points []plugin.PointData) ([]writeValue, error) {
+	var values []writeValue
+	for _, p := range points {
+		wv, err := c.getWriteValue(deviceSn, p)
 		if err != nil {
-			return nil, err
+			return values, err
 		}
-		p, ok := helper.CoreCache.GetPointByDevice(deviceSn, value.PointName)
-		if !ok {
-			return nil, errors.New("point not found")
+		//仅保持寄存器支持批量
+		if wv.RegisterType != HoldingRegister {
+			values = append(values, wv)
+			continue
 		}
 
-		ext, err := convToPointExtend(p.Extends)
-		if err != nil {
-			helper.Logger.Error("error modbus point config", zap.String("deviceSn", deviceSn), zap.Any("point", value.PointName), zap.Error(err))
-			return nil, err
+		ok := false
+		for _, v := range values {
+			if v.unitID != wv.unitID && v.RegisterType != wv.RegisterType {
+				continue
+			}
+			//v与wv作address和values的合并
+			start := v.Address
+			end := v.Address + uint16(len(v.Value))
+			if wv.Address < start {
+				start = wv.Address
+			}
+			if wv.Address+uint16(len(wv.Value)) > end {
+				end = wv.Address + uint16(len(wv.Value))
+			}
+			//超出批量写支持的范围
+			if end-start > c.config.BatchWriteLen {
+				continue
+			}
+			//点位值合并
+			bytes := make([]uint16, end-start)
+			if v.Address == start {
+				copy(bytes, v.Value)
+				copy(bytes[wv.Address-v.Address:], wv.Value)
+			} else {
+				copy(bytes, wv.Value)
+				copy(bytes[v.Address-wv.Address:], v.Value)
+			}
+			v.Address = start
+			v.Value = bytes
+			ok = true
 		}
-		return command{
-			Mode: plugin.WriteMode,
-			Value: writeValue{
-				unitID:       unitId,
-				RegisterType: ext.RegisterType,
-				Address:      ext.Address,
-				Quantity:     ext.Quantity,
-				BitLen:       ext.BitLen,
-				WordSwap:     ext.WordSwap,
-				Bit:          ext.Bit,
-				ByteSwap:     ext.ByteSwap,
-				RawType:      ext.RawType,
-				Value:        value.Value,
-			},
-		}, nil
+		if ok {
+			continue
+		}
+		values = append(values, wv)
 	}
-	res = command{
-		Value: value.Value,
-		Mode:  mode,
+	return values, nil
+}
+func (c *connector) getWriteValue(deviceSn string, value plugin.PointData) (writeValue, error) {
+	d, ok := helper.CoreCache.GetDevice(deviceSn)
+	if !ok {
+		return writeValue{}, errors.New("device not found")
 	}
-	return res, nil
+	unitId, err := getUnitId(d.Properties)
+	if err != nil {
+		return writeValue{}, err
+	}
+	p, ok := helper.CoreCache.GetPointByDevice(deviceSn, value.PointName)
+	if !ok {
+		return writeValue{}, errors.New("point not found")
+	}
+
+	ext, err := convToPointExtend(p.Extends)
+	if err != nil {
+		helper.Logger.Error("error modbus point config", zap.String("deviceSn", deviceSn), zap.Any("point", value.PointName), zap.Error(err))
+		return writeValue{}, err
+	}
+	var values []uint16
+	switch ext.RegisterType {
+	case Coil: // 线圈固定长度1
+		i, err := helper.Conv2Int64(value)
+		if err != nil {
+			return writeValue{}, err
+		}
+		values = []uint16{uint16(i & 1)}
+	case HoldingRegister:
+		valueStr := fmt.Sprintf("%v", value)
+		switch strings.ToUpper(ext.RawType) {
+		case strings.ToUpper(common.ValueTypeUint16):
+			v, err := strconv.ParseUint(valueStr, 10, 16)
+			if err != nil {
+				return writeValue{}, fmt.Errorf("convert value %v to uint16 error: %v", value, err)
+			}
+			// TODO: 位写
+			if ext.BitLen > 0 {
+				if v > (1<<ext.BitLen - 1) {
+					return writeValue{}, fmt.Errorf("too large value %v to set in %d bits", v, ext.BitLen)
+				}
+				uint16s, err := c.read(unitId, string(ext.RegisterType), ext.Address, ext.Quantity)
+				uint16Val := uint16s[0]
+				if ext.ByteSwap {
+					uint16Val = (uint16Val << 8) | (uint16Val >> 8)
+				}
+				if err != nil {
+					return writeValue{}, fmt.Errorf("read original register error: %v", err)
+				}
+				intoUint16 := mergeBitsIntoUint16(int(v), ext.Bit, ext.BitLen, uint16Val)
+				if ext.ByteSwap {
+					intoUint16 = (intoUint16 << 8) | (intoUint16 >> 8)
+				}
+				values = []uint16{intoUint16}
+				break
+			}
+			out := make([]byte, 2)
+			if ext.ByteSwap {
+				binary.LittleEndian.PutUint16(out, uint16(v))
+			} else {
+				binary.BigEndian.PutUint16(out, uint16(v))
+			}
+			values = []uint16{binary.BigEndian.Uint16(out)}
+		case strings.ToUpper(common.ValueTypeInt16):
+			v, err := strconv.ParseInt(valueStr, 10, 16)
+			if err != nil {
+				return writeValue{}, fmt.Errorf("convert value %v to int16 error: %v", value, err)
+			}
+			if ext.BitLen > 0 {
+				if v > (1<<ext.BitLen - 1) {
+					return writeValue{}, fmt.Errorf("too large value %v to set in %d bits", v, ext.BitLen)
+				} else if v < 0 {
+					return writeValue{}, fmt.Errorf("negative value %v not allowed to set in bits", v)
+				}
+				uint16s, err := c.read(unitId, string(ext.RegisterType), ext.Address, ext.Quantity)
+				uint16Val := uint16s[0]
+				if ext.ByteSwap {
+					uint16Val = (uint16Val << 8) | (uint16Val >> 8)
+				}
+				if err != nil {
+					return writeValue{}, fmt.Errorf("read original register error: %v", err)
+				}
+				intoUint16 := mergeBitsIntoUint16(int(v), ext.Bit, ext.BitLen, uint16Val)
+				if ext.ByteSwap {
+					intoUint16 = (intoUint16 << 8) | (intoUint16 >> 8)
+				}
+				values = []uint16{intoUint16}
+				break
+			}
+			out := make([]byte, 2)
+			if ext.ByteSwap {
+				binary.LittleEndian.PutUint16(out, uint16(v))
+			} else {
+				binary.BigEndian.PutUint16(out, uint16(v))
+			}
+			values = []uint16{binary.BigEndian.Uint16(out)}
+		case strings.ToUpper(common.ValueTypeUint32):
+			v, err := strconv.ParseUint(valueStr, 10, 32)
+			if err != nil {
+				return writeValue{}, fmt.Errorf("convert value %v to uint32 error: %v", value, err)
+			}
+			out := make([]byte, 4)
+			if ext.ByteSwap {
+				binary.LittleEndian.PutUint32(out, uint32(v))
+			} else {
+				binary.BigEndian.PutUint32(out, uint32(v))
+			}
+			if ext.WordSwap {
+				out[0], out[1], out[2], out[3] =
+					out[2], out[3], out[0], out[1]
+			}
+			values = []uint16{binary.BigEndian.Uint16([]byte{out[2], out[3]}),
+				binary.BigEndian.Uint16([]byte{out[0], out[1]})}
+		case strings.ToUpper(common.ValueTypeInt32):
+			v, err := strconv.ParseInt(valueStr, 10, 32)
+			if err != nil {
+				return writeValue{}, fmt.Errorf("convert value %v to int32 error: %v", value, err)
+			}
+			out := make([]byte, 4)
+			if ext.ByteSwap {
+				binary.LittleEndian.PutUint32(out, uint32(v))
+			} else {
+				binary.BigEndian.PutUint32(out, uint32(v))
+			}
+			if ext.WordSwap {
+				out[0], out[1], out[2], out[3] =
+					out[2], out[3], out[0], out[1]
+			}
+			values = []uint16{binary.BigEndian.Uint16([]byte{out[2], out[3]}),
+				binary.BigEndian.Uint16([]byte{out[0], out[1]})}
+		case strings.ToUpper(common.ValueTypeFloat32):
+			v, err := strconv.ParseFloat(valueStr, 32)
+			if err != nil {
+				return writeValue{}, fmt.Errorf("convert value %v to float32 error: %v", value, err)
+			}
+			v32 := float32(v)
+			bits := math.Float32bits(v32)
+			out := make([]byte, 4)
+			if ext.ByteSwap {
+				binary.LittleEndian.PutUint32(out, bits)
+			} else {
+				binary.BigEndian.PutUint32(out, bits)
+			}
+			if ext.WordSwap {
+				out[0], out[1], out[2], out[3] =
+					out[2], out[3], out[0], out[1]
+			}
+			values = []uint16{binary.BigEndian.Uint16([]byte{out[2], out[3]}),
+				binary.BigEndian.Uint16([]byte{out[0], out[1]})}
+		case strings.ToUpper(common.ValueTypeUint64):
+			v, err := strconv.ParseUint(valueStr, 10, 64)
+			if err != nil {
+				return writeValue{}, fmt.Errorf("convert value %v to uint64 error: %v", value, err)
+			}
+			out := make([]byte, 8)
+			if ext.ByteSwap {
+				binary.LittleEndian.PutUint64(out, v)
+			} else {
+				binary.BigEndian.PutUint64(out, v)
+			}
+			if ext.WordSwap {
+				out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7] =
+					out[2], out[3], out[0], out[1], out[6], out[7], out[4], out[5]
+			}
+			values = []uint16{
+				binary.BigEndian.Uint16([]byte{out[6], out[7]}),
+				binary.BigEndian.Uint16([]byte{out[4], out[5]}),
+				binary.BigEndian.Uint16([]byte{out[2], out[3]}),
+				binary.BigEndian.Uint16([]byte{out[0], out[1]}),
+			}
+		case strings.ToUpper(common.ValueTypeInt64):
+			v, err := strconv.ParseInt(valueStr, 10, 64)
+			if err != nil {
+				return writeValue{}, fmt.Errorf("convert value %v to int64 error: %v", value, err)
+			}
+			out := make([]byte, 8)
+			if ext.ByteSwap {
+				binary.LittleEndian.PutUint64(out, uint64(v))
+			} else {
+				binary.BigEndian.PutUint64(out, uint64(v))
+			}
+			if ext.WordSwap {
+				out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7] =
+					out[2], out[3], out[0], out[1], out[6], out[7], out[4], out[5]
+			}
+			values = []uint16{
+				binary.BigEndian.Uint16([]byte{out[6], out[7]}),
+				binary.BigEndian.Uint16([]byte{out[4], out[5]}),
+				binary.BigEndian.Uint16([]byte{out[2], out[3]}),
+				binary.BigEndian.Uint16([]byte{out[0], out[1]}),
+			}
+		case strings.ToUpper(common.ValueTypeFloat64):
+			v, err := strconv.ParseFloat(valueStr, 64)
+			if err != nil {
+				return writeValue{}, fmt.Errorf("convert value %v to float64 error: %v", value, err)
+			}
+			out := make([]byte, 8)
+			if ext.ByteSwap {
+				binary.LittleEndian.PutUint64(out, math.Float64bits(v))
+			} else {
+				binary.BigEndian.PutUint64(out, math.Float64bits(v))
+			}
+			if ext.WordSwap {
+				out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7] =
+					out[2], out[3], out[0], out[1], out[6], out[7], out[4], out[5]
+			}
+			values = []uint16{
+				binary.BigEndian.Uint16([]byte{out[6], out[7]}),
+				binary.BigEndian.Uint16([]byte{out[4], out[5]}),
+				binary.BigEndian.Uint16([]byte{out[2], out[3]}),
+				binary.BigEndian.Uint16([]byte{out[0], out[1]}),
+			}
+		case strings.ToUpper(common.ValueTypeString):
+			valueBytes := []byte(valueStr)
+			if len(valueBytes) > int(ext.Quantity*2) {
+				return writeValue{}, fmt.Errorf("too long string [%v] to set in %d registers", valueStr, ext.Quantity)
+			}
+			if ext.ByteSwap {
+				for i := 0; i < len(valueBytes); i += 2 {
+					if i+1 < len(valueBytes) {
+						valueBytes[i], valueBytes[i+1] = valueBytes[i+1], valueBytes[i]
+					}
+				}
+			}
+			if ext.WordSwap {
+				for i := 0; i < len(valueBytes); i += 4 {
+					if i+3 < len(valueBytes) {
+						valueBytes[i], valueBytes[i+1], valueBytes[i+2], valueBytes[i+3] =
+							valueBytes[i+2], valueBytes[i+3], valueBytes[i], valueBytes[i+1]
+					}
+				}
+			}
+			values = make([]uint16, ext.Quantity)
+			for i := 0; i < len(valueBytes); i += 2 {
+				if i+1 < len(valueBytes) {
+					values[i/2] = binary.BigEndian.Uint16(valueBytes[i : i+2])
+				} else {
+					values[i/2] = binary.BigEndian.Uint16([]byte{valueBytes[i], 0})
+				}
+			}
+			for i := 0; i < len(values)/2; i++ {
+				values[i], values[len(values)-1-i] = values[len(values)-1-i], values[i]
+			}
+		default:
+			return writeValue{}, fmt.Errorf("unsupported raw type: %v", ext)
+		}
+	default:
+		return writeValue{}, fmt.Errorf("unsupported write register type: %v", ext)
+	}
+	return writeValue{
+		unitID:       unitId,
+		RegisterType: ext.RegisterType,
+		Address:      ext.Address,
+		Value:        values,
+	}, nil
 }

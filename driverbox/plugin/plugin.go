@@ -19,8 +19,6 @@ func (d DeviceData) ToJSON() string {
 type Plugin interface {
 	// Initialize 初始化日志、配置、接收回调
 	Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error)
-	// ProtocolAdapter 协议适配器
-	ProtocolAdapter() ProtocolAdapter
 	// Connector 连接器
 	Connector(deviceSn, pointName string) (connector Connector, err error)
 	// Destroy 销毁驱动
@@ -29,6 +27,8 @@ type Plugin interface {
 
 // Connector 连接器
 type Connector interface {
+	// ProtocolAdapter 协议适配器
+	ProtocolAdapter() ProtocolAdapter
 	Send(data interface{}) (err error) // 发送数据
 	Release() (err error)              // 释放连接资源
 }
@@ -36,8 +36,6 @@ type Connector interface {
 // ProtocolAdapter 协议适配器
 // 点位数据 <=> 协议数据
 type ProtocolAdapter interface {
-	Encode(deviceSn string, mode EncodeMode, value PointData) (res interface{}, err error) // 编码
-	//批量点位编码
-	BatchEncode(deviceSn string, mode EncodeMode, value []PointData) (res interface{}, err error) // 编码
-	Decode(raw interface{}) (res []DeviceData, err error)                                         // 解码
+	Encode(deviceSn string, mode EncodeMode, values ...PointData) (res interface{}, err error) // 编码，是否支持批量的读写操作，由各插件觉得
+	Decode(raw interface{}) (res []DeviceData, err error)                                      // 解码
 }

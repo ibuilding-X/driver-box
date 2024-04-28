@@ -26,15 +26,16 @@ func (td transportationData) ToJSON() string {
 	b, _ := json.Marshal(td)
 	return string(b)
 }
-func (a *adapter) BatchEncode(deviceSn string, mode plugin.EncodeMode, value []plugin.PointData) (res interface{}, err error) {
-	return nil, common.NotSupportEncode
-}
 
 // Encode 编码数据
-func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, values plugin.PointData) (res interface{}, err error) {
+func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
+	if len(values) != 1 {
+		return nil, common.NotSupportEncode
+	}
+	value := values[0]
 	data := transportationData{
 		Mode:     string(mode),
-		Values:   values,
+		Values:   value,
 		Protocol: connectorConfig{},
 	}
 	return helper.CallLuaEncodeConverter(a.ls, deviceSn, data.ToJSON())

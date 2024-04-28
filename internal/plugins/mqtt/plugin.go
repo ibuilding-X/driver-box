@@ -24,12 +24,6 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState)
 	p.config = c
 	p.ls = ls
 
-	// 初始化协议适配器
-	p.adapter = &adapter{
-		scriptDir: c.Key,
-		ls:        ls,
-	}
-
 	// 初始化连接池
 	if err = p.initConnPool(); err != nil {
 		return
@@ -51,6 +45,10 @@ func (p *Plugin) initConnPool() error {
 			plugin: p,
 			topics: connectConfig.Topics,
 			name:   k,
+			adapter: &adapter{
+				scriptDir: p.config.Key,
+				ls:        p.ls,
+			},
 		}
 		err := conn.connect(connectConfig)
 		if err != nil {
@@ -60,11 +58,6 @@ func (p *Plugin) initConnPool() error {
 		p.connectors[k] = conn
 	}
 	return nil
-}
-
-// ProtocolAdapter 协议适配器
-func (p *Plugin) ProtocolAdapter() plugin.ProtocolAdapter {
-	return p.adapter
 }
 
 // Connector 连接器

@@ -1,6 +1,9 @@
 package plugin
 
-import "github.com/ibuilding-x/driver-box/driverbox/event"
+import (
+	"github.com/ibuilding-x/driver-box/driverbox/event"
+	lua "github.com/yuin/gopher-lua"
+)
 
 // 触发 ExportTo 的类型
 type ExportType string
@@ -11,7 +14,6 @@ type EncodeMode string
 const (
 	ReadMode       EncodeMode = "read"           // 读模式
 	WriteMode      EncodeMode = "write"          // 写模式
-	BatchWriteMode EncodeMode = "batchWrite"     // 批量写模式
 	RealTimeExport ExportType = "realTimeExport" //实时上报
 )
 
@@ -49,4 +51,11 @@ type PointWriteValue struct {
 	ModelName string `json:"modelName"`
 	//前置操作，例如空开要先解锁，空调要先开机
 	PreOp []PointWriteValue `json:"preOp"`
+}
+
+type Connection struct {
+	ConnectionKey string
+	ScriptEnable  bool //是否存在动态脚本
+	//当前连接的 lua 虚拟机
+	Ls *lua.LState
 }
