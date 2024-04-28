@@ -25,7 +25,7 @@ type ConnectionConfig struct {
 	StopBits      uint   `json:"stopBits"`      // 停止位（仅串口模式）
 	Parity        uint   `json:"parity"`        // 奇偶性校验（仅串口模式）
 	MaxLen        uint16 `json:"maxLen"`        // 最长连续读个数
-	BatchWriteLen uint16 `json:"batchWriteLen"` // 支持连续写的最大长度
+	BatchWriteLen int    `json:"batchWriteLen"` // 支持连续写的最大长度
 	MinInterval   uint   `json:"minInterval"`   // 最小读取间隔
 	Timeout       int    `json:"timeout"`       // 请求超时
 	Retry         int    `json:"retry"`         // 重试次数

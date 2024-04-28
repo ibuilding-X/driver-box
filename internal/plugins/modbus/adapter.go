@@ -10,6 +10,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -58,49 +59,47 @@ func (c *connector) batchWriteEncode(deviceSn string, points []plugin.PointData)
 		if err != nil {
 			return values, err
 		}
+		values = append(values, &wv)
+	}
+	//按照address排序
+	sort.Slice(values, func(i, j int) bool {
+		return values[i].Address < values[j].Address
+	})
+
+	mergedValues := make([]*writeValue, 0)
+	var preValue *writeValue
+	for _, v := range values {
 		//仅保持寄存器支持批量
-		if wv.RegisterType != HoldingRegister {
-			values = append(values, &wv)
+		if v.RegisterType != HoldingRegister {
+			mergedValues = append(mergedValues, v)
+			continue
+		}
+		if preValue == nil {
+			preValue = v
+			mergedValues = append(mergedValues, v)
 			continue
 		}
 
-		ok := false
-		for _, v := range values {
-			if v.unitID != wv.unitID && v.RegisterType != wv.RegisterType {
-				continue
-			}
-			//v与wv作address和values的合并
-			start := v.Address
-			end := v.Address + uint16(len(v.Value))
-			if wv.Address < start {
-				start = wv.Address
-			}
-			if wv.Address+uint16(len(wv.Value)) > end {
-				end = wv.Address + uint16(len(wv.Value))
-			}
-			//超出批量写支持的范围
-			if end-start > c.config.BatchWriteLen {
-				continue
-			}
-			//点位值合并
-			bytes := make([]uint16, end-start)
-			if v.Address == start {
-				copy(bytes, v.Value)
-				copy(bytes[wv.Address-v.Address:], wv.Value)
-			} else {
-				copy(bytes, wv.Value)
-				copy(bytes[v.Address-wv.Address:], v.Value)
-			}
-			v.Address = start
-			v.Value = bytes
-			ok = true
-		}
-		if ok {
+		//批量下发必须为连续地址
+		if int(preValue.Address)+len(preValue.Value) != int(v.Address) {
+			preValue = v
+			mergedValues = append(mergedValues, v)
 			continue
 		}
-		values = append(values, &wv)
+		//超过批量写支持的字节长度范围
+		batchLen := len(preValue.Value) + len(v.Value)
+		if batchLen > c.config.BatchWriteLen {
+			preValue = v
+			mergedValues = append(mergedValues, v)
+			continue
+		}
+		//合并数据
+		bytes := make([]uint16, batchLen)
+		copy(bytes, preValue.Value)
+		copy(bytes[len(preValue.Value):], v.Value)
+		preValue.Value = bytes
 	}
-	return values, nil
+	return mergedValues, nil
 }
 func (c *connector) getWriteValue(deviceSn string, pointData plugin.PointData) (writeValue, error) {
 	value := pointData.Value
