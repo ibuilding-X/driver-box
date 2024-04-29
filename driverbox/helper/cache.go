@@ -13,7 +13,7 @@ import (
 
 const (
 	businessPropSN       string = "_sn"
-	businessPropParentSN string = "_parentSN"
+	businessPropParentID string = "_parentID"
 	businessPropSystemID string = "_systemID"
 )
 
@@ -193,7 +193,7 @@ type coreCache interface {
 type businessPropCache interface {
 	GetDeviceBusinessProp(id string) (props config.DeviceBusinessProp, err error) // 获取设备业务属性
 	UpdateDeviceBusinessPropSN(id string, value string) error                     // 更新设备业务属性SN
-	UpdateDeviceBusinessPropParentSN(id string, value string) error               // 更新设备业务属性ParentSN
+	UpdateDeviceBusinessPropParentID(id string, value string) error               // 更新设备业务属性ParentID
 	UpdateDeviceBusinessPropSystemID(sn string, value string) error               // 更新设备业务属性SystemID
 }
 
@@ -370,7 +370,7 @@ func (c *cache) GetDeviceBusinessProp(id string) (props config.DeviceBusinessPro
 		device, _ := raw.(config.Device)
 		return config.DeviceBusinessProp{
 			SN:       device.Properties[businessPropSN],
-			ParentSN: device.Properties[businessPropParentSN],
+			ParentID: device.Properties[businessPropParentID],
 			SystemID: device.Properties[businessPropSystemID],
 		}, nil
 	}
@@ -398,9 +398,9 @@ func (c *cache) UpdateDeviceBusinessPropSN(id string, value string) error {
 	return c.updateDeviceBusinessProp(id, businessPropSN, value)
 }
 
-// UpdateDeviceBusinessPropParentSN 更新设备业务属性ParentSN
-func (c *cache) UpdateDeviceBusinessPropParentSN(id string, value string) error {
-	return c.updateDeviceBusinessProp(id, businessPropParentSN, value)
+// UpdateDeviceBusinessPropParentID 更新设备业务属性ParentID
+func (c *cache) UpdateDeviceBusinessPropParentID(id string, value string) error {
+	return c.updateDeviceBusinessProp(id, businessPropParentID, value)
 }
 
 // UpdateDeviceBusinessPropSystemID 更新设备业务属性SystemID
