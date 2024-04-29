@@ -107,7 +107,7 @@ type baseTrigger struct {
 }
 
 type pointCondition struct {
-	DeviceId string `json:"devSn"`
+	DeviceId string `json:"id"`
 	//云端定义的设备点位 point 在边缘侧用ResourceName表示
 	DevicePoint string `json:"point"`
 	//条件模式：== != > < 等
@@ -206,7 +206,7 @@ type baseAction struct {
 type devicePointAction struct {
 	baseAction
 	//设备名称
-	DeviceId string `json:"devSn"`
+	DeviceId string `json:"id"`
 	// 点位名
 	DevicePoint string `json:"point"`
 	// 点位值

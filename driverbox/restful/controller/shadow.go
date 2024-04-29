@@ -32,7 +32,7 @@ func (s *Shadow) All(_ *http.Request) (any, error) {
 // Device 设备相关操作
 func (s *Shadow) Device(r *http.Request) (any, error) {
 	// 获取查询参数
-	sn := r.URL.Query().Get("sn")
+	sn := r.URL.Query().Get("id")
 
 	switch r.Method {
 	case http.MethodGet: // 查询
@@ -70,7 +70,7 @@ func (s *Shadow) Device(r *http.Request) (any, error) {
 // DevicePoint 获取设备点位数据
 func (s *Shadow) DevicePoint(r *http.Request) (any, error) {
 	// 获取查询参数
-	sn := r.URL.Query().Get("sn")
+	sn := r.URL.Query().Get("id")
 	point := r.URL.Query().Get("point")
 
 	if sn == "" || point == "" {
@@ -109,7 +109,7 @@ func (s *Shadow) queryDevicePoint(sn string, point string) (any, error) {
 // updateDevice 更新设备影子数据
 func (s *Shadow) updateDevice(data request.UpdateDeviceReq) error {
 	for i, _ := range data {
-		err := helper.DeviceShadow.SetDevicePoint(data[i].SN, data[i].Name, data[i].Value)
+		err := helper.DeviceShadow.SetDevicePoint(data[i].ID, data[i].Name, data[i].Value)
 		if err != nil {
 			return err
 		}
