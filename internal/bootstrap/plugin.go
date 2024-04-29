@@ -93,7 +93,7 @@ func initDeviceShadow(configMap map[string]config.Config) {
 	for _, c := range configMap {
 		for _, model := range c.DeviceModels {
 			for _, d := range model.Devices {
-				if d.DeviceSn == "" {
+				if d.ID == "" {
 					helper.Logger.Error("config error ,device sn is empty", zap.Any("device", d))
 					continue
 				}

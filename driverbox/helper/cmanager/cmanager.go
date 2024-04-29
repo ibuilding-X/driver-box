@@ -46,12 +46,12 @@ type Manager interface {
 	GetConfigs() map[string]config.Config
 
 	GetModel(modelName string) (config.DeviceModel, bool)
-	GetDevice(modelName string, deviceName string) (config.Device, bool)
+	GetDevice(modelName string, deviceID string) (config.Device, bool)
 	AddOrUpdateDevice(device config.Device) error
-	RemoveDevice(modelName string, deviceName string) error
-	RemoveDeviceBySN(deviceSN string) error
+	RemoveDevice(modelName string, deviceID string) error
+	RemoveDeviceByID(id string) error
 
-	BatchRemoveDevice(sns []string) error
+	BatchRemoveDevice(ids []string) error
 
 	AddConfig(c config.Config) error
 }
@@ -98,28 +98,28 @@ func GetModel(modelName string) (config.DeviceModel, bool) {
 	return instance.GetModel(modelName)
 }
 
-func GetDevice(modelName string, deviceName string) (config.Device, bool) {
-	return instance.GetDevice(modelName, deviceName)
+func GetDevice(modelName string, deviceID string) (config.Device, bool) {
+	return instance.GetDevice(modelName, deviceID)
 }
 
 func AddOrUpdateDevice(device config.Device) error {
 	return instance.AddOrUpdateDevice(device)
 }
 
-func RemoveDevice(modelName string, deviceName string) error {
-	return instance.RemoveDevice(modelName, deviceName)
+func RemoveDevice(modelName string, deviceID string) error {
+	return instance.RemoveDevice(modelName, deviceID)
 }
 
-func RemoveDeviceBySN(deviceSN string) error {
-	return instance.RemoveDeviceBySN(deviceSN)
+func RemoveDeviceByID(id string) error {
+	return instance.RemoveDeviceByID(id)
 }
 
 func AddConfig(c config.Config) error {
 	return instance.AddConfig(c)
 }
 
-func BatchRemoveDevice(sns []string) error {
-	return instance.BatchRemoveDevice(sns)
+func BatchRemoveDevice(ids []string) error {
+	return instance.BatchRemoveDevice(ids)
 }
 
 // SetConfigPath 设置配置目录
@@ -221,7 +221,7 @@ func (m *manager) AddOrUpdateDevice(device config.Device) error {
 
 	for s, conf := range m.configs {
 		if modelIndex, ok := conf.GetModelIndexes()[device.ModelName]; ok {
-			if deviceIndex, exist := conf.DeviceModels[modelIndex].GetDeviceIndexes()[device.DeviceSn]; exist {
+			if deviceIndex, exist := conf.DeviceModels[modelIndex].GetDeviceIndexes()[device.ID]; exist {
 				// 更新
 				conf.DeviceModels[modelIndex].Devices[deviceIndex] = device
 			} else {
@@ -237,13 +237,13 @@ func (m *manager) AddOrUpdateDevice(device config.Device) error {
 }
 
 // GetDevice 获取设备
-func (m *manager) GetDevice(modelName string, deviceName string) (config.Device, bool) {
+func (m *manager) GetDevice(modelName string, deviceID string) (config.Device, bool) {
 	m.mux.RLock()
 	defer m.mux.RUnlock()
 
 	for _, conf := range m.configs {
 		if modelIndex, ok := conf.GetModelIndexes()[modelName]; ok {
-			if deviceIndex, exist := conf.DeviceModels[modelIndex].GetDeviceIndexes()[deviceName]; exist {
+			if deviceIndex, exist := conf.DeviceModels[modelIndex].GetDeviceIndexes()[deviceID]; exist {
 				device := conf.DeviceModels[modelIndex].Devices[deviceIndex]
 				// 补充设备信息
 				device.ModelName = modelName
@@ -255,13 +255,13 @@ func (m *manager) GetDevice(modelName string, deviceName string) (config.Device,
 }
 
 // RemoveDevice 删除设备
-func (m *manager) RemoveDevice(modelName string, deviceName string) error {
+func (m *manager) RemoveDevice(modelName string, deviceID string) error {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 
 	for s, conf := range m.configs {
 		if modelIndex, ok := conf.GetModelIndexes()[modelName]; ok {
-			if deviceIndex, exist := conf.DeviceModels[modelIndex].GetDeviceIndexes()[deviceName]; exist {
+			if deviceIndex, exist := conf.DeviceModels[modelIndex].GetDeviceIndexes()[deviceID]; exist {
 				conf.DeviceModels[modelIndex].Devices = append(conf.DeviceModels[modelIndex].Devices[:deviceIndex], conf.DeviceModels[modelIndex].Devices[deviceIndex+1:]...)
 				m.configs[s] = conf.UpdateIndexAndClean()
 				return m.saveConfig(s)
@@ -271,9 +271,9 @@ func (m *manager) RemoveDevice(modelName string, deviceName string) error {
 	return ErrUnknownDevice
 }
 
-// RemoveDeviceBySN 根据 SN 删除设备
+// RemoveDeviceByID 根据 ID 删除设备
 // 提示：性能消耗过高，推荐使用 RemoveDevice 方法进行删除
-func (m *manager) RemoveDeviceBySN(sn string) error {
+func (m *manager) RemoveDeviceByID(id string) error {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 
@@ -282,7 +282,7 @@ func (m *manager) RemoveDeviceBySN(sn string) error {
 		for i, model := range conf.DeviceModels {
 			// 遍历所有设备
 			for j, device := range model.Devices {
-				if device.DeviceSn == sn {
+				if device.ID == id {
 					m.configs[s].DeviceModels[i].Devices = append(model.Devices[:j], model.Devices[j+1:]...)
 					m.configs[s] = conf.UpdateIndexAndClean()
 					return m.saveConfig(s)
@@ -295,14 +295,14 @@ func (m *manager) RemoveDeviceBySN(sn string) error {
 }
 
 // BatchRemoveDevice 批量删除设备
-func (m *manager) BatchRemoveDevice(sns []string) error {
+func (m *manager) BatchRemoveDevice(ids []string) error {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 
 	// 便于检索
-	snMap := make(map[string]struct{})
-	for _, sn := range sns {
-		snMap[sn] = struct{}{}
+	idMap := make(map[string]struct{})
+	for _, id := range ids {
+		idMap[id] = struct{}{}
 	}
 
 	for s, conf := range m.configs {
@@ -311,7 +311,7 @@ func (m *manager) BatchRemoveDevice(sns []string) error {
 			if len(model.Devices) > 0 {
 				newDevice := make([]config.Device, 0, len(model.Devices))
 				for _, device := range model.Devices {
-					if _, exist := snMap[device.DeviceSn]; exist {
+					if _, exist := idMap[device.ID]; exist {
 						// 删除
 						changed = true
 					} else {

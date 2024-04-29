@@ -76,7 +76,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 				}
 				duration, err := time.ParseDuration(ext.Duration)
 				if err != nil {
-					helper.Logger.Error("error bacnet duration config", zap.String("deviceSn", dev.DeviceSn), zap.Any("config", p.Extends), zap.Error(err))
+					helper.Logger.Error("error bacnet duration config", zap.String("deviceSn", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
 					duration = time.Second
 				}
 
@@ -100,7 +100,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 							if obj.ID.Type != object.ID.Type {
 								helper.Logger.Error("error bacnet config, the same instance has different type")
 							} else {
-								obj.Points[dev.DeviceSn] = p.Name
+								obj.Points[dev.ID] = p.Name
 							}
 							ok = true
 							break
@@ -113,7 +113,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 					if len(group.multiData.Objects) < 15 {
 						ok = true
 						points := make(map[string]string)
-						points[dev.DeviceSn] = p.Name
+						points[dev.ID] = p.Name
 						object.Points = points
 						group.multiData.Objects = append(group.multiData.Objects, object)
 						break
@@ -122,7 +122,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 				//新增一个点位组
 				if !ok {
 					points := make(map[string]string)
-					points[dev.DeviceSn] = p.Name
+					points[dev.ID] = p.Name
 					object.Points = points
 					device.pointGroup = append(device.pointGroup, &pointGroup{
 						Duration: duration,

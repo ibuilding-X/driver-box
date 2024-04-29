@@ -66,7 +66,7 @@ func (p *Plugin) Connector(deviceSn, pointName string) (plugin.Connector, error)
 	for _, deviceModel := range deviceModels {
 		devices := deviceModel.Devices
 		for _, device := range devices {
-			if device.DeviceSn == deviceSn {
+			if device.ID == deviceSn {
 				conn, ok := p.connectors[device.ConnectionKey]
 				if !ok {
 					return nil, common.ConnectorNotFound

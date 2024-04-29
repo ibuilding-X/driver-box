@@ -119,20 +119,20 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 		}
 		ext, err := convToPointExtend(p.Extends)
 		if err != nil {
-			helper.Logger.Error("error modbus point config", zap.String("deviceSn", dev.DeviceSn), zap.Any("point", point), zap.Error(err))
+			helper.Logger.Error("error modbus point config", zap.String("deviceSn", dev.ID), zap.Any("point", point), zap.Error(err))
 			continue
 		}
 		ext.Name = p.Name
-		ext.DeviceSn = dev.DeviceSn
+		ext.DeviceSn = dev.ID
 		duration, err := time.ParseDuration(ext.Duration)
 		if err != nil {
-			helper.Logger.Error("error modbus duration config", zap.String("deviceSn", dev.DeviceSn), zap.Any("config", p.Extends), zap.Error(err))
+			helper.Logger.Error("error modbus duration config", zap.String("deviceSn", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
 			duration = time.Second
 		}
 
 		device, err := c.createDevice(dev.Properties)
 		if err != nil {
-			helper.Logger.Error("error modbus device config", zap.String("deviceSn", dev.DeviceSn), zap.Any("config", p.Extends), zap.Error(err))
+			helper.Logger.Error("error modbus device config", zap.String("deviceSn", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
 			continue
 		}
 		ok := false
@@ -167,7 +167,7 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 		}
 		//新增一个点位组
 		if !ok {
-			ext.DeviceSn = dev.DeviceSn
+			ext.DeviceSn = dev.ID
 			ext.Name = p.Name
 			device.pointGroup = append(device.pointGroup, &pointGroup{
 				UnitID:       device.unitID,

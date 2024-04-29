@@ -146,8 +146,8 @@ type Point struct {
 
 // Device 设备
 type Device struct {
-	// 设备SN
-	DeviceSn string `json:"sn" validate:"required"`
+	// 设备 ID
+	ID string `json:"sn" validate:"required"`
 	// 模型名称
 	ModelName string `json:"-" validate:"-"`
 	// 设备描述
@@ -214,7 +214,7 @@ func (c Config) UpdateIndexAndClean() Config {
 		// 遍历设备
 		for j, _ := range c.DeviceModels[i].Devices {
 			usefulConnKeys[c.DeviceModels[i].Devices[j].ConnectionKey] = struct{}{}
-			c.DeviceModels[i].deviceIndexes[c.DeviceModels[i].Devices[j].DeviceSn] = j
+			c.DeviceModels[i].deviceIndexes[c.DeviceModels[i].Devices[j].ID] = j
 		}
 	}
 

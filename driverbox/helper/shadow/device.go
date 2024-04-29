@@ -54,12 +54,12 @@ func NewDevice(device config.Device, modelName string, points map[string]DeviceP
 	if device.Ttl != "" {
 		t, err := time.ParseDuration(device.Ttl)
 		if err != nil {
-			log.Fatalf("device:%v parse ttl:%v error:%v", device.DeviceSn, device.Ttl, err)
+			log.Fatalf("device:%v parse ttl:%v error:%v", device.ID, device.Ttl, err)
 		} else {
 			ttl = t
 		}
 	} else {
-		log.Printf("device:%v ttl unset, reset default value:%v", device.DeviceSn, ttl)
+		log.Printf("device:%v ttl unset, reset default value:%v", device.ID, ttl)
 	}
 	// 转换 points
 	ps := &sync.Map{}
@@ -67,7 +67,7 @@ func NewDevice(device config.Device, modelName string, points map[string]DeviceP
 		ps.Store(k, points[k])
 	}
 	return Device{
-		deviceSn:        device.DeviceSn,
+		deviceSn:        device.ID,
 		modelName:       modelName,
 		points:          ps,
 		onlineBindPoint: "",
