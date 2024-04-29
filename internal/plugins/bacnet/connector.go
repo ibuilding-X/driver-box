@@ -76,7 +76,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 				}
 				duration, err := time.ParseDuration(ext.Duration)
 				if err != nil {
-					helper.Logger.Error("error bacnet duration config", zap.String("deviceSn", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
+					helper.Logger.Error("error bacnet duration config", zap.String("deviceId", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
 					duration = time.Second
 				}
 
@@ -233,7 +233,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 				}
 				for deviceSn, pointName := range obj.Points {
 					resp.PointName = pointName
-					resp.DeviceSn = deviceSn
+					resp.DeviceId = deviceSn
 					respJson, err := json.Marshal(resp)
 					_, err = callback.OnReceiveHandler(c, string(respJson))
 					if err != nil {
@@ -245,7 +245,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 	case plugin.WriteMode:
 		write := br.req.(*network.Write)
 		if c.virtual {
-			return mockWrite(c.plugin.ls, write.DeviceSn, write.PointName, write.WriteValue)
+			return mockWrite(c.plugin.ls, write.DeviceId, write.PointName, write.WriteValue)
 		}
 		if err := device.device.Write(write); err != nil {
 			c.plugin.logger.Error(fmt.Sprintf("write error: %s", err.Error()))
@@ -260,7 +260,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 type readResponse struct {
 	Value     interface{}       `json:"value"`
 	Status    map[string]string `json:"status"`
-	DeviceSn  string            `json:"deviceSn"`
+	DeviceId  string            `json:"deviceId"`
 	PointName string            `json:"pointName"`
 }
 

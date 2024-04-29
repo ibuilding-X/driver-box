@@ -7,7 +7,7 @@ import (
 )
 
 type Write struct {
-	DeviceSn      string
+	DeviceId      string
 	PointName     string
 	ObjectID      btypes.ObjectInstance
 	ObjectType    btypes.ObjectType

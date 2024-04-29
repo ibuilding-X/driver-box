@@ -97,18 +97,18 @@ func initEnvConfig() error {
 }
 
 // 触发某个设备点位的读取动作，指令会下发值驱动层
-func ReadPoint(deviceSn string, pointName string) error {
-	return core.SendSinglePoint(deviceSn, plugin.ReadMode, plugin.PointData{
+func ReadPoint(deviceId string, pointName string) error {
+	return core.SendSinglePoint(deviceId, plugin.ReadMode, plugin.PointData{
 		PointName: pointName,
 	})
 }
 
 // 触发某个设备点位的写入操作
-func WritePoint(deviceSn string, pointData plugin.PointData) error {
-	return core.SendSinglePoint(deviceSn, plugin.WriteMode, pointData)
+func WritePoint(deviceId string, pointData plugin.PointData) error {
+	return core.SendSinglePoint(deviceId, plugin.WriteMode, pointData)
 }
 
 // 批量写点位
-func WritePoints(deviceSn string, pointData []plugin.PointData) error {
-	return core.SendBatchWrite(deviceSn, pointData)
+func WritePoints(deviceId string, pointData []plugin.PointData) error {
+	return core.SendBatchWrite(deviceId, pointData)
 }

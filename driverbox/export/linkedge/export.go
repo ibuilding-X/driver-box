@@ -64,7 +64,7 @@ func (export *Export) ExportTo(deviceData plugin.DeviceData) {
 		for id, conditions := range export.linkEdge.triggerConditions {
 			helper.Logger.Debug("check linkedge condition ", zap.String("id", id))
 			for _, condition := range conditions {
-				if condition.DeviceSn != deviceData.SN || condition.DevicePoint != p.PointName {
+				if condition.DeviceId != deviceData.ID || condition.DevicePoint != p.PointName {
 					continue
 				}
 

@@ -36,7 +36,7 @@ type ConnectionConfig struct {
 type Point struct {
 	config.Point
 	//冗余设备相关信息
-	DeviceSn string
+	DeviceId string
 
 	//点位采集周期
 	Duration     string `json:"duration"`

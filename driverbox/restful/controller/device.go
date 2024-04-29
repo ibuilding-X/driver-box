@@ -42,7 +42,7 @@ func (s *Device) WritePoints(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nil, core.SendBatchWrite(data.SN, data.Values)
+	return nil, core.SendBatchWrite(data.ID, data.Values)
 }
 
 // 读取某个设备点位

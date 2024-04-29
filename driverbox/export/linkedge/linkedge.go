@@ -258,7 +258,7 @@ func (linkEdge *service) registerTrigger(id string) error {
 			if e != nil {
 				return e
 			}
-			if len(devicePointTrigger.DeviceSn) == 0 || len(devicePointTrigger.DevicePoint) == 0 || len(devicePointTrigger.Condition) == 0 || len(devicePointTrigger.Value) == 0 {
+			if len(devicePointTrigger.DeviceId) == 0 || len(devicePointTrigger.DevicePoint) == 0 || len(devicePointTrigger.Condition) == 0 || len(devicePointTrigger.Value) == 0 {
 				return errors.New("invalid trigger:" + string(bytes))
 			}
 
@@ -405,7 +405,7 @@ func (linkEdge *service) triggerLinkEdge(id string, depth int, conf ...ModelConf
 				helper.Logger.Error(fmt.Sprintf("execute linkEdge:%s action error:%s", id, e.Error()))
 				continue
 			}
-			err := core.SendSinglePoint(devicePointAction.DeviceSn, plugin.WriteMode, plugin.PointData{
+			err := core.SendSinglePoint(devicePointAction.DeviceId, plugin.WriteMode, plugin.PointData{
 				PointName: devicePointAction.DevicePoint,
 				Value:     devicePointAction.Value,
 			})
@@ -483,12 +483,12 @@ func (linkEdge *service) checkConditions(conditions []interface{}) error {
 			if err != nil {
 				return err
 			}
-			if len(condition.DeviceSn) == 0 || len(condition.DevicePoint) == 0 || len(condition.Condition) == 0 || len(condition.Value) == 0 {
+			if len(condition.DeviceId) == 0 || len(condition.DevicePoint) == 0 || len(condition.Condition) == 0 || len(condition.Value) == 0 {
 				return errors.New("invalid trigger:" + string(bytes))
 			}
-			pointValue, err := helper.DeviceShadow.GetDevicePoint(condition.DeviceSn, condition.DevicePoint)
+			pointValue, err := helper.DeviceShadow.GetDevicePoint(condition.DeviceId, condition.DevicePoint)
 			if err != nil {
-				return fmt.Errorf("get device:%v point:%v value error:%v", condition.DeviceSn, condition.DevicePoint, err)
+				return fmt.Errorf("get device:%v point:%v value error:%v", condition.DeviceId, condition.DevicePoint, err)
 			}
 			//helper.Logger.Info(fmt.Sprintf("point value:%s", point))
 			err = linkEdge.checkConditionValue(condition.pointCondition, pointValue)

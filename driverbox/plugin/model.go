@@ -25,7 +25,7 @@ type PointData struct {
 
 // DeviceData 设备数据
 type DeviceData struct {
-	SN         string       `json:"sn"`
+	ID         string       `json:"id"`
 	Values     []PointData  `json:"values"`
 	Events     []event.Data `json:"events"`
 	ExportType ExportType   //上报类型，底层的变化上报和实时上报等同于RealTimeExport
@@ -33,8 +33,8 @@ type DeviceData struct {
 
 // PointReadValue 点位读操作的结构体
 type PointReadValue struct {
-	//设备 SN
-	SN string `json:"sn"`
+	//设备 ID
+	ID string `json:"id"`
 	// PointName 点位名称
 	PointName string `json:"pointName"`
 	// Value 点位值

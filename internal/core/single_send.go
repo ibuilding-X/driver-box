@@ -11,8 +11,8 @@ import (
 )
 
 // 单点操作
-func SendSinglePoint(deviceSn string, mode plugin.EncodeMode, pointData plugin.PointData) error {
-	point, ok := helper.CoreCache.GetPointByDevice(deviceSn, pointData.PointName)
+func SendSinglePoint(deviceId string, mode plugin.EncodeMode, pointData plugin.PointData) error {
+	point, ok := helper.CoreCache.GetPointByDevice(deviceId, pointData.PointName)
 	if !ok {
 		return fmt.Errorf("not found point, point name is %s", pointData.PointName)
 	}
@@ -33,32 +33,32 @@ func SendSinglePoint(deviceSn string, mode plugin.EncodeMode, pointData plugin.P
 	}
 
 	// 获取插件
-	p, ok := helper.CoreCache.GetRunningPluginByDeviceAndPoint(deviceSn, pointData.PointName)
+	p, ok := helper.CoreCache.GetRunningPluginByDeviceAndPoint(deviceId, pointData.PointName)
 	if !ok {
-		return fmt.Errorf("not found running plugin, device name is %s", deviceSn)
+		return fmt.Errorf("not found running plugin, device name is %s", deviceId)
 	}
 	// 获取连接
-	conn, err := p.Connector(deviceSn, pointData.PointName)
+	conn, err := p.Connector(deviceId, pointData.PointName)
 	if err != nil {
-		_ = helper.DeviceShadow.MayBeOffline(deviceSn)
+		_ = helper.DeviceShadow.MayBeOffline(deviceId)
 		return err
 	}
 	// 释放连接
 	defer conn.Release()
 	// 协议适配器
 	adapter := conn.ProtocolAdapter()
-	res, err := adapter.Encode(deviceSn, mode, pointData)
+	res, err := adapter.Encode(deviceId, mode, pointData)
 	if err != nil {
 		return err
 	}
 	// 发送数据
 	if err = conn.Send(res); err != nil {
-		_ = helper.DeviceShadow.MayBeOffline(deviceSn)
+		_ = helper.DeviceShadow.MayBeOffline(deviceId)
 		return err
 	}
 	//点位写成功后，立即触发读取操作以及时更新影子状态
 	if mode == plugin.WriteMode {
-		tryReadNewValue(deviceSn, pointData.PointName, pointData.Value)
+		tryReadNewValue(deviceId, pointData.PointName, pointData.Value)
 	}
 	return err
 }
@@ -82,8 +82,8 @@ func pointValueProcess(pointData *plugin.PointData, point config.Point) error {
 }
 
 // 尝试读取期望点位值
-func tryReadNewValue(deviceSn, pointName string, expectValue interface{}) {
-	point, ok := helper.CoreCache.GetPointByDevice(deviceSn, pointName)
+func tryReadNewValue(deviceId, pointName string, expectValue interface{}) {
+	point, ok := helper.CoreCache.GetPointByDevice(deviceId, pointName)
 	if !ok {
 		return
 	}
@@ -91,13 +91,13 @@ func tryReadNewValue(deviceSn, pointName string, expectValue interface{}) {
 		return
 	}
 	//延迟100毫秒触发读操作
-	go func(deviceSn, pointName string, expectValue interface{}) {
+	go func(deviceId, pointName string, expectValue interface{}) {
 		i := 0
 		for i < 10 {
 			i++
 			time.Sleep(time.Duration(i*100) * time.Millisecond)
 			helper.Logger.Info("point write success,try to read new value", zap.String("point", pointName))
-			err := SendSinglePoint(deviceSn, plugin.ReadMode, plugin.PointData{
+			err := SendSinglePoint(deviceId, plugin.ReadMode, plugin.PointData{
 				PointName: pointName,
 			})
 			if err != nil {
@@ -105,13 +105,13 @@ func tryReadNewValue(deviceSn, pointName string, expectValue interface{}) {
 				break
 			}
 
-			value, _ := helper.DeviceShadow.GetDevicePoint(deviceSn, pointName)
+			value, _ := helper.DeviceShadow.GetDevicePoint(deviceId, pointName)
 			helper.Logger.Info("point write success, read new value", zap.String("point", pointName), zap.Any("expect", expectValue), zap.Any("value", value))
 			if fmt.Sprint(expectValue) == fmt.Sprint(value) {
 				break
 			}
 		}
-	}(deviceSn, pointName, expectValue)
+	}(deviceId, pointName, expectValue)
 }
 
 func divideStrings(value interface{}, scale float64) (float64, error) {

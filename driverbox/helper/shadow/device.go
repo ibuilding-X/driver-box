@@ -9,7 +9,7 @@ import (
 
 // Device 设备结构
 type Device struct {
-	deviceSn        string        // 设备SN
+	id              string        // 设备id
 	modelName       string        // 设备模型名称
 	points          *sync.Map     // 设备点位列表
 	onlineBindPoint string        // 在线状态绑定点位（支持数据类型：bool、string、int、float）
@@ -21,7 +21,7 @@ type Device struct {
 
 // DeviceAPI 对外开放设备数据
 type DeviceAPI struct {
-	SN              string           `json:"sn"`
+	ID              string           `json:"id"`
 	Points          []DevicePointAPI `json:"points"`
 	Online          bool             `json:"online"`
 	TTL             string           `json:"ttl"`
@@ -67,7 +67,7 @@ func NewDevice(device config.Device, modelName string, points map[string]DeviceP
 		ps.Store(k, points[k])
 	}
 	return Device{
-		deviceSn:        device.ID,
+		id:              device.ID,
 		modelName:       modelName,
 		points:          ps,
 		onlineBindPoint: "",
@@ -79,7 +79,7 @@ func NewDevice(device config.Device, modelName string, points map[string]DeviceP
 // ToDeviceAPI 转换设备 API
 func (d *Device) ToDeviceAPI() DeviceAPI {
 	device := DeviceAPI{
-		SN:              d.deviceSn,
+		ID:              d.id,
 		Points:          make([]DevicePointAPI, 0),
 		Online:          d.online,
 		TTL:             d.ttl.String(),

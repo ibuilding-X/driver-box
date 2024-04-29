@@ -92,11 +92,11 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 					//通讯失败，触发离线
 					devices := make(map[string]interface{})
 					for _, point := range group.Points {
-						if devices[point.DeviceSn] != nil {
+						if devices[point.DeviceId] != nil {
 							continue
 						}
-						devices[point.DeviceSn] = point.Name
-						_ = helper.DeviceShadow.MayBeOffline(point.DeviceSn)
+						devices[point.DeviceId] = point.Name
+						_ = helper.DeviceShadow.MayBeOffline(point.DeviceId)
 					}
 				}
 				group.LatestTime = time.Now()
@@ -119,20 +119,20 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 		}
 		ext, err := convToPointExtend(p.Extends)
 		if err != nil {
-			helper.Logger.Error("error modbus point config", zap.String("deviceSn", dev.ID), zap.Any("point", point), zap.Error(err))
+			helper.Logger.Error("error modbus point config", zap.String("deviceId", dev.ID), zap.Any("point", point), zap.Error(err))
 			continue
 		}
 		ext.Name = p.Name
-		ext.DeviceSn = dev.ID
+		ext.DeviceId = dev.ID
 		duration, err := time.ParseDuration(ext.Duration)
 		if err != nil {
-			helper.Logger.Error("error modbus duration config", zap.String("deviceSn", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
+			helper.Logger.Error("error modbus duration config", zap.String("deviceId", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
 			duration = time.Second
 		}
 
 		device, err := c.createDevice(dev.Properties)
 		if err != nil {
-			helper.Logger.Error("error modbus device config", zap.String("deviceSn", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
+			helper.Logger.Error("error modbus device config", zap.String("deviceId", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
 			continue
 		}
 		ok := false
@@ -167,7 +167,7 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 		}
 		//新增一个点位组
 		if !ok {
-			ext.DeviceSn = dev.ID
+			ext.DeviceId = dev.ID
 			ext.Name = p.Name
 			device.pointGroup = append(device.pointGroup, &pointGroup{
 				UnitID:       device.unitID,
@@ -310,7 +310,7 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 			}
 		}
 		pointReadValue := plugin.PointReadValue{
-			SN:        point.DeviceSn,
+			ID:        point.DeviceId,
 			PointName: point.Name,
 			Value:     value,
 		}

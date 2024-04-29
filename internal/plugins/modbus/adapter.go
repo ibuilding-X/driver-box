@@ -30,7 +30,7 @@ func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error)
 		return helper.CallLuaConverter(c.Ls, "decode", string(resBytes))
 	} else {
 		res = append(res, plugin.DeviceData{
-			SN: readValue.SN,
+			ID: readValue.ID,
 			Values: []plugin.PointData{{
 				PointName: readValue.PointName,
 				Value:     readValue.Value,
@@ -41,9 +41,9 @@ func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error)
 }
 
 // Encode 编码数据
-func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
+func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
 	if mode == plugin.WriteMode {
-		writeValues, err := c.batchWriteEncode(deviceSn, values)
+		writeValues, err := c.batchWriteEncode(deviceId, values)
 		return command{
 			Mode:  plugin.WriteMode,
 			Value: writeValues,
@@ -52,10 +52,10 @@ func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 	return nil, fmt.Errorf("unsupported mode %v", plugin.ReadMode)
 }
 
-func (c *connector) batchWriteEncode(deviceSn string, points []plugin.PointData) ([]*writeValue, error) {
+func (c *connector) batchWriteEncode(deviceId string, points []plugin.PointData) ([]*writeValue, error) {
 	values := make([]*writeValue, 0)
 	for _, p := range points {
-		wv, err := c.getWriteValue(deviceSn, p)
+		wv, err := c.getWriteValue(deviceId, p)
 		if err != nil {
 			return values, err
 		}
@@ -101,9 +101,9 @@ func (c *connector) batchWriteEncode(deviceSn string, points []plugin.PointData)
 	}
 	return mergedValues, nil
 }
-func (c *connector) getWriteValue(deviceSn string, pointData plugin.PointData) (writeValue, error) {
+func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData) (writeValue, error) {
 	value := pointData.Value
-	d, ok := helper.CoreCache.GetDevice(deviceSn)
+	d, ok := helper.CoreCache.GetDevice(deviceId)
 	if !ok {
 		return writeValue{}, errors.New("device not found")
 	}
@@ -111,14 +111,14 @@ func (c *connector) getWriteValue(deviceSn string, pointData plugin.PointData) (
 	if err != nil {
 		return writeValue{}, err
 	}
-	p, ok := helper.CoreCache.GetPointByDevice(deviceSn, pointData.PointName)
+	p, ok := helper.CoreCache.GetPointByDevice(deviceId, pointData.PointName)
 	if !ok {
 		return writeValue{}, errors.New("point not found")
 	}
 
 	ext, err := convToPointExtend(p.Extends)
 	if err != nil {
-		helper.Logger.Error("error modbus point config", zap.String("deviceSn", deviceSn), zap.Any("point", pointData.PointName), zap.Error(err))
+		helper.Logger.Error("error modbus point config", zap.String("deviceId", deviceId), zap.Any("point", pointData.PointName), zap.Error(err))
 		return writeValue{}, err
 	}
 	var values []uint16

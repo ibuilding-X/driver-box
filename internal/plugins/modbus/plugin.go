@@ -87,9 +87,9 @@ func (p *Plugin) initNetworks(config config.Config) {
 }
 
 // Connector 连接器
-func (p *Plugin) Connector(deviceSn, pointName string) (conn plugin.Connector, err error) {
+func (p *Plugin) Connector(deviceId, pointName string) (conn plugin.Connector, err error) {
 	// 获取连接key
-	device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceSn, pointName)
+	device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceId, pointName)
 	if !ok {
 		return nil, errors.New("not found device connection key")
 	}

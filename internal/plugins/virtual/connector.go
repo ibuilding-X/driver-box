@@ -18,7 +18,7 @@ package virtual
 //		if len(v.Points) > 0 {
 //			for i, _ := range v.Points {
 //				var value any
-//				if value, err = helper.DeviceShadow.GetDevicePoint(v.SN, v.Points[i].PointName); err != nil {
+//				if value, err = helper.DeviceShadow.GetDevicePoint(v.ID, v.Points[i].PointName); err != nil {
 //					return err
 //				}
 //				v.Points[i].Value = value
@@ -31,7 +31,7 @@ package virtual
 //	case plugin.WriteMode: // 写操作
 //		if len(v.Points) > 0 {
 //			for _, point := range v.Points {
-//				if err = helper.DeviceShadow.SetDevicePoint(v.SN, point.PointName, point.Value); err != nil {
+//				if err = helper.DeviceShadow.SetDevicePoint(v.ID, point.PointName, point.Value); err != nil {
 //					return err
 //				}
 //			}

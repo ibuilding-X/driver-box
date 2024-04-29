@@ -17,7 +17,7 @@ package virtual
 //}
 //
 //type transportationData struct {
-//	SN     string             `json:"sn"`
+//	ID     string             `json:"id"`
 //	Mode   plugin.EncodeMode  `json:"mode"`
 //	Points []plugin.PointData `json:"points"`
 //}
@@ -32,7 +32,7 @@ package virtual
 //func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.PointData) (res interface{}, err error) {
 //
 //	data := transportationData{
-//		SN:     deviceSn,
+//		ID:     deviceSn,
 //		Mode:   mode,
 //		Points: []plugin.PointData{value},
 //	}
@@ -76,7 +76,7 @@ package virtual
 //
 //	// 汇总
 //	res = append(res, plugin.DeviceData{
-//		SN:     v.SN,
+//		ID:     v.ID,
 //		Values: vs,
 //	})
 //

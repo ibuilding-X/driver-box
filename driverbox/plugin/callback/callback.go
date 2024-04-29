@@ -20,7 +20,7 @@ func OnReceiveHandler(connector plugin.Connector, raw interface{}) (result inter
 		//触发事件通知
 		if len(data.Events) > 0 {
 			for _, event := range data.Events {
-				helper.TriggerEvents(event.Code, data.SN, event.Value)
+				helper.TriggerEvents(event.Code, data.ID, event.Value)
 			}
 		}
 

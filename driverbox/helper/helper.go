@@ -40,16 +40,16 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 	var points []plugin.PointData
 	for _, point := range deviceData.Values {
 		// 获取点位信息
-		p, ok := CoreCache.GetPointByDevice(deviceData.SN, point.PointName)
+		p, ok := CoreCache.GetPointByDevice(deviceData.ID, point.PointName)
 		if !ok {
-			Logger.Warn("unknown point", zap.Any("deviceSn", deviceData.SN), zap.Any("pointName", point.PointName))
+			Logger.Warn("unknown point", zap.Any("deviceId", deviceData.ID), zap.Any("pointName", point.PointName))
 			continue
 		}
 
 		//数据类型纠正
 		realValue, err := ConvPointType(point.Value, p.ValueType)
 		if err != nil {
-			Logger.Error("convert point value error", zap.Error(err), zap.Any("deviceSn", deviceData.SN),
+			Logger.Error("convert point value error", zap.Error(err), zap.Any("deviceId", deviceData.ID),
 				zap.String("pointName", p.Name), zap.Any("value", point.Value))
 			continue
 		}
@@ -58,7 +58,7 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 		if p.Scale != 0 {
 			realValue, err = multiplyWithFloat64(realValue, p.Scale)
 			if err != nil {
-				Logger.Error("multiplyWithFloat64 error", zap.Error(err), zap.Any("deviceSn", deviceData.SN))
+				Logger.Error("multiplyWithFloat64 error", zap.Error(err), zap.Any("deviceId", deviceData.ID))
 				continue
 			}
 		}
@@ -71,7 +71,7 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 		point.Value = realValue
 
 		// 缓存比较
-		shadowValue, _ := DeviceShadow.GetDevicePoint(deviceData.SN, point.PointName)
+		shadowValue, _ := DeviceShadow.GetDevicePoint(deviceData.ID, point.PointName)
 
 		// 如果是周期上报模式，且缓存中有值，停止触发
 		if p.ReportMode == config.ReportMode_Change && shadowValue == point.Value {
@@ -82,8 +82,8 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 		}
 
 		// 缓存
-		if err := DeviceShadow.SetDevicePoint(deviceData.SN, point.PointName, point.Value); err != nil {
-			Logger.Error("shadow store point value error", zap.Error(err), zap.Any("deviceSn", deviceData.SN))
+		if err := DeviceShadow.SetDevicePoint(deviceData.ID, point.PointName, point.Value); err != nil {
+			Logger.Error("shadow store point value error", zap.Error(err), zap.Any("deviceId", deviceData.ID))
 		}
 	}
 	deviceData.Values = points

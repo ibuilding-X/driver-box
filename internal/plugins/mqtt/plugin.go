@@ -61,12 +61,12 @@ func (p *Plugin) initConnPool() error {
 }
 
 // Connector 连接器
-func (p *Plugin) Connector(deviceSn, pointName string) (plugin.Connector, error) {
+func (p *Plugin) Connector(deviceId, pointName string) (plugin.Connector, error) {
 	deviceModels := p.config.DeviceModels
 	for _, deviceModel := range deviceModels {
 		devices := deviceModel.Devices
 		for _, device := range devices {
-			if device.ID == deviceSn {
+			if device.ID == deviceId {
 				conn, ok := p.connectors[device.ConnectionKey]
 				if !ok {
 					return nil, common.ConnectorNotFound

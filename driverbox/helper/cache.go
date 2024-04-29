@@ -85,13 +85,13 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 					Logger.Error("config error , device id is empty", zap.Any("device", device))
 					continue
 				}
-				deviceSn := device.ID
+				deviceId := device.ID
 				device.ModelName = deviceModel.Name
-				if _, ok := model.Devices[deviceSn]; !ok {
-					model.Devices[deviceSn] = device
+				if _, ok := model.Devices[deviceId]; !ok {
+					model.Devices[deviceId] = device
 				}
-				if deviceRaw, ok := c.devices.Load(deviceSn); !ok {
-					c.devices.Store(deviceSn, device)
+				if deviceRaw, ok := c.devices.Load(deviceId); !ok {
+					c.devices.Store(deviceId, device)
 				} else {
 					storedDeviceBase := deviceRaw.(config.Device)
 					if storedDeviceBase.ModelName != device.ModelName {
@@ -100,17 +100,17 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 					}
 				}
 				var properties map[string]DeviceProperties
-				if raw, ok := c.deviceProperties.Load(deviceSn); ok {
+				if raw, ok := c.deviceProperties.Load(deviceId); ok {
 					properties = raw.(map[string]DeviceProperties)
 				} else {
 					properties = make(map[string]DeviceProperties)
 				}
 				properties[configMap[key].ProtocolName+"_"+device.ConnectionKey] = device.Properties
-				c.deviceProperties.Store(deviceSn, properties)
+				c.deviceProperties.Store(deviceId, properties)
 				for _, point := range pointMap {
-					devicePointKey := deviceSn + "_" + point.Name
+					devicePointKey := deviceId + "_" + point.Name
 					if _, ok := c.points.Load(devicePointKey); ok {
-						return fmt.Errorf("device %s duplicate point %s found", deviceSn, point.Name)
+						return fmt.Errorf("device %s duplicate point %s found", deviceId, point.Name)
 					}
 					c.points.Store(devicePointKey, point)
 					c.devicePointPlugins.Store(devicePointKey, key)

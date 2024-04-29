@@ -99,7 +99,7 @@ func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, values ...plug
 		//是否存在前置操作
 		if len(bwc.PreOp) > 0 {
 			for _, op := range bwc.PreOp {
-				helper.Logger.Info("Send preOp", zap.String("deviceSn", deviceSn), zap.String("pointName", op.PointName), zap.Any("value", op.Value))
+				helper.Logger.Info("Send preOp", zap.String("deviceId", deviceSn), zap.String("pointName", op.PointName), zap.Any("value", op.Value))
 				err = core.SendSinglePoint(deviceSn, plugin.WriteMode, plugin.PointData{
 					PointName: op.PointName,
 					Value:     op.Value,
@@ -124,7 +124,7 @@ func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, values ...plug
 			return nil, err
 		}
 		if req, err := createWriteReq(bwc, ext); err == nil {
-			req.DeviceSn = deviceSn
+			req.DeviceId = deviceSn
 			req.PointName = bwc.PointName
 			return bacRequest{
 				req:      req,
@@ -238,7 +238,7 @@ func (a *adapter) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
 			Value:     resp.Value,
 		}}
 		res = append(res, plugin.DeviceData{
-			SN:     resp.DeviceSn,
+			ID:     resp.DeviceId,
 			Values: pointDatalist,
 		})
 	}
