@@ -163,11 +163,14 @@ type Device struct {
 	Properties map[string]string `json:"properties" validate:"-"`
 }
 
-// DeviceReservedProperties 设备预留属性
-type DeviceReservedProperties struct {
-	Area  string
-	PID   string
-	SysID string
+// DeviceBusinessProp 设备业务属性
+type DeviceBusinessProp struct {
+	// SN 设备 SN
+	SN string
+	// ParentSN 父设备 SN
+	ParentSN string
+	// SystemID 所属系统 ID
+	SystemID string
 }
 
 // TimerTask 定时任务

@@ -11,6 +11,12 @@ import (
 	"sync"
 )
 
+const (
+	businessPropSN       string = "_sn"
+	businessPropParentSN string = "_parentSN"
+	businessPropSystemID string = "_systemID"
+)
+
 type DeviceProperties map[string]string
 
 // CoreCache 核心缓存
@@ -177,9 +183,18 @@ type coreCache interface {
 	DeleteDevice(sn string)                                                   // 删除设备
 	UpdateDeviceDesc(sn string, desc string)                                  // 更新设备描述
 	Reset()
-	AddOrUpdateDevice(device config.Device) error                                                    // 添加或更新设备
-	GetDeviceReservedProperties(deviceSn string) (reserved config.DeviceReservedProperties, ok bool) // 获取设备预留属性
-	UpdateDeviceReservedProperties(deviceSn string, reserved config.DeviceReservedProperties)        // 更新设备预留属性
+	AddOrUpdateDevice(device config.Device) error // 添加或更新设备
+
+	// businessPropCache 业务属性接口
+	businessPropCache
+}
+
+// businessPropCache 业务属性缓存
+type businessPropCache interface {
+	GetDeviceBusinessProp(id string) (props config.DeviceBusinessProp, err error) // 获取设备业务属性
+	UpdateDeviceBusinessPropSN(id string, value string) error                     // 更新设备业务属性SN
+	UpdateDeviceBusinessPropParentSN(id string, value string) error               // 更新设备业务属性ParentSN
+	UpdateDeviceBusinessPropSystemID(sn string, value string) error               // 更新设备业务属性SystemID
 }
 
 func (c *cache) GetModel(modelName string) (model config.Model, ok bool) {
@@ -349,29 +364,46 @@ func (c *cache) AddOrUpdateDevice(device config.Device) error {
 	return cmanager.AddOrUpdateDevice(device)
 }
 
-// GetDeviceReservedProperties 获取设备预留属性
-func (c *cache) GetDeviceReservedProperties(deviceSn string) (reserved config.DeviceReservedProperties, ok bool) {
-	if raw, ok := c.devices.Load(deviceSn); ok {
+// GetDeviceBusinessProp 获取设备业务属性
+func (c *cache) GetDeviceBusinessProp(id string) (props config.DeviceBusinessProp, err error) {
+	if raw, ok := c.devices.Load(id); ok {
 		device, _ := raw.(config.Device)
-		return config.DeviceReservedProperties{
-			Area:  device.Properties["_area"],
-			PID:   device.Properties["_pid"],
-			SysID: device.Properties["_sysid"],
-		}, true
+		return config.DeviceBusinessProp{
+			SN:       device.Properties[businessPropSN],
+			ParentSN: device.Properties[businessPropParentSN],
+			SystemID: device.Properties[businessPropSystemID],
+		}, nil
 	}
-	return config.DeviceReservedProperties{}, false
+	return config.DeviceBusinessProp{}, fmt.Errorf("device %s not found", id)
 }
 
-// UpdateDeviceReservedProperties 更新设备预留属性
-func (c *cache) UpdateDeviceReservedProperties(deviceSn string, reserved config.DeviceReservedProperties) {
-	if deviceAny, ok := c.devices.Load(deviceSn); ok {
+// updateDeviceBusinessProp 更新设备业务属性
+func (c *cache) updateDeviceBusinessProp(id, key, value string) error {
+	if deviceAny, ok := c.devices.Load(id); ok {
 		device, _ := deviceAny.(config.Device)
-		device.Properties["_area"] = reserved.Area
-		device.Properties["_pid"] = reserved.PID
-		device.Properties["_sysid"] = reserved.SysID
+		if device.Properties == nil {
+			device.Properties = make(map[string]string)
+		}
+		device.Properties[key] = value
 		// 更新缓存
-		c.devices.Store(deviceSn, device)
+		c.devices.Store(id, device)
 		// 持久化
-		_ = cmanager.AddOrUpdateDevice(device)
+		return cmanager.AddOrUpdateDevice(device)
 	}
+	return fmt.Errorf("device %s not found", id)
+}
+
+// UpdateDeviceBusinessPropSN 更新设备业务属性SN
+func (c *cache) UpdateDeviceBusinessPropSN(id string, value string) error {
+	return c.updateDeviceBusinessProp(id, businessPropSN, value)
+}
+
+// UpdateDeviceBusinessPropParentSN 更新设备业务属性ParentSN
+func (c *cache) UpdateDeviceBusinessPropParentSN(id string, value string) error {
+	return c.updateDeviceBusinessProp(id, businessPropParentSN, value)
+}
+
+// UpdateDeviceBusinessPropSystemID 更新设备业务属性SystemID
+func (c *cache) UpdateDeviceBusinessPropSystemID(sn string, value string) error {
+	return c.updateDeviceBusinessProp(sn, businessPropSystemID, value)
 }
