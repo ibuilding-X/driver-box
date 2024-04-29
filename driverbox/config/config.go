@@ -147,7 +147,7 @@ type Point struct {
 // Device 设备
 type Device struct {
 	// 设备 ID
-	ID string `json:"sn" validate:"required"`
+	ID string `json:"id" validate:"required"`
 	// 模型名称
 	ModelName string `json:"-" validate:"-"`
 	// 设备描述
@@ -167,8 +167,8 @@ type Device struct {
 type DeviceBusinessProp struct {
 	// SN 设备 SN
 	SN string
-	// ParentSN 父设备 SN
-	ParentSN string
+	// ParentID 父设备 ID
+	ParentID string
 	// SystemID 所属系统 ID
 	SystemID string
 }
