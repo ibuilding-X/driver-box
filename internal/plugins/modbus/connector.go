@@ -56,12 +56,14 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 }
 
 func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, error) {
+	if !conf.Enable {
+		return nil, errors.New("modbus connection is disabled, ignore collect task")
+	}
+	if len(c.devices) == 0 {
+		return nil, errors.New("no device to collect")
+	}
 	//注册定时采集任务
 	return helper.Crontab.AddFunc("1s", func() {
-		if !conf.Enable {
-			helper.Logger.Warn("modbus connection is disabled, ignore collect task!", zap.String("key", c.ConnectionKey))
-			return
-		}
 		//遍历所有通讯设备
 		for unitID, device := range c.devices {
 			if len(device.pointGroup) == 0 {
@@ -219,7 +221,9 @@ func (c *connector) Release() (err error) {
 
 func (c *connector) Close() {
 	c.close = true
-	c.collectTask.Disable()
+	if c.collectTask != nil {
+		c.collectTask.Disable()
+	}
 }
 
 // ensureInterval 确保与前一次IO至少间隔minInterval毫秒
