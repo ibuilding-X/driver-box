@@ -26,11 +26,10 @@ type connector struct {
 	config       *ConnectionConfig
 	plugin       *Plugin
 	client       *modbus.ModbusClient
-	minInterval  uint      // 读取间隔
 	latestIoTime time.Time // 最近一次执行IO的时间
 	mutex        sync.Mutex
 	//通讯设备集合
-	retry int
+	retry uint8
 
 	devices map[uint8]*slaveDevice
 	//当前连接的定时扫描任务

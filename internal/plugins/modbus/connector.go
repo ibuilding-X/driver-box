@@ -20,14 +20,12 @@ import (
 )
 
 func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
-	minInterval := cf.MinInterval
-	if minInterval == 0 {
-		minInterval = 100
+	if cf.MinInterval == 0 {
+		cf.MinInterval = 100
 	}
 
-	retry := cf.Retry
-	if retry == 0 {
-		retry = 3
+	if cf.Retry == 0 {
+		cf.Retry = 3
 	}
 	if cf.Timeout <= 0 {
 		cf.Timeout = 1000
@@ -46,13 +44,11 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 			Ls:           p.ls,
 			ScriptEnable: helper.ScriptExists(p.config.Key),
 		},
-		config:      cf,
-		plugin:      p,
-		client:      client,
-		minInterval: minInterval,
-		retry:       retry,
-		virtual:     cf.Virtual || config.IsVirtual(),
-		devices:     make(map[uint8]*slaveDevice),
+		config:  cf,
+		plugin:  p,
+		client:  client,
+		virtual: cf.Virtual || config.IsVirtual(),
+		devices: make(map[uint8]*slaveDevice),
 	}
 	return conn, err
 }
@@ -108,9 +104,8 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 
 // 采集任务分组
 func (c *connector) createPointGroup(conf *ConnectionConfig, model config.DeviceModel, dev config.Device) {
-	maxLen := conf.MaxLen
-	if maxLen == 0 {
-		maxLen = 32
+	if conf.BatchReadLen == 0 {
+		conf.BatchReadLen = 32
 	}
 	for _, point := range model.DevicePoints {
 		p := point.ToPoint()
@@ -157,7 +152,7 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 				end = ext.Address + ext.Quantity
 			}
 			//超过最大长度，拆成新的一组
-			if end-start <= maxLen {
+			if end-start <= conf.BatchReadLen {
 				group.Points = append(group.Points, ext)
 				ok = true
 				group.Address = start
@@ -230,7 +225,7 @@ func (c *connector) Close() {
 
 // ensureInterval 确保与前一次IO至少间隔minInterval毫秒
 func (c *connector) ensureInterval() {
-	np := c.latestIoTime.Add(time.Duration(c.minInterval) * time.Millisecond)
+	np := c.latestIoTime.Add(time.Duration(c.config.MinInterval) * time.Millisecond)
 	if time.Now().Before(np) {
 		time.Sleep(time.Until(np))
 	}
@@ -355,7 +350,7 @@ func swapWords(in []byte, wordSwap bool) (out []byte) {
 }
 
 // 获取从指定位置开始的指定位数的值
-func getBitsFromPosition(num uint16, startPos, bitCount int) uint16 {
+func getBitsFromPosition(num uint16, startPos, bitCount uint8) uint16 {
 	// 将指定位置后的位清零
 	mask := uint16(((1 << bitCount) - 1) << startPos)
 	num = num & mask
@@ -363,7 +358,7 @@ func getBitsFromPosition(num uint16, startPos, bitCount int) uint16 {
 	return num
 }
 
-func mergeBitsIntoUint16(num, startPos, bitCount int, regValue uint16) uint16 {
+func mergeBitsIntoUint16(num int, startPos, bitCount uint8, regValue uint16) uint16 {
 	// 创建掩码，用于清除要替换的位
 	mask := uint16((1<<bitCount)-1) << startPos
 
@@ -378,7 +373,7 @@ func mergeBitsIntoUint16(num, startPos, bitCount int, regValue uint16) uint16 {
 
 func (c *connector) sendWriteCommand(pc *writeValue) error {
 	var err error
-	for i := 0; i < c.retry; i++ {
+	for i := 0; i < c.config.Retry; i++ {
 		if err = c.write(pc.unitID, pc.RegisterType, pc.Address, pc.Value); err == nil {
 			break
 		}

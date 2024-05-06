@@ -88,7 +88,7 @@ func (c *connector) batchWriteEncode(deviceId string, points []plugin.PointData)
 		}
 		//超过批量写支持的字节长度范围
 		batchLen := len(preValue.Value) + len(v.Value)
-		if batchLen > c.config.BatchWriteLen {
+		if uint16(batchLen) > c.config.BatchWriteLen {
 			preValue = v
 			mergedValues = append(mergedValues, v)
 			continue
