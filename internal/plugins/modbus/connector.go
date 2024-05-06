@@ -23,12 +23,14 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 	if cf.MinInterval == 0 {
 		cf.MinInterval = 100
 	}
-
 	if cf.Retry == 0 {
 		cf.Retry = 3
 	}
 	if cf.Timeout <= 0 {
 		cf.Timeout = 1000
+	}
+	if cf.BatchReadLen == 0 {
+		cf.BatchReadLen = 32
 	}
 
 	client, err := modbus.NewClient(&modbus.ClientConfiguration{
@@ -104,9 +106,6 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 
 // 采集任务分组
 func (c *connector) createPointGroup(conf *ConnectionConfig, model config.DeviceModel, dev config.Device) {
-	if conf.BatchReadLen == 0 {
-		conf.BatchReadLen = 32
-	}
 	for _, point := range model.DevicePoints {
 		p := point.ToPoint()
 		if p.ReadWrite != config.ReadWrite_R && p.ReadWrite != config.ReadWrite_RW {
