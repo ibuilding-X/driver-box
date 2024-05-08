@@ -161,6 +161,9 @@ type Device struct {
 	ConnectionKey string `json:"connectionKey" validate:"required"`
 	// 协议参数
 	Properties map[string]string `json:"properties" validate:"-"`
+
+	//设备层驱动的引用
+	DriverKey string `json:"driverKey"`
 }
 
 // DeviceBusinessProp 设备业务属性

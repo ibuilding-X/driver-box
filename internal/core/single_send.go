@@ -12,23 +12,51 @@ import (
 
 // 单点操作
 func SendSinglePoint(deviceId string, mode plugin.EncodeMode, pointData plugin.PointData) error {
+	if checkMode(mode) {
+		return errors.New("invalid mode")
+	}
+	result, ok := deviceDriverProcess(deviceId, mode, pointData)
+	var err error
+	//未使用设备驱动
+	if !ok {
+		if mode == plugin.ReadMode {
+			err = singleRead(deviceId, pointData)
+		} else {
+			err = singleWrite(deviceId, pointData, true)
+		}
+		return err
+	}
+
+	//设备驱动处理失败
+	if result.Error != nil {
+		return result.Error
+	}
+	if len(result.Points) == 0 {
+		helper.Logger.Warn("device driver process result is empty", zap.String("deviceId", deviceId), zap.Any("mode", mode), zap.Any("pointData", pointData))
+		return nil
+	}
+
+	for _, v := range result.Points {
+		if mode == plugin.WriteMode {
+			err = singleWrite(deviceId, v, false)
+		} else {
+			err = singleRead(deviceId, v)
+		}
+		if err != nil {
+			break
+		}
+	}
+	return err
+}
+
+func singleRead(deviceId string, pointData plugin.PointData) error {
 	point, ok := helper.CoreCache.GetPointByDevice(deviceId, pointData.PointName)
 	if !ok {
 		return fmt.Errorf("not found point, point name is %s", pointData.PointName)
 	}
 
-	//精度换算
-	if mode == plugin.WriteMode {
-		err := pointValueProcess(&pointData, point)
-		if err != nil {
-			return err
-		}
-	}
-
 	//判断点位操作有效性
-	if mode == plugin.WriteMode && point.ReadWrite == config.ReadWrite_R {
-		return errors.New("point is readonly, can not write")
-	} else if mode == plugin.ReadMode && point.ReadWrite == config.ReadWrite_W {
+	if point.ReadWrite == config.ReadWrite_W {
 		return errors.New("point is writeOnly, can not read")
 	}
 
@@ -45,9 +73,58 @@ func SendSinglePoint(deviceId string, mode plugin.EncodeMode, pointData plugin.P
 	}
 	// 释放连接
 	defer conn.Release()
+
 	// 协议适配器
 	adapter := conn.ProtocolAdapter()
-	res, err := adapter.Encode(deviceId, mode, pointData)
+	res, err := adapter.Encode(deviceId, plugin.ReadMode, pointData)
+	if err != nil {
+		return err
+	}
+	// 发送数据
+	if err = conn.Send(res); err != nil {
+		_ = helper.DeviceShadow.MayBeOffline(deviceId)
+		return err
+	}
+
+	return err
+}
+
+func singleWrite(deviceId string, pointData plugin.PointData, scaleEnable bool) error {
+	point, ok := helper.CoreCache.GetPointByDevice(deviceId, pointData.PointName)
+	if !ok {
+		return fmt.Errorf("not found point, point name is %s", pointData.PointName)
+	}
+
+	//判断点位操作有效性
+	if point.ReadWrite == config.ReadWrite_R {
+		return errors.New("point is readonly, can not write")
+	}
+
+	// 获取插件
+	p, ok := helper.CoreCache.GetRunningPluginByDeviceAndPoint(deviceId, pointData.PointName)
+	if !ok {
+		return fmt.Errorf("not found running plugin, device name is %s", deviceId)
+	}
+	// 获取连接
+	conn, err := p.Connector(deviceId, pointData.PointName)
+	if err != nil {
+		_ = helper.DeviceShadow.MayBeOffline(deviceId)
+		return err
+	}
+	// 释放连接
+	defer conn.Release()
+
+	//精度换算
+	if scaleEnable {
+		err = pointScaleProcess(&pointData, point)
+		if err != nil {
+			return err
+		}
+	}
+
+	// 协议适配器
+	adapter := conn.ProtocolAdapter()
+	res, err := adapter.Encode(deviceId, plugin.WriteMode, pointData)
 	if err != nil {
 		return err
 	}
@@ -57,28 +134,8 @@ func SendSinglePoint(deviceId string, mode plugin.EncodeMode, pointData plugin.P
 		return err
 	}
 	//点位写成功后，立即触发读取操作以及时更新影子状态
-	if mode == plugin.WriteMode {
-		tryReadNewValue(deviceId, pointData.PointName, pointData.Value)
-	}
+	tryReadNewValue(deviceId, pointData.PointName, pointData.Value)
 	return err
-}
-
-func pointValueProcess(pointData *plugin.PointData, point config.Point) error {
-	if point.Scale == 0 {
-		return nil
-	}
-	value, err := helper.ConvPointType(pointData.Value, point.ValueType)
-	if err != nil {
-		return err
-	}
-	if point.Scale != 0 {
-		value, err = divideStrings(value, point.Scale)
-		if err != nil {
-			return err
-		}
-	}
-	pointData.Value = value
-	return nil
 }
 
 // 尝试读取期望点位值

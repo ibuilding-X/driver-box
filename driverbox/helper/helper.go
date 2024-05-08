@@ -10,6 +10,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/library"
 	"go.uber.org/zap"
 	"sync"
 )
@@ -36,6 +37,9 @@ func Map2Struct(m interface{}, v interface{}) error {
 }
 
 func PointCacheFilter(deviceData *plugin.DeviceData) {
+	// 设备层驱动，对点位进行预处理
+	deviceDriver := deviceDriverProcess(deviceData)
+
 	// 定义一个空的整型数组
 	var points []plugin.PointData
 	for _, point := range deviceData.Values {
@@ -54,8 +58,8 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 			continue
 		}
 
-		//精度换算
-		if p.Scale != 0 {
+		//精度换算，若设备关联了驱动脚本，则精度换算功能不起用
+		if !deviceDriver && p.Scale != 0 {
 			realValue, err = multiplyWithFloat64(realValue, p.Scale)
 			if err != nil {
 				Logger.Error("multiplyWithFloat64 error", zap.Error(err), zap.Any("deviceId", deviceData.ID))
@@ -88,6 +92,24 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 	}
 	deviceData.Values = points
 	deviceData.ExportType = plugin.RealTimeExport
+}
+
+func deviceDriverProcess(deviceData *plugin.DeviceData) bool {
+	device, ok := CoreCache.GetDevice(deviceData.ID)
+	if !ok {
+		Logger.Error("unknown device", zap.Any("deviceId", deviceData.ID))
+		return false
+	}
+	if len(device.DriverKey) == 0 {
+		return false
+	}
+	result := library.DeviceDecode(device.DriverKey, library.DeviceDecodeRequest{DeviceId: deviceData.ID, Points: deviceData.Values})
+	if result.Error != nil {
+		Logger.Error("library.DeviceDecode error", zap.Error(result.Error), zap.Any("deviceData", deviceData))
+	} else {
+		deviceData.Values = result.Points
+	}
+	return true
 }
 
 // 触发事件

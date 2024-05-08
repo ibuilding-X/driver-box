@@ -6,11 +6,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 )
 
-type batchWrite struct {
-	points    []plugin.PointData
-	connector plugin.Plugin
-}
-
 // SendBatchWrite 发送多个点位写命令
 func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 	var connector plugin.Connector
@@ -20,16 +15,29 @@ func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 			connector.Release()
 		}
 	}()
+	//todo 设备层驱动
+	result, driverFlag := deviceDriverProcess(deviceId, plugin.WriteMode, points...)
+
+	if driverFlag && result.Error != nil {
+		if result.Error != nil {
+			return result.Error
+		} else {
+			points = result.Points
+		}
+	}
+
 	//按照点位的协议、连接分组
 	for _, pd := range points {
 		point, ok := helper.CoreCache.GetPointByDevice(deviceId, pd.PointName)
 		if !ok {
 			return fmt.Errorf("not found point, point name is %s", pd.PointName)
 		}
-		//数值精度换算
-		err := pointValueProcess(&pd, point)
-		if err != nil {
-			return err
+		//未进设备驱动加工，执行数值精度换算逻辑
+		if !driverFlag {
+			err := pointScaleProcess(&pd, point)
+			if err != nil {
+				return err
+			}
 		}
 
 		// 获取连接
