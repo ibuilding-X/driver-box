@@ -8,16 +8,8 @@ import (
 
 // SendBatchWrite 发送多个点位写命令
 func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
-	var connector plugin.Connector
-	defer func() {
-		// 释放连接
-		if connector != nil {
-			connector.Release()
-		}
-	}()
-	//todo 设备层驱动
+	//设备驱动层加工
 	result, driverFlag := deviceDriverProcess(deviceId, plugin.WriteMode, points...)
-
 	if driverFlag && result.Error != nil {
 		if result.Error != nil {
 			return result.Error
@@ -25,6 +17,14 @@ func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 			points = result.Points
 		}
 	}
+
+	var connector plugin.Connector
+	defer func() {
+		// 释放连接
+		if connector != nil {
+			connector.Release()
+		}
+	}()
 
 	//按照点位的协议、连接分组
 	for _, pd := range points {
