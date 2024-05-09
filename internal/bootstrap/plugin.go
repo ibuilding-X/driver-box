@@ -9,6 +9,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
+	"github.com/ibuilding-x/driver-box/internal/lua"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	"go.uber.org/zap"
 )
@@ -55,7 +56,7 @@ func LoadPlugins() error {
 			continue
 		}
 
-		ls, err := helper.InitLuaVM(key)
+		ls, err := lua.InitLuaVM(helper.EnvConfig.ConfigPath, key)
 		if err != nil {
 			helper.Logger.Error(err.Error())
 			continue

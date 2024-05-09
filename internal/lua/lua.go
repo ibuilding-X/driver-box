@@ -143,3 +143,10 @@ func Close(L *lua.LState) {
 
 	luaLocks.Delete(L)
 }
+
+// scriptExists 判断lua脚本是否存在
+func ScriptExists(basePath, dir string) bool {
+	scriptPath := filepath.Join(basePath, dir, common.LuaScriptName)
+	_, err := os.Stat(scriptPath)
+	return err == nil
+}
