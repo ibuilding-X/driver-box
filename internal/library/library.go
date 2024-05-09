@@ -2,12 +2,42 @@ package library
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/lua"
 	glua "github.com/yuin/gopher-lua"
+	"path"
 )
 
 var Drivers = make(map[string]*glua.LState)
+
+var BaseDir = ""
+
+type Type string
+
+const (
+	//设备层驱动
+	DeviceDriver Type = "driver"
+	//物模型
+	DeviceModel Type = "model"
+	//协议层驱动
+	ProtocolDriver Type = "protocol"
+)
+
+// 加载指定key的驱动
+func LoadLibrary(libType Type, driverKey string) error {
+	switch libType {
+	case DeviceDriver:
+		L, err := lua.InitLuaVM(path.Join(BaseDir, string(libType), driverKey+".lua"))
+		if err != nil {
+			return err
+		}
+		Drivers[driverKey] = L
+	default:
+		return errors.New("not support library type")
+	}
+	return nil
+}
 
 // 设备下行指令编码，该接口试下如下功能：
 // 1. 写操作时，对点位值进行加工
@@ -66,4 +96,9 @@ func DeviceDecode(driverKey string, req DeviceDecodeRequest) *DeviceDecodeResult
 		Points: res,
 		Error:  e,
 	}
+}
+
+// 卸载驱动
+func UnloadLibrary(libType Type, driverKey string) {
+
 }

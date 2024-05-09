@@ -11,6 +11,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/restful/route"
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
 	"github.com/ibuilding-x/driver-box/internal/core"
+	"github.com/ibuilding-x/driver-box/internal/library"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	"go.uber.org/zap"
 	"os"
@@ -81,6 +82,7 @@ func initEnvConfig() error {
 	} else {
 		helper.EnvConfig.ConfigPath = dir
 	}
+	library.BaseDir = helper.EnvConfig.ConfigPath
 	//http服务绑定host
 	httpListen := os.Getenv(config.ENV_HTTP_LISTEN)
 	if httpListen != "" {

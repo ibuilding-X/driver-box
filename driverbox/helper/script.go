@@ -1,9 +1,11 @@
 package helper
 
 import (
+	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/lua"
 	glua "github.com/yuin/gopher-lua"
+	"path/filepath"
 	"sync"
 )
 
@@ -32,5 +34,5 @@ func Close(L *glua.LState) {
 
 // scriptExists 判断lua脚本是否存在
 func ScriptExists(dir string) bool {
-	return lua.ScriptExists(EnvConfig.ConfigPath, dir)
+	return lua.FileExists(filepath.Join(EnvConfig.ConfigPath, dir, common.LuaScriptName))
 }

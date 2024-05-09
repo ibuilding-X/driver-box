@@ -2,6 +2,7 @@ package lua
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/cjoudrey/gluahttp"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
@@ -12,7 +13,6 @@ import (
 	luajson "layeh.com/gopher-json"
 	"net/http"
 	"os"
-	"path/filepath"
 	"sync"
 )
 
@@ -20,7 +20,11 @@ import (
 var luaLocks = sync.Map{}
 
 // InitLuaVM 编译 lua 脚本
-func InitLuaVM(baseDir, scriptDir string) (*lua.LState, error) {
+func InitLuaVM(filePath string) (*lua.LState, error) {
+	if !FileExists(filePath) {
+		logger.Logger.Warn("lua script not found, aborting initializing lua vm", zap.Any("filePath", filePath))
+		return nil, errors.New("lua script not found")
+	}
 	ls := lua.NewState(lua.Options{
 		RegistryMaxSize: 128,
 	})
@@ -29,20 +33,14 @@ func InitLuaVM(baseDir, scriptDir string) (*lua.LState, error) {
 	luajson.Preload(ls)
 	//ls.PreloadModule("driverbox", LuaModuleInstance.Loader)
 	// 文件路径
-	filePath := filepath.Join(baseDir, scriptDir, common.LuaScriptName)
-	if FileExists(filePath) {
-		// 脚本解析
-		err := ls.DoFile(filePath)
-		if err != nil {
-			return nil, err
-		}
-		//注册同步锁
-		luaLocks.Store(ls, &sync.Mutex{})
-		return ls, nil
-	} else {
-		logger.Logger.Warn("lua script not found, aborting initializing lua vm")
-		return nil, nil
+	// 脚本解析
+	err := ls.DoFile(filePath)
+	if err != nil {
+		return nil, err
 	}
+	//注册同步锁
+	luaLocks.Store(ls, &sync.Mutex{})
+	return ls, nil
 }
 
 // FileExists 判断文件存在
@@ -142,11 +140,4 @@ func Close(L *lua.LState) {
 	}
 
 	luaLocks.Delete(L)
-}
-
-// scriptExists 判断lua脚本是否存在
-func ScriptExists(basePath, dir string) bool {
-	scriptPath := filepath.Join(basePath, dir, common.LuaScriptName)
-	_, err := os.Stat(scriptPath)
-	return err == nil
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/lua"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	"go.uber.org/zap"
+	"path/filepath"
 )
 
 // LoadPlugins 加载插件并运行
@@ -56,7 +57,7 @@ func LoadPlugins() error {
 			continue
 		}
 
-		ls, err := lua.InitLuaVM(helper.EnvConfig.ConfigPath, key)
+		ls, err := lua.InitLuaVM(filepath.Join(helper.EnvConfig.ConfigPath, key, common.LuaScriptName))
 		if err != nil {
 			helper.Logger.Error(err.Error())
 			continue
