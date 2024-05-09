@@ -1,7 +1,3 @@
-local json = require("json")
-
-
-
 -- 格式化数字，最多保留两位小数
 function format_number(num)
     v = math.floor(num)

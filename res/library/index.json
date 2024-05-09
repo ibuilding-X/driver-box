@@ -1,3 +1,18 @@
 {
-
+  "driver": [
+    {
+      "key": "sensor_KSM34M-7H",
+      "protocol": [
+        "modbus",
+        "bacnet"
+      ],
+      "tags": [
+        "美控",
+        "美控七合一传感器"
+      ]
+    }
+  ],
+  "model": {
+  },
+  "protocol": []
 }
