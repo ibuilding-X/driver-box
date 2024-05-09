@@ -5,12 +5,11 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/library"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
-	"path"
 	"testing"
 )
 
 func TestDeviceEncode(t *testing.T) {
-	logger.InitLogger("", "debug")
+	Init()
 	e := library.LoadLibrary(library.DeviceDriver, "sensor_KSM34M-7H")
 	if e != nil {
 		t.Error(e)
@@ -33,8 +32,7 @@ func TestDeviceEncode(t *testing.T) {
 }
 
 func TestDeviceDecode(t *testing.T) {
-	library.BaseDir = path.Join("res", "library")
-	logger.InitLogger("", "debug")
+	Init()
 	e := library.LoadLibrary(library.DeviceDriver, "sensor_KSM34M-7H")
 	if e != nil {
 		t.Error(e)

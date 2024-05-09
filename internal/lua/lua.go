@@ -88,7 +88,7 @@ func CallLuaMethod(L *lua.LState, method string, args ...lua.LValue) (string, er
 	}, args...)
 	defer L.Remove(1)
 	if err != nil {
-		return "", fmt.Errorf("call lua script %s function error: %s", method, err)
+		return "", err
 	}
 	return L.Get(-1).String(), nil
 }
