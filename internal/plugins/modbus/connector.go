@@ -202,9 +202,9 @@ func (c *connector) Send(data interface{}) (err error) {
 			err = c.sendWriteCommand(value)
 		}
 	case BatchWriteMode:
-		groups := cmd.Value.(*[]pointGroup)
-		for _, group := range *groups {
-			err = c.sendReadCommand(&group)
+		groups := cmd.Value.([]*pointGroup)
+		for _, group := range groups {
+			err = c.sendReadCommand(group)
 			if err != nil {
 				return err
 			}
