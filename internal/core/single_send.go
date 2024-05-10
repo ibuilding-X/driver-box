@@ -12,7 +12,7 @@ import (
 
 // 单点操作
 func SendSinglePoint(deviceId string, mode plugin.EncodeMode, pointData plugin.PointData) error {
-	if checkMode(mode) {
+	if !checkMode(mode) {
 		return errors.New("invalid mode")
 	}
 	result, ok := deviceDriverProcess(deviceId, mode, pointData)
