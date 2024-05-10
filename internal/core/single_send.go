@@ -23,6 +23,10 @@ func SendSinglePoint(deviceId string, mode plugin.EncodeMode, pointData plugin.P
 			err = singleRead(deviceId, pointData)
 		} else {
 			err = singleWrite(deviceId, pointData, true)
+			//点位写成功后，立即触发读取操作以及时更新影子状态
+			if err == nil {
+				tryReadNewValue(deviceId, pointData.PointName, pointData.Value)
+			}
 		}
 		return err
 	}
@@ -39,6 +43,10 @@ func SendSinglePoint(deviceId string, mode plugin.EncodeMode, pointData plugin.P
 	for _, v := range result.Points {
 		if mode == plugin.WriteMode {
 			err = singleWrite(deviceId, v, false)
+			//点位写成功后，立即触发读取操作以及时更新影子状态
+			if err == nil {
+				tryReadNewValue(deviceId, pointData.PointName, pointData.Value)
+			}
 		} else {
 			err = singleRead(deviceId, v)
 		}
@@ -133,8 +141,6 @@ func singleWrite(deviceId string, pointData plugin.PointData, scaleEnable bool) 
 		_ = helper.DeviceShadow.MayBeOffline(deviceId)
 		return err
 	}
-	//点位写成功后，立即触发读取操作以及时更新影子状态
-	tryReadNewValue(deviceId, pointData.PointName, pointData.Value)
 	return err
 }
 
