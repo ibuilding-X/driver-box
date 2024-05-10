@@ -1,6 +1,8 @@
 package core
 
 import (
+	"errors"
+	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -38,18 +40,41 @@ func pointScaleProcess(pointData *plugin.PointData, point config.Point) error {
 }
 
 // 点位值加工：设备驱动
-func deviceDriverProcess(deviceId string, mode plugin.EncodeMode, pointData ...plugin.PointData) (*library.DeviceEncodeResult, bool) {
+func deviceDriverProcess(deviceId string, mode plugin.EncodeMode, pointData ...plugin.PointData) ([]plugin.PointData, error) {
 	device, ok := helper.CoreCache.GetDevice(deviceId)
 	if !ok {
 		helper.Logger.Error("unknown device", zap.Any("deviceId", device))
-		return nil, false
+		return nil, errors.New("unknown device")
 	}
-	if len(device.DriverKey) == 0 {
-		return nil, false
+	scaleEnable := len(device.DriverKey) == 0
+
+	if mode == plugin.WriteMode {
+		for _, p := range pointData {
+			point, ok := helper.CoreCache.GetPointByDevice(deviceId, p.PointName)
+			if !ok {
+				return nil, fmt.Errorf("not found point, point name is %s", p.PointName)
+			}
+			value, err := helper.ConvPointType(p.Value, point.ValueType)
+			if err != nil {
+				return nil, err
+			}
+			if scaleEnable && point.Scale != 0 {
+				value, err = divideStrings(value, point.Scale)
+				if err != nil {
+					return nil, err
+				}
+			}
+			p.Value = value
+		}
 	}
-	return library.DeviceEncode(device.DriverKey, library.DeviceEncodeRequest{
+
+	if scaleEnable {
+		return pointData, nil
+	}
+	result := library.DeviceEncode(device.DriverKey, library.DeviceEncodeRequest{
 		DeviceId: deviceId,
 		Mode:     mode,
 		Points:   pointData,
-	}), true
+	})
+	return result.Points, result.Error
 }

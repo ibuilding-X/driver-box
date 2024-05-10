@@ -15,34 +15,19 @@ func SendSinglePoint(deviceId string, mode plugin.EncodeMode, pointData plugin.P
 	if !checkMode(mode) {
 		return errors.New("invalid mode")
 	}
-	result, ok := deviceDriverProcess(deviceId, mode, pointData)
-	var err error
-	//未使用设备驱动
-	if !ok {
-		if mode == plugin.ReadMode {
-			err = singleRead(deviceId, pointData)
-		} else {
-			err = singleWrite(deviceId, pointData, true)
-			//点位写成功后，立即触发读取操作以及时更新影子状态
-			if err == nil {
-				tryReadNewValue(deviceId, pointData.PointName, pointData.Value)
-			}
-		}
+	result, err := deviceDriverProcess(deviceId, mode, pointData)
+	if err != nil {
 		return err
 	}
 
-	//设备驱动处理失败
-	if result.Error != nil {
-		return result.Error
-	}
-	if len(result.Points) == 0 {
+	if len(result) == 0 {
 		helper.Logger.Warn("device driver process result is empty", zap.String("deviceId", deviceId), zap.Any("mode", mode), zap.Any("pointData", pointData))
 		return nil
 	}
 
-	for _, v := range result.Points {
+	for _, v := range result {
 		if mode == plugin.WriteMode {
-			err = singleWrite(deviceId, v, false)
+			err = singleWrite(deviceId, v)
 			//点位写成功后，立即触发读取操作以及时更新影子状态
 			if err == nil {
 				tryReadNewValue(deviceId, pointData.PointName, pointData.Value)
@@ -97,7 +82,7 @@ func singleRead(deviceId string, pointData plugin.PointData) error {
 	return err
 }
 
-func singleWrite(deviceId string, pointData plugin.PointData, scaleEnable bool) error {
+func singleWrite(deviceId string, pointData plugin.PointData) error {
 	point, ok := helper.CoreCache.GetPointByDevice(deviceId, pointData.PointName)
 	if !ok {
 		return fmt.Errorf("not found point, point name is %s", pointData.PointName)
@@ -121,14 +106,6 @@ func singleWrite(deviceId string, pointData plugin.PointData, scaleEnable bool) 
 	}
 	// 释放连接
 	defer conn.Release()
-
-	//精度换算
-	if scaleEnable {
-		err = pointScaleProcess(&pointData, point)
-		if err != nil {
-			return err
-		}
-	}
 
 	// 协议适配器
 	adapter := conn.ProtocolAdapter()

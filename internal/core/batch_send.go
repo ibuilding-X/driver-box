@@ -4,18 +4,19 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"go.uber.org/zap"
 )
 
 // SendBatchWrite 发送多个点位写命令
 func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 	//设备驱动层加工
-	result, driverFlag := deviceDriverProcess(deviceId, plugin.WriteMode, points...)
-	if driverFlag && result.Error != nil {
-		if result.Error != nil {
-			return result.Error
-		} else {
-			points = result.Points
-		}
+	result, err := deviceDriverProcess(deviceId, plugin.WriteMode, points...)
+	if err != nil {
+		return err
+	}
+	if len(result) == 0 {
+		helper.Logger.Warn("device driver process result is empty", zap.String("deviceId", deviceId))
+		return nil
 	}
 
 	var connector plugin.Connector
@@ -27,19 +28,7 @@ func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 	}()
 
 	//按照点位的协议、连接分组
-	for _, pd := range points {
-		point, ok := helper.CoreCache.GetPointByDevice(deviceId, pd.PointName)
-		if !ok {
-			return fmt.Errorf("not found point, point name is %s", pd.PointName)
-		}
-		//未进设备驱动加工，执行数值精度换算逻辑
-		if !driverFlag {
-			err := pointScaleProcess(&pd, point)
-			if err != nil {
-				return err
-			}
-		}
-
+	for _, pd := range result {
 		// 获取连接
 		if connector != nil {
 			continue
