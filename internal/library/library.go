@@ -99,6 +99,10 @@ func DeviceDecode(driverKey string, req DeviceDecodeRequest) *DeviceDecodeResult
 }
 
 // 卸载驱动
-func UnloadLibrary(libType Type, driverKey string) {
-
+func UnloadDeviceDrivers() {
+	temp := Drivers
+	Drivers = make(map[string]*glua.LState)
+	for _, L := range temp {
+		lua.Close(L)
+	}
 }

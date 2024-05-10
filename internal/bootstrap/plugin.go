@@ -9,6 +9,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
+	"github.com/ibuilding-x/driver-box/internal/library"
 	"github.com/ibuilding-x/driver-box/internal/lua"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	glua "github.com/yuin/gopher-lua"
@@ -48,6 +49,9 @@ func LoadPlugins() error {
 	// 初始化本地影子服务
 	initDeviceShadow(configMap)
 
+	//初始化设备层驱动
+	initDeviceDriver(configMap)
+
 	// 启动插件
 	for key, _ := range configMap {
 		helper.Logger.Info(key+" begin start", zap.Any("directoryName", key), zap.Any("plugin", configMap[key].ProtocolName))
@@ -80,6 +84,30 @@ func LoadPlugins() error {
 	}
 
 	return nil
+}
+
+// 初始化设备层驱动
+func initDeviceDriver(configMap map[string]config.Config) {
+	//清空设备驱动库
+	library.UnloadDeviceDrivers()
+	//重新添加
+	drivers := make(map[string]string)
+	for _, c := range configMap {
+		for _, model := range c.DeviceModels {
+			for _, d := range model.Devices {
+				if len(d.DriverKey) > 0 {
+					drivers[d.DriverKey] = d.DriverKey
+					continue
+				}
+			}
+		}
+	}
+	for key, _ := range drivers {
+		err := library.LoadLibrary(library.DeviceDriver, key)
+		if err != nil {
+			helper.Logger.Error("load device driver error", zap.String("driverKey", key), zap.Error(err))
+		}
+	}
 }
 
 // 初始化影子服务
