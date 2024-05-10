@@ -11,7 +11,7 @@ type DeviceEncodeRequest struct {
 
 // 设备驱动编码结果
 type DeviceEncodeResult struct {
-	Points []plugin.PointData
+	Points []plugin.PointData `json:"points"`
 	Error  error
 }
 

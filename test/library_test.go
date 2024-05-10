@@ -10,17 +10,18 @@ import (
 
 func TestDeviceEncode(t *testing.T) {
 	Init()
-	e := library.LoadLibrary(library.DeviceDriver, "sensor_KSM34M-7H")
+	e := library.LoadLibrary(library.DeviceDriver, "test_2")
 	if e != nil {
 		t.Error(e)
 		return
 	}
-	result := library.DeviceEncode("sensor_KSM34M-7H", library.DeviceEncodeRequest{
-		DeviceId: "sensor_KSM34M-7H",
-		Mode:     plugin.ReadMode,
+	result := library.DeviceEncode("test_2", library.DeviceEncodeRequest{
+		DeviceId: "switch_1",
+		Mode:     plugin.WriteMode,
 		Points: []plugin.PointData{
 			{
-				PointName: "test",
+				PointName: "aa",
+				Value:     6,
 			},
 		},
 	})
@@ -33,24 +34,24 @@ func TestDeviceEncode(t *testing.T) {
 
 func TestDeviceDecode(t *testing.T) {
 	Init()
-	e := library.LoadLibrary(library.DeviceDriver, "sensor_KSM34M-7H")
+	e := library.LoadLibrary(library.DeviceDriver, "test_1")
 	if e != nil {
 		t.Error(e)
 		return
 	}
-	result := library.DeviceDecode("sensor_KSM34M-7H", library.DeviceDecodeRequest{
-		DeviceId: "sensor_KSM34M-7H",
+	result := library.DeviceDecode("test_1", library.DeviceDecodeRequest{
+		DeviceId: "test_1",
 		Points: []plugin.PointData{
 			{
-				PointName: "hcho",
+				PointName: "aa",
 				Value:     123123,
 			},
 			{
-				PointName: "tvoc",
+				PointName: "bb",
 				Value:     1000,
 			},
 			{
-				PointName: "aa",
+				PointName: "cc",
 				Value:     324,
 			},
 		},
