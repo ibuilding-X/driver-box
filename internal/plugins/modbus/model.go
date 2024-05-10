@@ -8,6 +8,7 @@ import (
 
 type primaryTable string
 
+const BatchWriteMode plugin.EncodeMode = "batchRead"
 const (
 	Coil            primaryTable = "COIL"             // 线圈
 	DiscreteInput   primaryTable = "DISCRETE_INPUT"   // 离散输入
@@ -59,6 +60,8 @@ type slaveDevice struct {
 }
 
 type pointGroup struct {
+	//分组索引
+	index int
 	// 从机地址
 	UnitID uint8
 	//采集间隔

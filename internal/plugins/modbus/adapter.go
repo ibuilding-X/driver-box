@@ -49,7 +49,48 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 			Value: writeValues,
 		}, err
 	}
-	return nil, fmt.Errorf("unsupported mode %v", plugin.ReadMode)
+
+	device, ok := helper.CoreCache.GetDevice(deviceId)
+	if !ok {
+		return nil, fmt.Errorf("device [%s] not found", deviceId)
+	}
+	unitId, e := getUnitId(device.Properties)
+	if e != nil {
+		return nil, e
+	}
+	slave := c.devices[unitId]
+	if slave == nil {
+		return nil, fmt.Errorf("device [%s] not found", deviceId)
+	}
+
+	indexes := make(map[int]*pointGroup)
+	var pointGroups []*pointGroup
+	//寻找待读点位关联的pointGroup
+	for _, readPoint := range values {
+		ok = false
+		for _, group := range slave.pointGroup {
+			for _, point := range group.Points {
+				if point.Name == readPoint.PointName {
+					if _, ok := indexes[group.index]; !ok {
+						indexes[group.index] = group
+						pointGroups = append(pointGroups, group)
+					}
+					ok = true
+					break
+				}
+			}
+			//匹配成功
+			if ok {
+				break
+			}
+		}
+	}
+
+	//找到待读点所属的group
+	return command{
+		Mode:  BatchWriteMode,
+		Value: pointGroups,
+	}, nil
 }
 
 func (c *connector) batchWriteEncode(deviceId string, points []plugin.PointData) ([]*writeValue, error) {

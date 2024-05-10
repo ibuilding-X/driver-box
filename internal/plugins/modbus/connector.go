@@ -108,6 +108,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 
 // 采集任务分组
 func (c *connector) createPointGroup(conf *ConnectionConfig, model config.DeviceModel, dev config.Device) {
+	groupIndex := 0
 	for _, point := range model.DevicePoints {
 		p := point.ToPoint()
 		if p.ReadWrite != config.ReadWrite_R && p.ReadWrite != config.ReadWrite_RW {
@@ -166,6 +167,7 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 			ext.DeviceId = dev.ID
 			ext.Name = p.Name
 			device.pointGroup = append(device.pointGroup, &pointGroup{
+				index:        groupIndex,
 				UnitID:       device.unitID,
 				Duration:     duration,
 				RegisterType: ext.RegisterType,
@@ -175,6 +177,7 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 					ext,
 				},
 			})
+			groupIndex++
 		}
 	}
 
@@ -198,7 +201,14 @@ func (c *connector) Send(data interface{}) (err error) {
 		for _, value := range values {
 			err = c.sendWriteCommand(value)
 		}
-
+	case BatchWriteMode:
+		groups := cmd.Value.(*[]pointGroup)
+		for _, group := range *groups {
+			err = c.sendReadCommand(&group)
+			if err != nil {
+				return err
+			}
+		}
 	default:
 		return common.NotSupportMode
 	}
