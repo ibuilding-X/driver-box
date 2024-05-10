@@ -3,6 +3,7 @@ package library
 import (
 	"encoding/json"
 	"errors"
+	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/lua"
 	glua "github.com/yuin/gopher-lua"
@@ -10,8 +11,6 @@ import (
 )
 
 var Drivers = make(map[string]*glua.LState)
-
-var BaseDir = ""
 
 type Type string
 
@@ -28,7 +27,7 @@ const (
 func LoadLibrary(libType Type, driverKey string) error {
 	switch libType {
 	case DeviceDriver:
-		L, err := lua.InitLuaVM(path.Join(BaseDir, string(libType), driverKey+".lua"))
+		L, err := lua.InitLuaVM(path.Join(config.ResourcePath, "library", string(libType), driverKey+".lua"))
 		if err != nil {
 			return err
 		}

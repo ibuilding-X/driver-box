@@ -10,8 +10,8 @@ import (
 
 // 环境变量配置项
 const (
-	//驱动包存放目录
-	ENV_CONFIG_PATH = "DRIVERBOX_CONFIG_PATH"
+	//资源文件存放目录
+	ENV_RESOURCE_PATH = "DRIVERBOX_RESOURCE_PATH"
 	//http服务绑定地址
 	ENV_HTTP_LISTEN = "DRIVERBOX_HTTP_LISTEN"
 
@@ -52,6 +52,9 @@ var (
 	//点位类型：字符串
 	ValueType_String ValueType = "string"
 )
+
+// 资源文件目录
+var ResourcePath = "./res"
 
 type EnvConfig struct {
 	ConfigPath string

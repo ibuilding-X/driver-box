@@ -97,7 +97,6 @@ func initDeviceDriver(configMap map[string]config.Config) {
 			for _, d := range model.Devices {
 				if len(d.DriverKey) > 0 {
 					drivers[d.DriverKey] = d.DriverKey
-					continue
 				}
 			}
 		}

@@ -11,10 +11,10 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/restful/route"
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
 	"github.com/ibuilding-x/driver-box/internal/core"
-	"github.com/ibuilding-x/driver-box/internal/library"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	"go.uber.org/zap"
 	"os"
+	"path"
 )
 
 // 网关编号
@@ -75,14 +75,14 @@ func Start(exports []export.Export) error {
 
 func initEnvConfig() error {
 	helper.EnvConfig = config.EnvConfig{}
-	//驱动配置文件存放目录
-	dir := os.Getenv(config.ENV_CONFIG_PATH)
+	dir := os.Getenv(config.ENV_RESOURCE_PATH)
 	if dir == "" {
-		helper.EnvConfig.ConfigPath = "./config/driver"
+		config.ResourcePath = "./res"
 	} else {
-		helper.EnvConfig.ConfigPath = dir
+		config.ResourcePath = dir
 	}
-	library.BaseDir = helper.EnvConfig.ConfigPath
+	//驱动配置文件存放目录
+	helper.EnvConfig.ConfigPath = path.Join(config.ResourcePath, "driver")
 	//http服务绑定host
 	httpListen := os.Getenv(config.ENV_HTTP_LISTEN)
 	if httpListen != "" {
