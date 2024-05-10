@@ -49,7 +49,7 @@ func deviceDriverProcess(deviceId string, mode plugin.EncodeMode, pointData ...p
 	scaleEnable := len(device.DriverKey) == 0
 
 	if mode == plugin.WriteMode {
-		for _, p := range pointData {
+		for i, p := range pointData {
 			point, ok := helper.CoreCache.GetPointByDevice(deviceId, p.PointName)
 			if !ok {
 				return nil, fmt.Errorf("not found point, point name is %s", p.PointName)
@@ -64,7 +64,7 @@ func deviceDriverProcess(deviceId string, mode plugin.EncodeMode, pointData ...p
 					return nil, err
 				}
 			}
-			p.Value = value
+			pointData[i].Value = value
 		}
 	}
 
