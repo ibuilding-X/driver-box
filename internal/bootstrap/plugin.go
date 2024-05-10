@@ -11,6 +11,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/internal/lua"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
+	glua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 	"path/filepath"
 )
@@ -57,10 +58,14 @@ func LoadPlugins() error {
 			continue
 		}
 
-		ls, err := lua.InitLuaVM(filepath.Join(helper.EnvConfig.ConfigPath, key, common.LuaScriptName))
-		if err != nil {
-			helper.Logger.Error(err.Error())
-			continue
+		var ls *glua.LState
+		path := filepath.Join(helper.EnvConfig.ConfigPath, key, common.LuaScriptName)
+		if lua.FileExists(path) {
+			ls, err = lua.InitLuaVM(path)
+			if err != nil {
+				helper.Logger.Error(err.Error())
+				continue
+			}
 		}
 
 		err = p.Initialize(helper.Logger, configMap[key], ls)
