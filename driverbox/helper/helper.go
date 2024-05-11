@@ -54,11 +54,6 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 			continue
 		}
 
-		//浮点类型,且readValue包含小数时作小数保留位数加工
-		if p.ValueType == config.ValueType_Float && point.Value != 0 {
-			point.Value = fmt.Sprintf("%.*f", p.Decimals, point.Value)
-		}
-
 		// 缓存比较
 		shadowValue, _ := DeviceShadow.GetDevicePoint(deviceData.ID, point.PointName)
 
@@ -85,7 +80,18 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 		Logger.Error("unknown device", zap.Any("deviceId", deviceData.ID))
 		return fmt.Errorf("unknown device")
 	}
-	scaleEnable := len(device.DriverKey) == 0
+	driverEnable := len(device.DriverKey) > 0
+
+	//通过设备层驱动对点位值进行加工
+	if driverEnable {
+		result := library.DeviceDecode(device.DriverKey, library.DeviceDecodeRequest{DeviceId: deviceData.ID, Points: deviceData.Values})
+		if result.Error != nil {
+			Logger.Error("library.DeviceDecode error", zap.Error(result.Error), zap.Any("deviceData", deviceData))
+			return result.Error
+		} else {
+			deviceData.Values = result.Points
+		}
+	}
 	for i, p := range deviceData.Values {
 		point, ok := CoreCache.GetPointByDevice(deviceData.ID, p.PointName)
 		if !ok {
@@ -101,25 +107,21 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 		}
 
 		//精度换算
-		if scaleEnable && point.Scale != 0 {
+		if !driverEnable && point.Scale != 0 {
 			value, err = multiplyWithFloat64(value, point.Scale)
 			if err != nil {
 				Logger.Error("multiplyWithFloat64 error", zap.Error(err), zap.Any("deviceId", deviceData.ID))
 				continue
 			}
 		}
+
+		//浮点类型,且readValue包含小数时作小数保留位数加工
+		if point.ValueType == config.ValueType_Float && value != 0 {
+			value = fmt.Sprintf("%.*f", point.Decimals, value)
+		}
 		deviceData.Values[i].Value = value
 	}
-	if scaleEnable {
-		return nil
-	}
-	result := library.DeviceDecode(device.DriverKey, library.DeviceDecodeRequest{DeviceId: deviceData.ID, Points: deviceData.Values})
-	if result.Error != nil {
-		Logger.Error("library.DeviceDecode error", zap.Error(result.Error), zap.Any("deviceData", deviceData))
-	} else {
-		deviceData.Values = result.Points
-	}
-	return result.Error
+	return nil
 }
 
 // 触发事件
