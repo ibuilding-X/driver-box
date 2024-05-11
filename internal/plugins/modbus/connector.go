@@ -239,16 +239,6 @@ func (c *connector) ensureInterval() {
 }
 
 func (c *connector) sendReadCommand(group *pointGroup) error {
-	err := c.client.Open()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = c.client.Close()
-		if err != nil {
-			helper.Logger.Error(fmt.Sprintf("close plugin error: %v", err))
-		}
-	}()
 	values, err := c.read(group.UnitID, string(group.RegisterType), group.Address, group.Quantity)
 	if err != nil {
 		return err
