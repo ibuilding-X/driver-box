@@ -88,7 +88,7 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 
 	//找到待读点所属的group
 	return command{
-		Mode:  BatchWriteMode,
+		Mode:  BatchReadMode,
 		Value: pointGroups,
 	}, nil
 }

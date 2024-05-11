@@ -8,7 +8,7 @@ import (
 
 type primaryTable string
 
-const BatchWriteMode plugin.EncodeMode = "batchRead"
+const BatchReadMode plugin.EncodeMode = "batchRead"
 const (
 	Coil            primaryTable = "COIL"             // 线圈
 	DiscreteInput   primaryTable = "DISCRETE_INPUT"   // 离散输入

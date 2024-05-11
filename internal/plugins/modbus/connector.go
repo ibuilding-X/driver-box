@@ -87,7 +87,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 					Mode:  plugin.ReadMode,
 					Value: group,
 				}
-				if err := c.Send(bac); err != nil {
+				if err := c.directTimerRead(bac); err != nil {
 					helper.Logger.Error("read error", zap.Any("connection", conf), zap.Any("group", group), zap.Error(err))
 					//通讯失败，触发离线
 					devices := make(map[string]interface{})
@@ -188,6 +188,12 @@ func (p *connector) ProtocolAdapter() plugin.ProtocolAdapter {
 	return p
 }
 
+func (c *connector) directTimerRead(data interface{}) error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.Send(data)
+}
+
 // Send 发送数据
 func (c *connector) Send(data interface{}) (err error) {
 	cmd := data.(command)
@@ -201,7 +207,7 @@ func (c *connector) Send(data interface{}) (err error) {
 		for _, value := range values {
 			err = c.sendWriteCommand(value)
 		}
-	case BatchWriteMode:
+	case BatchReadMode:
 		groups := cmd.Value.([]*pointGroup)
 		for _, group := range groups {
 			err = c.sendReadCommand(group)
