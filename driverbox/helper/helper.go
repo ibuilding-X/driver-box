@@ -12,6 +12,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/library"
 	"go.uber.org/zap"
+	"strconv"
 	"sync"
 )
 
@@ -117,7 +118,8 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 
 		//浮点类型,且readValue包含小数时作小数保留位数加工
 		if point.ValueType == config.ValueType_Float && value != 0 {
-			value = fmt.Sprintf("%.*f", point.Decimals, value)
+			val := fmt.Sprintf("%.*f", point.Decimals, value)
+			value, _ = strconv.ParseFloat(val, 64)
 		}
 		deviceData.Values[i].Value = value
 	}
