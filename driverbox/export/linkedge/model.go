@@ -107,6 +107,7 @@ type baseTrigger struct {
 }
 
 type pointCondition struct {
+	// 场景联动中用 devSn 表示设备ID
 	DeviceId string `json:"devSn"`
 	//云端定义的设备点位 point 在边缘侧用ResourceName表示
 	DevicePoint string `json:"point"`
