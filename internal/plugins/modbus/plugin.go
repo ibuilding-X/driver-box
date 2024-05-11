@@ -96,12 +96,6 @@ func (p *Plugin) Connector(deviceId, pointName string) (conn plugin.Connector, e
 	if !ok {
 		return nil, errors.New("not found connection key, key is " + device.ConnectionKey)
 	}
-	c.mutex.Lock()
-	err = c.client.Open()
-	if err != nil {
-		c.mutex.Unlock()
-		return nil, err
-	}
 	return c, nil
 }
 

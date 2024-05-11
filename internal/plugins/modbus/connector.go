@@ -87,7 +87,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 					Mode:  plugin.ReadMode,
 					Value: group,
 				}
-				if err := c.directTimerRead(bac); err != nil {
+				if err := c.Send(bac); err != nil {
 					helper.Logger.Error("read error", zap.Any("connection", conf), zap.Any("group", group), zap.Error(err))
 					//通讯失败，触发离线
 					devices := make(map[string]interface{})
@@ -188,12 +188,6 @@ func (p *connector) ProtocolAdapter() plugin.ProtocolAdapter {
 	return p
 }
 
-func (c *connector) directTimerRead(data interface{}) error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	return c.Send(data)
-}
-
 // Send 发送数据
 func (c *connector) Send(data interface{}) (err error) {
 	cmd := data.(command)
@@ -225,13 +219,6 @@ func (c *connector) Send(data interface{}) (err error) {
 // Release 释放资源
 // 不释放连接资源，经测试该包不支持频繁创建连接
 func (c *connector) Release() (err error) {
-	defer func() {
-		c.mutex.Unlock()
-	}()
-	err = c.client.Close()
-	if err != nil {
-		return err
-	}
 	return
 }
 
@@ -452,6 +439,11 @@ func castModbusAddress(i interface{}) (address uint16, err error) {
 // read 读操作
 // 首次读取失败，将尝试重连 modbus 连接
 func (c *connector) read(slaveId uint8, registerType string, address, quantity uint16) (values []uint16, err error) {
+	err = c.openModbusClient()
+	if err != nil {
+		return nil, err
+	}
+	defer c.closeModbusClient()
 	if err = c.client.SetUnitId(slaveId); err != nil {
 		return nil, err
 	}
@@ -487,6 +479,22 @@ func (c *connector) read(slaveId uint8, registerType string, address, quantity u
 	return
 }
 
+func (c *connector) openModbusClient() error {
+	c.mutex.Lock()
+	err := c.client.Open()
+	if err != nil {
+		c.mutex.Unlock()
+	}
+	return err
+}
+
+func (c *connector) closeModbusClient() {
+	defer func() {
+		c.mutex.Unlock()
+	}()
+	_ = c.client.Close()
+}
+
 func boolSliceToUint16(arr []bool) []uint16 {
 	if arr == nil {
 		return *new([]uint16)
@@ -515,6 +523,11 @@ func uint16SliceToBool(arr []uint16) []bool {
 
 // write 写操作
 func (c *connector) write(slaveID uint8, registerType primaryTable, address uint16, values []uint16) (err error) {
+	err = c.openModbusClient()
+	if err != nil {
+		return err
+	}
+	defer c.closeModbusClient()
 	err = c.client.SetUnitId(slaveID)
 	if err != nil {
 		return
