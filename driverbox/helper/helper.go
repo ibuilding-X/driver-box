@@ -38,7 +38,11 @@ func Map2Struct(m interface{}, v interface{}) error {
 
 func PointCacheFilter(deviceData *plugin.DeviceData) {
 	// 设备层驱动，对点位进行预处理
-	deviceDriver := deviceDriverProcess(deviceData)
+	err := pointValueProcess(deviceData)
+	if err != nil {
+		Logger.Error("device driver process error", zap.Error(err))
+		return
+	}
 
 	// 定义一个空的整型数组
 	var points []plugin.PointData
@@ -50,29 +54,10 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 			continue
 		}
 
-		//数据类型纠正
-		realValue, err := ConvPointType(point.Value, p.ValueType)
-		if err != nil {
-			Logger.Error("convert point value error", zap.Error(err), zap.Any("deviceId", deviceData.ID),
-				zap.String("pointName", p.Name), zap.Any("value", point.Value))
-			continue
-		}
-
-		//精度换算，若设备关联了驱动脚本，则精度换算功能不起用
-		if !deviceDriver && p.Scale != 0 {
-			realValue, err = multiplyWithFloat64(realValue, p.Scale)
-			if err != nil {
-				Logger.Error("multiplyWithFloat64 error", zap.Error(err), zap.Any("deviceId", deviceData.ID))
-				continue
-			}
-		}
-
 		//浮点类型,且readValue包含小数时作小数保留位数加工
-		if p.ValueType == config.ValueType_Float && realValue != 0 {
-			realValue = fmt.Sprintf("%.*f", p.Decimals, realValue)
+		if p.ValueType == config.ValueType_Float && point.Value != 0 {
+			point.Value = fmt.Sprintf("%.*f", p.Decimals, point.Value)
 		}
-
-		point.Value = realValue
 
 		// 缓存比较
 		shadowValue, _ := DeviceShadow.GetDevicePoint(deviceData.ID, point.PointName)
@@ -94,14 +79,39 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 	deviceData.ExportType = plugin.RealTimeExport
 }
 
-func deviceDriverProcess(deviceData *plugin.DeviceData) bool {
+func pointValueProcess(deviceData *plugin.DeviceData) error {
 	device, ok := CoreCache.GetDevice(deviceData.ID)
 	if !ok {
 		Logger.Error("unknown device", zap.Any("deviceId", deviceData.ID))
-		return false
+		return fmt.Errorf("unknown device")
 	}
-	if len(device.DriverKey) == 0 {
-		return false
+	scaleEnable := len(device.DriverKey) == 0
+	for i, p := range deviceData.Values {
+		point, ok := CoreCache.GetPointByDevice(deviceData.ID, p.PointName)
+		if !ok {
+			Logger.Error("unknown point", zap.Any("deviceId", deviceData.ID), zap.Any("pointName", p.PointName))
+			continue
+		}
+		//点位值类型还原
+		value, err := ConvPointType(p.Value, point.ValueType)
+		if err != nil {
+			Logger.Error("convert point value error", zap.Error(err), zap.Any("deviceId", deviceData.ID),
+				zap.String("pointName", p.PointName), zap.Any("value", p.Value))
+			continue
+		}
+
+		//精度换算
+		if scaleEnable && point.Scale != 0 {
+			value, err = multiplyWithFloat64(value, point.Scale)
+			if err != nil {
+				Logger.Error("multiplyWithFloat64 error", zap.Error(err), zap.Any("deviceId", deviceData.ID))
+				continue
+			}
+		}
+		deviceData.Values[i].Value = value
+	}
+	if scaleEnable {
+		return nil
 	}
 	result := library.DeviceDecode(device.DriverKey, library.DeviceDecodeRequest{DeviceId: deviceData.ID, Points: deviceData.Values})
 	if result.Error != nil {
@@ -109,7 +119,7 @@ func deviceDriverProcess(deviceData *plugin.DeviceData) bool {
 	} else {
 		deviceData.Values = result.Points
 	}
-	return true
+	return result.Error
 }
 
 // 触发事件

@@ -71,10 +71,19 @@ func (pm PointMap) ToPoint() Point {
 	_ = json.Unmarshal(b, &p)
 	// 扩展参数
 	p.Extends = make(map[string]interface{})
-	for key, _ := range pm {
-		if !strings.Contains("name,description,valueType,readWrite,defaultValue,scale", key) {
+
+	var decimals interface{}
+	for key, v := range pm {
+		if !strings.Contains("name,description,valueType,readWrite,defaultValue,scale,decimals", key) {
 			p.Extends[key] = pm[key]
 		}
+		if key == "decimals" {
+			decimals = v
+		}
+	}
+	//浮点数，且未指定decimals，默认未2
+	if p.ValueType == ValueType_Float && decimals == nil {
+		p.Decimals = 2
 	}
 	return p
 }
