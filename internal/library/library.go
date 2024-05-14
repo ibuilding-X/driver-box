@@ -50,12 +50,16 @@ func DeviceEncode(driverKey string, req DeviceEncodeRequest) *DeviceEncodeResult
 		pointData := L.NewTable()
 		pointData.RawSetString("name", glua.LString(point.PointName))
 		if req.Mode == plugin.WriteMode {
+			//经过ConvPointType加工，数据类型一定属于string、float64、int64之一
 			switch v := point.Value.(type) {
 			case string:
 				pointData.RawSetString("value", glua.LString(v))
+			case float64:
+				pointData.RawSetString("value", glua.LVAsNumber(glua.LNumber(v)))
+			case int64:
+				pointData.RawSetString("value", glua.LVAsNumber(glua.LNumber(v)))
 			default:
-				val := fmt.Sprintf("%v", v)
-				pointData.RawSet(glua.LString("value"), glua.LVAsNumber(glua.LString(val)))
+				return &DeviceEncodeResult{Error: fmt.Errorf("unsupported point value type: %T", v)}
 			}
 			b, e := json.Marshal(point.Value)
 			if e != nil {
