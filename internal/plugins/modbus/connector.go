@@ -52,6 +52,12 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 		virtual: cf.Virtual || config.IsVirtual(),
 		devices: make(map[uint8]*slaveDevice),
 	}
+
+	if cf.Mode == "rtu" {
+		conn.keepAlive = true
+	} else {
+		conn.keepAlive = false
+	}
 	return conn, err
 }
 
@@ -62,6 +68,13 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 	if len(c.devices) == 0 {
 		return nil, errors.New("no device to collect")
 	}
+	if c.keepAlive {
+		err := c.client.Open()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	//注册定时采集任务
 	return helper.Crontab.AddFunc("1s", func() {
 		//遍历所有通讯设备
@@ -226,6 +239,9 @@ func (c *connector) Close() {
 	c.close = true
 	if c.collectTask != nil {
 		c.collectTask.Disable()
+	}
+	if c.keepAlive {
+		_ = c.client.Close()
 	}
 }
 
@@ -471,18 +487,23 @@ func (c *connector) read(slaveId uint8, registerType string, address, quantity u
 
 func (c *connector) openModbusClient() error {
 	c.mutex.Lock()
-	err := c.client.Open()
-	if err != nil {
-		c.mutex.Unlock()
+	if !c.keepAlive {
+		err := c.client.Open()
+		if err != nil {
+			c.mutex.Unlock()
+		}
+		return err
 	}
-	return err
+	return nil
 }
 
 func (c *connector) closeModbusClient() {
 	defer func() {
 		c.mutex.Unlock()
 	}()
-	_ = c.client.Close()
+	if !c.keepAlive {
+		_ = c.client.Close()
+	}
 }
 
 func boolSliceToUint16(arr []bool) []uint16 {

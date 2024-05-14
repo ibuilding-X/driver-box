@@ -23,9 +23,11 @@ type Plugin struct {
 // connector 连接器
 type connector struct {
 	plugin.Connection
-	config       *ConnectionConfig
-	plugin       *Plugin
-	client       *modbus.ModbusClient
+	config *ConnectionConfig
+	plugin *Plugin
+	client *modbus.ModbusClient
+	//串口保持打开状态
+	keepAlive    bool
 	latestIoTime time.Time // 最近一次执行IO的时间
 	mutex        sync.Mutex
 	//通讯设备集合
