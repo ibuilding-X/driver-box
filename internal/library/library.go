@@ -3,6 +3,7 @@ package library
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/lua"
@@ -49,6 +50,13 @@ func DeviceEncode(driverKey string, req DeviceEncodeRequest) *DeviceEncodeResult
 		pointData := L.NewTable()
 		pointData.RawSetString("name", glua.LString(point.PointName))
 		if req.Mode == plugin.WriteMode {
+			switch v := point.Value.(type) {
+			case string:
+				pointData.RawSetString("value", glua.LString(v))
+			default:
+				val := fmt.Sprintf("%s", v)
+				pointData.RawSet(glua.LString("value"), glua.LVAsNumber(glua.LString(val)))
+			}
 			b, e := json.Marshal(point.Value)
 			if e != nil {
 				return &DeviceEncodeResult{Error: e}
