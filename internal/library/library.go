@@ -54,7 +54,7 @@ func DeviceEncode(driverKey string, req DeviceEncodeRequest) *DeviceEncodeResult
 			case string:
 				pointData.RawSetString("value", glua.LString(v))
 			default:
-				val := fmt.Sprintf("%s", v)
+				val := fmt.Sprintf("%v", v)
 				pointData.RawSet(glua.LString("value"), glua.LVAsNumber(glua.LString(val)))
 			}
 			b, e := json.Marshal(point.Value)
