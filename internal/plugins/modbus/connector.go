@@ -53,11 +53,6 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 		devices: make(map[uint8]*slaveDevice),
 	}
 
-	if cf.Mode == "rtu" {
-		conn.keepAlive = true
-	} else {
-		conn.keepAlive = false
-	}
 	return conn, err
 }
 
@@ -67,12 +62,6 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 	}
 	if len(c.devices) == 0 {
 		return nil, errors.New("no device to collect")
-	}
-	if c.keepAlive {
-		err := c.client.Open()
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	//注册定时采集任务
@@ -449,7 +438,7 @@ func (c *connector) read(slaveId uint8, registerType string, address, quantity u
 	if err != nil {
 		return nil, err
 	}
-	defer c.closeModbusClient()
+	defer c.closeModbusClient(err)
 	if err = c.client.SetUnitId(slaveId); err != nil {
 		return nil, err
 	}
@@ -487,21 +476,26 @@ func (c *connector) read(slaveId uint8, registerType string, address, quantity u
 
 func (c *connector) openModbusClient() error {
 	c.mutex.Lock()
-	if !c.keepAlive {
-		err := c.client.Open()
-		if err != nil {
-			c.mutex.Unlock()
-		}
-		return err
+	//modbus连接已打开
+	if c.keepAlive {
+		return nil
 	}
-	return nil
+	err := c.client.Open()
+	if err != nil {
+		c.mutex.Unlock()
+	} else {
+		c.keepAlive = true
+	}
+	return err
 }
 
-func (c *connector) closeModbusClient() {
+func (c *connector) closeModbusClient(e error) {
 	defer func() {
 		c.mutex.Unlock()
 	}()
-	if !c.keepAlive {
+	//RTU 模式下，连接不关闭
+	if c.config.Mode != "rtu" || e != nil {
+		c.keepAlive = false
 		_ = c.client.Close()
 	}
 }
@@ -538,7 +532,7 @@ func (c *connector) write(slaveID uint8, registerType primaryTable, address uint
 	if err != nil {
 		return err
 	}
-	defer c.closeModbusClient()
+	defer c.closeModbusClient(err)
 	err = c.client.SetUnitId(slaveID)
 	if err != nil {
 		return
