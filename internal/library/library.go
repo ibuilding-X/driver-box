@@ -61,11 +61,6 @@ func DeviceEncode(driverKey string, req DeviceEncodeRequest) *DeviceEncodeResult
 			default:
 				return &DeviceEncodeResult{Error: fmt.Errorf("unsupported point value type: %T", v)}
 			}
-			b, e := json.Marshal(point.Value)
-			if e != nil {
-				return &DeviceEncodeResult{Error: e}
-			}
-			pointData.RawSetString("value", glua.LString(b))
 		}
 		points.Append(pointData)
 	}
