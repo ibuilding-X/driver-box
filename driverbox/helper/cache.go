@@ -309,18 +309,9 @@ func (c *cache) GetAllRunningPluginKey() (keys []string) {
 	return
 }
 
+// UpdateDeviceProperty 更新设备属性并持久化
 func (c *cache) UpdateDeviceProperty(id string, key string, value string) {
-	if propertiesAny, ok := c.deviceProperties.Load(id); ok {
-		if properties, ok2 := propertiesAny.(map[string]DeviceProperties); ok2 {
-			for k, _ := range properties {
-				if properties[k] == nil {
-					properties[k] = make(DeviceProperties)
-				}
-				properties[k][key] = value
-			}
-			c.deviceProperties.Store(id, properties)
-		}
-	}
+	_ = c.updateDeviceProp(id, key, value)
 }
 
 // DeleteDevice 删除设备
@@ -377,8 +368,8 @@ func (c *cache) GetDeviceBusinessProp(id string) (props config.DeviceBusinessPro
 	return config.DeviceBusinessProp{}, fmt.Errorf("device %s not found", id)
 }
 
-// updateDeviceBusinessProp 更新设备业务属性
-func (c *cache) updateDeviceBusinessProp(id, key, value string) error {
+// updateDeviceProp 更新设备属性
+func (c *cache) updateDeviceProp(id, key, value string) error {
 	if deviceAny, ok := c.devices.Load(id); ok {
 		device, _ := deviceAny.(config.Device)
 		if device.Properties == nil {
@@ -395,15 +386,15 @@ func (c *cache) updateDeviceBusinessProp(id, key, value string) error {
 
 // UpdateDeviceBusinessPropSN 更新设备业务属性SN
 func (c *cache) UpdateDeviceBusinessPropSN(id string, value string) error {
-	return c.updateDeviceBusinessProp(id, businessPropSN, value)
+	return c.updateDeviceProp(id, businessPropSN, value)
 }
 
 // UpdateDeviceBusinessPropParentID 更新设备业务属性ParentID
 func (c *cache) UpdateDeviceBusinessPropParentID(id string, value string) error {
-	return c.updateDeviceBusinessProp(id, businessPropParentID, value)
+	return c.updateDeviceProp(id, businessPropParentID, value)
 }
 
 // UpdateDeviceBusinessPropSystemID 更新设备业务属性SystemID
 func (c *cache) UpdateDeviceBusinessPropSystemID(sn string, value string) error {
-	return c.updateDeviceBusinessProp(sn, businessPropSystemID, value)
+	return c.updateDeviceProp(sn, businessPropSystemID, value)
 }
