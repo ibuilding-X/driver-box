@@ -153,14 +153,3 @@ func tryReadNewValue(deviceId, pointName string, expectValue interface{}) {
 		}
 	}(deviceId, pointName, expectValue)
 }
-
-func divideStrings(value interface{}, scale float64) (float64, error) {
-	switch v := value.(type) {
-	case float64:
-		return v / scale, nil
-	case int64:
-		return float64(v) / scale, nil
-	default:
-		return 0, fmt.Errorf("cannot divide %T with float64", value)
-	}
-}

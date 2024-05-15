@@ -6,11 +6,7 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/lua"
 	glua "github.com/yuin/gopher-lua"
 	"path/filepath"
-	"sync"
 )
-
-// 缓存Lua虚拟机的锁
-var luaLocks = sync.Map{}
 
 // CallLuaConverter 调用 Lua 脚本转换器
 func CallLuaConverter(L *glua.LState, method string, raw interface{}) ([]plugin.DeviceData, error) {
