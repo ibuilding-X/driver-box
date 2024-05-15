@@ -248,9 +248,11 @@ func (c *cache) GetDevicesByTag(tag string) (devices []config.Device) {
 	return
 }
 
+// GetPointByDevice 查询指定设备的指定点位信息
 func (c *cache) GetPointByDevice(id string, pointName string) (point config.Point, ok bool) {
-	if raw, ok := c.points.Load(id + "_" + pointName); ok {
-		return raw.(config.Point), true
+	// 查询设备
+	if device, ok := c.GetDevice(id); ok {
+		return c.GetPointByModel(device.ModelName, pointName)
 	}
 	return config.Point{}, false
 }
