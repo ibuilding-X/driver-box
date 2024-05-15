@@ -8,9 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strconv"
 	"sync"
-	"time"
 )
 
 const (
@@ -35,27 +33,53 @@ var (
 	ErrConfigEmpty = errors.New("config is empty")
 )
 
+// instance 全局配置管理器实例
 var instance = New()
 
+// Manager 配置管理器接口
 type Manager interface {
+	// -------------------- 配置相关 --------------------
+
+	// SetConfigPath 设置配置目录
 	SetConfigPath(path string)
+	// SetConfigFileName 设置配置文件名
 	SetConfigFileName(name string)
+	// SetScriptFileName 设置脚本文件名
 	SetScriptFileName(name string)
-
+	// LoadConfig 加载配置
 	LoadConfig() error
+	// GetConfigs 获取所有配置
 	GetConfigs() map[string]config.Config
+	// AddConfig 新增配置
+	AddConfig(c config.Config) error
 
+	// -------------------- 模型相关 --------------------
+
+	// GetModel 获取模型
 	GetModel(modelName string) (config.DeviceModel, bool)
-	GetDevice(modelName string, deviceID string) (config.Device, bool)
-	AddOrUpdateDevice(device config.Device) error
-	RemoveDevice(modelName string, deviceID string) error
-	RemoveDeviceByID(id string) error
+	// AddModel 新增模型
+	AddModel(plugin string, model config.DeviceModel) error
 
+	// -------------------- 设备相关 --------------------
+
+	// GetDevice 获取设备
+	GetDevice(modelName string, deviceID string) (config.Device, bool)
+	// AddOrUpdateDevice 新增或更新设备
+	AddOrUpdateDevice(device config.Device) error
+	// RemoveDevice 删除设备
+	RemoveDevice(modelName string, deviceID string) error
+	// RemoveDeviceByID 根据 ID 删除设备
+	RemoveDeviceByID(id string) error
+	// BatchRemoveDevice 批量删除设备
 	BatchRemoveDevice(ids []string) error
 
-	AddConfig(c config.Config) error
+	// -------------------- 连接相关 --------------------
+
+	// AddConnection 新增连接
+	AddConnection(plugin string, key string, conn any) error
 }
 
+// manager 实现配置管理器接口
 type manager struct {
 	root       string
 	configName string
@@ -64,6 +88,7 @@ type manager struct {
 	mux        *sync.RWMutex
 }
 
+// New 创建配置管理器实例
 func New() Manager {
 	return &manager{
 		root:       DefaultConfigPath,
@@ -94,8 +119,16 @@ func GetConfigs() map[string]config.Config {
 	return instance.GetConfigs()
 }
 
+func AddConfig(c config.Config) error {
+	return instance.AddConfig(c)
+}
+
 func GetModel(modelName string) (config.DeviceModel, bool) {
 	return instance.GetModel(modelName)
+}
+
+func AddModel(plugin string, model config.DeviceModel) error {
+	return instance.AddModel(plugin, model)
 }
 
 func GetDevice(modelName string, deviceID string) (config.Device, bool) {
@@ -114,12 +147,12 @@ func RemoveDeviceByID(id string) error {
 	return instance.RemoveDeviceByID(id)
 }
 
-func AddConfig(c config.Config) error {
-	return instance.AddConfig(c)
-}
-
 func BatchRemoveDevice(ids []string) error {
 	return instance.BatchRemoveDevice(ids)
+}
+
+func AddConnection(plugin string, key string, conn any) error {
+	return instance.AddConnection(plugin, key, conn)
 }
 
 // SetConfigPath 设置配置目录
@@ -207,6 +240,37 @@ func (m *manager) GetModel(modelName string) (config.DeviceModel, bool) {
 		}
 	}
 	return config.DeviceModel{}, false
+}
+
+// AddModel 新增模型
+// 说明：仅用于新增模型，不用于更新模型
+func (m *manager) AddModel(plugin string, model config.DeviceModel) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
+	// 插件是否存在
+	for k, _ := range m.configs {
+		if m.configs[k].ProtocolName == plugin {
+			if _, ok := m.configs[k].GetModelIndexes()[model.Name]; ok {
+				// 模型已存在
+				return nil
+			}
+			// 新增模型
+			newConfig := m.configs[k]
+			newConfig.DeviceModels = append(newConfig.DeviceModels, model)
+			newConfig = newConfig.UpdateIndexAndClean()
+			m.configs[k] = newConfig
+			// 持久化
+			return m.saveConfig(k)
+		}
+	}
+
+	// 插件不存在，创建新配置文件
+	conf := m.createConfig(plugin)
+	conf.DeviceModels = []config.DeviceModel{model}
+
+	// 新增配置
+	return m.addConfig(conf)
 }
 
 // AddOrUpdateDevice 新增或更新设备
@@ -334,11 +398,43 @@ func (m *manager) BatchRemoveDevice(ids []string) error {
 	return nil
 }
 
+// AddConnection 新增连接
+// 说明：仅用于新增连接，不用于更新连接
+func (m *manager) AddConnection(plugin string, key string, conn any) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
+	// 插件是否存在
+	for k, _ := range m.configs {
+		if m.configs[k].ProtocolName == plugin {
+			if _, ok := m.configs[k].Connections[key]; ok {
+				// 连接已存在
+				return nil
+			}
+			m.configs[k].Connections[key] = conn
+			// 持久化
+			return m.saveConfig(k)
+		}
+	}
+
+	// 插件不存在，创建新配置文件
+	conf := m.createConfig(plugin)
+	conf.Connections[key] = conn
+
+	// 新增配置
+	return m.addConfig(conf)
+}
+
 // AddConfig 新增配置
 func (m *manager) AddConfig(c config.Config) error {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 
+	return m.addConfig(c)
+}
+
+// addConfig 新增配置
+func (m *manager) addConfig(c config.Config) error {
 	for s, conf := range m.configs {
 		if conf.ProtocolName == c.ProtocolName {
 			// 合并模型、设备
@@ -424,7 +520,7 @@ func (m *manager) fileExists(path string) bool {
 
 // generateDirName 生成目录名称
 func (m *manager) generateDirName(protocolName string) string {
-	return fmt.Sprintf("%s-%s", protocolName, strconv.FormatInt(time.Now().UnixMilli(), 36))
+	return protocolName
 }
 
 // saveConfig 配置持久化到文件
@@ -445,4 +541,13 @@ func (m *manager) saveConfig(key string) error {
 	}
 
 	return nil
+}
+
+// createConfig 创建配置
+func (m *manager) createConfig(protocolName string) config.Config {
+	return config.Config{
+		DeviceModels: make([]config.DeviceModel, 0),
+		Connections:  make(map[string]interface{}),
+		ProtocolName: protocolName,
+	}
 }

@@ -217,7 +217,7 @@ func IsVirtual() bool {
 
 // UpdateIndexAndClean 更新索引并清理无效数据
 // 1. 更新模型、设备索引
-// 2. 移除无效连接（关闭）
+// 2. 移除无效连接
 func (c Config) UpdateIndexAndClean() Config {
 	c.modelIndexes = make(map[string]int)
 
