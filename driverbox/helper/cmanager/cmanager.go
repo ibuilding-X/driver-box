@@ -13,7 +13,7 @@ import (
 
 const (
 	// DefaultConfigPath is the default path to the config directory.
-	DefaultConfigPath string = "./drivers"
+	DefaultConfigPath string = "./res/drivers"
 	// DefaultConfigName is the default name of the config file.
 	DefaultConfigName string = "config.json"
 	// DefaultScriptName is the default name of the script file.
@@ -77,6 +77,10 @@ type Manager interface {
 
 	// AddConnection 新增连接
 	AddConnection(plugin string, key string, conn any) error
+	// GetConnection 获取连接信息
+	GetConnection(key string) (any, error)
+	// GetConnectionPluginName 获取连接所属的插件名称
+	GetConnectionPluginName(key string) string
 }
 
 // manager 实现配置管理器接口
@@ -153,6 +157,14 @@ func BatchRemoveDevice(ids []string) error {
 
 func AddConnection(plugin string, key string, conn any) error {
 	return instance.AddConnection(plugin, key, conn)
+}
+
+func GetConnection(key string) (any, error) {
+	return instance.GetConnection(key)
+}
+
+func GetConnectionPluginName(key string) string {
+	return instance.GetConnectionPluginName(key)
 }
 
 // SetConfigPath 设置配置目录
@@ -431,6 +443,34 @@ func (m *manager) AddConfig(c config.Config) error {
 	defer m.mux.Unlock()
 
 	return m.addConfig(c)
+}
+
+// GetConnection 获取连接
+func (m *manager) GetConnection(key string) (any, error) {
+	m.mux.RLock()
+	defer m.mux.RUnlock()
+
+	for _, conf := range m.configs {
+		if conn, ok := conf.Connections[key]; ok {
+			return conn, nil
+		}
+	}
+
+	return nil, nil
+}
+
+// GetConnectionPluginName 获取连接所属的插件名称
+func (m *manager) GetConnectionPluginName(key string) string {
+	m.mux.RLock()
+	defer m.mux.RUnlock()
+
+	for _, conf := range m.configs {
+		if _, ok := conf.Connections[key]; ok {
+			return conf.ProtocolName
+		}
+	}
+
+	return ""
 }
 
 // addConfig 新增配置

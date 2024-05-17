@@ -5,56 +5,100 @@ import (
 	"testing"
 )
 
-func TestManager(t *testing.T) {
-	m := New()
-	m.SetConfigPath("./drivers")
-	m.SetConfigFileName("config.json")
-
-	if err := m.LoadConfig(); err != nil {
-		t.Error(err)
-	}
-
-	// 添加连接测试
+func TestAddConnection(t *testing.T) {
 	conn := map[string]any{
-		"index":    0,
+		"address":  "/dev/ttyS5",
 		"discover": true,
 	}
-	if err := m.AddConnection("modbus", "/dev/ttyUSB0", conn); err != nil {
+	if err := AddConnection("modbus", "/dev/ttyS5", conn); err != nil {
 		t.Error(err)
 	}
-	if err := m.AddConnection("bacnet", "/dev/ttyUSB1", conn); err != nil {
-		t.Error(err)
-	}
+}
 
-	// 添加模型
+func TestAddModel(t *testing.T) {
 	model := config.DeviceModel{
 		ModelBase: config.ModelBase{
-			Name:    "7jhk541gjh57k14j517jk41",
-			ModelID: "7jhk541gjh57k14j517jk41",
+			Name:        "test_model_001",
+			ModelID:     "test_model_001",
+			Description: "测试模型",
 		},
 		DevicePoints: []config.PointMap{
 			{
 				"name": "onOff",
+				"type": "int",
 			},
 		},
 		Devices: nil,
 	}
-	if err := m.AddModel("modbus", model); err != nil {
+	if err := AddModel("modbus", model); err != nil {
 		t.Error(err)
 	}
+}
 
-	// 添加设备
+func TestAddDevice(t *testing.T) {
 	device := config.Device{
-		ID:            "device1",
-		ModelName:     "7jhk541gjh57k14j517jk41",
-		Description:   "device1",
-		Ttl:           "15m",
+		ID:            "device_1",
+		ModelName:     "test_model_001",
+		Description:   "测试设备",
+		Ttl:           "",
 		Tags:          nil,
-		ConnectionKey: "/dev/ttyUSB0",
+		ConnectionKey: "/dev/ttyS5",
 		Properties:    nil,
 		DriverKey:     "",
 	}
-	if err := m.AddOrUpdateDevice(device); err != nil {
+	if err := AddOrUpdateDevice(device); err != nil {
 		t.Error(err)
+	}
+}
+
+func BenchmarkAddConnection(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		conn := map[string]any{
+			"address":  "/dev/ttyS5",
+			"discover": true,
+		}
+		if err := AddConnection("modbus", "/dev/ttyS5", conn); err != nil {
+			b.Error(err)
+		}
+	}
+}
+
+func BenchmarkAddModel(b *testing.B) {
+	model := config.DeviceModel{
+		ModelBase: config.ModelBase{
+			Name:        "test_model_001",
+			ModelID:     "test_model_001",
+			Description: "测试模型",
+		},
+		DevicePoints: []config.PointMap{
+			{
+				"name": "onOff",
+				"type": "int",
+			},
+		},
+		Devices: nil,
+	}
+	for i := 0; i < b.N; i++ {
+		if err := AddModel("modbus", model); err != nil {
+			b.Error(err)
+		}
+	}
+}
+
+func BenchmarkAddDevice(b *testing.B) {
+	device := config.Device{
+		ID:            "device_1",
+		ModelName:     "test_model_001",
+		Description:   "测试设备",
+		Ttl:           "",
+		Tags:          nil,
+		ConnectionKey: "/dev/ttyS5",
+		Properties:    nil,
+		DriverKey:     "",
+	}
+	for i := 0; i < b.N; i++ {
+		if err := AddOrUpdateDevice(device); err != nil {
+			b.Error(err)
+		}
 	}
 }
