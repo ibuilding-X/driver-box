@@ -21,31 +21,22 @@ import (
 
 func registerApi() {
 	// 插件 REST API
-	ps := NewPluginStorage()
-	restful.HandleFunc(route.V1Prefix+"plugin/cache/get", ps.Get)
-	restful.HandleFunc(route.V1Prefix+"plugin/cache/set", ps.Set)
+	restful.HandleFunc(route.V1Prefix+"plugin/cache/get", getCache)
+	restful.HandleFunc(route.V1Prefix+"plugin/cache/set", setCache)
 	// 核心配置 API
-	conf := &Config{}
-	restful.HandleFunc(route.V1Prefix+"config/update", conf.Update)
+	restful.HandleFunc(route.V1Prefix+"config/update", updateCoreConfig)
 
 	// 设备影子 API
-	sdc := &Shadow{}
-	restful.HandleFunc(route.V1Prefix+"shadow/all", sdc.All)
-	restful.HandleFunc(route.V1Prefix+"shadow/device", sdc.Device)
-	restful.HandleFunc(route.V1Prefix+"shadow/devicePoint", sdc.DevicePoint)
+	restful.HandleFunc(route.V1Prefix+"shadow/all", getAllDevices)
+	restful.HandleFunc(route.V1Prefix+"shadow/device", deviceShadow)
+	restful.HandleFunc(route.V1Prefix+"shadow/devicePoint", getDevicePoint)
 }
 
 type kv map[string]interface{}
 
-type PluginStorage struct{}
-
-func NewPluginStorage() *PluginStorage {
-	return &PluginStorage{}
-}
-
 // Get 获取信息
 // 返回数据结构：{"key":"value"}
-func (ps *PluginStorage) Get(r *http.Request) (any, error) {
+func getCache(r *http.Request) (any, error) {
 	// 获取查询 Key
 	key := r.URL.Query().Get("key")
 	if key == "" {
@@ -63,7 +54,7 @@ func (ps *PluginStorage) Get(r *http.Request) (any, error) {
 
 // Set 存储信息
 // body 示例：{"key", "value"}
-func (ps *PluginStorage) Set(r *http.Request) (any, error) {
+func setCache(r *http.Request) (any, error) {
 	// 读取 body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -83,10 +74,7 @@ func (ps *PluginStorage) Set(r *http.Request) (any, error) {
 	return nil, nil
 }
 
-type Config struct {
-}
-
-func (c *Config) Update(r *http.Request) (any, error) {
+func updateCoreConfig(r *http.Request) (any, error) {
 	// ------------------------------------------------------------
 	// 配置文件覆盖更新
 	// ------------------------------------------------------------
@@ -174,11 +162,8 @@ var (
 	unknownDevicePointErr = errors.New("unknown device point")
 )
 
-type Shadow struct {
-}
-
 // All 获取影子所有设备数据
-func (s *Shadow) All(_ *http.Request) (any, error) {
+func getAllDevices(_ *http.Request) (any, error) {
 	devices := helper.DeviceShadow.GetDevices()
 	result := make([]shadow.DeviceAPI, 0)
 	for _, device := range devices {
@@ -188,7 +173,7 @@ func (s *Shadow) All(_ *http.Request) (any, error) {
 }
 
 // Device 设备相关操作
-func (s *Shadow) Device(r *http.Request) (any, error) {
+func deviceShadow(r *http.Request) (any, error) {
 	// 获取查询参数
 	sn := r.URL.Query().Get("id")
 
@@ -197,7 +182,7 @@ func (s *Shadow) Device(r *http.Request) (any, error) {
 		if sn == "" {
 			return nil, snRequiredErr
 		}
-		result, err := s.queryDevice(sn)
+		result, err := queryDevice(sn)
 		if err != nil {
 			return nil, err
 		}
@@ -215,7 +200,7 @@ func (s *Shadow) Device(r *http.Request) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = s.updateDevice(req)
+		err = updateDevice(req)
 		if err != nil {
 			return nil, err
 		}
@@ -226,7 +211,7 @@ func (s *Shadow) Device(r *http.Request) (any, error) {
 }
 
 // DevicePoint 获取设备点位数据
-func (s *Shadow) DevicePoint(r *http.Request) (any, error) {
+func getDevicePoint(r *http.Request) (any, error) {
 	// 获取查询参数
 	sn := r.URL.Query().Get("id")
 	point := r.URL.Query().Get("point")
@@ -236,7 +221,7 @@ func (s *Shadow) DevicePoint(r *http.Request) (any, error) {
 	}
 
 	// 查询点位
-	result, err := s.queryDevicePoint(sn, point)
+	result, err := queryDevicePoint(sn, point)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +229,7 @@ func (s *Shadow) DevicePoint(r *http.Request) (any, error) {
 }
 
 // queryDevice 查询设备数据
-func (s *Shadow) queryDevice(sn string) (any, error) {
+func queryDevice(sn string) (any, error) {
 	device, err := helper.DeviceShadow.GetDevice(sn)
 	if err != nil {
 		return nil, err
@@ -253,7 +238,7 @@ func (s *Shadow) queryDevice(sn string) (any, error) {
 }
 
 // queryDevicePoint 查询指定点位数据
-func (s *Shadow) queryDevicePoint(sn string, point string) (any, error) {
+func queryDevicePoint(sn string, point string) (any, error) {
 	device, err := helper.DeviceShadow.GetDevice(sn)
 	if err != nil {
 		return nil, err
@@ -265,7 +250,7 @@ func (s *Shadow) queryDevicePoint(sn string, point string) (any, error) {
 }
 
 // updateDevice 更新设备影子数据
-func (s *Shadow) updateDevice(data request.UpdateDeviceReq) error {
+func updateDevice(data request.UpdateDeviceReq) error {
 	for i, _ := range data {
 		err := helper.DeviceShadow.SetDevicePoint(data[i].ID, data[i].Name, data[i].Value)
 		if err != nil {
