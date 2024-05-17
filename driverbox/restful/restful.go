@@ -2,8 +2,8 @@ package restful
 
 import (
 	"encoding/json"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/restful/response"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
 	"net/http"
 )
@@ -13,6 +13,7 @@ type Handler func(*http.Request) (any, error)
 
 // HandleFunc 注册处理函数
 func HandleFunc(pattern string, handler Handler) {
+	logger.Logger.Info("register api", zap.String("pattern", pattern))
 	http.HandleFunc(pattern, func(writer http.ResponseWriter, request *http.Request) {
 		// 定义响应数据结构
 		var data response.Common
@@ -40,7 +41,7 @@ func HandleFunc(pattern string, handler Handler) {
 		// 序列化响应数据
 		b, err := json.Marshal(data)
 		if err != nil {
-			helper.Logger.Error("[api] json marshal fail", zap.Error(err))
+			logger.Logger.Error("[api] json marshal fail", zap.Error(err))
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -48,7 +49,7 @@ func HandleFunc(pattern string, handler Handler) {
 		// 写入响应数据
 		_, err = writer.Write(b)
 		if err != nil {
-			helper.Logger.Error("[api] write response fail", zap.Error(err))
+			logger.Logger.Error("[api] write response fail", zap.Error(err))
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}

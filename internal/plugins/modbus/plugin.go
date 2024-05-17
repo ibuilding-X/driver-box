@@ -48,6 +48,9 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState)
 	p.config = c
 	//初始化连接池
 	p.initNetworks(c)
+
+	//注册RestAPI
+	InitRestAPI()
 	return nil
 }
 

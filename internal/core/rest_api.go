@@ -1,11 +1,12 @@
-package controller
+package core
 
 import (
 	"encoding/json"
 	"errors"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/internal/core"
+	"github.com/ibuilding-x/driver-box/driverbox/restful"
+	"github.com/ibuilding-x/driver-box/driverbox/restful/route"
 	"io"
 	"net/http"
 )
@@ -13,12 +14,20 @@ import (
 type Device struct {
 }
 
+func RegisterApi() {
+	//设备API
+	d := &Device{}
+	restful.HandleFunc(route.DevicePointWrite, d.WritePoint)
+	restful.HandleFunc(route.DevicePointsWrite, d.WritePoints)
+	restful.HandleFunc(route.DevicePointRead, d.ReadPoint)
+}
+
 // 写入某个设备点位
 func (s *Device) WritePoint(r *http.Request) (any, error) {
 	sn := r.URL.Query().Get("id")
 	point := r.URL.Query().Get("point")
 	value := r.URL.Query().Get("value")
-	return nil, core.SendSinglePoint(sn, plugin.WriteMode, plugin.PointData{
+	return nil, SendSinglePoint(sn, plugin.WriteMode, plugin.PointData{
 		PointName: point,
 		Value:     value,
 	})
@@ -42,14 +51,14 @@ func (s *Device) WritePoints(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nil, core.SendBatchWrite(data.ID, data.Values)
+	return nil, SendBatchWrite(data.ID, data.Values)
 }
 
 // 读取某个设备点位
 func (s *Device) ReadPoint(r *http.Request) (any, error) {
 	sn := r.URL.Query().Get("id")
 	point := r.URL.Query().Get("point")
-	e := core.SendSinglePoint(sn, plugin.ReadMode, plugin.PointData{
+	e := SendSinglePoint(sn, plugin.ReadMode, plugin.PointData{
 		PointName: point,
 	})
 	if e != nil {

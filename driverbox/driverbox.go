@@ -8,11 +8,11 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/driverbox/restful/route"
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
 	"github.com/ibuilding-x/driver-box/internal/core"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	"go.uber.org/zap"
+	"net/http"
 	"os"
 	"path"
 )
@@ -51,7 +51,9 @@ func Start(exports []export.Export) error {
 
 	// 第五步：启动 REST 服务
 	go func() {
-		e := route.Register()
+		registerApi()
+		core.RegisterApi()
+		e := http.ListenAndServe(":8081", nil)
 		if e != nil {
 			helper.Logger.Error("start rest server error", zap.Error(e))
 		}
