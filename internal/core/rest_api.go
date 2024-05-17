@@ -11,19 +11,16 @@ import (
 	"net/http"
 )
 
-type Device struct {
-}
-
+// 注册restapi
 func RegisterApi() {
 	//设备API
-	d := &Device{}
-	restful.HandleFunc(route.DevicePointWrite, d.WritePoint)
-	restful.HandleFunc(route.DevicePointsWrite, d.WritePoints)
-	restful.HandleFunc(route.DevicePointRead, d.ReadPoint)
+	restful.HandleFunc(route.DevicePointWrite, writePoint)
+	restful.HandleFunc(route.DevicePointsWrite, writePoints)
+	restful.HandleFunc(route.DevicePointRead, readPoint)
 }
 
 // 写入某个设备点位
-func (s *Device) WritePoint(r *http.Request) (any, error) {
+func writePoint(r *http.Request) (any, error) {
 	sn := r.URL.Query().Get("id")
 	point := r.URL.Query().Get("point")
 	value := r.URL.Query().Get("value")
@@ -35,7 +32,7 @@ func (s *Device) WritePoint(r *http.Request) (any, error) {
 
 // 批量写入某个设备的多个点位
 // curl -X POST -H "Content-Type: application/json" -d '{"id":"deviceId","values":[{"name":"pointName","value":"1"}]}' http://127.0.0.1:8081/api/v1/device/writePoints
-func (s *Device) WritePoints(r *http.Request) (any, error) {
+func writePoints(r *http.Request) (any, error) {
 	if r.Method != http.MethodPost {
 		return nil, errors.New(http.StatusText(http.StatusMethodNotAllowed))
 	}
@@ -55,7 +52,7 @@ func (s *Device) WritePoints(r *http.Request) (any, error) {
 }
 
 // 读取某个设备点位
-func (s *Device) ReadPoint(r *http.Request) (any, error) {
+func readPoint(r *http.Request) (any, error) {
 	sn := r.URL.Query().Get("id")
 	point := r.URL.Query().Get("point")
 	e := SendSinglePoint(sn, plugin.ReadMode, plugin.PointData{
