@@ -12,10 +12,11 @@ export default defineConfig({
 			sidebar: [
 				{
 					label: '快速上手',
-					items: [
-						// Each item here is one entry in the navigation menu.
-						{ label: 'Example Guide', link: '/guides/example/' },
-					],
+          autogenerate: { directory: 'guides' },
+					// items: [
+					// 	// Each item here is one entry in the navigation menu.
+					// 	{ label: '项目简介', link: '/guides/example/' },
+					// ],
 				},
 				{
 					label: '插件',
