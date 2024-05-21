@@ -13,7 +13,7 @@ export default defineConfig({
             },
             sidebar: [
                 {
-                    label: '快速上手',
+                    label: '使用指南',
                     autogenerate: {directory: 'guides'},
                     // items: [
                     // 	// Each item here is one entry in the navigation menu.
