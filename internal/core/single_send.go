@@ -30,7 +30,10 @@ func SendSinglePoint(deviceId string, mode plugin.EncodeMode, pointData plugin.P
 			err = singleWrite(deviceId, v)
 			//点位写成功后，立即触发读取操作以及时更新影子状态
 			if err == nil {
-				tryReadNewValue(deviceId, pointData.PointName, pointData.Value)
+				tryReadNewValues(deviceId, []plugin.PointData{{
+					PointName: pointData.PointName,
+					Value:     pointData.Value,
+				}})
 			}
 		} else {
 			err = singleRead(deviceId, v)

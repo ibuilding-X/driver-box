@@ -26,7 +26,7 @@ func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 	defer func() {
 		// 释放连接
 		if connector != nil {
-			connector.Release()
+			_ = connector.Release()
 		}
 	}()
 	if err != nil {
