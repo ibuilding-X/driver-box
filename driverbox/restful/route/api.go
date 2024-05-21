@@ -1,5 +1,7 @@
 package route
 
+const V1Prefix string = "/api/v1/"
+
 // 设备写操作
 const DevicePointWrite = V1Prefix + "device/writePoint"
 
@@ -34,3 +36,9 @@ const LinkEdgeStatus = V1Prefix + "linkedge/status"
 
 // deprecated 获取最后一个执行的场景联动
 const LinkEdgeGetLast = V1Prefix + "linkedge/getLast"
+
+// modbus驱动--设备发现
+const ModbusDeviceDiscovery = V1Prefix + "plugin/modbus/discovery"
+
+// bacnet驱动--设备发现
+const BacnetDeviceDiscovery = V1Prefix + "plugin/bacnet/discovery"

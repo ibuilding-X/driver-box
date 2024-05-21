@@ -187,6 +187,9 @@ type coreCache interface {
 
 	// businessPropCache 业务属性接口
 	businessPropCache
+
+	// configManager 配置管理器接口
+	configManager
 }
 
 // businessPropCache 业务属性缓存
@@ -195,6 +198,26 @@ type businessPropCache interface {
 	UpdateDeviceBusinessPropSN(id string, value string) error                     // 更新设备业务属性SN
 	UpdateDeviceBusinessPropParentID(id string, value string) error               // 更新设备业务属性ParentID
 	UpdateDeviceBusinessPropSystemID(sn string, value string) error               // 更新设备业务属性SystemID
+}
+
+// configManager 配置管理器接口
+type configManager interface {
+	// AddConnection 新增连接
+	AddConnection(plugin string, key string, conn any) error
+	// GetConnection 获取连接信息
+	GetConnection(key string) (any, error)
+	// GetConnectionPluginName 获取连接所属的插件名称
+	GetConnectionPluginName(key string) string
+	// AddModel 新增模型
+	AddModel(plugin string, model config.DeviceModel) error
+	// AddOrUpdateDevice 新增或更新设备
+	AddOrUpdateDevice(device config.Device) error
+	// RemoveDevice 删除设备
+	RemoveDevice(modelName string, deviceID string) error
+	// RemoveDeviceByID 根据 ID 删除设备
+	RemoveDeviceByID(id string) error
+	// BatchRemoveDevice 批量删除设备
+	BatchRemoveDevice(ids []string) error
 }
 
 func (c *cache) GetModel(modelName string) (model config.Model, ok bool) {
@@ -399,4 +422,39 @@ func (c *cache) UpdateDeviceBusinessPropParentID(id string, value string) error 
 // UpdateDeviceBusinessPropSystemID 更新设备业务属性SystemID
 func (c *cache) UpdateDeviceBusinessPropSystemID(sn string, value string) error {
 	return c.updateDeviceProp(sn, businessPropSystemID, value)
+}
+
+// AddConnection 新增连接
+func (c *cache) AddConnection(plugin string, key string, conn any) error {
+	return cmanager.AddConnection(plugin, key, conn)
+}
+
+// GetConnection 获取连接信息
+func (c *cache) GetConnection(key string) (any, error) {
+	return cmanager.GetConnection(key)
+}
+
+// GetConnectionPluginName 获取连接所属的插件名称
+func (c *cache) GetConnectionPluginName(key string) string {
+	return cmanager.GetConnectionPluginName(key)
+}
+
+// AddModel 新增模型
+func (c *cache) AddModel(plugin string, model config.DeviceModel) error {
+	return cmanager.AddModel(plugin, model)
+}
+
+// RemoveDevice 根据 ID 删除设备
+func (c *cache) RemoveDevice(modelName string, deviceID string) error {
+	return cmanager.RemoveDevice(modelName, deviceID)
+}
+
+// RemoveDeviceByID 根据 ID 删除设备
+func (c *cache) RemoveDeviceByID(id string) error {
+	return cmanager.RemoveDeviceByID(id)
+}
+
+// BatchRemoveDevice 批量删除设备
+func (c *cache) BatchRemoveDevice(ids []string) error {
+	return cmanager.BatchRemoveDevice(ids)
 }

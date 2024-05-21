@@ -1,24 +1,30 @@
-package controller
+package core
 
 import (
 	"encoding/json"
 	"errors"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/internal/core"
+	"github.com/ibuilding-x/driver-box/driverbox/restful"
+	"github.com/ibuilding-x/driver-box/driverbox/restful/route"
 	"io"
 	"net/http"
 )
 
-type Device struct {
+// 注册restapi
+func RegisterApi() {
+	//设备API
+	restful.HandleFunc(route.DevicePointWrite, writePoint)
+	restful.HandleFunc(route.DevicePointsWrite, writePoints)
+	restful.HandleFunc(route.DevicePointRead, readPoint)
 }
 
 // 写入某个设备点位
-func (s *Device) WritePoint(r *http.Request) (any, error) {
+func writePoint(r *http.Request) (any, error) {
 	sn := r.URL.Query().Get("id")
 	point := r.URL.Query().Get("point")
 	value := r.URL.Query().Get("value")
-	return nil, core.SendSinglePoint(sn, plugin.WriteMode, plugin.PointData{
+	return nil, SendSinglePoint(sn, plugin.WriteMode, plugin.PointData{
 		PointName: point,
 		Value:     value,
 	})
@@ -26,7 +32,7 @@ func (s *Device) WritePoint(r *http.Request) (any, error) {
 
 // 批量写入某个设备的多个点位
 // curl -X POST -H "Content-Type: application/json" -d '{"id":"deviceId","values":[{"name":"pointName","value":"1"}]}' http://127.0.0.1:8081/api/v1/device/writePoints
-func (s *Device) WritePoints(r *http.Request) (any, error) {
+func writePoints(r *http.Request) (any, error) {
 	if r.Method != http.MethodPost {
 		return nil, errors.New(http.StatusText(http.StatusMethodNotAllowed))
 	}
@@ -42,14 +48,14 @@ func (s *Device) WritePoints(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nil, core.SendBatchWrite(data.ID, data.Values)
+	return nil, SendBatchWrite(data.ID, data.Values)
 }
 
 // 读取某个设备点位
-func (s *Device) ReadPoint(r *http.Request) (any, error) {
+func readPoint(r *http.Request) (any, error) {
 	sn := r.URL.Query().Get("id")
 	point := r.URL.Query().Get("point")
-	e := core.SendSinglePoint(sn, plugin.ReadMode, plugin.PointData{
+	e := SendSinglePoint(sn, plugin.ReadMode, plugin.PointData{
 		PointName: point,
 	})
 	if e != nil {

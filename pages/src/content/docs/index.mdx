@@ -1,0 +1,36 @@
+---
+title: Welcome to driver-box
+description: connect device simply!
+template: splash
+hero:
+  tagline: connect device simply!
+  image:
+    file: ../../assets/houston.webp
+  actions:
+    - text: 快速操作
+      link: ./guides/about/
+      icon: right-arrow
+      variant: primary
+    - text: 前往 GitHub 仓库
+      link: https://github.com/iBUILDING-X/driver-box
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## 产品特色
+
+<CardGrid stagger>
+	<Card title="配置化" icon="pencil">
+		通过 JSON 描述文件，实现 <b>配置化</b> 设备接入。
+	</Card>
+	<Card title="标准化" icon="add-document">
+		任意通讯设备（Modbus\Bacnet\MQTT\HTTP\...），接入之际便统一适配成<b>标准化</b>物模型。
+	</Card>
+	<Card title="轻量化" icon="setting">
+		最终编译二进制程序仅需十几MB；已知最小运行环境为 128MB 的低规格网关设备。
+	</Card>
+	<Card title="平台化" icon="open-book">
+		驱动层插件化设计，可无限适配各类设备协议。应用层统一接口设计覆盖边缘全场景：边缘计算、场景联动、边缘AI
+	</Card>
+</CardGrid>
