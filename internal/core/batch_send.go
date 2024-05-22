@@ -44,7 +44,7 @@ func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 		return err
 	}
 	//点位写成功后，立即触发读取操作以及时更新影子状态
-	tryReadNewValues(deviceId, points)
+	//tryReadNewValues(deviceId, points)
 	return
 }
 
