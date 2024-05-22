@@ -1,6 +1,8 @@
 ---
 title: 项目简介
 description: A guide in my new Starlight docs site.
+sidebar:
+  order: 1
 ---
 
 ## 1. 简介
@@ -12,6 +14,5 @@ DriverBox 是一款支持泛化协议接入的边缘网关框架， 以插件化
 
 以此解决设备接入过程中存在的驱动工程数量爆炸；接入标准难以规范化等问题。
 
-## 快速开始
 
 

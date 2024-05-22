@@ -1,0 +1,42 @@
+{
+  "deviceModels": [
+    {
+      "name": "swtich",
+      "description": "开关",
+      "devicePoints": [
+        {
+          "description": "开关",
+          "name": "onOff",
+          "readWrite": "R",
+          "reportMode": "change",
+          "valueType": "int"
+        }
+      ],
+      "devices": [
+        {
+          "id": "swtich-1",
+          "description": "1号开关",
+          "ttl": "5m",
+          "connectionKey": "8888"
+        },
+        {
+          "id": "swtich-2",
+          "description": "2号开关",
+          "ttl": "5m",
+          "connectionKey": "8889"
+        }
+      ]
+    }
+  ],
+  "connections": {
+    "8888": {
+      "host": "127.0.0.1",
+      "port": 8888
+    },
+    "8889": {
+      "host": "",
+      "port": 8889
+    }
+  },
+  "protocolName": "http_server"
+}

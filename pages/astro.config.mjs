@@ -4,7 +4,7 @@ import starlight from '@astrojs/starlight';
 // https://astro.build/config
 export default defineConfig({
     site: 'https://ibuilding-X.github.io',
-    // base: '/driver-box',
+    base: '/driver-box',
     integrations: [
         starlight({
             title: 'Driver-Box',
@@ -13,7 +13,7 @@ export default defineConfig({
             },
             sidebar: [
                 {
-                    label: '快速上手',
+                    label: '使用指南',
                     autogenerate: {directory: 'guides'},
                     // items: [
                     // 	// Each item here is one entry in the navigation menu.
