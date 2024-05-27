@@ -34,7 +34,7 @@ func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 	}
 	//按连接批量下发
 	adapter := connector.ProtocolAdapter()
-	res, err := adapter.Encode(deviceId, plugin.WriteMode, points...)
+	res, err := adapter.Encode(deviceId, plugin.WriteMode, result...)
 	if err != nil {
 		return err
 	}
