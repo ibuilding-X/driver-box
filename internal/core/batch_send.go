@@ -6,12 +6,14 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
 	"time"
 )
 
 // SendBatchWrite 发送多个点位写命令
 func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
+	logger.Logger.Info("send batch write", zap.String("deviceId", deviceId), zap.Any("points", points))
 	//设备驱动层加工
 	result, err := deviceDriverProcess(deviceId, plugin.WriteMode, points...)
 	if err != nil {
