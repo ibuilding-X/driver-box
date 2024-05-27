@@ -3,6 +3,7 @@ package shadow
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"log"
+	"sort"
 	"sync"
 	"time"
 )
@@ -92,6 +93,11 @@ func (d *Device) ToDeviceAPI() DeviceAPI {
 			device.Points = append(device.Points, point.ToDevicePointAPI())
 		}
 		return true
+	})
+
+	//按点位名排序
+	sort.Slice(device.Points, func(i, j int) bool {
+		return device.Points[i].Name < device.Points[j].Name
 	})
 	return device
 }

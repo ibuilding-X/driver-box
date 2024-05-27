@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"sort"
 )
 
 func registerApi() {
@@ -169,6 +170,10 @@ func getAllDevices(_ *http.Request) (any, error) {
 	for _, device := range devices {
 		result = append(result, device.ToDeviceAPI())
 	}
+	//按DeviceID排序
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ID < result[j].ID
+	})
 	return result, nil
 }
 
