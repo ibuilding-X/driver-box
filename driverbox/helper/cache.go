@@ -374,6 +374,10 @@ func (c *cache) Reset() {
 
 // AddOrUpdateDevice 添加或更新设备
 func (c *cache) AddOrUpdateDevice(device config.Device) error {
+	// 自动补全设备描述
+	if device.Description == "" {
+		device.Description = device.ID
+	}
 	// 更新缓存信息
 	c.devices.Store(device.ID, device)
 	// 持久化
