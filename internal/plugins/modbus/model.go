@@ -43,12 +43,13 @@ type Point struct {
 	Duration     string `json:"duration"`
 	Address      uint16
 	RegisterType primaryTable `json:"primaryTable"`
-	Quantity     uint16       `json:"quantity"`
-	Bit          uint8        `json:"bit"`
-	BitLen       uint8        `json:"bitLen"`
-	RawType      string       `json:"rawType"`
-	ByteSwap     bool         `json:"byteSwap"`
-	WordSwap     bool         `json:"wordSwap"`
+	//该配置无需设置
+	Quantity uint16 `json:"quantity"`
+	Bit      uint8  `json:"bit"`
+	BitLen   uint8  `json:"bitLen"`
+	RawType  string `json:"rawType"`
+	ByteSwap bool   `json:"byteSwap"`
+	WordSwap bool   `json:"wordSwap"`
 }
 
 // 采集组
