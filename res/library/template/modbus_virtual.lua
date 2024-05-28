@@ -63,7 +63,6 @@ function mockWrite(slaveId, primaryTable, address, value)
     -- Begin：以下需要开发者根据实际情况作修改
 
     -- End：以上需要开发者根据实际情况作修改
-
 end
 
 -- （勿动）模拟modbus读
