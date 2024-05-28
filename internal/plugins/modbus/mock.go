@@ -8,9 +8,12 @@ import (
 )
 
 func (c *connector) mockRead(slaveId uint8, registerType string, address, quantity uint16) (values []uint16, err error) {
-	mockData, e := helper.CallLuaMethod(c.plugin.ls, "mockRead", lua.LNumber(slaveId), lua.LString(registerType), lua.LNumber(address), lua.LNumber(quantity))
-	e = json.Unmarshal([]byte(mockData), &values)
-	return values, e
+	mockData, err := helper.CallLuaMethod(c.plugin.ls, "mockRead", lua.LNumber(slaveId), lua.LString(registerType), lua.LNumber(address), lua.LNumber(quantity))
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal([]byte(mockData), &values)
+	return
 }
 
 func (c *connector) mockWrite(slaveID uint8, registerType primaryTable, address uint16, values []uint16) error {
