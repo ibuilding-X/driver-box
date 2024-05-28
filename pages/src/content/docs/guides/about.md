@@ -8,7 +8,7 @@ sidebar:
 ## 简介
 driver-box 是一款支持泛化协议接入的边缘网关框架， 以插件化的形式融合了 Modbus、Bacnet、HTTP、MQTT 等主流协议，同时也支持基于TCP的各类私有化协议对接。
 
-![](/framework.svg)
+![](/driver-box/framework.svg)
 
 我们期望 driver-box 能够为相关人士提供更加高效、舒适的设备接入体验。 
 
