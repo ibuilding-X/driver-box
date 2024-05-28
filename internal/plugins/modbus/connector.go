@@ -244,7 +244,14 @@ func (c *connector) ensureInterval() {
 }
 
 func (c *connector) sendReadCommand(group *pointGroup) error {
-	values, err := c.read(group.UnitID, string(group.RegisterType), group.Address, group.Quantity)
+	var values []uint16
+	var err error
+	if c.virtual {
+		values, err = c.mockRead(group.UnitID, string(group.RegisterType), group.Address, group.Quantity)
+	} else {
+		values, err = c.read(group.UnitID, string(group.RegisterType), group.Address, group.Quantity)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -375,7 +382,12 @@ func mergeBitsIntoUint16(num int, startPos, bitCount uint8, regValue uint16) uin
 func (c *connector) sendWriteCommand(pc *writeValue) error {
 	var err error
 	for i := 0; i < c.config.Retry; i++ {
-		if err = c.write(pc.unitID, pc.RegisterType, pc.Address, pc.Value); err == nil {
+		if c.virtual {
+			err = c.mockWrite(pc.unitID, pc.RegisterType, pc.Address, pc.Value)
+		} else {
+			err = c.write(pc.unitID, pc.RegisterType, pc.Address, pc.Value)
+		}
+		if err == nil {
 			break
 		}
 	}
