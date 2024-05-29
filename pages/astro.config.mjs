@@ -3,8 +3,9 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
-    site: 'https://ibuilding-X.github.io',
+    site: 'https://ibuilding-X.github.io/',
     base: '/driver-box',
+    trailingSlash: "always",
     integrations: [
         starlight({
             title: 'Driver-Box',
