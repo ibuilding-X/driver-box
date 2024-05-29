@@ -8,9 +8,9 @@ export default defineConfig({
     trailingSlash: "always",
     integrations: [
         starlight({
-            title: 'Driver-Box',
+            title: 'driver-box',
             social: {
-                github: 'https://github.com/withastro/starlight',
+                github: 'https://github.com/ibuilding-X/driver-box',
             },
             sidebar: [
                 {
