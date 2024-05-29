@@ -1,0 +1,169 @@
+---
+title: 准备事项
+sidebar:
+  order: 1
+---
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+driver-box 是一款物联网框架，也可以理解为是一款物联网平台。
+
+作为框架（亦或“平台”），通常侧重于提供基础能力，以及为用户开展二次开发提供规范指引。
+所以，driver-box 更适合作为三方包，引入至您所要打造的边缘应用中。
+
+甚至您可以根据自身实际情况，选择性引用 driver-box 的部分能力，以此编译出更精简、更轻量的网关程序。
+
+下面将为大家演示如何通过 driver-box 快速搭建一个网关程序。
+
+:::note
+以下示例代码可从 [https://github.com/ibuilding-X/demo](https://github.com/ibuilding-X/demo) 获取
+:::
+
+## 第一步：创建golang工程
+
+```shell
+mkdir demo
+cd demo
+go mod init demo
+go get github.com/ibuilding-x/driver-box@b07be980
+```
+
+## 第二步：设备接入配置
+:::tip
+此步骤主要用于效果演示，通过 modbus 的虚拟设备功能模拟2个开关。
+:::
+
+<Tabs>
+    <TabItem label="config.json" icon="seti:json">
+        ```json
+        {
+            "deviceModels": [
+                {
+                    "name": "switch",
+                    "description": "开关",
+                    "devicePoints": [
+                        {
+                            "name": "onOff",
+                            "description": "开关状态",
+                            "reportMode": "change",
+                            "valueType": "int",
+                            "readWrite": "RW",
+                            "primaryTable": "HOLDING_REGISTER",
+                            "startAddress": "40001d",
+                            "rawType": "uint16"
+                        }
+                    ],
+                    "devices": [
+                        {
+                            "id": "switch-1",
+                            "description": "开关-1",
+                            "connectionKey": "dev/ttyUSB01",
+                            "properties": {
+                                "unitID": "1"
+                            }
+                        },
+                        {
+                            "id": "switch-2",
+                            "description": "开关-2",
+                            "connectionKey": "dev/ttyUSB01",
+                            "properties": {
+                                "unitID": "2"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "connections": {
+                "dev/ttyUSB01": {
+                    "address": "dev/ttyUSB01",
+                    "batchReadLen": 50,
+                    "enable": true,
+                    "minInterval": 500,
+                    "mode": "rtu",
+                    "parity": 0,
+                    "stop_bits": 0,
+                    "timeout": 5000,
+                    "virtual": true
+                }
+            },
+            "protocolName": "modbus"
+        }
+        ```
+    </TabItem>
+    <TabItem label="converter.lua" icon="seti:lua">
+        ```lua {10-16}
+        -- 初始化指定从机
+        function initSlave(slaveId, holdingRegister, coil, discreteInput, inputRegister)
+            slaves[slaveId] = {
+                [HOLDING_REGISTER] = initRegisters(holdingRegister),
+                [COIL] = initRegisters(coil),
+                [DISCRETE_INPUT] = initRegisters(discreteInput),
+                [INPUT_REGISTER] = initRegisters(inputRegister)
+            }
+
+            -- 调用 mockWrite 方法初始化模拟数据
+            -- Begin：以下需要开发者根据实际情况作修改
+            for i = 1, 2 do
+                print("初始化第"..i.."个开关")
+                mockWrite(slaveId, HOLDING_REGISTER, 40001, { 1 })
+            end
+            -- End：以上需要开发者根据实际情况作修改
+
+            return slaves[slaveId]
+        end
+        ```
+    </TabItem>
+</Tabs>
+
+
+## 第三步：编写网关程序
+
+```go title=main.go
+package main
+
+import (
+	"fmt"
+	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/driverbox/export"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"os"
+	"time"
+)
+
+func main() {
+	//关闭driver-box日志
+	os.Setenv("LOG_LEVEL", "error")
+
+	//启动driver-box服务
+	driverbox.Start([]export.Export{})
+
+	go func() {
+		// 创建一个 Ticker，每隔 1 秒执行一次任务
+		ticker := time.NewTicker(1 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				// 获取设备影子开关状态
+				v, _ := helper.DeviceShadow.GetDevicePoint("switch-1", "onOff")
+				fmt.Printf("开关状态：%v", v)
+				fmt.Println()
+
+				//切换开关状态
+				if v == int64(0) {
+					_ = driverbox.WritePoint("switch-1", plugin.PointData{
+						PointName: "onOff",
+						Value:     1,
+					})
+				} else {
+					_ = driverbox.WritePoint("switch-1", plugin.PointData{
+						PointName: "onOff",
+						Value:     0,
+					})
+				}
+			}
+		}
+	}()
+	select {}
+}
+```

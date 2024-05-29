@@ -29,6 +29,10 @@ export default defineConfig({
                     label: 'Export',
                     autogenerate: {directory: 'export'},
                 },
+                {
+                    label: '开发指南',
+                    autogenerate: {directory: 'developer'},
+                },
             ],
         }),
     ],
