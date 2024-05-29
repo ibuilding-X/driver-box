@@ -53,4 +53,4 @@ driver-box 适用于多种场景，包括智能家居、智慧楼宇、智慧工
 
 现以支持以下几种通讯插件：
 - Bacnet
-- Modbus
+- [Modbus](../../plugins/modbus/#虚拟设备)
