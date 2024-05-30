@@ -94,3 +94,22 @@ func main() {
 	driverbox.Start([]export.Export{mirror.NewExport()})
 }
 ```
+
+## 原理解析
+对于读操作，无论是框架基于配置策略自发的，或者是用户主动发起的。
+只要是针对实际通讯设备的行为，会依照原有流程执行。
+
+不同的点在于额外增加的镜像设备 Export（Mirror Export），会执行镜像设备插件（Mirror Plugin）的回调逻辑，
+并将框架解析出来的设备数据作为参数传入其中。
+
+如此便模拟了镜像设备的数据采集过程，并遵循 driver-box 框架的原流程执行后续动作。
+![](/driver-box/mirror_flow_1.svg)
+
+--- 
+
+对于镜像设备的发起的读写行为，按照 driver-box 框架设计会进入至镜像插件的 Encode 环节，
+在这里会将镜像设备对应的实际通讯设备匹配出来。
+
+而到了镜像插件的指令发送（Send）环节，会调用 driver-box 原有的设备读写接口，再将识别出来的实际通讯设备点位参数传入。
+
+![](/driver-box/mirror_flow_2.svg)
