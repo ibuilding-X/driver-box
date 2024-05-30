@@ -20,15 +20,18 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 		if !ok {
 			return nil, errors.New("mirror pointName not found")
 		}
-		if _, ok := group[rawDevice.deviceId]; !ok {
-			group[rawDevice.deviceId] = EncodeModel{
-				deviceId: rawDevice.deviceId,
-				points:   make([]plugin.PointData, 0),
-				mode:     mode,
-			}
+		var points []plugin.PointData
+		if _, ok := group[rawDevice.deviceId]; ok {
+			points = group[rawDevice.deviceId].points
+		} else {
+			points = make([]plugin.PointData, 0)
 		}
-		model := group[rawDevice.deviceId]
-		model.points = append(model.points, point)
+		points = append(points, point)
+		group[rawDevice.deviceId] = EncodeModel{
+			deviceId: rawDevice.deviceId,
+			points:   points,
+			mode:     mode,
+		}
 	}
 	//group转数组
 	models := make([]EncodeModel, 0)
