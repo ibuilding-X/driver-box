@@ -8,10 +8,24 @@ export default defineConfig({
     trailingSlash: "always",
     integrations: [
         starlight({
-            title: 'Driver-Box',
+            title: 'driver-box',
             social: {
-                github: 'https://github.com/withastro/starlight',
+                github: 'https://github.com/ibuilding-X/driver-box',
             },
+            head: [
+                {
+                    tag: 'script',
+                    content: `
+                var _hmt = _hmt || [];
+                (function() {
+                  var hm = document.createElement("script");
+                  hm.src = "https://hm.baidu.com/hm.js?81f653be99c4697c95cedbdacc3023b4";
+                  var s = document.getElementsByTagName("script")[0]; 
+                  s.parentNode.insertBefore(hm, s);
+                })();
+          `
+                }
+            ],
             sidebar: [
                 {
                     label: '使用指南',
@@ -28,6 +42,10 @@ export default defineConfig({
                 {
                     label: 'Export',
                     autogenerate: {directory: 'export'},
+                },
+                {
+                    label: '开发指南',
+                    autogenerate: {directory: 'developer'},
                 },
             ],
         }),
