@@ -32,7 +32,9 @@ func NewExport() *Export {
 
 // 点位变化触发场景联动
 func (export *Export) ExportTo(deviceData plugin.DeviceData) {
-	callback.OnReceiveHandler(export.plugin.VirtualConnector, deviceData)
+	if export.plugin.VirtualConnector != nil {
+		callback.OnReceiveHandler(export.plugin.VirtualConnector, deviceData)
+	}
 }
 
 // 继承Export OnEvent接口
