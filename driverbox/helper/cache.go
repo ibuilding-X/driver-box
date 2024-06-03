@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 	"sync"
@@ -372,13 +373,23 @@ func (c *cache) Reset() {
 }
 
 // AddOrUpdateDevice 添加或更新设备
+// 更新内容列表
+// * 核心缓存设备
+// * 设备影子
+// * 持久化文件
 func (c *cache) AddOrUpdateDevice(device config.Device) error {
 	// 自动补全设备描述
 	if device.Description == "" {
 		device.Description = device.ID
 	}
-	// 更新缓存信息
+	// 更新核心缓存
 	c.devices.Store(device.ID, device)
+	// 更新设备影子
+	if DeviceShadow != nil && !DeviceShadow.HasDevice(device.ID) {
+		if err := DeviceShadow.AddDevice(shadow.NewDevice(device, device.ModelName, nil)); err != nil {
+			return err
+		}
+	}
 	// 持久化
 	return cmanager.AddOrUpdateDevice(device)
 }

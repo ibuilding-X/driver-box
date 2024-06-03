@@ -18,6 +18,7 @@ type OnlineChangeCallback func(deviceId string, online bool) // 设备上/下线
 type DeviceShadow interface {
 	AddDevice(device Device) (err error)
 	GetDevice(deviceId string) (device Device, err error)
+	HasDevice(deviceId string) bool
 
 	SetDevicePoint(deviceId, pointName string, value interface{}) (err error)
 	GetDevicePoint(deviceId, pointName string) (value interface{}, err error)
@@ -72,6 +73,11 @@ func (d *deviceShadow) GetDevice(deviceId string) (device Device, err error) {
 	} else {
 		return Device{}, UnknownDeviceErr
 	}
+}
+
+func (d *deviceShadow) HasDevice(deviceId string) bool {
+	_, ok := d.m.Load(deviceId)
+	return ok
 }
 
 func (d *deviceShadow) SetDevicePoint(deviceId, pointName string, value interface{}) (err error) {
