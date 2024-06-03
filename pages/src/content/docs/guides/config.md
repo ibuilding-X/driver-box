@@ -1,6 +1,8 @@
 ---
 title: 配置说明
 description: A guide in my new Starlight docs site.
+sidebar:
+  order: 3
 ---
 
 ## 配置说明
