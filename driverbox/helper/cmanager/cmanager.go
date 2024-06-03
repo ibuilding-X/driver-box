@@ -13,7 +13,7 @@ import (
 
 const (
 	// DefaultConfigPath is the default path to the config directory.
-	DefaultConfigPath string = "./res/drivers"
+	DefaultConfigPath string = "./res/driver"
 	// DefaultConfigName is the default name of the config file.
 	DefaultConfigName string = "config.json"
 	// DefaultScriptName is the default name of the script file.
@@ -480,8 +480,8 @@ func (m *manager) addConfig(c config.Config) error {
 			// 合并模型、设备
 			for _, model := range c.DeviceModels {
 				if modelIndex, ok := conf.GetModelIndexes()[model.Name]; ok {
-					// 更新
-					conf.DeviceModels[modelIndex] = model
+					// 合并设备
+					conf.DeviceModels[modelIndex].Devices = m.mergeDevices(conf.DeviceModels[modelIndex].Devices, model.Devices)
 				} else {
 					// 新增
 					conf.DeviceModels = append(conf.DeviceModels, model)
@@ -590,4 +590,23 @@ func (m *manager) createConfig(protocolName string) config.Config {
 		Connections:  make(map[string]interface{}),
 		ProtocolName: protocolName,
 	}
+}
+
+// mergeDevice 合并设备
+// 以 arr1 为主，arr2 为辅，合并 arr1 与 arr2 相同的设备，并返回合并后的设备列表
+func (m *manager) mergeDevices(arr1 []config.Device, arr2 []config.Device) []config.Device {
+	ids := make(map[string]struct{})
+	var result []config.Device
+
+	all := append(arr1, arr2...)
+	for _, device := range all {
+		if _, exist := ids[device.ID]; exist {
+			continue
+		}
+
+		ids[device.ID] = struct{}{}
+		result = append(result, device)
+	}
+
+	return result
 }
