@@ -183,7 +183,6 @@ type coreCache interface {
 	DeleteDevice(id string)                                             // 删除设备
 	UpdateDeviceDesc(id string, desc string)                            // 更新设备描述
 	Reset()
-	AddOrUpdateDevice(device config.Device) error // 添加或更新设备
 
 	// businessPropCache 业务属性接口
 	businessPropCache

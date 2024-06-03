@@ -6,6 +6,10 @@ import (
 )
 
 func TestAddConnection(t *testing.T) {
+	if err := LoadConfig(); err != nil {
+		t.Error(err)
+	}
+
 	conn := map[string]any{
 		"address":  "/dev/ttyS5",
 		"discover": true,
@@ -16,6 +20,10 @@ func TestAddConnection(t *testing.T) {
 }
 
 func TestAddModel(t *testing.T) {
+	if err := LoadConfig(); err != nil {
+		t.Error(err)
+	}
+
 	model := config.DeviceModel{
 		ModelBase: config.ModelBase{
 			Name:        "test_model_001",
@@ -36,6 +44,10 @@ func TestAddModel(t *testing.T) {
 }
 
 func TestAddDevice(t *testing.T) {
+	if err := LoadConfig(); err != nil {
+		t.Error(err)
+	}
+
 	device := config.Device{
 		ID:            "device_1",
 		ModelName:     "test_model_001",
@@ -47,6 +59,67 @@ func TestAddDevice(t *testing.T) {
 		DriverKey:     "",
 	}
 	if err := AddOrUpdateDevice(device); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestAddConfig(t *testing.T) {
+	if err := LoadConfig(); err != nil {
+		t.Error(err)
+	}
+
+	c := config.Config{
+		DeviceModels: []config.DeviceModel{
+			{
+				ModelBase: config.ModelBase{
+					Name:        "test_model_001",
+					ModelID:     "test_model_001",
+					Description: "测试模型",
+				},
+				DevicePoints: []config.PointMap{
+					{
+						"name": "onOff",
+						"type": "int",
+					},
+				},
+				Devices: []config.Device{
+					{
+						ID:            "device_2",
+						ModelName:     "test_model_001",
+						Description:   "测试设备2",
+						Ttl:           "",
+						Tags:          nil,
+						ConnectionKey: "/dev/ttyS0",
+						Properties:    nil,
+						DriverKey:     "",
+					},
+				},
+			},
+			{
+				ModelBase: config.ModelBase{
+					Name:        "test_model_002",
+					ModelID:     "test_model_002",
+					Description: "测试模型2",
+				},
+				DevicePoints: []config.PointMap{
+					{
+						"name": "onOff",
+						"type": "int",
+					},
+				},
+				Devices: nil,
+			},
+		},
+		Connections: map[string]any{
+			"/dev/ttyS0": map[string]any{
+				"address":  "/dev/ttyS0",
+				"discover": true,
+			},
+		},
+		ProtocolName: "modbus",
+	}
+
+	if err := AddConfig(c); err != nil {
 		t.Error(err)
 	}
 }
