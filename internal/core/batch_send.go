@@ -111,17 +111,17 @@ func tryReadNewValues(deviceId string, points []plugin.PointData) {
 		for i < 10 {
 			i++
 			time.Sleep(time.Duration(i*100) * time.Millisecond)
-			helper.Logger.Info("point write success,try to read new value", zap.Any("points", readPoints))
+			helper.Logger.Info("point write success,try to read new value", zap.String("deviceId", deviceId), zap.Any("points", readPoints))
 			err := SendBatchRead(deviceId, readPoints)
 			if err != nil {
-				helper.Logger.Error("point write success, read new value error", zap.Any("points", readPoints), zap.Error(err))
+				helper.Logger.Error("point write success, read new value error", zap.String("deviceId", deviceId), zap.Any("points", readPoints), zap.Error(err))
 				break
 			}
 
 			ok := true
 			for _, p := range readPoints {
 				value, _ := helper.DeviceShadow.GetDevicePoint(deviceId, p.PointName)
-				helper.Logger.Info("point write success, read new value", zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", value))
+				helper.Logger.Info("point write success, read new value", zap.String("deviceId", deviceId), zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", value))
 				if fmt.Sprint(p.Value) != fmt.Sprint(value) {
 					ok = false
 					break
