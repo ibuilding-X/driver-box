@@ -52,6 +52,7 @@ func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 
 // 批量读取多个点位值
 func SendBatchRead(deviceId string, points []plugin.PointData) (err error) {
+	logger.Logger.Info("send batch read", zap.String("deviceId", deviceId), zap.Any("points", points))
 	readPoints := make([]plugin.PointData, 0)
 	for _, p := range points {
 		point, ok := helper.CoreCache.GetPointByDevice(deviceId, p.PointName)
