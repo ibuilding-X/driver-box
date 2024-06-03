@@ -71,7 +71,10 @@ func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error)
 			group[mirror.ID] = plugin.DeviceData{
 				ID: mirror.ID,
 				Values: []plugin.PointData{
-					point,
+					{
+						PointName: point.PointName,
+						Value:     point.Value,
+					},
 				},
 			}
 		}

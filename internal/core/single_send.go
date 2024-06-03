@@ -6,12 +6,14 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
 	"time"
 )
 
 // 单点操作
 func SendSinglePoint(deviceId string, mode plugin.EncodeMode, pointData plugin.PointData) error {
+	logger.Logger.Info("send single point", zap.String("deviceId", deviceId), zap.Any("mode", mode), zap.Any("pointData", pointData))
 	if !checkMode(mode) {
 		return errors.New("invalid mode")
 	}
