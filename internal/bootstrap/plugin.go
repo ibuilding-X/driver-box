@@ -112,17 +112,19 @@ func initDeviceDriver(configMap map[string]config.Config) {
 // 初始化影子服务
 func initDeviceShadow(configMap map[string]config.Config) {
 	// 设置影子服务设备生命周期
-	helper.DeviceShadow = shadow.NewDeviceShadow()
-	// 设置回调
-	helper.DeviceShadow.SetOnlineChangeCallback(func(deviceId string, online bool) {
-		if online {
-			helper.Logger.Info("device online", zap.String("deviceId", deviceId))
-		} else {
-			helper.Logger.Warn("device offline...", zap.String("deviceId", deviceId))
-		}
-		//触发设备在离线事件
-		helper.TriggerEvents(event.EventCodeDeviceStatus, deviceId, online)
-	})
+	if helper.DeviceShadow == nil {
+		helper.DeviceShadow = shadow.NewDeviceShadow()
+		// 设置回调
+		helper.DeviceShadow.SetOnlineChangeCallback(func(deviceId string, online bool) {
+			if online {
+				helper.Logger.Info("device online", zap.String("deviceId", deviceId))
+			} else {
+				helper.Logger.Warn("device offline...", zap.String("deviceId", deviceId))
+			}
+			//触发设备在离线事件
+			helper.TriggerEvents(event.EventCodeDeviceStatus, deviceId, online)
+		})
+	}
 	// 添加设备
 	for _, c := range configMap {
 		for _, model := range c.DeviceModels {
@@ -135,6 +137,12 @@ func initDeviceShadow(configMap map[string]config.Config) {
 				if c.ProtocolName == "virtual" {
 					d.Ttl = "8760h"
 				}
+				// 设备存在校验
+				if helper.DeviceShadow.HasDevice(d.ID) {
+					helper.Logger.Warn("device already exist", zap.String("deviceId", d.ID))
+					continue
+				}
+				// 添加设备
 				dev := shadow.NewDevice(d, model.Name, nil)
 				_ = helper.DeviceShadow.AddDevice(dev)
 			}
