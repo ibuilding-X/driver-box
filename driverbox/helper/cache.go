@@ -378,6 +378,9 @@ func (c *cache) Reset() {
 // * 设备影子
 // * 持久化文件
 func (c *cache) AddOrUpdateDevice(device config.Device) error {
+	if Logger != nil {
+		Logger.Info("core cache add device", zap.Any("device", device))
+	}
 	// 自动补全设备描述
 	if device.Description == "" {
 		device.Description = device.ID
