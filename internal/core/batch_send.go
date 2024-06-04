@@ -105,6 +105,9 @@ func tryReadNewValues(deviceId string, points []plugin.PointData) {
 		}
 		readPoints = append(readPoints, p)
 	}
+	if len(readPoints) == 0 {
+		return
+	}
 	//延迟100毫秒触发读操作
 	go func(deviceId string, readPoints []plugin.PointData) {
 		i := 0
