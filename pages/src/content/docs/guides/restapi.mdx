@@ -82,8 +82,7 @@ curl http://127.0.0.1:8081/api/v1/device/readPoint?id=swtich-1&point=onOff
 **请求路径：** /api/v1/device/writePoint
 
 **接口描述：**
-
-
+设备的单点写入接口会通过 **通讯插件** 发起真实的写操作指令。
 
 **请求参数**
 
@@ -97,7 +96,7 @@ curl http://127.0.0.1:8081/api/v1/device/readPoint?id=swtich-1&point=onOff
 
 | 字段名   | 字段类型   | 字段描述            |
 |-------|--------|-----------------|
-| value | string/int/float | 点位值，字段类型取决于点位类型 |
+| - | -| - |
 
 **示例**
 ```shell
@@ -111,7 +110,7 @@ curl http://127.0.0.1:8081/api/v1/device/writePoint?id=swtich-1&point=onOff&valu
             "success": true,
             "errorCode": 200,
             "errorMsg": "",
-            "data": 1
+            "data": null
         }
         ```
     </TabItem>
@@ -126,7 +125,57 @@ curl http://127.0.0.1:8081/api/v1/device/writePoint?id=swtich-1&point=onOff&valu
         ```
     </TabItem>
 </Tabs>
+
 ### 批量写入
+**请求方式：** POST
+
+**请求路径：** /api/v1/device/writePoint
+
+**接口描述：**
+设备的批量写入接口会通过 **通讯插件** 发起真实的写操作指令。
+
+**请求参数**
+
+| 字段名 | 字段类型 | 是否必填 | 字段描述 |
+| ------ | -------- | -------- | -------- |
+|id|string|是|设备id|
+|values|array[]|是|点位值数组，数组元素为对象。<br/>对象格式为：`{"name": "点位名", "value": "点位值"}`|
+
+**响应参数**
+
+| 字段名   | 字段类型   | 字段描述            |
+|-------|--------|-----------------|
+| - | -| - |
+
+**示例**
+```shell
+# 设置空调（ac_13）的开关、模式及温度
+curl -X POST -H "Content-Type: application/json" -d \
+    '{"id":"ac_13","values":[{"name":"onOff","value":1},{"name":"runMode","value":1},{"name":"tempSetting","value":28}]}' \
+    http://127.0.0.1:8081/api/v1/device/writePoints
+```
+<Tabs>
+    <TabItem label="success response" icon="star">
+        ```json
+        {
+            "success": true,
+            "errorCode": 200,
+            "errorMsg": "",
+            "data": null
+        }
+        ```
+    </TabItem>
+    <TabItem label="fail response" icon="error">
+        ```json
+        {
+            "success": false,
+            "errorCode": 500,
+            "errorMsg": "unknown device",
+            "data": null
+        }
+        ```
+    </TabItem>
+</Tabs>
 
 ## 设备影子
 
