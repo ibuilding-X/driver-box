@@ -96,7 +96,7 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 	for i, p := range deviceData.Values {
 		point, ok := CoreCache.GetPointByDevice(deviceData.ID, p.PointName)
 		if !ok {
-			Logger.Error("unknown point", zap.Any("deviceId", deviceData.ID), zap.Any("pointName", p.PointName))
+			Logger.Warn("unknown point", zap.Any("deviceId", deviceData.ID), zap.Any("pointName", p.PointName))
 			continue
 		}
 		//点位值类型还原

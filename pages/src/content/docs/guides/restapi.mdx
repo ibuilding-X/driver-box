@@ -1,0 +1,186 @@
+---
+title: REST API
+sidebar:
+    order: 4
+---
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+driver-box 提供了一套常用的 REST API，方便开发者结合自身需求将 driver-box 与自身的边缘应用集成起来。
+
+所有接口的响应格式为：
+
+```json title="response"
+{
+  "success": true,
+  "errorCode": 200,
+  "errorMsg": "",
+  "data": ... //{} 或者 []
+}
+```
+:::tip
+下文各接口的响应参数对应的是上述结构中的 `data`  字段。
+:::
+
+## 设备服务
+### 单点读取
+**请求方式：** GET
+
+**请求路径：** /api/v1/device/readPoint
+
+**接口描述：**
+
+设备的单点读取接口会通过 **通讯插件** 发起真实的读操作指令，待指令下发成功后再从设备影子中提取最新点位值。
+- 如果插件本身不支持主动的读取操作，则会返回错误。
+- 如果被读取的设备不支持同步 IO（例如：发送一个 MQTT 的读指令，其响应时间是不确定），则从影子中获取的数据可能不是最新值。
+
+
+**请求参数**
+
+| 字段名 | 字段类型 | 是否必填 | 字段描述 |
+| ------ | -------- | -------- | -------- |
+|id|string|是|设备id|
+|point|string|是|点位名|
+
+**响应参数**
+
+| 字段名   | 字段类型   | 字段描述            |
+|-------|--------|-----------------|
+| value | string/int/float | 点位值，字段类型取决于点位类型 |
+
+**示例**
+```shell
+# 请求
+curl http://127.0.0.1:8081/api/v1/device/readPoint?id=swtich-1&point=onOff
+```
+<Tabs>
+    <TabItem label="success response" icon="star">
+        ```json
+        {
+            "success": true,
+            "errorCode": 200,
+            "errorMsg": "",
+            "data": 1
+        }
+        ```
+    </TabItem>
+    <TabItem label="fail response" icon="error">
+        ```json
+        {
+            "success": false,
+            "errorCode": 500,
+            "errorMsg": "the protocol does not support getting connector",
+            "data": null
+        }
+        ```
+    </TabItem>
+</Tabs>
+
+
+### 单点写入
+**请求方式：** GET/POST
+
+**请求路径：** /api/v1/device/writePoint
+
+**接口描述：**
+设备的单点写入接口会通过 **通讯插件** 发起真实的写操作指令。
+
+**请求参数**
+
+| 字段名 | 字段类型 | 是否必填 | 字段描述 |
+| ------ | -------- | -------- | -------- |
+|id|string|是|设备id|
+|point|string|是|点位名|
+|value|string/int/float|是|点位值，字段类型取决于点位类型|
+
+**响应参数**
+
+| 字段名   | 字段类型   | 字段描述            |
+|-------|--------|-----------------|
+| - | -| - |
+
+**示例**
+```shell
+# 请求
+curl http://127.0.0.1:8081/api/v1/device/writePoint?id=swtich-1&point=onOff&value=1
+```
+<Tabs>
+    <TabItem label="success response" icon="star">
+        ```json
+        {
+            "success": true,
+            "errorCode": 200,
+            "errorMsg": "",
+            "data": null
+        }
+        ```
+    </TabItem>
+    <TabItem label="fail response" icon="error">
+        ```json
+        {
+            "success": false,
+            "errorCode": 500,
+            "errorMsg": "point is readonly, can not write",
+            "data": null
+        }
+        ```
+    </TabItem>
+</Tabs>
+
+### 批量写入
+**请求方式：** POST
+
+**请求路径：** /api/v1/device/writePoint
+
+**接口描述：**
+设备的批量写入接口会通过 **通讯插件** 发起真实的写操作指令。
+
+**请求参数**
+
+| 字段名 | 字段类型 | 是否必填 | 字段描述 |
+| ------ | -------- | -------- | -------- |
+|id|string|是|设备id|
+|values|array[]|是|点位值数组，数组元素为对象。<br/>对象格式为：`{"name": "点位名", "value": "点位值"}`|
+
+**响应参数**
+
+| 字段名   | 字段类型   | 字段描述            |
+|-------|--------|-----------------|
+| - | -| - |
+
+**示例**
+```shell
+# 设置空调（ac_13）的开关、模式及温度
+curl -X POST -H "Content-Type: application/json" -d \
+    '{"id":"ac_13","values":[{"name":"onOff","value":1},{"name":"runMode","value":1},{"name":"tempSetting","value":28}]}' \
+    http://127.0.0.1:8081/api/v1/device/writePoints
+```
+<Tabs>
+    <TabItem label="success response" icon="star">
+        ```json
+        {
+            "success": true,
+            "errorCode": 200,
+            "errorMsg": "",
+            "data": null
+        }
+        ```
+    </TabItem>
+    <TabItem label="fail response" icon="error">
+        ```json
+        {
+            "success": false,
+            "errorCode": 500,
+            "errorMsg": "unknown device",
+            "data": null
+        }
+        ```
+    </TabItem>
+</Tabs>
+
+## 设备影子
+
+### 获取全部设备数据
+
+### 查询某个设备数据
+
+### 查询某个设备点位数据

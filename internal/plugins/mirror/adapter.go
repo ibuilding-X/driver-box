@@ -67,13 +67,19 @@ func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error)
 				mirrorData.Values = append(mirrorData.Values, point)
 				continue
 			}
-			//创建镜像设备数据
-			group[mirror.ID] = plugin.DeviceData{
-				ID: mirror.ID,
-				Values: []plugin.PointData{
-					point,
-				},
+			//通讯设备对应同一镜像设备的多个点
+			for _, pointData := range mirror.Values {
+				group[mirror.ID] = plugin.DeviceData{
+					ID: mirror.ID,
+					Values: []plugin.PointData{
+						{
+							PointName: pointData.PointName,
+							Value:     point.Value,
+						},
+					},
+				}
 			}
+
 		}
 	}
 	for _, data := range group {

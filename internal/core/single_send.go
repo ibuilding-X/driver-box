@@ -6,12 +6,13 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
-	"time"
 )
 
 // 单点操作
 func SendSinglePoint(deviceId string, mode plugin.EncodeMode, pointData plugin.PointData) error {
+	logger.Logger.Info("send single point", zap.String("deviceId", deviceId), zap.Any("mode", mode), zap.Any("pointData", pointData))
 	if !checkMode(mode) {
 		return errors.New("invalid mode")
 	}
@@ -122,37 +123,4 @@ func singleWrite(deviceId string, pointData plugin.PointData) error {
 		return err
 	}
 	return err
-}
-
-// 尝试读取期望点位值
-func tryReadNewValue(deviceId, pointName string, expectValue interface{}) {
-	point, ok := helper.CoreCache.GetPointByDevice(deviceId, pointName)
-	if !ok {
-		return
-	}
-	if point.ReadWrite != config.ReadWrite_R && point.ReadWrite != config.ReadWrite_RW {
-		return
-	}
-	//延迟100毫秒触发读操作
-	go func(deviceId, pointName string, expectValue interface{}) {
-		i := 0
-		for i < 10 {
-			i++
-			time.Sleep(time.Duration(i*100) * time.Millisecond)
-			helper.Logger.Info("point write success,try to read new value", zap.String("point", pointName))
-			err := SendSinglePoint(deviceId, plugin.ReadMode, plugin.PointData{
-				PointName: pointName,
-			})
-			if err != nil {
-				helper.Logger.Error("point write success, read new value error", zap.String("point", pointName), zap.Error(err))
-				break
-			}
-
-			value, _ := helper.DeviceShadow.GetDevicePoint(deviceId, pointName)
-			helper.Logger.Info("point write success, read new value", zap.String("point", pointName), zap.Any("expect", expectValue), zap.Any("value", value))
-			if fmt.Sprint(expectValue) == fmt.Sprint(value) {
-				break
-			}
-		}
-	}(deviceId, pointName, expectValue)
 }

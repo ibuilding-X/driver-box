@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 	"sync"
@@ -183,7 +184,6 @@ type coreCache interface {
 	DeleteDevice(id string)                                             // 删除设备
 	UpdateDeviceDesc(id string, desc string)                            // 更新设备描述
 	Reset()
-	AddOrUpdateDevice(device config.Device) error // 添加或更新设备
 
 	// businessPropCache 业务属性接口
 	businessPropCache
@@ -373,13 +373,26 @@ func (c *cache) Reset() {
 }
 
 // AddOrUpdateDevice 添加或更新设备
+// 更新内容列表
+// * 核心缓存设备
+// * 设备影子
+// * 持久化文件
 func (c *cache) AddOrUpdateDevice(device config.Device) error {
+	if Logger != nil {
+		Logger.Info("core cache add device", zap.Any("device", device))
+	}
 	// 自动补全设备描述
 	if device.Description == "" {
 		device.Description = device.ID
 	}
-	// 更新缓存信息
+	// 更新核心缓存
 	c.devices.Store(device.ID, device)
+	// 更新设备影子
+	if DeviceShadow != nil && !DeviceShadow.HasDevice(device.ID) {
+		if err := DeviceShadow.AddDevice(shadow.NewDevice(device, device.ModelName, nil)); err != nil {
+			return err
+		}
+	}
 	// 持久化
 	return cmanager.AddOrUpdateDevice(device)
 }
