@@ -48,11 +48,13 @@ driver-box 提供了一套常用的 REST API，方便开发者结合自身需求
 | value | string/int/float | 点位值，字段类型取决于点位类型 |
 
 **示例**
-```shell
-# 请求
-curl http://127.0.0.1:8081/api/v1/device/readPoint?id=swtich-1&point=onOff
-```
+
 <Tabs>
+    <TabItem label="请求">
+        ```shell
+        curl http://127.0.0.1:8081/api/v1/device/readPoint?id=swtich-1&point=onOff
+        ```
+    </TabItem>
     <TabItem label="success response" icon="star">
         ```json
         {
@@ -99,11 +101,13 @@ curl http://127.0.0.1:8081/api/v1/device/readPoint?id=swtich-1&point=onOff
 | - | -| - |
 
 **示例**
-```shell
-# 请求
-curl http://127.0.0.1:8081/api/v1/device/writePoint?id=swtich-1&point=onOff&value=1
-```
+
 <Tabs>
+    <TabItem label="请求">
+        ```shell
+        curl http://127.0.0.1:8081/api/v1/device/writePoint?id=swtich-1&point=onOff&value=1
+        ```
+    </TabItem>
     <TabItem label="success response" icon="star">
         ```json
         {
@@ -148,13 +152,16 @@ curl http://127.0.0.1:8081/api/v1/device/writePoint?id=swtich-1&point=onOff&valu
 | - | -| - |
 
 **示例**
-```shell
-# 设置空调（ac_13）的开关、模式及温度
-curl -X POST -H "Content-Type: application/json" -d \
-    '{"id":"ac_13","values":[{"name":"onOff","value":1},{"name":"runMode","value":1},{"name":"tempSetting","value":28}]}' \
-    http://127.0.0.1:8081/api/v1/device/writePoints
-```
+
 <Tabs>
+    <TabItem label="请求">
+        设置空调的开关、模式及温度
+        ```shell
+        curl -X POST -H "Content-Type: application/json" -d \
+            '{"id":"ac_13","values":[{"name":"onOff","value":1},{"name":"runMode","value":1},{"name":"tempSetting","value":28}]}' \
+            http://127.0.0.1:8081/api/v1/device/writePoints
+        ```
+    </TabItem>
     <TabItem label="success response" icon="star">
         ```json
         {
@@ -180,6 +187,94 @@ curl -X POST -H "Content-Type: application/json" -d \
 ## 设备影子
 
 ### 获取全部设备数据
+**请求方式：** GET
+
+**请求路径：** /api/v1/shadow/all
+
+**接口描述：**
+获取当前网关中运行着的全部设备影子数据。
+
+**请求参数**
+
+| 字段名 | 字段类型 | 是否必填 | 字段描述 |
+| ------ | -------- | -------- | -------- |
+|-|-|-|-|
+
+**响应参数**
+| 字段名   | 字段类型   | 字段描述            |
+|-------|--------|-----------------|
+| value | Device[] | 设备影子列表 |
+<Tabs>
+    <TabItem label="Device模型结构">
+        | 字段名 | 字段类型 |  字段描述 |
+        | ------ | -------- |  -------- |
+        |id|string|设备id|
+        |points|DevicePoint []|设备点位列表|
+        |online|boolean|设备是否在线|
+        |ttl|string|设备影子数据过期时间|
+        |disconnect_times|int|设备断线次数|
+        |updated_at|string|设备影子数据更新时间|
+    </TabItem>
+    <TabItem label="DevicePoint模型结构">
+        | 字段名 | 字段类型 |  字段描述 |
+        | ------ | -------- |  -------- |
+        |name|string|点位名|
+        |value|string|点位值|
+        |updated_at|int|最近一次影子更新时间|
+        |write_time|int|最近一次点位写入时间|
+    </TabItem>
+</Tabs>
+
+**示例**
+
+<Tabs>
+    <TabItem label="请求">
+    ```shell
+    curl http://127.0.0.1:8081/api/v1/shadow/all
+    ```
+    </TabItem>
+    <TabItem label="响应">
+        ```json
+        {
+            "success": true,
+            "errorCode": 200,
+            "errorMsg": "",
+            "data": [
+                {
+                    "id": "swtich-1",
+                    "points": [
+                        {
+                            "name": "onOff",
+                            "value": 1,
+                            "updated_at": "2024-06-05 16:27:41",
+                            "write_time": "0001-01-01 00:00:00"
+                        }
+                    ],
+                    "online": true,
+                    "ttl": "5m0s",
+                    "disconnect_times": 0,
+                    "updated_at": "2024-06-05 16:27:41"
+                },
+                {
+                    "id": "swtich-2",
+                    "points": [
+                        {
+                            "name": "onOff",
+                            "value": 1,
+                            "updated_at": "2024-06-05 16:27:34",
+                            "write_time": "0001-01-01 00:00:00"
+                        }
+                    ],
+                    "online": true,
+                    "ttl": "5m0s",
+                    "disconnect_times": 0,
+                    "updated_at": "2024-06-05 16:27:34"
+                }
+            ]
+        }
+        ```
+    </TabItem>
+</Tabs>
 
 ### 查询某个设备数据
 

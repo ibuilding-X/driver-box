@@ -49,7 +49,7 @@ type DevicePointAPI struct {
 	Name            string `json:"name"`
 	Value           any    `json:"value"`
 	UpdatedAt       string `json:"updated_at"`
-	LatestWriteTime string `json:"latestWriteTime"`
+	LatestWriteTime string `json:"write_time"`
 }
 
 func NewDevice(device config.Device, modelName string, points map[string]DevicePoint) Device {
