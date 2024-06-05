@@ -125,14 +125,17 @@ func tryReadNewValues(deviceId string, points []plugin.PointData) {
 				if !ok {
 					//设备影子不存在，尝试读取
 					newReadPoints = append(newReadPoints, p)
-				} else if point.LatestWriteTime.After(checkTime) {
+					continue
+				}
+				if point.LatestWriteTime.After(checkTime) {
 					//在checkTime之后有发生过写行为,则本次检验可能不会生效
 					helper.Logger.Warn("point write success, but expect point value maybe expired", zap.String("deviceId", deviceId), zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", point.Value))
-				} else if fmt.Sprint(p.Value) == fmt.Sprint(point.Value) {
-					helper.Logger.Info("point write success, read new value", zap.String("deviceId", deviceId), zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", point.Value))
-				} else {
+					continue
+				}
+				if fmt.Sprint(p.Value) != fmt.Sprint(point.Value) {
 					newReadPoints = append(newReadPoints, p)
 				}
+				helper.Logger.Info("point write success, read new value", zap.String("deviceId", deviceId), zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", point.Value))
 			}
 			if len(newReadPoints) == 0 {
 				return
