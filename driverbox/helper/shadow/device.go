@@ -40,6 +40,8 @@ type DevicePoint struct {
 	Name      string      // 点位名称
 	Value     interface{} // 点位值
 	UpdatedAt time.Time   // 点位最后更新时间（用于点位缓存过期判断）
+	//该点位最近一次执行写操作的时间
+	LatestWriteTime time.Time
 }
 
 // DevicePointAPI 对外开放设备点位

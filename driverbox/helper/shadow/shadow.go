@@ -41,6 +41,9 @@ type DeviceShadow interface {
 
 	// GetDevices 获取所有设备
 	GetDevices() []Device
+
+	//更新点位最近一次写操作时间
+	UpdateDevicePointWriteTime(deviceId, pointName string) (err error)
 }
 
 type deviceShadow struct {
@@ -148,10 +151,27 @@ func (d *deviceShadow) GetDevicePoints(deviceId string) (points map[string]Devic
 		})
 		return ps, nil
 	} else {
-		return nil, UnknownDeviceErr
+		return map[string]DevicePoint{}, UnknownDeviceErr
 	}
 }
 
+func (d *deviceShadow) UpdateDevicePointWriteTime(deviceId, pointName string) (err error) {
+	if deviceAny, ok := d.m.Load(deviceId); ok {
+		device := deviceAny.(Device)
+		if device.points == nil {
+			device.points = &sync.Map{}
+		}
+		device.points.Store(pointName, DevicePoint{
+			Name:            pointName,
+			Value:           nil,
+			LatestWriteTime: time.Now(),
+		})
+		d.m.Store(deviceId, device)
+		return nil
+	} else {
+		return UnknownDeviceErr
+	}
+}
 func (d *deviceShadow) GetDeviceUpdateAt(deviceId string) (time.Time, error) {
 	if deviceAny, ok := d.m.Load(deviceId); ok {
 		return deviceAny.(Device).updatedAt, nil

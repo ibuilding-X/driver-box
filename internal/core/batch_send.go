@@ -104,33 +104,45 @@ func tryReadNewValues(deviceId string, points []plugin.PointData) {
 			continue
 		}
 		readPoints = append(readPoints, p)
+		//更新点位写时间
+		_ = helper.DeviceShadow.UpdateDevicePointWriteTime(deviceId, p.PointName)
 	}
 	if len(readPoints) == 0 {
 		return
 	}
 	//延迟100毫秒触发读操作
 	go func(deviceId string, readPoints []plugin.PointData) {
+		checkTime := time.Now()
 		i := 0
 		for i < 10 {
 			i++
 			time.Sleep(time.Duration(i*100) * time.Millisecond)
+			//优先检查影子状态
+			newReadPoints := make([]plugin.PointData, 0)
+			shadowPoints, _ := helper.DeviceShadow.GetDevicePoints(deviceId)
+			for _, p := range readPoints {
+				point, ok := shadowPoints[p.PointName]
+				if !ok {
+					//设备影子不存在，尝试读取
+					newReadPoints = append(newReadPoints, p)
+				} else if point.LatestWriteTime.After(checkTime) {
+					//在checkTime之后有发生过写行为,则本地检验可能不会生效
+					helper.Logger.Warn("point write success, but expect point value maybe expired", zap.String("deviceId", deviceId), zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", point.Value))
+				} else if fmt.Sprint(p.Value) == fmt.Sprint(point.Value) {
+					helper.Logger.Info("point write success, read new value", zap.String("deviceId", deviceId), zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", point.Value))
+				} else {
+					newReadPoints = append(newReadPoints, p)
+				}
+			}
+			if len(newReadPoints) == 0 {
+				return
+			}
+			readPoints = newReadPoints
+
 			helper.Logger.Info("point write success,try to read new value", zap.String("deviceId", deviceId), zap.Any("points", readPoints))
 			err := SendBatchRead(deviceId, readPoints)
 			if err != nil {
 				helper.Logger.Error("point write success, read new value error", zap.String("deviceId", deviceId), zap.Any("points", readPoints), zap.Error(err))
-				break
-			}
-
-			ok := true
-			for _, p := range readPoints {
-				value, _ := helper.DeviceShadow.GetDevicePoint(deviceId, p.PointName)
-				helper.Logger.Info("point write success, read new value", zap.String("deviceId", deviceId), zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", value))
-				if fmt.Sprint(p.Value) != fmt.Sprint(value) {
-					ok = false
-					break
-				}
-			}
-			if ok {
 				break
 			}
 		}
