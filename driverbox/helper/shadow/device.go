@@ -46,9 +46,10 @@ type DevicePoint struct {
 
 // DevicePointAPI 对外开放设备点位
 type DevicePointAPI struct {
-	Name      string `json:"name"`
-	Value     any    `json:"value"`
-	UpdatedAt string `json:"updated_at"`
+	Name            string `json:"name"`
+	Value           any    `json:"value"`
+	UpdatedAt       string `json:"updated_at"`
+	LatestWriteTime string `json:"latestWriteTime"`
 }
 
 func NewDevice(device config.Device, modelName string, points map[string]DevicePoint) Device {
@@ -106,9 +107,10 @@ func (d *Device) ToDeviceAPI() DeviceAPI {
 
 func (dp DevicePoint) ToDevicePointAPI() DevicePointAPI {
 	return DevicePointAPI{
-		Name:      dp.Name,
-		Value:     dp.Value,
-		UpdatedAt: dp.UpdatedAt.Format("2006-01-02 15:04:05"),
+		Name:            dp.Name,
+		Value:           dp.Value,
+		UpdatedAt:       dp.UpdatedAt.Format("2006-01-02 15:04:05"),
+		LatestWriteTime: dp.LatestWriteTime.Format("2006-01-02 15:04:05"),
 	}
 }
 
