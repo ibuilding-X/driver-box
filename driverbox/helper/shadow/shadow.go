@@ -205,7 +205,7 @@ func (d *deviceShadow) UpdateDevicePointWriteTime(deviceId, pointName string) (e
 	if ok {
 		point := p.(DevicePoint)
 		point.LatestWriteTime = time.Now()
-		device.points.Store(pointName, p)
+		device.points.Store(pointName, point)
 	} else {
 		device.points.Store(pointName, DevicePoint{
 			Name:            pointName,
