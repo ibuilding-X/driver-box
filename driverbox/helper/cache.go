@@ -381,6 +381,22 @@ func (c *cache) AddOrUpdateDevice(device config.Device) error {
 	if Logger != nil {
 		Logger.Info("core cache add device", zap.Any("device", device))
 	}
+	// 查找模型信息
+	model, ok := cmanager.GetModel(device.ModelName)
+	if !ok {
+		Logger.Error("model not found", zap.String("modelName", device.ModelName))
+		return fmt.Errorf("model %s not found", device.ModelName)
+	}
+	// 查找配置 key
+	key := cmanager.GetConfigKeyByModel(model.Name)
+	if key == "" {
+		Logger.Error("config key not found", zap.String("modelName", model.Name))
+		return fmt.Errorf("config key not found for model %s", model.Name)
+	}
+	// 更新 devicePointPlugins
+	for _, pointMap := range model.DevicePoints {
+		c.devicePointPlugins.Store(fmt.Sprintf("%s_%s", device.ID, pointMap.ToPoint().Name), key)
+	}
 	// 自动补全设备描述
 	if device.Description == "" {
 		device.Description = device.ID
@@ -453,7 +469,7 @@ func (c *cache) GetConnection(key string) (any, error) {
 
 // GetConnectionPluginName 获取连接所属的插件名称
 func (c *cache) GetConnectionPluginName(key string) string {
-	return cmanager.GetConnectionPluginName(key)
+	return cmanager.GetPluginNameByConnection(key)
 }
 
 // AddModel 新增模型
