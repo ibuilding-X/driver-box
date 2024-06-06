@@ -3,6 +3,8 @@ title: Modbus插件
 description: A reference page in my new Starlight docs site.
 ---
 
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
 ## 插件介绍
 
 modbus插件用于连接modbus设备，支持 rtu、tcp、udp、tcp+tls 等通讯方式。
@@ -25,54 +27,56 @@ modbus插件用于连接modbus设备，支持 rtu、tcp、udp、tcp+tls 等通�
 
 ### 示例
 
-#### TCP模式
+config.json
+<Tabs>
+    <TabItem label="tcp" icon="seti:json">
+        ```json
+        {
+            ...
+            "connections": {
+                "192.168.16.111:502": {
+                    "address": "192.168.16.111:502",
+                    "batchReadLen": 50,
+                    "batchWriteLen": 10,
+                    "enable": true,
+                    "minInterval": 500,
+                    "mode": "tcp",
+                    "timeout": 5000,
+                    "virtual": false
+                }
+            },
+            "protocolName": "modbus"
+        }
 
-```json
-<!--config.json-->
-{
-  ...
-  "connections": {
-    "192.168.16.111:502": {
-      "address": "192.168.16.111:502",
-      "batchReadLen": 50,
-      "batchWriteLen": 10,
-      "enable": true,
-      "minInterval": 500,
-      "mode": "tcp",
-      "timeout": 5000,
-      "virtual": false
-    }
-  },
-  "protocolName": "modbus"
-}
+        ```
+    </TabItem>
+    <TabItem label="rtu" icon="seti:json">
+        ```json
+        {
+            ...
+            "connections": {
+                "/dev/ttyS5": {
+                    "address": "/dev/ttyS5",
+                    "batchReadLen": 10,
+                    "baudRate": 9600,
+                    "dataBits": 8,
+                    "enable": true,
+                    "minInterval": 100,
+                    "mode": "rtu",
+                    "parity": 0,
+                    "retry": 0,
+                    "stopBits": 1,
+                    "timeout": 2000,
+                    "virtual": false
+                }
+            },
+            "protocolName": "modbus"
+        }
+        ```
+    </TabItem>
+</Tabs>
 
-```
 
-#### RTU模式
-
-```json
-<!--config.json-->
-{
-  ...
-  "connections": {
-    "/dev/ttyS5": {
-      "address": "/dev/ttyS5",
-      "batchReadLen": 10,
-      "baudRate": 9600,
-      "dataBits": 8,
-      "enable": true,
-      "minInterval": 100,
-      "mode": "rtu",
-      "parity": 0,
-      "retry": 0,
-      "stopBits": 1,
-      "timeout": 2000,
-      "virtual": false
-    }
-  },
-  "protocolName": "modbus"
-}
-```
 
 ## 扩展点表配置
 
@@ -144,126 +148,131 @@ todo
 modbus 虚拟设备的寄存器值皆为 0，需要在 `converter.lua` 脚本中为设备添加初始值。
 脚本的添加内容处于 initSlave 方法的 `Begin--End` 注释之间（**其余地方不作调整**）。
 
-```lua
-<!--converter.lua-->
--- 初始化指定从机
-function initSlave(slaveId, holdingRegister, coil, discreteInput, inputRegister)
-    slaves[slaveId] = {
-        [HOLDING_REGISTER] = initRegisters(holdingRegister),
-        [COIL] = initRegisters(coil),
-        [DISCRETE_INPUT] = initRegisters(discreteInput),
-        [INPUT_REGISTER] = initRegisters(inputRegister)
-    }
+<Tabs>
+    <TabItem label="converter.lua" icon="seti:lua">
+        ```lua {11-14}
+        -- 初始化指定从机
+        function initSlave(slaveId, holdingRegister, coil, discreteInput, inputRegister)
+            slaves[slaveId] = {
+                [HOLDING_REGISTER] = initRegisters(holdingRegister),
+                [COIL] = initRegisters(coil),
+                [DISCRETE_INPUT] = initRegisters(discreteInput),
+                [INPUT_REGISTER] = initRegisters(inputRegister)
+            }
 
-    -- 调用 mockWrite 方法初始化模拟数据
-    -- Begin：以下需要开发者根据实际情况作修改
+            -- 调用 mockWrite 方法初始化模拟数据
+            -- Begin：以下需要开发者根据实际情况作修改
 
 
-    -- End：以上需要开发者根据实际情况作修改
+            -- End：以上需要开发者根据实际情况作修改
 
-    return slaves[slaveId]
-end
-```
-**示例**
+            return slaves[slaveId]
+        end
+        ```
+    </TabItem>
+    <TabItem label="示例">
+        以某品牌空调网关为例，所有内机处于同一个从机地址的不同寄存器区域。
+        各内机的点位有着相同的偏移量，通过以下脚本模拟出 100 台内机，并设置开关、模式、风速、温度等状态值。
+        ```lua title="converter.lua" {12-15}
+        -- 初始化指定从机
+        function initSlave(slaveId, holdingRegister, coil, discreteInput, inputRegister)
+            slaves[slaveId] = {
+                [HOLDING_REGISTER] = initRegisters(holdingRegister),
+                [COIL] = initRegisters(coil),
+                [DISCRETE_INPUT] = initRegisters(discreteInput),
+                [INPUT_REGISTER] = initRegisters(inputRegister)
+            }
 
-以某品牌空调网关为例，所有内机处于同一个从机地址的不同寄存器区域。
-各内机的点位有着相同的偏移量，通过以下脚本模拟出 100 台内机，并设置开关、模式、风速、温度等状态值。
-```lua
-<!--converter.lua-->
--- 初始化指定从机
-function initSlave(slaveId, holdingRegister, coil, discreteInput, inputRegister)
-    slaves[slaveId] = {
-        [HOLDING_REGISTER] = initRegisters(holdingRegister),
-        [COIL] = initRegisters(coil),
-        [DISCRETE_INPUT] = initRegisters(discreteInput),
-        [INPUT_REGISTER] = initRegisters(inputRegister)
-    }
+            -- 调用 mockWrite 方法初始化模拟数据
+            -- Begin：以下需要开发者根据实际情况作修改
+            for i = 1, 100 do
+                --print("初始化第"..i.."台内机模拟数据")
+                mockWrite(slaveId, HOLDING_REGISTER, 40078 + (i - 1) * 91, { 1, 2, 2, 0, 16 })
+            end
+            -- End：以上需要开发者根据实际情况作修改
 
-    -- 调用 mockWrite 方法初始化模拟数据
-    -- Begin：以下需要开发者根据实际情况作修改
-    for i = 1, 100 do
-        --print("初始化第"..i.."台内机模拟数据")
-        mockWrite(slaveId, HOLDING_REGISTER, 40078 + (i - 1) * 91, { 1, 2, 2, 0, 16 })
-    end
+            return slaves[slaveId]
+        end
+        ```
+    </TabItem>
+</Tabs>
 
-    -- End：以上需要开发者根据实际情况作修改
-
-    return slaves[slaveId]
-end
-```
 ### 第三步：编写控制逻辑（可选）
 对于点位读写分离的场景，需要开发者编写控制逻辑，以实现对模拟数据的更新。例如：开关点位的读操作处于寄存器地址 40001，而写操作处于 40002。
 
 脚本的添加内容处于 mockWrite 方法的 Begin--End 注释之间（其余地方不作调整）。
-```lua
-<!--converter.lua-->
---模拟modbus读写
--- slaveId 从机id
--- primaryTable 寄存器类型：HOLDING_REGISTER,COIL,DISCRETE_INPUT,INPUT_REGISTER
--- address 寄存器地址
--- value 值，byte数组
-function mockWrite(slaveId, primaryTable, address, value)
-    if address < 1 or address > 65535 then
-        error("Invalid register address")
-    end
-    -- 寻找从机
-    slave = slaves[slaveId]
-    if slaves[slaveId] == nil then
-        slave = initSlave(slaveId, 65535, 65535, 65535, 65535);
-    end
+<Tabs>
+    <TabItem label="converter.lua" icon="seti:lua">
+        ```lua {23-25}
+        --模拟modbus读写
+        -- slaveId 从机id
+        -- primaryTable 寄存器类型：HOLDING_REGISTER,COIL,DISCRETE_INPUT,INPUT_REGISTER
+        -- address 寄存器地址
+        -- value 值，byte数组
+        function mockWrite(slaveId, primaryTable, address, value)
+            if address < 1 or address > 65535 then
+                error("Invalid register address")
+            end
+            -- 寻找从机
+            slave = slaves[slaveId]
+            if slaves[slaveId] == nil then
+                slave = initSlave(slaveId, 65535, 65535, 65535, 65535);
+            end
 
-    tableData = slave[primaryTable]
-    --从address开始填充数据value
-    for i = 1, #value do
-        tableData[address + i - 1] = value[i]
-    end
+            tableData = slave[primaryTable]
+            --从address开始填充数据value
+            for i = 1, #value do
+                tableData[address + i - 1] = value[i]
+            end
 
-    -- 对于读写点分离的情况，需要手动填写读点位数值
-    -- Begin：以下需要开发者根据实际情况作修改
+            -- 对于读写点分离的情况，需要手动填写读点位数值
+            -- Begin：以下需要开发者根据实际情况作修改
 
-    -- End：以上需要开发者根据实际情况作修改
-end
-```
+            -- End：以上需要开发者根据实际情况作修改
+        end
+        ```
+    </TabItem>
+    <TabItem label="示例">
+        当对控制点位进行写操作时，将数值同步更新至读点位，以此模拟空调的真实运行状态。
+        ```lua title="converter.lua" {19-34}
+        function mockWrite(slaveId, primaryTable, address, value)
+            if address < 1 or address > 65535 then
+                error("Invalid register address")
+            end
+            -- 寻找从机
+            slave = slaves[slaveId]
+            if slaves[slaveId] == nil then
+                slave = initSlave(slaveId, 65535, 65535, 65535, 65535);
+            end
 
-**示例**
-<!--converter.lua-->
-```lua
-function mockWrite(slaveId, primaryTable, address, value)
-   if address < 1 or address > 65535 then
-      error("Invalid register address")
-   end
-   -- 寻找从机
-   slave = slaves[slaveId]
-   if slaves[slaveId] == nil then
-      slave = initSlave(slaveId, 65535, 65535, 65535, 65535);
-   end
+            tableData = slave[primaryTable]
+            --从address开始填充数据value
+            for i = 1, #value do
+                tableData[address + i - 1] = value[i]
+            end
 
-   tableData = slave[primaryTable]
-   --从address开始填充数据value
-   for i = 1, #value do
-      tableData[address + i - 1] = value[i]
-   end
+            -- 对于读写点分离的情况，需要手动填写读点位数值
+            -- Begin：以下需要开发者根据实际情况作修改
+            for i = 1, #value do
+                offset = (address + i - 1 - 40000) % 91
+                if offset == 78 then
+                    -- 开关
+                    tableData[address + i - 77] = value[i]
+                elseif offset == 79 then
+                    -- 模式
+                    tableData[address + i - 77] = value[i]
+                elseif offset == 80 then
+                    -- 风速
+                    tableData[address + i - 77] = value[i]
+                elseif offset == 82 then
+                    -- 温度
+                    tableData[address + i - 75] = value[i]
+                end
+            end
+            -- End：以上需要开发者根据实际情况作修改
+        end
+        ```
+    </TabItem>
+</Tabs>
 
-   -- 对于读写点分离的情况，需要手动填写读点位数值
-   -- Begin：以下需要开发者根据实际情况作修改
-   for i = 1, #value do
-      offset = (address + i - 1 - 40000) % 91
-      if offset == 78 then
-         -- 开关
-         tableData[address + i - 77] = value[i]
-      elseif offset == 79 then
-         -- 模式
-         tableData[address + i - 77] = value[i]
-      elseif offset == 80 then
-         -- 风速
-         tableData[address + i - 77] = value[i]
-      elseif offset == 82 then
-         -- 温度
-         tableData[address + i - 75] = value[i]
-      end
-   end
-   -- End：以上需要开发者根据实际情况作修改
-end
-```
 
-如此，便实现了 100 台空调内机设备的生成，且可以进行正常的模式控制。

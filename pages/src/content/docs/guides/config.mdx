@@ -1,16 +1,15 @@
 ---
-title: 配置说明
+title: 接入配置
 description: A guide in my new Starlight docs site.
 sidebar:
   order: 3
 ---
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-## 配置说明
 config.json 是 driver-box 用于实现设备接入的描述文件。通常情况下用户只需完成该文件的编写，便可实现设备接入。
 
 该文件的主体结构如下所示：
-```json5
+```json5 title="config.json"
 {
   "deviceModels": [
     {
@@ -18,13 +17,13 @@ config.json 是 driver-box 用于实现设备接入的描述文件。通常情�
       "modelId": "65a641ce06a7d4709b5b31b9",
       "description": "",
       "devicePoints": [
-      
+
       ],
       "devices": [
-      
+
       ]
     }
-    ],
+  ],
   "connections": {
     
   },
@@ -37,7 +36,7 @@ config.json 是 driver-box 用于实现设备接入的描述文件。通常情�
     <TabItem label="config.json" icon="seti:favicon">
         | 参数名                                | 类型     | 必填 | 说明                                                               |
         |:-----------------------------------|--------|:---|:-----------------------------------------------------------------|
-        | deviceModels                        | array  | 必填 | 物模型配置。用于定义特定通讯协议类型`protocolName`的物模型及其接入设备列表                     |
+        | deviceModels                        | array  | 必填 | 物模型配置。<br/>用于定义特定通讯协议类型`protocolName`的物模型及其接入设备列表                     |
         | connections                         | object | 必填 | 连接配置，不同类型的插件配置各不相同                                               |
         | protocolName                        | string | 必填 | 协议插件名称，有效范围：<ul><li>[modbus](/driver-box/plugins/modbus/)</li><li>bacnet</li><li>mqtt</li><li>[mirror](/driver-box/export/mirror/)</li></ul> |
     </TabItem>
@@ -71,6 +70,7 @@ config.json 是 driver-box 用于实现设备接入的描述文件。通常情�
         | description |string| 选填 | 设备描述                                                                                                |
         | ttl         |string| 选填 | 设备离线阈值，超过该时长没有收到数据视为离线。<br/>示例：<ul><li>`1m`: 1分钟</li><li>`1h`: 1小时</li><li>`1d`: 1天</li></ul>默认：24h |
         |connectionKey|string| 必填 | 设备连接标识                                                                                              |
+        |driverKey|string|选填|设备驱动标识|
         |properties|object| 选填 | 设备属性。通常用于配置设备的保留属性或连接相关信息。                                                                          |
 
         **保留属性**
