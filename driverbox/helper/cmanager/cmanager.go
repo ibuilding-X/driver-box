@@ -52,6 +52,10 @@ type Manager interface {
 	GetConfigs() map[string]config.Config
 	// AddConfig 新增配置
 	AddConfig(c config.Config) error
+	// GetConfig 根据 key 获取配置
+	GetConfig(key string) (config.Config, bool)
+	// GetConfigKeyByModel 根据模型名获取配置 key
+	GetConfigKeyByModel(modelName string) string
 
 	// -------------------- 模型相关 --------------------
 
@@ -79,8 +83,13 @@ type Manager interface {
 	AddConnection(plugin string, key string, conn any) error
 	// GetConnection 获取连接信息
 	GetConnection(key string) (any, error)
-	// GetConnectionPluginName 获取连接所属的插件名称
-	GetConnectionPluginName(key string) string
+
+	// -------------------- 插件相关 --------------------
+
+	// GetPluginNameByModel 获取模型所属的插件名称
+	GetPluginNameByModel(modelName string) string
+	// GetPluginNameByConnection 获取连接所属的插件名称
+	GetPluginNameByConnection(key string) string
 }
 
 // manager 实现配置管理器接口
@@ -127,6 +136,14 @@ func AddConfig(c config.Config) error {
 	return instance.AddConfig(c)
 }
 
+func GetConfig(key string) (config.Config, bool) {
+	return instance.GetConfig(key)
+}
+
+func GetConfigKeyByModel(modelName string) string {
+	return instance.GetConfigKeyByModel(modelName)
+}
+
 func GetModel(modelName string) (config.DeviceModel, bool) {
 	return instance.GetModel(modelName)
 }
@@ -163,8 +180,12 @@ func GetConnection(key string) (any, error) {
 	return instance.GetConnection(key)
 }
 
-func GetConnectionPluginName(key string) string {
-	return instance.GetConnectionPluginName(key)
+func GetPluginNameByModel(modelName string) string {
+	return instance.GetPluginNameByModel(modelName)
+}
+
+func GetPluginNameByConnection(key string) string {
+	return instance.GetPluginNameByConnection(key)
 }
 
 // SetConfigPath 设置配置目录
@@ -239,6 +260,31 @@ func (m *manager) GetConfigs() map[string]config.Config {
 	defer m.mux.RUnlock()
 
 	return m.configs
+}
+
+// GetConfig 根据 key 获取配置
+func (m *manager) GetConfig(key string) (config.Config, bool) {
+	m.mux.RLock()
+	defer m.mux.RUnlock()
+
+	if c, ok := m.configs[key]; ok {
+		return c, true
+	}
+	return config.Config{}, false
+}
+
+// GetConfigKeyByModel 通过模型名称获取配置 key
+func (m *manager) GetConfigKeyByModel(modelName string) string {
+	m.mux.RLock()
+	defer m.mux.RUnlock()
+
+	for key, conf := range m.configs {
+		if _, ok := conf.GetModelIndexes()[modelName]; ok {
+			return key
+		}
+	}
+
+	return ""
 }
 
 // GetModel 获取模型
@@ -459,20 +505,6 @@ func (m *manager) GetConnection(key string) (any, error) {
 	return nil, nil
 }
 
-// GetConnectionPluginName 获取连接所属的插件名称
-func (m *manager) GetConnectionPluginName(key string) string {
-	m.mux.RLock()
-	defer m.mux.RUnlock()
-
-	for _, conf := range m.configs {
-		if _, ok := conf.Connections[key]; ok {
-			return conf.ProtocolName
-		}
-	}
-
-	return ""
-}
-
 // addConfig 新增配置
 func (m *manager) addConfig(c config.Config) error {
 	for s, conf := range m.configs {
@@ -609,4 +641,32 @@ func (m *manager) mergeDevices(arr1 []config.Device, arr2 []config.Device) []con
 	}
 
 	return result
+}
+
+// GetPluginNameByModel 获取模型所属的插件名称
+func (m *manager) GetPluginNameByModel(modelName string) string {
+	m.mux.RLock()
+	defer m.mux.RUnlock()
+
+	for _, conf := range m.configs {
+		if _, ok := conf.GetModelIndexes()[modelName]; ok {
+			return conf.ProtocolName
+		}
+	}
+
+	return ""
+}
+
+// GetPluginNameByConnection 获取连接所属的插件名称
+func (m *manager) GetPluginNameByConnection(key string) string {
+	m.mux.RLock()
+	defer m.mux.RUnlock()
+
+	for _, conf := range m.configs {
+		if _, ok := conf.Connections[key]; ok {
+			return conf.ProtocolName
+		}
+	}
+
+	return ""
 }
