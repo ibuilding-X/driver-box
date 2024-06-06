@@ -44,9 +44,11 @@ func Start(exports []export.Export) error {
 	//第四步：启动Export
 	helper.Exports = exports
 	for _, item := range exports {
-		if err := item.Init(); err != nil {
-			helper.Logger.Error("init export error", zap.Error(err))
-		}
+		go func(e export.Export) {
+			if err := e.Init(); err != nil {
+				helper.Logger.Error("init export error", zap.Error(err))
+			}
+		}(item)
 	}
 
 	// 第五步：启动 REST 服务
