@@ -5,17 +5,32 @@ import (
 	"testing"
 )
 
+var connections = []string{"/dev/ttyS0", "/dev/ttyS1", "/dev/ttyS2"}
+
+var models = map[string]string{
+	"model_1": "模型1",
+	"model_2": "模型2",
+	"model_3": "模型3",
+}
+
+var devices = map[string][]string{
+	"model_1": {"device_1", "device_2", "device_3"},
+	"model_2": {"device_4", "device_5", "device_6"},
+	"model_3": {"device_7", "device_8", "device_9"},
+}
+
 func TestAddConnection(t *testing.T) {
 	if err := LoadConfig(); err != nil {
 		t.Error(err)
 	}
 
-	conn := map[string]any{
-		"address":  "/dev/ttyS5",
-		"discover": true,
-	}
-	if err := AddConnection("modbus", "/dev/ttyS5", conn); err != nil {
-		t.Error(err)
+	for _, connection := range connections {
+		if err := AddConnection("modbus", connection, map[string]any{
+			"address":  connection,
+			"discover": true,
+		}); err != nil {
+			t.Error(err)
+		}
 	}
 }
 
@@ -24,22 +39,16 @@ func TestAddModel(t *testing.T) {
 		t.Error(err)
 	}
 
-	model := config.DeviceModel{
-		ModelBase: config.ModelBase{
-			Name:        "test_model_001",
-			ModelID:     "test_model_001",
-			Description: "测试模型",
-		},
-		DevicePoints: []config.PointMap{
-			{
-				"name": "onOff",
-				"type": "int",
+	for key, _ := range models {
+		if err := AddModel("modbus", config.DeviceModel{
+			ModelBase: config.ModelBase{
+				Name:        key,
+				ModelID:     key,
+				Description: models[key],
 			},
-		},
-		Devices: nil,
-	}
-	if err := AddModel("modbus", model); err != nil {
-		t.Error(err)
+		}); err != nil {
+			t.Error(err)
+		}
 	}
 }
 
@@ -48,18 +57,17 @@ func TestAddDevice(t *testing.T) {
 		t.Error(err)
 	}
 
-	device := config.Device{
-		ID:            "device_1",
-		ModelName:     "test_model_001",
-		Description:   "测试设备",
-		Ttl:           "",
-		Tags:          nil,
-		ConnectionKey: "/dev/ttyS5",
-		Properties:    nil,
-		DriverKey:     "",
-	}
-	if err := AddOrUpdateDevice(device); err != nil {
-		t.Error(err)
+	for model, _ := range devices {
+		for _, device := range devices[model] {
+			if err := AddOrUpdateDevice(config.Device{
+				ID:            device,
+				ModelName:     model,
+				Description:   device,
+				ConnectionKey: connections[0],
+			}); err != nil {
+				t.Error(err)
+			}
+		}
 	}
 }
 
@@ -68,58 +76,65 @@ func TestAddConfig(t *testing.T) {
 		t.Error(err)
 	}
 
-	c := config.Config{
-		DeviceModels: []config.DeviceModel{
-			{
-				ModelBase: config.ModelBase{
-					Name:        "test_model_001",
-					ModelID:     "test_model_001",
-					Description: "测试模型",
-				},
-				DevicePoints: []config.PointMap{
-					{
-						"name": "onOff",
-						"type": "int",
-					},
-				},
-				Devices: []config.Device{
-					{
-						ID:            "device_2",
-						ModelName:     "test_model_001",
-						Description:   "测试设备2",
-						Ttl:           "",
-						Tags:          nil,
-						ConnectionKey: "/dev/ttyS0",
-						Properties:    nil,
-						DriverKey:     "",
-					},
-				},
+	var c config.Config
+	c.ProtocolName = "modbus"
+
+	// 添加模型及设备
+	c.DeviceModels = make([]config.DeviceModel, 0)
+	for model, _ := range models {
+		deviceList := make([]config.Device, 0)
+		for _, device := range devices[model] {
+			deviceList = append(deviceList, config.Device{
+				ID:            device,
+				ModelName:     model,
+				Description:   device,
+				ConnectionKey: connections[0],
+			})
+		}
+		c.DeviceModels = append(c.DeviceModels, config.DeviceModel{
+			ModelBase: config.ModelBase{
+				Name:        model,
+				ModelID:     model,
+				Description: models[model],
 			},
-			{
-				ModelBase: config.ModelBase{
-					Name:        "test_model_002",
-					ModelID:     "test_model_002",
-					Description: "测试模型2",
-				},
-				DevicePoints: []config.PointMap{
-					{
-						"name": "onOff",
-						"type": "int",
-					},
-				},
-				Devices: nil,
-			},
-		},
-		Connections: map[string]any{
-			"/dev/ttyS0": map[string]any{
-				"address":  "/dev/ttyS0",
-				"discover": true,
-			},
-		},
-		ProtocolName: "modbus",
+			Devices: deviceList,
+		})
+	}
+
+	// 添加连接
+	c.Connections = make(map[string]interface{})
+	for _, connection := range connections {
+		c.Connections[connection] = map[string]any{
+			"address":  connection,
+			"discover": true,
+		}
 	}
 
 	if err := AddConfig(c); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestRemoveConnection(t *testing.T) {
+	if err := LoadConfig(); err != nil {
+		t.Error(err)
+	}
+
+	if err := RemoveConnection(connections[0]); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestRemoveDevice(t *testing.T) {
+	if err := LoadConfig(); err != nil {
+		t.Error(err)
+	}
+
+	if err := RemoveDeviceByID("device_1"); err != nil {
+		t.Error(err)
+	}
+
+	if err := RemoveDevice("model_1", "device_2"); err != nil {
 		t.Error(err)
 	}
 }

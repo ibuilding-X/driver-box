@@ -83,6 +83,8 @@ type Manager interface {
 	AddConnection(plugin string, key string, conn any) error
 	// GetConnection 获取连接信息
 	GetConnection(key string) (any, error)
+	// RemoveConnection 删除连接
+	RemoveConnection(key string) error
 
 	// -------------------- 插件相关 --------------------
 
@@ -178,6 +180,10 @@ func AddConnection(plugin string, key string, conn any) error {
 
 func GetConnection(key string) (any, error) {
 	return instance.GetConnection(key)
+}
+
+func RemoveConnection(key string) error {
+	return instance.RemoveConnection(key)
 }
 
 func GetPluginNameByModel(modelName string) string {
@@ -503,6 +509,22 @@ func (m *manager) GetConnection(key string) (any, error) {
 	}
 
 	return nil, nil
+}
+
+// RemoveConnection 删除连接
+func (m *manager) RemoveConnection(key string) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
+	for s, conf := range m.configs {
+		if _, ok := conf.Connections[key]; ok {
+			delete(conf.Connections, key)
+			m.configs[s] = conf.UpdateIndexAndClean()
+			return m.saveConfig(s)
+		}
+	}
+
+	return nil
 }
 
 // addConfig 新增配置
