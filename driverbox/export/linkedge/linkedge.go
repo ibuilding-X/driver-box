@@ -373,6 +373,8 @@ func (linkEdge *service) triggerLinkEdge(id string, depth int, conf ...ModelConf
 		return errors.New("check condition error: " + e.Error())
 	}
 
+	//组合相同设备的点位action
+	actions := make(map[string][]plugin.PointData)
 	sucCount := 0
 	//执行动作
 	for _, action := range config.Action {
@@ -405,17 +407,26 @@ func (linkEdge *service) triggerLinkEdge(id string, depth int, conf ...ModelConf
 				helper.Logger.Error(fmt.Sprintf("execute linkEdge:%s action error:%s", id, e.Error()))
 				continue
 			}
-			err := core.SendSinglePoint(devicePointAction.DeviceId, plugin.WriteMode, plugin.PointData{
+			points, ok := actions[devicePointAction.DeviceId]
+			if !ok {
+				points = make([]plugin.PointData, 0)
+			}
+			points = append(points, plugin.PointData{
 				PointName: devicePointAction.DevicePoint,
 				Value:     devicePointAction.Value,
 			})
-			if err != nil {
-				helper.Logger.Error("execute linkEdge error", zap.String("linkEdge", id),
-					zap.String("pointName", devicePointAction.DevicePoint), zap.String("pointValue", devicePointAction.Value), zap.Error(err))
-			} else {
-				sucCount++
-				helper.Logger.Info(fmt.Sprintf("execute linkEdge:%s action", id))
-			}
+			actions[devicePointAction.DeviceId] = points
+			//err := core.SendSinglePoint(devicePointAction.DeviceId, plugin.WriteMode, plugin.PointData{
+			//	PointName: devicePointAction.DevicePoint,
+			//	Value:     devicePointAction.Value,
+			//})
+			//if err != nil {
+			//	helper.Logger.Error("execute linkEdge error", zap.String("linkEdge", id),
+			//		zap.String("pointName", devicePointAction.DevicePoint), zap.String("pointValue", devicePointAction.Value), zap.Error(err))
+			//} else {
+			//	sucCount++
+			//	helper.Logger.Info(fmt.Sprintf("execute linkEdge:%s action", id))
+			//}
 			break
 			//触发下一个场景联动
 		case ActionTypeLinkEdge:
@@ -440,6 +451,18 @@ func (linkEdge *service) triggerLinkEdge(id string, depth int, conf ...ModelConf
 			}
 		}
 	}
+	//遍历执行acitons
+	for deviceId, points := range actions {
+		err := core.SendBatchWrite(deviceId, points)
+		if err != nil {
+			helper.Logger.Error("execute linkEdge error", zap.String("linkEdge", id),
+				zap.String("deviceId", deviceId), zap.Any("points", points), zap.Error(err))
+		} else {
+			sucCount = sucCount + len(points)
+			helper.Logger.Info(fmt.Sprintf("execute linkEdge:%s action", id))
+		}
+	}
+	//预览情况下未持久化场景联动，id为空
 	if id != "" {
 		// value:全部成功\部分成功\全部失败
 		if sucCount == len(config.Action) {
