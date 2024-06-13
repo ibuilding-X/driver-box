@@ -13,3 +13,9 @@ const (
 	//服务启动异常
 	ServiceStatusError = "error"
 )
+
+// Data 设备事件模型
+type Data struct {
+	Code  string      `json:"code"` //事件Code
+	Value interface{} `json:"value"`
+}

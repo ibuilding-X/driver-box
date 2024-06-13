@@ -8,6 +8,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/network"
@@ -23,6 +24,7 @@ const (
 
 type connector struct {
 	key     string
+	adapter plugin.ProtocolAdapter
 	plugin  *Plugin
 	network *network.Network
 	//通讯设备集合
@@ -74,7 +76,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 				}
 				duration, err := time.ParseDuration(ext.Duration)
 				if err != nil {
-					helper.Logger.Error("error bacnet duration config", zap.String("deviceSn", dev.DeviceSn), zap.Any("config", p.Extends), zap.Error(err))
+					helper.Logger.Error("error bacnet duration config", zap.String("deviceId", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
 					duration = time.Second
 				}
 
@@ -98,7 +100,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 							if obj.ID.Type != object.ID.Type {
 								helper.Logger.Error("error bacnet config, the same instance has different type")
 							} else {
-								obj.Points[dev.DeviceSn] = p.Name
+								obj.Points[dev.ID] = p.Name
 							}
 							ok = true
 							break
@@ -111,7 +113,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 					if len(group.multiData.Objects) < 15 {
 						ok = true
 						points := make(map[string]string)
-						points[dev.DeviceSn] = p.Name
+						points[dev.ID] = p.Name
 						object.Points = points
 						group.multiData.Objects = append(group.multiData.Objects, object)
 						break
@@ -120,7 +122,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 				//新增一个点位组
 				if !ok {
 					points := make(map[string]string)
-					points[dev.DeviceSn] = p.Name
+					points[dev.ID] = p.Name
 					object.Points = points
 					device.pointGroup = append(device.pointGroup, &pointGroup{
 						Duration: duration,
@@ -135,13 +137,8 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 		}
 	}
 
-	duration := bic.Duration
-	if duration == "" {
-		helper.Logger.Warn("bacnet connection duration is empty, use default 5s", zap.String("key", c.key))
-		duration = "5s"
-	}
 	//注册定时采集任务
-	future, err := helper.Crontab.AddFunc(duration, func() {
+	future, err := helper.Crontab.AddFunc("1s", func() {
 		//遍历所有通讯设备
 		for deviceId, device := range c.devices {
 			if len(device.pointGroup) == 0 {
@@ -194,6 +191,11 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 	}
 }
 
+// ProtocolAdapter 协议适配器
+func (p *connector) ProtocolAdapter() plugin.ProtocolAdapter {
+	return p.adapter
+}
+
 func (c *connector) Send(raw interface{}) (err error) {
 	br := raw.(bacRequest)
 	device, ok := c.devices[br.deviceId]
@@ -205,7 +207,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 	// 读
 	case plugin.ReadMode:
 		if c.virtual {
-			return mockRead(c.plugin, c.plugin.ls, br.req.(btypes.MultiplePropertyData))
+			return mockRead(c, c.plugin.ls, br.req.(btypes.MultiplePropertyData))
 		}
 		req := br.req.(btypes.MultiplePropertyData)
 		var out btypes.MultiplePropertyData
@@ -231,9 +233,9 @@ func (c *connector) Send(raw interface{}) (err error) {
 				}
 				for deviceSn, pointName := range obj.Points {
 					resp.PointName = pointName
-					resp.DeviceSn = deviceSn
+					resp.DeviceId = deviceSn
 					respJson, err := json.Marshal(resp)
-					_, err = c.plugin.callback(c.plugin, string(respJson))
+					_, err = callback.OnReceiveHandler(c, string(respJson))
 					if err != nil {
 						helper.Logger.Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
 					}
@@ -243,7 +245,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 	case plugin.WriteMode:
 		write := br.req.(*network.Write)
 		if c.virtual {
-			return mockWrite(c.plugin.ls, write.DeviceSn, write.PointName, write.WriteValue)
+			return mockWrite(c.plugin.ls, write.DeviceId, write.PointName, write.WriteValue)
 		}
 		if err := device.device.Write(write); err != nil {
 			c.plugin.logger.Error(fmt.Sprintf("write error: %s", err.Error()))
@@ -258,7 +260,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 type readResponse struct {
 	Value     interface{}       `json:"value"`
 	Status    map[string]string `json:"status"`
-	DeviceSn  string            `json:"deviceSn"`
+	DeviceId  string            `json:"deviceId"`
 	PointName string            `json:"pointName"`
 }
 
@@ -377,7 +379,6 @@ type bacIpConfig struct {
 	LocalIp     string `json:"localIp"`
 	LocalSubnet int    `json:"localSubnet"`
 	LocalPort   int    `json:"localPort"`
-	Duration    string `json:"duration"` // 自动采集周期
 	//虚拟设备功能
 	Virtual bool `json:"virtual"`
 }
@@ -416,6 +417,10 @@ func initConnector(key string, config map[string]interface{}, p *Plugin) (*conne
 					network: n,
 					plugin:  p,
 					devices: make(map[string]*device),
+					adapter: &adapter{
+						scriptDir: p.config.Key,
+						ls:        p.ls,
+					},
 				}
 				//启动数据采集任务
 				err = c.initCollectTask(&bic)

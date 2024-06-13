@@ -12,24 +12,15 @@ import (
 type Plugin struct {
 	logger   *zap.Logger
 	config   config.Config
-	callback plugin.OnReceiveHandler
-	adapter  plugin.ProtocolAdapter
 	connPool map[string]plugin.Connector
 	ls       *lua.LState
 }
 
 // Initialize 插件初始化
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, handler plugin.OnReceiveHandler, ls *lua.LState) (err error) {
+func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error) {
 	p.logger = logger
 	p.config = c
-	p.callback = handler
 	p.ls = ls
-
-	// 初始化协议适配器
-	p.adapter = &adapter{
-		scriptDir: c.Key,
-		ls:        ls,
-	}
 
 	// 初始化连接
 	if err = p.initNetworks(); err != nil {
@@ -37,11 +28,6 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, handler plugin.
 	}
 
 	return nil
-}
-
-// ProtocolAdapter 协议适配器
-func (p *Plugin) ProtocolAdapter() plugin.ProtocolAdapter {
-	return p.adapter
 }
 
 // Connector 连接器

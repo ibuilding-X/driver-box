@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/models"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/core"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/network"
@@ -40,13 +40,17 @@ type extends struct {
 
 // 写命令结构体
 type bacWriteCmd struct {
-	models.PointValue
+	plugin.PointWriteValue
 	Priority  int  `json:"priority"`
 	NullValue bool `json:"nullValue"`
 }
 
 // Encode 编码
-func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.PointData) (res interface{}, err error) {
+func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
+	if len(values) != 1 {
+		return nil, common.NotSupportEncode
+	}
+	value := values[0]
 	device, ok := helper.CoreCache.GetDevice(deviceSn)
 	if !ok {
 		return nil, common.DeviceNotFoundError
@@ -95,8 +99,8 @@ func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.P
 		//是否存在前置操作
 		if len(bwc.PreOp) > 0 {
 			for _, op := range bwc.PreOp {
-				helper.Logger.Info("Send preOp", zap.String("deviceSn", deviceSn), zap.String("pointName", op.PointName), zap.Any("value", op.Value))
-				err = helper.Send(deviceSn, plugin.WriteMode, plugin.PointData{
+				helper.Logger.Info("Send preOp", zap.String("deviceId", deviceSn), zap.String("pointName", op.PointName), zap.Any("value", op.Value))
+				err = core.SendSinglePoint(deviceSn, plugin.WriteMode, plugin.PointData{
 					PointName: op.PointName,
 					Value:     op.Value,
 				})
@@ -120,7 +124,7 @@ func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.P
 			return nil, err
 		}
 		if req, err := createWriteReq(bwc, ext); err == nil {
-			req.DeviceSn = deviceSn
+			req.DeviceId = deviceSn
 			req.PointName = bwc.PointName
 			return bacRequest{
 				req:      req,
@@ -234,7 +238,7 @@ func (a *adapter) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
 			Value:     resp.Value,
 		}}
 		res = append(res, plugin.DeviceData{
-			SN:     resp.DeviceSn,
+			ID:     resp.DeviceId,
 			Values: pointDatalist,
 		})
 	}

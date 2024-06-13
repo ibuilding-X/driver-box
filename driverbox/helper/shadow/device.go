@@ -3,13 +3,14 @@ package shadow
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"log"
+	"sort"
 	"sync"
 	"time"
 )
 
 // Device 设备结构
 type Device struct {
-	deviceSn        string        // 设备SN
+	id              string        // 设备id
 	modelName       string        // 设备模型名称
 	points          *sync.Map     // 设备点位列表
 	onlineBindPoint string        // 在线状态绑定点位（支持数据类型：bool、string、int、float）
@@ -21,7 +22,7 @@ type Device struct {
 
 // DeviceAPI 对外开放设备数据
 type DeviceAPI struct {
-	SN              string           `json:"sn"`
+	ID              string           `json:"id"`
 	Points          []DevicePointAPI `json:"points"`
 	Online          bool             `json:"online"`
 	TTL             string           `json:"ttl"`
@@ -39,13 +40,16 @@ type DevicePoint struct {
 	Name      string      // 点位名称
 	Value     interface{} // 点位值
 	UpdatedAt time.Time   // 点位最后更新时间（用于点位缓存过期判断）
+	//该点位最近一次执行写操作的时间
+	LatestWriteTime time.Time
 }
 
 // DevicePointAPI 对外开放设备点位
 type DevicePointAPI struct {
-	Name      string `json:"name"`
-	Value     any    `json:"value"`
-	UpdatedAt string `json:"updated_at"`
+	Name            string `json:"name"`
+	Value           any    `json:"value"`
+	UpdatedAt       string `json:"updated_at"`
+	LatestWriteTime string `json:"write_time"`
 }
 
 func NewDevice(device config.Device, modelName string, points map[string]DevicePoint) Device {
@@ -54,12 +58,12 @@ func NewDevice(device config.Device, modelName string, points map[string]DeviceP
 	if device.Ttl != "" {
 		t, err := time.ParseDuration(device.Ttl)
 		if err != nil {
-			log.Fatalf("device:%v parse ttl:%v error:%v", device.DeviceSn, device.Ttl, err)
+			log.Fatalf("device:%v parse ttl:%v error:%v", device.ID, device.Ttl, err)
 		} else {
 			ttl = t
 		}
 	} else {
-		log.Printf("device:%v ttl unset, reset default value:%v", device.DeviceSn, ttl)
+		log.Printf("device:%v ttl unset, reset default value:%v", device.ID, ttl)
 	}
 	// 转换 points
 	ps := &sync.Map{}
@@ -67,7 +71,7 @@ func NewDevice(device config.Device, modelName string, points map[string]DeviceP
 		ps.Store(k, points[k])
 	}
 	return Device{
-		deviceSn:        device.DeviceSn,
+		id:              device.ID,
 		modelName:       modelName,
 		points:          ps,
 		onlineBindPoint: "",
@@ -79,7 +83,7 @@ func NewDevice(device config.Device, modelName string, points map[string]DeviceP
 // ToDeviceAPI 转换设备 API
 func (d *Device) ToDeviceAPI() DeviceAPI {
 	device := DeviceAPI{
-		SN:              d.deviceSn,
+		ID:              d.id,
 		Points:          make([]DevicePointAPI, 0),
 		Online:          d.online,
 		TTL:             d.ttl.String(),
@@ -93,14 +97,20 @@ func (d *Device) ToDeviceAPI() DeviceAPI {
 		}
 		return true
 	})
+
+	//按点位名排序
+	sort.Slice(device.Points, func(i, j int) bool {
+		return device.Points[i].Name < device.Points[j].Name
+	})
 	return device
 }
 
 func (dp DevicePoint) ToDevicePointAPI() DevicePointAPI {
 	return DevicePointAPI{
-		Name:      dp.Name,
-		Value:     dp.Value,
-		UpdatedAt: dp.UpdatedAt.Format("2006-01-02 15:04:05"),
+		Name:            dp.Name,
+		Value:           dp.Value,
+		UpdatedAt:       dp.UpdatedAt.Format("2006-01-02 15:04:05"),
+		LatestWriteTime: dp.LatestWriteTime.Format("2006-01-02 15:04:05"),
 	}
 }
 

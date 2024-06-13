@@ -11,26 +11,18 @@ import (
 )
 
 type Plugin struct {
-	logger     *zap.Logger             // 日志
-	config     config.Config           // 配置
-	callback   plugin.OnReceiveHandler // 回调
-	adapter    *adapter                // 适配
-	connectors map[string]*connector   // mqtt连接池
-	ls         *lua.LState             // lua 虚拟机
+	logger     *zap.Logger           // 日志
+	config     config.Config         // 配置
+	adapter    *adapter              // 适配
+	connectors map[string]*connector // mqtt连接池
+	ls         *lua.LState           // lua 虚拟机
 }
 
 // Initialize 初始化日志、配置、接收回调
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, handler plugin.OnReceiveHandler, ls *lua.LState) (err error) {
+func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error) {
 	p.logger = logger
 	p.config = c
-	p.callback = handler
 	p.ls = ls
-
-	// 初始化协议适配器
-	p.adapter = &adapter{
-		scriptDir: c.Key,
-		ls:        ls,
-	}
 
 	// 初始化连接池
 	if err = p.initConnPool(); err != nil {
@@ -53,6 +45,10 @@ func (p *Plugin) initConnPool() error {
 			plugin: p,
 			topics: connectConfig.Topics,
 			name:   k,
+			adapter: &adapter{
+				scriptDir: p.config.Key,
+				ls:        p.ls,
+			},
 		}
 		err := conn.connect(connectConfig)
 		if err != nil {
@@ -64,18 +60,13 @@ func (p *Plugin) initConnPool() error {
 	return nil
 }
 
-// ProtocolAdapter 协议适配器
-func (p *Plugin) ProtocolAdapter() plugin.ProtocolAdapter {
-	return p.adapter
-}
-
 // Connector 连接器
-func (p *Plugin) Connector(deviceSn, pointName string) (plugin.Connector, error) {
+func (p *Plugin) Connector(deviceId, pointName string) (plugin.Connector, error) {
 	deviceModels := p.config.DeviceModels
 	for _, deviceModel := range deviceModels {
 		devices := deviceModel.Devices
 		for _, device := range devices {
-			if device.DeviceSn == deviceSn {
+			if device.ID == deviceId {
 				conn, ok := p.connectors[device.ConnectionKey]
 				if !ok {
 					return nil, common.ConnectorNotFound

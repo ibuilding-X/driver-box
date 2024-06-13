@@ -1,0 +1,278 @@
+---
+title: Modbus插件
+description: A reference page in my new Starlight docs site.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+## 插件介绍
+
+modbus插件用于连接modbus设备，支持 rtu、tcp、udp、tcp+tls 等通讯方式。
+
+## modbus连接配置
+
+| 配置项           | 必填 | 类型     | 参数说明                                                                                                          |
+|---------------|----|--------|---------------------------------------------------------------------------------------------------------------|
+| address       | 必填 | string | 连接地址：例如：`127.0.0.1:502` 、`/dev/ttyUSB0`                                                                       |
+| mode          | 必填 | string | 通讯方式，支持类型：<ul><li>tcp</li><li>rtu</li><li>rtuovertcp</li><li>rtuoverudp</li><li>tcp+tls</li><li>udp</li></ul> |
+| baudRate      | 选填 | int    | 波特率，仅当 mode 为`rtu`时需要设置。<br/>默认：`19200`                                                                       |
+| dataBits      | 选填 | int    | 数据位 ，仅当 mode 为`rtu`时需要设置。<br/>默认：`8`                                                                          |
+| stopBits      | 选填 | int    | 停止位 ，仅当 mode 为`rtu`时需要设置。<br/>有效范围：<ul><li>0</li><li>1</li><li>2</li></ul>                                    |
+| parity        | 选填 | int    | 奇偶性校验 ，仅当 mode 为`rtu`时需要设置 。<br/>有效范围：<ul><li>0:None </li><li>1:EVEN</li><li>2:ODD  </li></ul>                |
+| duration      | 选填 | string | 当前连接采集任务的执行周期。<br/>默认：`1s`。例如：`1s`、`1m`、`1h`、`1d`                                                             |
+| batchReadLen  | 选填 | int    | 支持连续读的字节数。                                                                                                    |   
+| batchWriteLen | 选填 | int    | 支持连续写的字节数。                                                                                                    |   
+| retry         | 选填 | int    | 执行写操作出现失败时的重试次数，默认：3                                                                                          |
+| virtual       | 选填 | bool   | 是否启用虚拟模式，默认：false 。详见：[虚拟设备](#虚拟设备)                                                                               |
+
+### 示例
+
+config.json
+<Tabs>
+    <TabItem label="tcp" icon="seti:json">
+        ```json
+        {
+            ...
+            "connections": {
+                "192.168.16.111:502": {
+                    "address": "192.168.16.111:502",
+                    "batchReadLen": 50,
+                    "batchWriteLen": 10,
+                    "enable": true,
+                    "minInterval": 500,
+                    "mode": "tcp",
+                    "timeout": 5000,
+                    "virtual": false
+                }
+            },
+            "protocolName": "modbus"
+        }
+
+        ```
+    </TabItem>
+    <TabItem label="rtu" icon="seti:json">
+        ```json
+        {
+            ...
+            "connections": {
+                "/dev/ttyS5": {
+                    "address": "/dev/ttyS5",
+                    "batchReadLen": 10,
+                    "baudRate": 9600,
+                    "dataBits": 8,
+                    "enable": true,
+                    "minInterval": 100,
+                    "mode": "rtu",
+                    "parity": 0,
+                    "retry": 0,
+                    "stopBits": 1,
+                    "timeout": 2000,
+                    "virtual": false
+                }
+            },
+            "protocolName": "modbus"
+        }
+        ```
+    </TabItem>
+</Tabs>
+
+
+
+## 扩展点表配置
+
+| 配置项          | 必填 | 类型     | 参数说明                                                                                                     |
+|--------------|----|--------|----------------------------------------------------------------------------------------------------------|
+| primaryTable | 必填 | string | 寄存器类型，支持类型：<ul><li>HOLDING_REGISTER</li><li>COIL</li><li>DISCRETE_INPUT</li><li>INPUT_REGISTER</li></ul> |
+| startAddress | 必填 | string | 点位所在的寄存器地址，详见：[startAddress配置说明](#startAddress配置说明)                                                      |
+| rawType      | 必填 | string | 数据原始类型 ，详见：[rawType配置说明](#rawType配置说明)                                                                   |
+|duration|选填|string| 当前点位值的采集频率。<br/>默认：`1s`。例如：`1s`、`1m`、`1h`、`1d`                                                           |
+| wordSwap     | 选填 | int    |                                                                                                          |
+| byteSwap     | 选填 | int    |                                                                                                          |
+| bit | 选填 | string | 点位值所处的比特位起始位置，默认：0                                                                                       |
+| bitLen | 选填 | int | 比特位长度                                                                                                    |
+
+### startAddress配置说明
+
+寄存器地址存在三种表达方式：
+
+1. 十六进制表示  
+   使用前缀"0x"来指示该地址是十六进制形式，例如："0x0400" 表示第1024个寄存器地址。
+   解析时，会去掉"0x"并将其转换为十进制。
+2. 十进制表示   
+   使用后缀"d"来区分十进制地址，例如："40001d" 表示第40001个寄存器地址。
+   在解析时，会移除"d"并直接转换为十进制的uint16值。
+3. 特定格式表示   
+   对于长度为5位的数字字符串，遵循特定的地址映射规则：
+    - 地址范围在1-9999，实际地址 = 字符串值 - 1。
+    - 地址范围在10000-19999，实际地址 = 字符串值 - 10001。
+    - 地址范围在30000-39999，实际地址 = 字符串值 - 30001。
+    - 地址范围在40000-49999，实际地址 = 字符串值 - 40001。
+    - 其他值被视为无效。
+
+请注意，确保提供的地址符合上述格式，否则函数可能会返回错误。在与Modbus兼容的设备通信时，正确地表示和转换寄存器地址是至关重要的。
+
+:::tip
+具体算法可参见`internal/plugins/modbus/connector.go#castModbusAddress`
+:::
+
+### rawType配置说明
+
+rawType 表示从寄存器读取到的字节数值代表的真实数据类型。
+
+当寄存器类型为 `COIL`、`DISCRETE_INPUT` 时，rawType 参数无效。
+
+rawType 适用于寄存器类型为：`INPUT_REGISTER`、`HOLDING_REGISTER` 的场景，且不同数据类型对应的寄存器字节数对照关系如下：
+
+|         | 1字节     |2字节|4字节|
+|---------|---------|-|--|
+| int16   | &#10004; |||          
+| uint16  | &#10004; |||          
+| int32   |         |&#10004;||          
+| uint32  |         |&#10004;||          
+| float32 |         |&#10004;||          
+| int64   |         ||&#10004;|          
+| uint64  |         ||&#10004;|          
+| float64 |         ||&#10004;|          
+
+## 性能优化
+todo
+
+## 虚拟设备
+启用 modbus 虚拟模式，一方面要将 virtual 配置项设置为 true。
+另一方面，要在 config.json 的同级目录下创建用于提供虚拟设备能力的 lua 脚本：`converter.lua`，并按以下步骤进行操作：
+
+### 第一步：初始化脚本内容
+脚本内容可从`res/library/template/modbus_virtual.lua`中拷贝。
+
+### 第二步：初始化寄存器值
+modbus 虚拟设备的寄存器值皆为 0，需要在 `converter.lua` 脚本中为设备添加初始值。
+脚本的添加内容处于 initSlave 方法的 `Begin--End` 注释之间（**其余地方不作调整**）。
+
+<Tabs>
+    <TabItem label="converter.lua" icon="seti:lua">
+        ```lua {11-14}
+        -- 初始化指定从机
+        function initSlave(slaveId, holdingRegister, coil, discreteInput, inputRegister)
+            slaves[slaveId] = {
+                [HOLDING_REGISTER] = initRegisters(holdingRegister),
+                [COIL] = initRegisters(coil),
+                [DISCRETE_INPUT] = initRegisters(discreteInput),
+                [INPUT_REGISTER] = initRegisters(inputRegister)
+            }
+
+            -- 调用 mockWrite 方法初始化模拟数据
+            -- Begin：以下需要开发者根据实际情况作修改
+
+
+            -- End：以上需要开发者根据实际情况作修改
+
+            return slaves[slaveId]
+        end
+        ```
+    </TabItem>
+    <TabItem label="示例">
+        以某品牌空调网关为例，所有内机处于同一个从机地址的不同寄存器区域。
+        各内机的点位有着相同的偏移量，通过以下脚本模拟出 100 台内机，并设置开关、模式、风速、温度等状态值。
+        ```lua title="converter.lua" {12-15}
+        -- 初始化指定从机
+        function initSlave(slaveId, holdingRegister, coil, discreteInput, inputRegister)
+            slaves[slaveId] = {
+                [HOLDING_REGISTER] = initRegisters(holdingRegister),
+                [COIL] = initRegisters(coil),
+                [DISCRETE_INPUT] = initRegisters(discreteInput),
+                [INPUT_REGISTER] = initRegisters(inputRegister)
+            }
+
+            -- 调用 mockWrite 方法初始化模拟数据
+            -- Begin：以下需要开发者根据实际情况作修改
+            for i = 1, 100 do
+                --print("初始化第"..i.."台内机模拟数据")
+                mockWrite(slaveId, HOLDING_REGISTER, 40078 + (i - 1) * 91, { 1, 2, 2, 0, 16 })
+            end
+            -- End：以上需要开发者根据实际情况作修改
+
+            return slaves[slaveId]
+        end
+        ```
+    </TabItem>
+</Tabs>
+
+### 第三步：编写控制逻辑（可选）
+对于点位读写分离的场景，需要开发者编写控制逻辑，以实现对模拟数据的更新。例如：开关点位的读操作处于寄存器地址 40001，而写操作处于 40002。
+
+脚本的添加内容处于 mockWrite 方法的 Begin--End 注释之间（其余地方不作调整）。
+<Tabs>
+    <TabItem label="converter.lua" icon="seti:lua">
+        ```lua {23-25}
+        --模拟modbus读写
+        -- slaveId 从机id
+        -- primaryTable 寄存器类型：HOLDING_REGISTER,COIL,DISCRETE_INPUT,INPUT_REGISTER
+        -- address 寄存器地址
+        -- value 值，byte数组
+        function mockWrite(slaveId, primaryTable, address, value)
+            if address < 1 or address > 65535 then
+                error("Invalid register address")
+            end
+            -- 寻找从机
+            slave = slaves[slaveId]
+            if slaves[slaveId] == nil then
+                slave = initSlave(slaveId, 65535, 65535, 65535, 65535);
+            end
+
+            tableData = slave[primaryTable]
+            --从address开始填充数据value
+            for i = 1, #value do
+                tableData[address + i - 1] = value[i]
+            end
+
+            -- 对于读写点分离的情况，需要手动填写读点位数值
+            -- Begin：以下需要开发者根据实际情况作修改
+
+            -- End：以上需要开发者根据实际情况作修改
+        end
+        ```
+    </TabItem>
+    <TabItem label="示例">
+        当对控制点位进行写操作时，将数值同步更新至读点位，以此模拟空调的真实运行状态。
+        ```lua title="converter.lua" {19-34}
+        function mockWrite(slaveId, primaryTable, address, value)
+            if address < 1 or address > 65535 then
+                error("Invalid register address")
+            end
+            -- 寻找从机
+            slave = slaves[slaveId]
+            if slaves[slaveId] == nil then
+                slave = initSlave(slaveId, 65535, 65535, 65535, 65535);
+            end
+
+            tableData = slave[primaryTable]
+            --从address开始填充数据value
+            for i = 1, #value do
+                tableData[address + i - 1] = value[i]
+            end
+
+            -- 对于读写点分离的情况，需要手动填写读点位数值
+            -- Begin：以下需要开发者根据实际情况作修改
+            for i = 1, #value do
+                offset = (address + i - 1 - 40000) % 91
+                if offset == 78 then
+                    -- 开关
+                    tableData[address + i - 77] = value[i]
+                elseif offset == 79 then
+                    -- 模式
+                    tableData[address + i - 77] = value[i]
+                elseif offset == 80 then
+                    -- 风速
+                    tableData[address + i - 77] = value[i]
+                elseif offset == 82 then
+                    -- 温度
+                    tableData[address + i - 75] = value[i]
+                end
+            end
+            -- End：以上需要开发者根据实际情况作修改
+        end
+        ```
+    </TabItem>
+</Tabs>
+
+

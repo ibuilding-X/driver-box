@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -24,14 +26,20 @@ type connectorConfig struct {
 }
 
 type connector struct {
-	plugin *Plugin
-	config connectorConfig
-	client *http.Client
+	plugin  *Plugin
+	config  connectorConfig
+	client  *http.Client
+	adapter plugin.ProtocolAdapter
 }
 
 // Release 释放资源
 func (c *connector) Release() (err error) {
 	return
+}
+
+// ProtocolAdapter 协议适配器
+func (p *connector) ProtocolAdapter() plugin.ProtocolAdapter {
+	return p.adapter
 }
 
 // Send 发送请求
@@ -94,7 +102,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 	if err != nil {
 		return
 	}
-	_, err = c.plugin.callback(c.plugin, string(bodyByte))
+	_, err = callback.OnReceiveHandler(c, string(bodyByte))
 	return
 }
 

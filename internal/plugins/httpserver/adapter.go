@@ -29,7 +29,7 @@ func (pd protoData) ToJSON() string {
 }
 
 // Encode 编码数据，无需实现
-func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, values plugin.PointData) (res interface{}, err error) {
+func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
 	return nil, common.NotSupportEncode
 }
 

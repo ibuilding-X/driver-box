@@ -9,10 +9,12 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
+	"github.com/ibuilding-x/driver-box/internal/core"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
-	"github.com/ibuilding-x/driver-box/internal/restful/route"
 	"go.uber.org/zap"
+	"net/http"
 	"os"
+	"path"
 )
 
 // 网关编号
@@ -49,7 +51,9 @@ func Start(exports []export.Export) error {
 
 	// 第五步：启动 REST 服务
 	go func() {
-		e := route.Register()
+		registerApi()
+		core.RegisterApi()
+		e := http.ListenAndServe(":8081", nil)
 		if e != nil {
 			helper.Logger.Error("start rest server error", zap.Error(e))
 		}
@@ -73,13 +77,14 @@ func Start(exports []export.Export) error {
 
 func initEnvConfig() error {
 	helper.EnvConfig = config.EnvConfig{}
-	//驱动配置文件存放目录
-	dir := os.Getenv(config.ENV_CONFIG_PATH)
+	dir := os.Getenv(config.ENV_RESOURCE_PATH)
 	if dir == "" {
-		helper.EnvConfig.ConfigPath = "./driver-config"
+		config.ResourcePath = "./res"
 	} else {
-		helper.EnvConfig.ConfigPath = dir
+		config.ResourcePath = dir
 	}
+	//驱动配置文件存放目录
+	helper.EnvConfig.ConfigPath = path.Join(config.ResourcePath, "driver")
 	//http服务绑定host
 	httpListen := os.Getenv(config.ENV_HTTP_LISTEN)
 	if httpListen != "" {
@@ -93,4 +98,21 @@ func initEnvConfig() error {
 		helper.EnvConfig.LogPath = logPath
 	}
 	return nil
+}
+
+// 触发某个设备点位的读取动作，指令会下发值驱动层
+func ReadPoint(deviceId string, pointName string) error {
+	return core.SendSinglePoint(deviceId, plugin.ReadMode, plugin.PointData{
+		PointName: pointName,
+	})
+}
+
+// 触发某个设备点位的写入操作
+func WritePoint(deviceId string, pointData plugin.PointData) error {
+	return core.SendSinglePoint(deviceId, plugin.WriteMode, pointData)
+}
+
+// 批量写点位
+func WritePoints(deviceId string, pointData []plugin.PointData) error {
+	return core.SendBatchWrite(deviceId, pointData)
 }

@@ -1,0 +1,174 @@
+---
+title: 快速开始
+sidebar:
+  order: 2
+---
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+我们将通过一个简单的 demo 来演示 driver-box 的设备接入流程，
+在此之前请确保你已具备以下几项前置条件：
+
+- Golang 开发环境，版本要求 >= 1.18。
+- 相应的 IDE 工具，如 VSCode、Goland 等。
+- git 工具。
+
+> 本次演示的形式是直接基于 driver-box 工程源码展开
+
+## 初始化工程
+
+下载 driver-box 源码至本地，并导入 IDE。
+
+<Tabs>
+    <TabItem label="Gitee" icon="seti:git">
+        ```shell
+        git clone https://gitee.com/iBUILDING-X/driver-box.git
+        ```
+    </TabItem>
+    <TabItem label="Github" icon="github">
+        ```shell
+        git clone https://github.com/ibuilding-X/driver-box.git
+        ```
+    </TabItem>
+</Tabs>
+
+
+## 启动程序
+在工程所在目录下执行以下命令下载依赖：
+```shell
+go mod tidy
+go mod vendor
+```
+并通过 IDE 启动 `main.go`，正常情况下会在终端输出以下内容：
+```text
+start driver-box success. 
+```
+> 倘若启动失败，可能因为内置的演示示例所依赖的端口号（8888、8889）被占用，需要您更换一下。
+
+## 上报设备数据
+在 driver-box 项目的 `/res/driver` 目录下，我们已内置了一个 `http_server` 协议的示例，可以此演示设备接入的效果。
+
+<Tabs>
+    <TabItem label="config.json" icon="seti:json">
+        ```json
+        {
+            "deviceModels": [
+                {
+                    "name": "swtich",
+                    "description": "开关",
+                    "devicePoints": [
+                        {
+                            "description": "开关",
+                            "name": "onOff",
+                            "readWrite": "R",
+                            "reportMode": "change",
+                            "valueType": "int"
+                        }
+                    ],
+                    "devices": [
+                        {
+                            "id": "swtich-1",
+                            "description": "1号开关",
+                            "ttl": "5m",
+                            "connectionKey": "8888"
+                        },
+                        {
+                            "id": "swtich-2",
+                            "description": "2号开关",
+                            "ttl": "5m",
+                            "connectionKey": "8889"
+                        }
+                    ]
+                }
+            ],
+            "connections": {
+                "8888": {
+                    "host": "127.0.0.1",
+                    "port": 8888
+                },
+                "8889": {
+                    "host": "",
+                    "port": 8889
+                }
+            },
+            "protocolName": "http_server"
+        }
+        ```
+    </TabItem>
+    <TabItem label="converter.lua" icon="seti:lua">
+        ```lua
+        local json = require("json")
+
+        -- decode 请求数据解码
+        function decode(raw)
+            local data = json.decode(raw)
+            local body= json.decode(data.body)
+            if data.method == "POST" and data.path == "/report" then
+                local devices = {
+                    {
+                        ["id"] = body["id"], -- 设备ID
+                        ["values"] = {
+                            { ["name"] = "onOff", ["value"] = body["onOff"] }, -- 点位解析
+                        }
+                    }
+                }
+                return json.encode(devices)
+            else
+                print("request error")
+                return "[]"
+            end
+        end
+        ```
+    </TabItem>
+</Tabs>
+
+`config.json` 定义了一个开关模型，仅有一个 `onOff` 的点位。
+且该模型下关联了两个设备：swtich-1 和 swtich-2。
+
+对于 TCP 类协议，还需配套一个 `converter.lua` 文件，用于将请求数据转换为 driver-box 所需的数据格式。
+
+
+此时，可通过以下命令模拟开关的状态上报：
+```shell
+curl -X POST -H "Content-Type: application/json" -d '{"id":"swtich-2","onOff":1}' http://127.0.0.1:8888/report
+curl -X POST -H "Content-Type: application/json" -d '{"id":"swtich-1","onOff":0}' http://127.0.0.1:8888/report
+```
+
+## 查看设备影子
+打开浏览器，访问：http://localhost:8081/api/v1/shadow/all 可直接查看当前接入设备的点位状态。
+```json
+{
+  "success": true,
+  "errorCode": 200,
+  "errorMsg": "",
+  "data": [
+    {
+      "id": "swtich-1",
+      "points": [
+        {
+          "name": "onOff",
+          "value": 0,
+          "updated_at": "2024-05-21 17:57:14"
+        }
+      ],
+      "online": true,
+      "ttl": "5m0s",
+      "disconnect_times": 0,
+      "updated_at": "2024-05-21 17:57:14"
+    },
+    {
+      "id": "swtich-2",
+      "points": [
+        {
+          "name": "onOff",
+          "value": 1,
+          "updated_at": "2024-05-21 17:57:08"
+        }
+      ],
+      "online": true,
+      "ttl": "5m0s",
+      "disconnect_times": 0,
+      "updated_at": "2024-05-21 17:57:08"
+    }
+  ]
+}
+```

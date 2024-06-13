@@ -12,24 +12,15 @@ import (
 type Plugin struct {
 	logger   *zap.Logger
 	config   config.Config
-	callback plugin.OnReceiveHandler
-	adapter  plugin.ProtocolAdapter
 	connPool []*connector
 	ls       *lua.LState
 }
 
 // Initialize 插件初始化
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, handler plugin.OnReceiveHandler, ls *lua.LState) (err error) {
+func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error) {
 	p.logger = logger
 	p.config = c
-	p.callback = handler
 	p.ls = ls
-
-	// 初始化协议适配器
-	p.adapter = &adapter{
-		scriptDir: c.Key,
-		ls:        ls,
-	}
 
 	// 初始化连接池
 	if err = p.initConnPool(); err != nil {
@@ -37,11 +28,6 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, handler plugin.
 	}
 
 	return nil
-}
-
-// ProtocolAdapter 协议适配器
-func (p *Plugin) ProtocolAdapter() plugin.ProtocolAdapter {
-	return p.adapter
 }
 
 // Connector 连接器
@@ -68,6 +54,10 @@ func (p *Plugin) initConnPool() (err error) {
 		conn := &connector{
 			config: c,
 			plugin: p,
+			adapter: &adapter{
+				scriptDir: p.config.Key,
+				ls:        p.ls,
+			},
 		}
 		if err = conn.startServer(); err != nil {
 			return

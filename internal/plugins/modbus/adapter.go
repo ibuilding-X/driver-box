@@ -1,232 +1,400 @@
 package modbus
 
 import (
+	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/spf13/cast"
-	lua "github.com/yuin/gopher-lua"
-	"os"
-	"path/filepath"
+	"go.uber.org/zap"
+	"math"
+	"sort"
 	"strconv"
 	"strings"
 )
 
-type primaryTable string
-
-const (
-	Coil            primaryTable = "COIL"             // 线圈
-	DiscreteInput   primaryTable = "DISCRETE_INPUT"   // 离散输入
-	InputRegister   primaryTable = "INPUT_REGISTER"   // 离散寄存器
-	HoldingRegister primaryTable = "HOLDING_REGISTER" // 保持寄存器
-)
-
-// Adapter 协议适配器
-type adapter struct {
-	scriptDir string // 脚本目录名称
-	ls        *lua.LState
-}
-
-// transportationData 通讯数据（编码返回、解码输入数据格式）
-type transportationData struct {
-	SN          string            // 设备SN
-	Mode        plugin.EncodeMode // 读取模式
-	SlaveID     uint8             // 从机 salve id
-	MaxQuantity uint16            // 最长连续读数量
-	PointName   string            // 点位名称
-	Values      []Value           // 写入值，仅当 write 模式时使用
-}
-
-// Value 设定值及掩码
-type Value struct {
-	Value uint16 `json:"value"` // 寄存器值
-	Mask  uint16 `json:"mask"`  // 掩码  为 0 时无效
-}
-
-type pointTargetValue struct {
-	Name        string      `json:"name"`        // 点位名称
-	TargetValue interface{} `json:"targetValue"` // 需要设定的值
-	Values      []Value     `json:"values"`      // 根据rawType编码出的寄存器值
-}
-
-type extendProps struct {
-	RegisterType string   `json:"primaryTable"`
-	StartAddress uint16   `json:"startAddress"`
-	Quantity     uint16   `json:"quantity"`
-	RawType      string   `json:"rawType"`
-	Virtual      bool     `json:"virtual"`
-	Points       []string `json:"points"`
-	ByteSwap     bool     `json:"byteSwap"`
-	WordSwap     bool     `json:"wordSwap"`
-}
-
-// Encode 编码数据
-func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, value plugin.PointData) (res interface{}, err error) {
-	// 获取设备数据
-	device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceSn, value.PointName)
-	if !ok {
-		return nil, fmt.Errorf("not found device, deviceSn is %s", deviceSn)
-	}
-	slaveID, _ := strconv.Atoi(device.Properties["unitID"])
-	maxQuantity, err := strconv.Atoi(device.Properties["maxQuantity"])
-	if err != nil {
-		maxQuantity = 0
-	}
-	// 响应结果
-	result := transportationData{
-		SN:          deviceSn,
-		Mode:        mode,
-		MaxQuantity: uint16(maxQuantity),
-		SlaveID:     uint8(slaveID),
-		PointName:   value.PointName,
-	}
-	point, ok := helper.CoreCache.GetPointByDevice(deviceSn, value.PointName)
-	if !ok {
-		return nil, fmt.Errorf("not found point from core config, deviceSn is %s, point name is %s", deviceSn, value.PointName)
-	}
-	if mode == plugin.WriteMode {
-		ptv := &pointTargetValue{
-			Name:        value.PointName,
-			TargetValue: value.Value,
-		}
-		ext, err := getExtendProps(deviceSn, point.Name)
-		if err != nil {
-			return nil, fmt.Errorf("extend prop parsed error: %s", err.Error())
-		}
-		// 根据配置数据类型进行编码
-		ptv.encodeRawValue(ext.RegisterType, ext.RawType, ext.ByteSwap, ext.WordSwap)
-
-		// lua脚本存在时调用lua脚本进行编码
-		var encodedData string
-		if a.scriptExists() {
-			bytes, _ := json.Marshal(*ptv)
-			encodedData, err = helper.CallLuaEncodeConverter(a.ls, deviceSn, string(bytes))
-			fmt.Printf("----encode----%+v\n", encodedData)
-			if err != nil {
-				return nil, err
-			}
-			var eptv pointTargetValue
-			err = json.Unmarshal([]byte(encodedData), &eptv)
-			if err != nil {
-				return nil, fmt.Errorf("encode error for device %s, original table is %+v",
-					deviceSn, eptv)
-			}
-			if eptv.Name == ptv.Name {
-				result.Values = eptv.Values
-			} else {
-				result.Values = ptv.Values
-			}
-		} else {
-			result.Values = ptv.Values
-		}
-	}
-	// 返回协议数据
-	return result, nil
-}
-
-// encodeRawValue 根据rawType将原始值转化为uint16数组 按照数据顺序排列
-func (ptv *pointTargetValue) encodeRawValue(registerType, rawType string, byteSwap, wordSwap bool) {
-	switch strings.ToUpper(registerType) {
-	case string(Coil):
-		ptv.Values = []Value{{
-			Value: cast.ToUint16(ptv.TargetValue),
-		}}
-	default:
-		switch strings.ToUpper(rawType) {
-		case strings.ToUpper(common.ValueTypeUint16):
-			ptv.Values = []Value{{
-				Value: BytesToUint16(BIG_ENDIAN, Uint16ToBytes(Endianness(byteSwap), cast.ToUint16(ptv.TargetValue))),
-			}}
-		case strings.ToUpper(common.ValueTypeInt16):
-			conv2Int64, _ := helper.Conv2Int64(ptv.TargetValue)
-			val := conv2Int64 & 0xFFFF
-			ptv.Values = []Value{{
-				Value: BytesToUint16(BIG_ENDIAN, Uint16ToBytes(Endianness(byteSwap), cast.ToUint16(uint16(val)))),
-			}}
-		case strings.ToUpper(common.ValueTypeUint32):
-			uint16s := BytesToUint16s(BIG_ENDIAN, Uint32ToBytes(Endianness(byteSwap), WordOrder(wordSwap), cast.ToUint32(ptv.TargetValue)))
-			ptv.Values = []Value{
-				{Value: uint16s[0]},
-				{Value: uint16s[1]},
-			}
-		case strings.ToUpper(common.ValueTypeInt32):
-			conv2Int64, _ := helper.Conv2Int64(ptv.TargetValue)
-			val := conv2Int64 & 0xFFFFFFFF
-			uint16s := BytesToUint16s(BIG_ENDIAN, Uint32ToBytes(Endianness(byteSwap), WordOrder(wordSwap), cast.ToUint32(uint32(val))))
-			ptv.Values = []Value{
-				{Value: uint16s[0]},
-				{Value: uint16s[1]},
-			}
-		case strings.ToUpper(common.ValueTypeUint64):
-			uint16s := BytesToUint16s(BIG_ENDIAN, Uint64ToBytes(Endianness(byteSwap), WordOrder(wordSwap), cast.ToUint64(ptv.TargetValue)))
-			ptv.Values = []Value{
-				{Value: uint16s[0]},
-				{Value: uint16s[1]},
-				{Value: uint16s[2]},
-				{Value: uint16s[3]},
-			}
-		case strings.ToUpper(common.ValueTypeInt64):
-			val, _ := helper.Conv2Int64(ptv.TargetValue)
-			uint16s := BytesToUint16s(BIG_ENDIAN, Uint64ToBytes(Endianness(byteSwap), WordOrder(wordSwap), cast.ToUint64(uint64(val))))
-			ptv.Values = []Value{
-				{Value: uint16s[0]},
-				{Value: uint16s[1]},
-				{Value: uint16s[2]},
-				{Value: uint16s[3]},
-			}
-		case strings.ToUpper(common.ValueTypeFloat32):
-			uint16s := BytesToUint16s(BIG_ENDIAN, Float32ToBytes(Endianness(byteSwap), WordOrder(wordSwap), cast.ToFloat32(ptv.TargetValue)))
-			ptv.Values = []Value{
-				{Value: uint16s[0]},
-				{Value: uint16s[1]},
-			}
-		case strings.ToUpper(common.ValueTypeFloat64):
-			uint16s := BytesToUint16s(BIG_ENDIAN, Float64ToBytes(Endianness(byteSwap), WordOrder(wordSwap), cast.ToFloat64(ptv.TargetValue)))
-			ptv.Values = []Value{
-				{Value: uint16s[0]},
-				{Value: uint16s[1]},
-				{Value: uint16s[2]},
-				{Value: uint16s[3]},
-			}
-		case strings.ToUpper(common.ValueTypeString):
-			uint16s := BytesToUint16s(Endianness(byteSwap), []byte(cast.ToString(ptv.TargetValue)))
-			var values []Value
-			for _, v := range uint16s {
-				values = append(values, Value{Value: v})
-			}
-			ptv.Values = values
-		}
-	}
-}
-
 // Decode 解码数据
-func (a *adapter) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
-	deviceRawData := raw.(rawData)
-	deviceRawDataBytes, _ := json.Marshal(deviceRawData)
-	if a.scriptExists() {
-		return helper.CallLuaConverter(a.ls, "decode", string(deviceRawDataBytes))
-	} else {
-		// 当前设备未被lua解析
-		var pointDatalist []plugin.PointData
-		for _, prv := range deviceRawData.PointRawValues {
-			pointDatalist = append(pointDatalist, plugin.PointData{
-				PointName: prv.Name,
-				Value:     prv.Value,
-			})
+func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
+	readValue, ok := raw.(plugin.PointReadValue)
+	if !ok {
+		return nil, fmt.Errorf("unexpected raw: %v", raw)
+	}
+
+	if c.ScriptEnable {
+		resBytes, err := json.Marshal(readValue)
+		if err != nil {
+			return nil, fmt.Errorf("marshal result [%v] error: %v", res, err)
 		}
+		return helper.CallLuaConverter(c.Ls, "decode", string(resBytes))
+	} else {
 		res = append(res, plugin.DeviceData{
-			SN:     deviceRawData.SN,
-			Values: pointDatalist,
+			ID: readValue.ID,
+			Values: []plugin.PointData{{
+				PointName: readValue.PointName,
+				Value:     readValue.Value,
+			}},
 		})
 	}
 	return
 }
 
-// scriptExists 判断lua脚本是否存在
-func (a *adapter) scriptExists() bool {
-	scriptPath := filepath.Join(helper.EnvConfig.ConfigPath, a.scriptDir, common.LuaScriptName)
-	_, err := os.Stat(scriptPath)
-	return err == nil
+// Encode 编码数据
+func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
+	if mode == plugin.WriteMode {
+		writeValues, err := c.batchWriteEncode(deviceId, values)
+		return command{
+			Mode:  plugin.WriteMode,
+			Value: writeValues,
+		}, err
+	}
+
+	device, ok := helper.CoreCache.GetDevice(deviceId)
+	if !ok {
+		return nil, fmt.Errorf("device [%s] not found", deviceId)
+	}
+	unitId, e := getUnitId(device.Properties)
+	if e != nil {
+		return nil, e
+	}
+	slave := c.devices[unitId]
+	if slave == nil {
+		return nil, fmt.Errorf("device [%s] not found", deviceId)
+	}
+
+	indexes := make(map[int]*pointGroup)
+	var pointGroups []*pointGroup
+	//寻找待读点位关联的pointGroup
+	for _, readPoint := range values {
+		ok = false
+		for _, group := range slave.pointGroup {
+			for _, point := range group.Points {
+				if point.Name == readPoint.PointName {
+					if _, ok := indexes[group.index]; !ok {
+						indexes[group.index] = group
+						pointGroups = append(pointGroups, group)
+					}
+					ok = true
+					break
+				}
+			}
+			//匹配成功
+			if ok {
+				break
+			}
+		}
+	}
+
+	//找到待读点所属的group
+	return command{
+		Mode:  BatchReadMode,
+		Value: pointGroups,
+	}, nil
+}
+
+func (c *connector) batchWriteEncode(deviceId string, points []plugin.PointData) ([]*writeValue, error) {
+	values := make([]*writeValue, 0)
+	for _, p := range points {
+		wv, err := c.getWriteValue(deviceId, p)
+		if err != nil {
+			return values, err
+		}
+		values = append(values, &wv)
+	}
+	//按照address排序
+	sort.Slice(values, func(i, j int) bool {
+		return values[i].Address < values[j].Address
+	})
+
+	mergedValues := make([]*writeValue, 0)
+	var preValue *writeValue
+	for _, v := range values {
+		//仅保持寄存器支持批量
+		if v.RegisterType != HoldingRegister {
+			mergedValues = append(mergedValues, v)
+			continue
+		}
+		if preValue == nil {
+			preValue = v
+			mergedValues = append(mergedValues, v)
+			continue
+		}
+
+		//批量下发必须为连续地址
+		if int(preValue.Address)+len(preValue.Value) != int(v.Address) {
+			preValue = v
+			mergedValues = append(mergedValues, v)
+			continue
+		}
+		//超过批量写支持的字节长度范围
+		batchLen := len(preValue.Value) + len(v.Value)
+		if uint16(batchLen) > c.config.BatchWriteLen {
+			preValue = v
+			mergedValues = append(mergedValues, v)
+			continue
+		}
+		//合并数据
+		bytes := make([]uint16, batchLen)
+		copy(bytes, preValue.Value)
+		copy(bytes[len(preValue.Value):], v.Value)
+		preValue.Value = bytes
+	}
+	return mergedValues, nil
+}
+func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData) (writeValue, error) {
+	value := pointData.Value
+	d, ok := helper.CoreCache.GetDevice(deviceId)
+	if !ok {
+		return writeValue{}, errors.New("device not found")
+	}
+	unitId, err := getUnitId(d.Properties)
+	if err != nil {
+		return writeValue{}, err
+	}
+	p, ok := helper.CoreCache.GetPointByDevice(deviceId, pointData.PointName)
+	if !ok {
+		return writeValue{}, errors.New("point not found")
+	}
+
+	ext, err := convToPointExtend(p.Extends)
+	if err != nil {
+		helper.Logger.Error("error modbus point config", zap.String("deviceId", deviceId), zap.Any("point", pointData.PointName), zap.Error(err))
+		return writeValue{}, err
+	}
+	var values []uint16
+	switch ext.RegisterType {
+	case Coil: // 线圈固定长度1
+		i, err := helper.Conv2Int64(value)
+		if err != nil {
+			return writeValue{}, err
+		}
+		values = []uint16{uint16(i & 1)}
+	case HoldingRegister:
+		valueStr := fmt.Sprintf("%v", value)
+		switch strings.ToUpper(ext.RawType) {
+		case strings.ToUpper(common.ValueTypeUint16):
+			v, err := strconv.ParseUint(valueStr, 10, 16)
+			if err != nil {
+				return writeValue{}, fmt.Errorf("convert value %v to uint16 error: %v", value, err)
+			}
+			// TODO: 位写
+			if ext.BitLen > 0 {
+				if v > (1<<ext.BitLen - 1) {
+					return writeValue{}, fmt.Errorf("too large value %v to set in %d bits", v, ext.BitLen)
+				}
+				uint16s, err := c.read(unitId, string(ext.RegisterType), ext.Address, ext.Quantity)
+				uint16Val := uint16s[0]
+				if ext.ByteSwap {
+					uint16Val = (uint16Val << 8) | (uint16Val >> 8)
+				}
+				if err != nil {
+					return writeValue{}, fmt.Errorf("read original register error: %v", err)
+				}
+				intoUint16 := mergeBitsIntoUint16(int(v), ext.Bit, ext.BitLen, uint16Val)
+				if ext.ByteSwap {
+					intoUint16 = (intoUint16 << 8) | (intoUint16 >> 8)
+				}
+				values = []uint16{intoUint16}
+				break
+			}
+			out := make([]byte, 2)
+			if ext.ByteSwap {
+				binary.LittleEndian.PutUint16(out, uint16(v))
+			} else {
+				binary.BigEndian.PutUint16(out, uint16(v))
+			}
+			values = []uint16{binary.BigEndian.Uint16(out)}
+		case strings.ToUpper(common.ValueTypeInt16):
+			v, err := strconv.ParseInt(valueStr, 10, 16)
+			if err != nil {
+				return writeValue{}, fmt.Errorf("convert value %v to int16 error: %v", value, err)
+			}
+			if ext.BitLen > 0 {
+				if v > (1<<ext.BitLen - 1) {
+					return writeValue{}, fmt.Errorf("too large value %v to set in %d bits", v, ext.BitLen)
+				} else if v < 0 {
+					return writeValue{}, fmt.Errorf("negative value %v not allowed to set in bits", v)
+				}
+				uint16s, err := c.read(unitId, string(ext.RegisterType), ext.Address, ext.Quantity)
+				uint16Val := uint16s[0]
+				if ext.ByteSwap {
+					uint16Val = (uint16Val << 8) | (uint16Val >> 8)
+				}
+				if err != nil {
+					return writeValue{}, fmt.Errorf("read original register error: %v", err)
+				}
+				intoUint16 := mergeBitsIntoUint16(int(v), ext.Bit, ext.BitLen, uint16Val)
+				if ext.ByteSwap {
+					intoUint16 = (intoUint16 << 8) | (intoUint16 >> 8)
+				}
+				values = []uint16{intoUint16}
+				break
+			}
+			out := make([]byte, 2)
+			if ext.ByteSwap {
+				binary.LittleEndian.PutUint16(out, uint16(v))
+			} else {
+				binary.BigEndian.PutUint16(out, uint16(v))
+			}
+			values = []uint16{binary.BigEndian.Uint16(out)}
+		case strings.ToUpper(common.ValueTypeUint32):
+			v, err := strconv.ParseUint(valueStr, 10, 32)
+			if err != nil {
+				return writeValue{}, fmt.Errorf("convert value %v to uint32 error: %v", value, err)
+			}
+			out := make([]byte, 4)
+			if ext.ByteSwap {
+				binary.LittleEndian.PutUint32(out, uint32(v))
+			} else {
+				binary.BigEndian.PutUint32(out, uint32(v))
+			}
+			if ext.WordSwap {
+				out[0], out[1], out[2], out[3] =
+					out[2], out[3], out[0], out[1]
+			}
+			values = []uint16{binary.BigEndian.Uint16([]byte{out[2], out[3]}),
+				binary.BigEndian.Uint16([]byte{out[0], out[1]})}
+		case strings.ToUpper(common.ValueTypeInt32):
+			v, err := strconv.ParseInt(valueStr, 10, 32)
+			if err != nil {
+				return writeValue{}, fmt.Errorf("convert value %v to int32 error: %v", value, err)
+			}
+			out := make([]byte, 4)
+			if ext.ByteSwap {
+				binary.LittleEndian.PutUint32(out, uint32(v))
+			} else {
+				binary.BigEndian.PutUint32(out, uint32(v))
+			}
+			if ext.WordSwap {
+				out[0], out[1], out[2], out[3] =
+					out[2], out[3], out[0], out[1]
+			}
+			values = []uint16{binary.BigEndian.Uint16([]byte{out[2], out[3]}),
+				binary.BigEndian.Uint16([]byte{out[0], out[1]})}
+		case strings.ToUpper(common.ValueTypeFloat32):
+			v, err := strconv.ParseFloat(valueStr, 32)
+			if err != nil {
+				return writeValue{}, fmt.Errorf("convert value %v to float32 error: %v", value, err)
+			}
+			v32 := float32(v)
+			bits := math.Float32bits(v32)
+			out := make([]byte, 4)
+			if ext.ByteSwap {
+				binary.LittleEndian.PutUint32(out, bits)
+			} else {
+				binary.BigEndian.PutUint32(out, bits)
+			}
+			if ext.WordSwap {
+				out[0], out[1], out[2], out[3] =
+					out[2], out[3], out[0], out[1]
+			}
+			values = []uint16{binary.BigEndian.Uint16([]byte{out[2], out[3]}),
+				binary.BigEndian.Uint16([]byte{out[0], out[1]})}
+		case strings.ToUpper(common.ValueTypeUint64):
+			v, err := strconv.ParseUint(valueStr, 10, 64)
+			if err != nil {
+				return writeValue{}, fmt.Errorf("convert value %v to uint64 error: %v", value, err)
+			}
+			out := make([]byte, 8)
+			if ext.ByteSwap {
+				binary.LittleEndian.PutUint64(out, v)
+			} else {
+				binary.BigEndian.PutUint64(out, v)
+			}
+			if ext.WordSwap {
+				out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7] =
+					out[2], out[3], out[0], out[1], out[6], out[7], out[4], out[5]
+			}
+			values = []uint16{
+				binary.BigEndian.Uint16([]byte{out[6], out[7]}),
+				binary.BigEndian.Uint16([]byte{out[4], out[5]}),
+				binary.BigEndian.Uint16([]byte{out[2], out[3]}),
+				binary.BigEndian.Uint16([]byte{out[0], out[1]}),
+			}
+		case strings.ToUpper(common.ValueTypeInt64):
+			v, err := strconv.ParseInt(valueStr, 10, 64)
+			if err != nil {
+				return writeValue{}, fmt.Errorf("convert value %v to int64 error: %v", value, err)
+			}
+			out := make([]byte, 8)
+			if ext.ByteSwap {
+				binary.LittleEndian.PutUint64(out, uint64(v))
+			} else {
+				binary.BigEndian.PutUint64(out, uint64(v))
+			}
+			if ext.WordSwap {
+				out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7] =
+					out[2], out[3], out[0], out[1], out[6], out[7], out[4], out[5]
+			}
+			values = []uint16{
+				binary.BigEndian.Uint16([]byte{out[6], out[7]}),
+				binary.BigEndian.Uint16([]byte{out[4], out[5]}),
+				binary.BigEndian.Uint16([]byte{out[2], out[3]}),
+				binary.BigEndian.Uint16([]byte{out[0], out[1]}),
+			}
+		case strings.ToUpper(common.ValueTypeFloat64):
+			v, err := strconv.ParseFloat(valueStr, 64)
+			if err != nil {
+				return writeValue{}, fmt.Errorf("convert value %v to float64 error: %v", value, err)
+			}
+			out := make([]byte, 8)
+			if ext.ByteSwap {
+				binary.LittleEndian.PutUint64(out, math.Float64bits(v))
+			} else {
+				binary.BigEndian.PutUint64(out, math.Float64bits(v))
+			}
+			if ext.WordSwap {
+				out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7] =
+					out[2], out[3], out[0], out[1], out[6], out[7], out[4], out[5]
+			}
+			values = []uint16{
+				binary.BigEndian.Uint16([]byte{out[6], out[7]}),
+				binary.BigEndian.Uint16([]byte{out[4], out[5]}),
+				binary.BigEndian.Uint16([]byte{out[2], out[3]}),
+				binary.BigEndian.Uint16([]byte{out[0], out[1]}),
+			}
+		case strings.ToUpper(common.ValueTypeString):
+			valueBytes := []byte(valueStr)
+			if len(valueBytes) > int(ext.Quantity*2) {
+				return writeValue{}, fmt.Errorf("too long string [%v] to set in %d registers", valueStr, ext.Quantity)
+			}
+			if ext.ByteSwap {
+				for i := 0; i < len(valueBytes); i += 2 {
+					if i+1 < len(valueBytes) {
+						valueBytes[i], valueBytes[i+1] = valueBytes[i+1], valueBytes[i]
+					}
+				}
+			}
+			if ext.WordSwap {
+				for i := 0; i < len(valueBytes); i += 4 {
+					if i+3 < len(valueBytes) {
+						valueBytes[i], valueBytes[i+1], valueBytes[i+2], valueBytes[i+3] =
+							valueBytes[i+2], valueBytes[i+3], valueBytes[i], valueBytes[i+1]
+					}
+				}
+			}
+			values = make([]uint16, ext.Quantity)
+			for i := 0; i < len(valueBytes); i += 2 {
+				if i+1 < len(valueBytes) {
+					values[i/2] = binary.BigEndian.Uint16(valueBytes[i : i+2])
+				} else {
+					values[i/2] = binary.BigEndian.Uint16([]byte{valueBytes[i], 0})
+				}
+			}
+			for i := 0; i < len(values)/2; i++ {
+				values[i], values[len(values)-1-i] = values[len(values)-1-i], values[i]
+			}
+		default:
+			return writeValue{}, fmt.Errorf("unsupported raw type: %v", ext)
+		}
+	default:
+		return writeValue{}, fmt.Errorf("unsupported write register type: %v", ext)
+	}
+	return writeValue{
+		unitID:       unitId,
+		RegisterType: ext.RegisterType,
+		Address:      ext.Address,
+		Value:        values,
+	}, nil
 }

@@ -1,0 +1,21 @@
+{
+  "driver": [
+    {
+      "key": "test_1",
+      "protocol": [
+        "modbus",
+        "bacnet"
+      ],
+      "moId": [
+        "aaaaa"
+      ],
+      "tags": [
+        "xx",
+        "xxxx"
+      ]
+    }
+  ],
+  "model": {
+  },
+  "protocol": []
+}
