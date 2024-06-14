@@ -11,10 +11,15 @@ func OnReceiveHandler(connector plugin.Connector, raw interface{}) (result inter
 	helper.Logger.Debug("raw data", zap.Any("data", raw))
 	// 协议适配器
 	deviceData, err := connector.ProtocolAdapter().Decode(raw)
-	helper.Logger.Debug("decode data", zap.Any("data", deviceData))
 	if err != nil {
 		return nil, err
 	}
+	ExportTo(deviceData)
+	return
+}
+
+func ExportTo(deviceData []plugin.DeviceData) {
+	helper.Logger.Debug("export data", zap.Any("data", deviceData))
 	// 写入消息总线
 	for _, data := range deviceData {
 		//触发事件通知
@@ -34,5 +39,4 @@ func OnReceiveHandler(connector plugin.Connector, raw interface{}) (result inter
 			}
 		}
 	}
-	return
 }
