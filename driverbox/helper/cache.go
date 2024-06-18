@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 	"sync"
@@ -405,9 +404,7 @@ func (c *cache) AddOrUpdateDevice(device config.Device) error {
 	c.devices.Store(device.ID, device)
 	// 更新设备影子
 	if DeviceShadow != nil && !DeviceShadow.HasDevice(device.ID) {
-		if err := DeviceShadow.AddDevice(shadow.NewDevice(device, device.ModelName, nil)); err != nil {
-			return err
-		}
+		DeviceShadow.AddDevice(device.ID, device.ModelName)
 	}
 	// 持久化
 	return cmanager.AddOrUpdateDevice(device)

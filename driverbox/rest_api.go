@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/driverbox/models"
 	"github.com/ibuilding-x/driver-box/driverbox/restful"
 	"github.com/ibuilding-x/driver-box/driverbox/restful/request"
@@ -166,15 +165,11 @@ var (
 // All 获取影子所有设备数据
 func getAllDevices(_ *http.Request) (any, error) {
 	devices := helper.DeviceShadow.GetDevices()
-	result := make([]shadow.DeviceAPI, 0)
-	for _, device := range devices {
-		result = append(result, device.ToDeviceAPI())
-	}
 	//按DeviceID排序
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].ID < result[j].ID
+	sort.Slice(devices, func(i, j int) bool {
+		return devices[i].ID < devices[j].ID
 	})
-	return result, nil
+	return devices, nil
 }
 
 // Device 设备相关操作
@@ -235,23 +230,20 @@ func getDevicePoint(r *http.Request) (any, error) {
 
 // queryDevice 查询设备数据
 func queryDevice(sn string) (any, error) {
-	device, err := helper.DeviceShadow.GetDevice(sn)
-	if err != nil {
-		return nil, err
+	device, ok := helper.DeviceShadow.GetDevice(sn)
+	if !ok {
+		return nil, errors.New("unknown device")
 	}
-	return device.ToDeviceAPI(), nil
+	return device, nil
 }
 
 // queryDevicePoint 查询指定点位数据
 func queryDevicePoint(sn string, point string) (any, error) {
-	device, err := helper.DeviceShadow.GetDevice(sn)
+	p, err := helper.DeviceShadow.GetDevicePointStruct(sn, point)
 	if err != nil {
 		return nil, err
 	}
-	if result, ok := device.GetDevicePointAPI(point); ok {
-		return result, nil
-	}
-	return nil, unknownDevicePointErr
+	return p, nil
 }
 
 // updateDevice 更新设备影子数据

@@ -105,7 +105,7 @@ func tryReadNewValues(deviceId string, points []plugin.PointData) {
 		}
 		readPoints = append(readPoints, p)
 		//更新点位写时间
-		_ = helper.DeviceShadow.UpdateDevicePointWriteTime(deviceId, p.PointName)
+		_ = helper.DeviceShadow.SetWritePointValue(deviceId, p.PointName, p.Value)
 	}
 	if len(readPoints) == 0 {
 		return
@@ -127,7 +127,8 @@ func tryReadNewValues(deviceId string, points []plugin.PointData) {
 					newReadPoints = append(newReadPoints, p)
 					continue
 				}
-				if point.LatestWriteTime.After(checkTime) {
+				writeAt, _ := time.Parse("2006-01-02 15:04:05", point.WriteAt)
+				if writeAt.After(checkTime) {
 					//在checkTime之后有发生过写行为,则本次检验可能不会生效
 					helper.Logger.Warn("point write success, but expect point value maybe expired", zap.String("deviceId", deviceId), zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", point.Value))
 					continue

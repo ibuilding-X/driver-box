@@ -12,9 +12,11 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/core"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	"go.uber.org/zap"
+	"math/rand"
 	"net/http"
 	"os"
 	"path"
+	"time"
 )
 
 // 网关编号
@@ -70,6 +72,16 @@ func Start(exports []export.Export) error {
 	} else {
 		helper.TriggerEvents(event.EventCodeServiceStatus, SerialNo, event.ServiceStatusHealthy)
 	}
+
+	go func() {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		for {
+			time.Sleep(time.Second)
+			_ = helper.DeviceShadow.SetDevicePoint("swtich-1", "temperature", r.Intn(40))
+			_ = helper.DeviceShadow.SetDevicePoint("swtich-2", "temperature", r.Intn(40))
+
+		}
+	}()
 
 	helper.Logger.Info("start driver-box success.")
 	return err

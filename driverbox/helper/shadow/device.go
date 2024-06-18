@@ -1,132 +1,227 @@
 package shadow
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"log"
-	"sort"
 	"sync"
 	"time"
 )
 
-// Device 设备结构
-type Device struct {
-	id              string        // 设备id
-	modelName       string        // 设备模型名称
-	points          *sync.Map     // 设备点位列表
-	onlineBindPoint string        // 在线状态绑定点位（支持数据类型：bool、string、int、float）
-	online          bool          // 在线状态
-	ttl             time.Duration // 设备离线阈值，超过该时长没有收到数据视为离线
-	disconnectTimes int           // 断开连接次数，60秒内超过3次判定离线
-	updatedAt       time.Time     // 更新时间（用于设备离线判断）
+// device 设备内部结构
+type device struct {
+	id              string                  // 设备 ID
+	modelName       string                  // 设备模型名称
+	points          map[string]*devicePoint // 设备点位列表
+	online          bool                    // 在线状态
+	ttl             time.Duration           // 设备离线阈值，超过该时长没有收到数据视为离线
+	disconnectTimes int                     // 断开连接次数，60秒内超过3次判定离线
+	updatedAt       time.Time               // 更新时间（用于设备离线判断）
+	mutex           *sync.RWMutex           // 锁
 }
 
-// DeviceAPI 对外开放设备数据
-type DeviceAPI struct {
-	ID              string           `json:"id"`
-	Points          []DevicePointAPI `json:"points"`
-	Online          bool             `json:"online"`
-	TTL             string           `json:"ttl"`
-	DisconnectTimes int              `json:"disconnect_times"`
-	UpdatedAt       string           `json:"updated_at"`
+// devicePoint 设备点位内部结构
+type devicePoint struct {
+	name       string      // 点位名
+	value      interface{} // 点位值
+	writeValue interface{} // 点位下发值
+	updatedAt  time.Time   // 更新时间
+	writeAt    time.Time   // 最后下发时间（通信下发成功的时间）
 }
 
-// SetOnlineBindPoint 设备在线状态绑定指定点位
-func (d *Device) SetOnlineBindPoint(pointName string) {
-	d.onlineBindPoint = pointName
-}
-
-// DevicePoint 设备点位结构
-type DevicePoint struct {
-	Name      string      // 点位名称
-	Value     interface{} // 点位值
-	UpdatedAt time.Time   // 点位最后更新时间（用于点位缓存过期判断）
-	//该点位最近一次执行写操作的时间
-	LatestWriteTime time.Time
-}
-
-// DevicePointAPI 对外开放设备点位
-type DevicePointAPI struct {
-	Name            string `json:"name"`
-	Value           any    `json:"value"`
-	UpdatedAt       string `json:"updated_at"`
-	LatestWriteTime string `json:"write_time"`
-}
-
-func NewDevice(device config.Device, modelName string, points map[string]DevicePoint) Device {
-	//默认24小时无数据上报，视为设备离线
-	ttl := time.Duration(24) * time.Hour
-	if device.Ttl != "" {
-		t, err := time.ParseDuration(device.Ttl)
-		if err != nil {
-			log.Fatalf("device:%v parse ttl:%v error:%v", device.ID, device.Ttl, err)
-		} else {
-			ttl = t
-		}
-	} else {
-		log.Printf("device:%v ttl unset, reset default value:%v", device.ID, ttl)
-	}
-	// 转换 points
-	ps := &sync.Map{}
-	for k, _ := range points {
-		ps.Store(k, points[k])
-	}
-	return Device{
-		id:              device.ID,
+func newDevice(id string, modelName string, ttl time.Duration) *device {
+	return &device{
+		id:              id,
 		modelName:       modelName,
-		points:          ps,
-		onlineBindPoint: "",
+		points:          make(map[string]*devicePoint),
+		online:          false,
 		ttl:             ttl,
-		online:          false, // 默认设备处于离线状态
+		disconnectTimes: 0,
+		updatedAt:       time.Time{},
+		mutex:           &sync.RWMutex{},
 	}
 }
 
-// ToDeviceAPI 转换设备 API
-func (d *Device) ToDeviceAPI() DeviceAPI {
-	device := DeviceAPI{
+func newDevicePoint(name string) *devicePoint {
+	return &devicePoint{
+		name:       name,
+		value:      nil,
+		writeValue: nil,
+		updatedAt:  time.Time{},
+		writeAt:    time.Time{},
+	}
+}
+
+func (d *device) setPointValue(name string, value interface{}) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	// 更新设备最后更新时间
+	updatedAt := time.Now()
+	d.updatedAt = updatedAt
+
+	// 重置设备断开连接次数
+	d.disconnectTimes = 0
+
+	// 初始化设备点位
+	if d.points[name] == nil {
+		d.points[name] = newDevicePoint(name)
+	}
+
+	// 更新设备点位值
+	d.points[name].value = value
+	d.points[name].updatedAt = updatedAt
+}
+
+func (d *device) getPointValue(name string) (interface{}, bool) {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+
+	// 1. 离线判断
+	if d.online == false {
+		return nil, false
+	}
+
+	if d.points[name] != nil {
+		// 2. 过期判断
+		if time.Since(d.points[name].updatedAt) <= d.ttl {
+			return d.points[name].value, true
+		}
+	}
+
+	return nil, false
+}
+
+func (d *device) setWritePointValue(name string, value interface{}) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	// 初始化设备点位
+	if d.points[name] == nil {
+		d.points[name] = newDevicePoint(name)
+	}
+
+	// 更新设备点位值
+	d.points[name].writeValue = value
+	d.points[name].writeAt = time.Now()
+}
+
+func (d *device) getWritePointValue(name string) (interface{}, bool) {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+
+	if d.points[name] != nil {
+		return d.points[name].writeValue, true
+	}
+
+	return nil, false
+}
+
+func (d *device) getPoint(name string) (devicePoint, bool) {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+
+	if d.points[name] != nil {
+		return *d.points[name], true
+	}
+
+	return devicePoint{}, false
+}
+
+func (d *device) toPublic() Device {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+
+	// 点位转换
+	points := make(map[string]DevicePoint)
+	for pointName, _ := range d.points {
+		if d.points[pointName] != nil {
+			points[pointName] = d.points[pointName].toPublic()
+		}
+	}
+
+	return Device{
 		ID:              d.id,
-		Points:          make([]DevicePointAPI, 0),
+		ModelName:       d.modelName,
+		Points:          points,
 		Online:          d.online,
 		TTL:             d.ttl.String(),
 		DisconnectTimes: d.disconnectTimes,
 		UpdatedAt:       d.updatedAt.Format("2006-01-02 15:04:05"),
 	}
-	// 重组点位
-	d.points.Range(func(_, value any) bool {
-		if point, ok := value.(DevicePoint); ok {
-			device.Points = append(device.Points, point.ToDevicePointAPI())
-		}
+}
+
+func (d *device) getUpdatedAt() time.Time {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+
+	return d.updatedAt
+}
+
+func (d *device) getOnline() bool {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+
+	return d.online
+}
+
+// setOnline 设置设备在线状态
+// 返回值为 true 表示状态变化，false 表示状态未变化
+func (d *device) setOnline(online bool) bool {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	if d.online == online {
+		return false
+	}
+
+	d.online = online
+	return true
+}
+
+// maybeOffline 设备可能离线
+// 返回值为 true 表示本次设定满足离线条件，设备可能离线
+func (d *device) maybeOffline() bool {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	// 已离线，不做处理
+	if d.online == false {
+		return false
+	}
+
+	// 离线阈值判断
+	d.disconnectTimes++
+	if time.Since(d.updatedAt).Seconds() > 60 && d.disconnectTimes >= 3 {
+		d.online = false
 		return true
-	})
+	}
 
-	//按点位名排序
-	sort.Slice(device.Points, func(i, j int) bool {
-		return device.Points[i].Name < device.Points[j].Name
-	})
-	return device
+	return false
 }
 
-func (dp DevicePoint) ToDevicePointAPI() DevicePointAPI {
-	return DevicePointAPI{
-		Name:            dp.Name,
-		Value:           dp.Value,
-		UpdatedAt:       dp.UpdatedAt.Format("2006-01-02 15:04:05"),
-		LatestWriteTime: dp.LatestWriteTime.Format("2006-01-02 15:04:05"),
+// refreshStatus 刷新设备状态
+func (d *device) refreshStatus() (old bool, new bool) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	// 离线不处理
+	if d.online == false {
+		return false, false
 	}
+
+	// TTL 判定
+	if time.Since(d.updatedAt) > d.ttl {
+		d.online = false
+		return true, false
+	}
+
+	return true, true
 }
 
-// GetDevicePoint 获取设备指定点位数据
-func (d *Device) GetDevicePoint(pointName string) (DevicePoint, bool) {
-	if v, ok := d.points.Load(pointName); ok {
-		point, _ := v.(DevicePoint)
-		return point, true
+func (dp *devicePoint) toPublic() DevicePoint {
+	return DevicePoint{
+		Name:       dp.name,
+		Value:      dp.value,
+		WriteValue: dp.writeValue,
+		UpdatedAt:  dp.updatedAt.Format("2006-01-02 15:04:05"),
+		WriteAt:    dp.writeAt.Format("2006-01-02 15:04:05"),
 	}
-	return DevicePoint{}, false
-}
-
-// GetDevicePointAPI 获取设备指定点位数据（开放 API 使用）
-func (d *Device) GetDevicePointAPI(pointName string) (DevicePointAPI, bool) {
-	if point, ok := d.GetDevicePoint(pointName); ok {
-		return point.ToDevicePointAPI(), true
-	}
-	return DevicePointAPI{}, false
 }
