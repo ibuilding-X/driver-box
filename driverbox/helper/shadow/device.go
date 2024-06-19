@@ -9,7 +9,7 @@ import (
 type device struct {
 	id              string                  // 设备 ID
 	modelName       string                  // 设备模型名称
-	points          map[string]*devicePoint // 设备点位列表
+	points          map[string]*DevicePoint // 设备点位列表
 	online          bool                    // 在线状态
 	ttl             time.Duration           // 设备离线阈值，超过该时长没有收到数据视为离线
 	disconnectTimes int                     // 断开连接次数，60秒内超过3次判定离线
@@ -17,20 +17,11 @@ type device struct {
 	mutex           *sync.RWMutex           // 锁
 }
 
-// devicePoint 设备点位内部结构
-type devicePoint struct {
-	name       string      // 点位名
-	value      interface{} // 点位值
-	writeValue interface{} // 点位下发值
-	updatedAt  time.Time   // 更新时间
-	writeAt    time.Time   // 最后下发时间（通信下发成功的时间）
-}
-
 func newDevice(id string, modelName string, ttl time.Duration) *device {
 	return &device{
 		id:              id,
 		modelName:       modelName,
-		points:          make(map[string]*devicePoint),
+		points:          make(map[string]*DevicePoint),
 		online:          false,
 		ttl:             ttl,
 		disconnectTimes: 0,
@@ -39,13 +30,9 @@ func newDevice(id string, modelName string, ttl time.Duration) *device {
 	}
 }
 
-func newDevicePoint(name string) *devicePoint {
-	return &devicePoint{
-		name:       name,
-		value:      nil,
-		writeValue: nil,
-		updatedAt:  time.Time{},
-		writeAt:    time.Time{},
+func newDevicePoint(name string) *DevicePoint {
+	return &DevicePoint{
+		Name: name,
 	}
 }
 
@@ -66,8 +53,8 @@ func (d *device) setPointValue(name string, value interface{}) {
 	}
 
 	// 更新设备点位值
-	d.points[name].value = value
-	d.points[name].updatedAt = updatedAt
+	d.points[name].Value = value
+	d.points[name].UpdatedAt = updatedAt
 }
 
 func (d *device) getPointValue(name string) (interface{}, bool) {
@@ -81,8 +68,8 @@ func (d *device) getPointValue(name string) (interface{}, bool) {
 
 	if d.points[name] != nil {
 		// 2. 过期判断
-		if time.Since(d.points[name].updatedAt) <= d.ttl {
-			return d.points[name].value, true
+		if time.Since(d.points[name].UpdatedAt) <= d.ttl {
+			return d.points[name].Value, true
 		}
 	}
 
@@ -99,8 +86,8 @@ func (d *device) setWritePointValue(name string, value interface{}) {
 	}
 
 	// 更新设备点位值
-	d.points[name].writeValue = value
-	d.points[name].writeAt = time.Now()
+	d.points[name].WriteValue = value
+	d.points[name].WriteAt = time.Now()
 }
 
 func (d *device) getWritePointValue(name string) (interface{}, bool) {
@@ -108,13 +95,13 @@ func (d *device) getWritePointValue(name string) (interface{}, bool) {
 	defer d.mutex.RUnlock()
 
 	if d.points[name] != nil {
-		return d.points[name].writeValue, true
+		return d.points[name].WriteValue, true
 	}
 
 	return nil, false
 }
 
-func (d *device) getPoint(name string) (devicePoint, bool) {
+func (d *device) getPoint(name string) (DevicePoint, bool) {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
@@ -122,7 +109,7 @@ func (d *device) getPoint(name string) (devicePoint, bool) {
 		return *d.points[name], true
 	}
 
-	return devicePoint{}, false
+	return DevicePoint{}, false
 }
 
 func (d *device) toPublic() Device {
@@ -144,7 +131,7 @@ func (d *device) toPublic() Device {
 		Online:          d.online,
 		TTL:             d.ttl.String(),
 		DisconnectTimes: d.disconnectTimes,
-		UpdatedAt:       d.updatedAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt:       d.updatedAt,
 	}
 }
 
@@ -216,12 +203,12 @@ func (d *device) refreshStatus() (old bool, new bool) {
 	return true, true
 }
 
-func (dp *devicePoint) toPublic() DevicePoint {
+func (dp *DevicePoint) toPublic() DevicePoint {
 	return DevicePoint{
-		Name:       dp.name,
-		Value:      dp.value,
-		WriteValue: dp.writeValue,
-		UpdatedAt:  dp.updatedAt.Format("2006-01-02 15:04:05"),
-		WriteAt:    dp.writeAt.Format("2006-01-02 15:04:05"),
+		Name:       dp.Name,
+		Value:      dp.Value,
+		WriteValue: dp.WriteValue,
+		UpdatedAt:  dp.UpdatedAt,
+		WriteAt:    dp.WriteAt,
 	}
 }

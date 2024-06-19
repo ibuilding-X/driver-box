@@ -15,16 +15,16 @@ type Device struct {
 	Online          bool                   `json:"online"`
 	TTL             string                 `json:"ttl"`
 	DisconnectTimes int                    `json:"disconnectTimes"`
-	UpdatedAt       string                 `json:"updatedAt"`
+	UpdatedAt       time.Time              `json:"updatedAt"`
 }
 
 // DevicePoint 设备点位
 type DevicePoint struct {
-	Name       string `json:"name"`
-	Value      any    `json:"value"`
-	WriteValue any    `json:"writeValue"`
-	UpdatedAt  string `json:"updatedAt"`
-	WriteAt    string `json:"writeAt"`
+	Name       string      `json:"name"`
+	Value      interface{} `json:"value"`
+	WriteValue interface{} `json:"writeValue"`
+	UpdatedAt  time.Time   `json:"updatedAt"`
+	WriteAt    time.Time   `json:"writeAt"`
 }
 
 // DeviceShadow 设备影子
@@ -42,8 +42,8 @@ type DeviceShadow interface {
 	GetDevicePoint(id, pointName string) (value interface{}, err error)
 	// GetDevicePoints 获取设备所有点位
 	GetDevicePoints(id string) (points map[string]DevicePoint, err error)
-	// GetDevicePointStruct 获取设备点位结构体
-	GetDevicePointStruct(id, pointName string) (point DevicePoint, err error)
+	// GetDevicePointDetails 获取设备点位详情
+	GetDevicePointDetails(id, pointName string) (point DevicePoint, err error)
 
 	// GetDeviceUpdateAt 获取设备最后更新时间
 	GetDeviceUpdateAt(id string) (time.Time, error)

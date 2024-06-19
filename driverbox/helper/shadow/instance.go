@@ -109,7 +109,7 @@ func (d *deviceShadow) GetDevicePoints(id string) (points map[string]DevicePoint
 	return nil, ErrUnknownDevice
 }
 
-func (d *deviceShadow) GetDevicePointStruct(id, pointName string) (point DevicePoint, err error) {
+func (d *deviceShadow) GetDevicePointDetails(id, pointName string) (point DevicePoint, err error) {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 

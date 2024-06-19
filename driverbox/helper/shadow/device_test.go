@@ -95,7 +95,7 @@ func TestDevice(t *testing.T) {
 			if !ok {
 				t.Error("failed to get point")
 			}
-			if value.value != v {
+			if value.Value != v {
 				t.Error("point value is not equal")
 			}
 		}
