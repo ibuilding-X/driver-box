@@ -239,7 +239,7 @@ func queryDevice(sn string) (any, error) {
 
 // queryDevicePoint 查询指定点位数据
 func queryDevicePoint(sn string, point string) (any, error) {
-	p, err := helper.DeviceShadow.GetDevicePointStruct(sn, point)
+	p, err := helper.DeviceShadow.GetDevicePointDetails(sn, point)
 	if err != nil {
 		return nil, err
 	}
