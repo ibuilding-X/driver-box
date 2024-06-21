@@ -143,8 +143,7 @@ func initDeviceShadow(configMap map[string]config.Config) {
 					continue
 				}
 				// 添加设备
-				dev := shadow.NewDevice(d, model.Name, nil)
-				_ = helper.DeviceShadow.AddDevice(dev)
+				helper.DeviceShadow.AddDevice(d.ID, model.Name)
 			}
 		}
 	}

@@ -14,6 +14,9 @@ import (
 // SendBatchWrite 发送多个点位写命令
 func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 	logger.Logger.Info("send batch write", zap.String("deviceId", deviceId), zap.Any("points", points))
+	for _, point := range points {
+		_ = helper.DeviceShadow.SetWritePointValue(deviceId, point.PointName, point.Value)
+	}
 	//设备驱动层加工
 	result, err := deviceDriverProcess(deviceId, plugin.WriteMode, points...)
 	if err != nil {
@@ -104,8 +107,6 @@ func tryReadNewValues(deviceId string, points []plugin.PointData) {
 			continue
 		}
 		readPoints = append(readPoints, p)
-		//更新点位写时间
-		_ = helper.DeviceShadow.UpdateDevicePointWriteTime(deviceId, p.PointName)
 	}
 	if len(readPoints) == 0 {
 		return
@@ -127,7 +128,7 @@ func tryReadNewValues(deviceId string, points []plugin.PointData) {
 					newReadPoints = append(newReadPoints, p)
 					continue
 				}
-				if point.LatestWriteTime.After(checkTime) {
+				if point.WriteAt.After(checkTime) {
 					//在checkTime之后有发生过写行为,则本次检验可能不会生效
 					helper.Logger.Warn("point write success, but expect point value maybe expired", zap.String("deviceId", deviceId), zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", point.Value))
 					continue
