@@ -143,7 +143,7 @@ func initDeviceShadow(configMap map[string]config.Config) {
 					continue
 				}
 				// 添加设备
-				helper.DeviceShadow.AddDevice(d.ID, d.ModelName)
+				helper.DeviceShadow.AddDevice(d.ID, model.Name)
 			}
 		}
 	}
