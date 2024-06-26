@@ -52,10 +52,7 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 		// 获取点位信息
 		p, ok := CoreCache.GetPointByDevice(deviceData.ID, point.PointName)
 		if !ok {
-			//todo 临时屏蔽vrf异常日志输出
-			if !strings.HasPrefix(deviceData.ID, "vrf/") {
-				Logger.Error("unknown point", zap.Any("deviceId", deviceData.ID), zap.Any("pointName", point.PointName))
-			}
+			Logger.Error("unknown point", zap.Any("deviceId", deviceData.ID), zap.Any("pointName", point.PointName))
 			continue
 		}
 
@@ -103,7 +100,10 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 	for i, p := range deviceData.Values {
 		point, ok := CoreCache.GetPointByDevice(deviceData.ID, p.PointName)
 		if !ok {
-			Logger.Warn("unknown point", zap.Any("deviceId", deviceData.ID), zap.Any("pointName", p.PointName))
+			//todo 临时屏蔽vrf异常日志输出
+			if !strings.HasPrefix(deviceData.ID, "vrf/") {
+				Logger.Error("unknown point", zap.Any("deviceId", deviceData.ID), zap.Any("pointName", p.PointName))
+			}
 			continue
 		}
 		//点位值类型还原
