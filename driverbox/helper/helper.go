@@ -52,7 +52,10 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 		// 获取点位信息
 		p, ok := CoreCache.GetPointByDevice(deviceData.ID, point.PointName)
 		if !ok {
-			Logger.Error("unknown point", zap.Any("deviceId", deviceData.ID), zap.Any("pointName", point.PointName))
+			//todo 临时屏蔽vrf异常日志输出
+			if !strings.HasPrefix(deviceData.ID, "vrf/") {
+				Logger.Error("unknown point", zap.Any("deviceId", deviceData.ID), zap.Any("pointName", point.PointName))
+			}
 			continue
 		}
 
@@ -68,9 +71,6 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 		}
 
 		// 缓存
-		if Logger != nil {
-			Logger.Info("shadow store point value", zap.String("pointName", p.Name), zap.Any("value", point.Value))
-		}
 		if err := DeviceShadow.SetDevicePoint(deviceData.ID, point.PointName, point.Value); err != nil {
 			Logger.Error("shadow store point value error", zap.Error(err), zap.Any("deviceId", deviceData.ID))
 		}
