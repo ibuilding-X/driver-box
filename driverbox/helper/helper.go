@@ -13,6 +13,7 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/library"
 	"go.uber.org/zap"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -51,7 +52,10 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 		// 获取点位信息
 		p, ok := CoreCache.GetPointByDevice(deviceData.ID, point.PointName)
 		if !ok {
-			Logger.Warn("unknown point", zap.Any("deviceId", deviceData.ID), zap.Any("pointName", point.PointName))
+			//todo 临时屏蔽vrf异常日志输出
+			if !strings.HasPrefix(deviceData.ID, "vrf/") {
+				Logger.Error("unknown point", zap.Any("deviceId", deviceData.ID), zap.Any("pointName", point.PointName))
+			}
 			continue
 		}
 
