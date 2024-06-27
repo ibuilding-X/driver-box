@@ -2,7 +2,7 @@ package shadow
 
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/event"
-	export0 "github.com/ibuilding-x/driver-box/internal/export"
+	"github.com/ibuilding-x/driver-box/internal/export"
 	"sync"
 	"time"
 )
@@ -45,7 +45,7 @@ func (d *deviceShadow) AddDevice(id string, modelName string, ttl ...time.Durati
 
 	// 添加
 	d.devices[id] = newDevice(id, modelName, customTTL)
-	export0.TriggerEvents(event.EventCodeAddDevice, id, nil)
+	export.TriggerEvents(event.EventCodeAddDevice, id, nil)
 }
 
 func (d *deviceShadow) GetDevice(id string) (device Device, ok bool) {
