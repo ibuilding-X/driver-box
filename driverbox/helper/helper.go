@@ -133,20 +133,6 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 	return nil
 }
 
-// 触发事件
-func TriggerEvents(eventCode string, key string, value interface{}) {
-	for _, export0 := range Exports {
-		if !export0.IsReady() {
-			Logger.Warn("export not ready")
-			continue
-		}
-		err := export0.OnEvent(eventCode, key, value)
-		if err != nil {
-			Logger.Error("trigger event error", zap.String("eventCode", eventCode), zap.String("key", key), zap.Any("value", value), zap.Error(err))
-		}
-	}
-}
-
 func multiplyWithFloat64(value interface{}, scale float64) (float64, error) {
 	switch v := value.(type) {
 	case float64:

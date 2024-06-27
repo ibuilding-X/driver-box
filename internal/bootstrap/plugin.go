@@ -9,6 +9,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
+	"github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/internal/library"
 	"github.com/ibuilding-x/driver-box/internal/lua"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
@@ -122,7 +123,7 @@ func initDeviceShadow(configMap map[string]config.Config) {
 				helper.Logger.Warn("device offline...", zap.String("deviceId", deviceId))
 			}
 			//触发设备在离线事件
-			helper.TriggerEvents(event.EventCodeDeviceStatus, deviceId, online)
+			export.TriggerEvents(event.EventCodeDeviceStatus, deviceId, online)
 		})
 	}
 	// 添加设备

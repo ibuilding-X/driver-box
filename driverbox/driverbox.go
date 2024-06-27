@@ -10,6 +10,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
 	"github.com/ibuilding-x/driver-box/internal/core"
+	export0 "github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	"go.uber.org/zap"
 	"net/http"
@@ -42,7 +43,7 @@ func Start(exports []export.Export) error {
 	helper.Crontab.Start()
 
 	//第四步：启动Export
-	helper.Exports = exports
+	export0.Exports = exports
 	for _, item := range exports {
 		if err := item.Init(); err != nil {
 			helper.Logger.Error("init export error", zap.Error(err))
@@ -66,9 +67,9 @@ func Start(exports []export.Export) error {
 	}
 
 	if err != nil {
-		helper.TriggerEvents(event.EventCodeServiceStatus, SerialNo, event.ServiceStatusError)
+		TriggerEvents(event.EventCodeServiceStatus, SerialNo, event.ServiceStatusError)
 	} else {
-		helper.TriggerEvents(event.EventCodeServiceStatus, SerialNo, event.ServiceStatusHealthy)
+		TriggerEvents(event.EventCodeServiceStatus, SerialNo, event.ServiceStatusHealthy)
 	}
 
 	helper.Logger.Info("start driver-box success.")
@@ -115,4 +116,14 @@ func WritePoint(deviceId string, pointData plugin.PointData) error {
 // 批量写点位
 func WritePoints(deviceId string, pointData []plugin.PointData) error {
 	return core.SendBatchWrite(deviceId, pointData)
+}
+
+//// 获取当前被注册至 driver-box 的所有export
+//func GetExports() []export.Export {
+//	return export0.Exports
+//}
+
+// 触发运行时事件
+func TriggerEvents(eventCode string, key string, value interface{}) {
+	export0.TriggerEvents(eventCode, key, value)
 }

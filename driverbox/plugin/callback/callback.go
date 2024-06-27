@@ -3,6 +3,7 @@ package callback
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/export"
 	"go.uber.org/zap"
 )
 
@@ -25,7 +26,7 @@ func ExportTo(deviceData []plugin.DeviceData) {
 		//触发事件通知
 		if len(data.Events) > 0 {
 			for _, event := range data.Events {
-				helper.TriggerEvents(event.Code, data.ID, event.Value)
+				export.TriggerEvents(event.Code, data.ID, event.Value)
 			}
 		}
 
@@ -33,7 +34,7 @@ func ExportTo(deviceData []plugin.DeviceData) {
 		if len(data.Values) == 0 {
 			continue
 		}
-		for _, export := range helper.Exports {
+		for _, export := range export.Exports {
 			if export.IsReady() {
 				export.ExportTo(data)
 			}
