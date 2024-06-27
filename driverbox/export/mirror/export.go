@@ -17,6 +17,9 @@ var once = &sync.Once{}
 
 const MirrorPluginName = "mirror"
 
+// 在 model attributes 中可以的key值
+const MirrorTemplateName = "mirror_tpl"
+
 type Export struct {
 	ready  bool
 	plugin *mirror.Plugin
@@ -54,7 +57,7 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 	if !ok {
 		return nil
 	}
-	c := rawModel.Attributes["mirror"]
+	c := rawModel.Attributes[MirrorTemplateName]
 	if c == nil {
 		return nil
 	}
@@ -91,12 +94,17 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 		},
 		DevicePoints: points,
 	}
+	//若模型已存在，则忽略
 	e := helper.CoreCache.AddModel(MirrorPluginName, mirrorModel)
-	helper.CoreCache.AddOrUpdateDevice(mirrorDevice)
+	if e != nil {
+		helper.Logger.Error("add mirror model error", zap.Error(e))
+		return e
+	}
+	e = helper.CoreCache.AddOrUpdateDevice(mirrorDevice)
 	if e != nil {
 		helper.Logger.Error("add mirror model error", zap.Error(e))
 	}
-	return nil
+	return e
 }
 
 func (export *Export) IsReady() bool {
