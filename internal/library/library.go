@@ -19,23 +19,24 @@ const (
 	mirrorTemplate Type = "mirror_tpl"
 )
 
-var once = &sync.Once{}
-var device *DeviceDriver
+var driverOnce = &sync.Once{}
+var mirrorOnce = &sync.Once{}
+var driver *DeviceDriver
 var mirror *MirrorTemplate
 
 // 设备驱动库
 func Driver() *DeviceDriver {
-	once.Do(func() {
-		device = &DeviceDriver{
+	driverOnce.Do(func() {
+		driver = &DeviceDriver{
 			drivers: make(map[string]*glua.LState),
 		}
 	})
-	return device
+	return driver
 }
 
 // 镜像模版库
 func Mirror() *MirrorTemplate {
-	once.Do(func() {
+	mirrorOnce.Do(func() {
 		mirror = &MirrorTemplate{}
 	})
 	return mirror
