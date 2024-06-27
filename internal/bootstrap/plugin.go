@@ -65,7 +65,7 @@ func LoadPlugins() error {
 
 		var ls *glua.LState
 		path := filepath.Join(helper.EnvConfig.ConfigPath, key, common.LuaScriptName)
-		if lua.FileExists(path) {
+		if common.FileExists(path) {
 			ls, err = lua.InitLuaVM(path)
 			if err != nil {
 				helper.Logger.Error(err.Error())
@@ -90,7 +90,7 @@ func LoadPlugins() error {
 // 初始化设备层驱动
 func initDeviceDriver(configMap map[string]config.Config) {
 	//清空设备驱动库
-	library.UnloadDeviceDrivers()
+	library.Driver().UnloadDeviceDrivers()
 	//重新添加
 	drivers := make(map[string]string)
 	for _, c := range configMap {
@@ -103,7 +103,7 @@ func initDeviceDriver(configMap map[string]config.Config) {
 		}
 	}
 	for key, _ := range drivers {
-		err := library.LoadLibrary(library.DeviceDriver, key)
+		err := library.Driver().LoadLibrary(key)
 		if err != nil {
 			helper.Logger.Error("load device driver error", zap.String("driverKey", key), zap.Error(err))
 		}

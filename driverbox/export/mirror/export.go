@@ -7,6 +7,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
+	"github.com/ibuilding-x/driver-box/internal/library"
 	"github.com/ibuilding-x/driver-box/internal/plugins/mirror"
 	"go.uber.org/zap"
 	"sync"
@@ -19,6 +20,8 @@ const MirrorPluginName = "mirror"
 
 // 在 model attributes 中可以的key值
 const MirrorTemplateName = "mirror_tpl"
+
+const MirrorTemplateKeyName = "mirror_tpl_key"
 
 type Export struct {
 	ready  bool
@@ -57,10 +60,14 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 	if !ok {
 		return nil
 	}
-	c := rawModel.Attributes[MirrorTemplateName]
+	c, err := export.getMirrorConfig(rawModel)
+	if err != nil {
+		return err
+	}
 	if c == nil {
 		return nil
 	}
+
 	mirrorConfig := new(autoMirrorConfig)
 	if err := helper.Map2Struct(c, mirrorConfig); err != nil {
 		return err
@@ -105,6 +112,19 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 		helper.Logger.Error("add mirror model error", zap.Error(e))
 	}
 	return e
+}
+
+// 获取模型中关联的镜像配置
+func (export *Export) getMirrorConfig(rawModel config.Model) (interface{}, error) {
+	c := rawModel.Attributes[MirrorTemplateName]
+	if c != nil {
+		return c, nil
+	}
+	tmpKey := rawModel.Attributes[MirrorTemplateKeyName]
+	if tmpKey == nil {
+		return nil, nil
+	}
+	return library.Mirror().LoadLibrary(tmpKey.(string))
 }
 
 func (export *Export) IsReady() bool {
