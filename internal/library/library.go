@@ -1,9 +1,7 @@
 package library
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/config"
 	glua "github.com/yuin/gopher-lua"
-	"path"
 	"sync"
 )
 
@@ -20,8 +18,6 @@ const (
 	//镜像设备模版
 	mirrorTemplate Type = "mirror_tpl"
 )
-
-var baseDir = path.Join(config.ResourcePath, "library")
 
 var once = &sync.Once{}
 var device *DeviceDriver

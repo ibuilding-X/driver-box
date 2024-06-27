@@ -89,7 +89,7 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 
 	//通过设备层驱动对点位值进行加工
 	if driverEnable {
-		result := library.DeviceDecode(device.DriverKey, library.DeviceDecodeRequest{DeviceId: deviceData.ID, Points: deviceData.Values})
+		result := library.Driver().DeviceDecode(device.DriverKey, library.DeviceDecodeRequest{DeviceId: deviceData.ID, Points: deviceData.Values})
 		if result.Error != nil {
 			Logger.Error("library.DeviceDecode error", zap.Error(result.Error), zap.Any("deviceData", deviceData))
 			return result.Error

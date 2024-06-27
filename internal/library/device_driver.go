@@ -3,6 +3,7 @@ package library
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/lua"
 	glua "github.com/yuin/gopher-lua"
@@ -15,7 +16,7 @@ type DeviceDriver struct {
 
 // 加载指定key的驱动
 func (device *DeviceDriver) LoadLibrary(driverKey string) error {
-	L, err := lua.InitLuaVM(path.Join(baseDir, string(deviceDriver), driverKey+".lua"))
+	L, err := lua.InitLuaVM(path.Join(config.ResourcePath, "library", string(deviceDriver), driverKey+".lua"))
 	if err != nil {
 		return err
 	}
