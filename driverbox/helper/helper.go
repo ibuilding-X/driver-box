@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -16,8 +15,6 @@ import (
 	"strings"
 	"sync"
 )
-
-var Exports []export.Export
 
 var DeviceShadow shadow.DeviceShadow // 本地设备影子
 
