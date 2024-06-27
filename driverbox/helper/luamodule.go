@@ -3,6 +3,7 @@ package helper
 import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/export"
 	lua "github.com/yuin/gopher-lua"
 )
 
@@ -74,7 +75,7 @@ func (lm *LuaModule) WriteToMsgBus(L *lua.LState) int {
 
 	// 发送数据
 	if len(deviceData.Values) > 0 {
-		for _, export := range Exports {
+		for _, export := range export.Exports {
 			if export.IsReady() {
 				export.ExportTo(deviceData)
 			}

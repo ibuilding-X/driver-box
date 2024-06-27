@@ -5,6 +5,10 @@ const (
 	EventCodeDeviceStatus = "deviceStatus"
 	//driver-box服务状态
 	EventCodeServiceStatus = "serviceStatus"
+	//添加设备
+	EventCodeAddDevice = "addDevice"
+	//删除设备
+	EventCodeDeleteDevice = "deleteDevice"
 )
 
 const (

@@ -118,6 +118,8 @@ type ModelBase struct {
 	ModelID string `json:"modelId" validate:"required"`
 	// 模型描述
 	Description string `json:"description" validate:"required"`
+	//扩展属性
+	Attributes map[string]interface{} `json:"attributes"`
 }
 
 // DeviceModel 设备模型
