@@ -45,6 +45,7 @@ func NewExport() *Export {
 // 点位变化触发场景联动
 func (export *Export) ExportTo(deviceData plugin.DeviceData) {
 	if export.plugin.VirtualConnector != nil {
+		helper.Logger.Info("export to virtual connector", zap.Any("deviceData", deviceData))
 		callback.OnReceiveHandler(export.plugin.VirtualConnector, deviceData)
 	}
 }
