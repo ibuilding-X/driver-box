@@ -9,6 +9,8 @@ const (
 	EventCodeAddDevice = "addDevice"
 	//删除设备
 	EventCodeDeleteDevice = "deleteDevice"
+	//即将执行ExportTo
+	EventCodeWillExportTo = "willExportTo"
 )
 
 const (

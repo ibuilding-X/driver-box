@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/internal/library"
 	"go.uber.org/zap"
 	"strconv"
@@ -42,6 +44,13 @@ func PointCacheFilter(deviceData *plugin.DeviceData) {
 		Logger.Error("device driver process error", zap.Error(err))
 		return
 	}
+	//获取完成点位加工后的真实 deviceData
+	export.TriggerEvents(event.EventCodeWillExportTo, deviceData.ID, plugin.DeviceData{
+		ID:         deviceData.ID,
+		Values:     deviceData.Values,
+		Events:     deviceData.Events,
+		ExportType: deviceData.ExportType,
+	})
 
 	// 定义一个空的整型数组
 	var points []plugin.PointData

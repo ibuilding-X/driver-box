@@ -44,19 +44,28 @@ func NewExport() *Export {
 
 // 点位变化触发场景联动
 func (export *Export) ExportTo(deviceData plugin.DeviceData) {
-	if export.plugin.VirtualConnector != nil {
-		helper.Logger.Info("export to virtual connector", zap.Any("deviceData", deviceData))
-		callback.OnReceiveHandler(export.plugin.VirtualConnector, deviceData)
-	}
+	//设备点位已通过
+	//if export.plugin.VirtualConnector != nil && len(deviceData.Events) > 0 {
+	//	helper.Logger.Info("export to virtual connector", zap.Any("deviceData", deviceData))
+	//	callback.OnReceiveHandler(export.plugin.VirtualConnector, deviceData)
+	//}
 }
 
 // 继承Export OnEvent接口
 func (export *Export) OnEvent(eventCode string, key string, eventValue interface{}) error {
-	if eventCode != event.EventCodeAddDevice {
-		return nil
+	switch eventCode {
+	case event.EventCodeAddDevice:
+		return export.autoCreateMirrorDevice(key)
+	case event.EventCodeWillExportTo:
+		deviceData := eventValue.(plugin.DeviceData)
+		callback.OnReceiveHandler(export.plugin.VirtualConnector, deviceData)
 	}
+	return nil
+}
+
+func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	//自动生成镜像设备
-	device, _ := helper.CoreCache.GetDevice(key)
+	device, _ := helper.CoreCache.GetDevice(deviceId)
 	rawModel, ok := helper.CoreCache.GetModel(device.ModelName)
 	if !ok {
 		return nil
@@ -79,12 +88,12 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 		for key, val := range point {
 			pointMap[key] = val
 		}
-		pointMap["rawDevice"] = key
+		pointMap["rawDevice"] = deviceId
 		points = append(points, pointMap)
 	}
-	modeName := rawModel.Name + "_mirror_" + key
+	modeName := rawModel.Name + "_mirror_" + deviceId
 	mirrorDevice := config.Device{
-		ID:          "mirror_" + key,
+		ID:          "mirror_" + deviceId,
 		Description: device.Description,
 		Ttl:         device.Ttl,
 		Tags:        device.Tags,
