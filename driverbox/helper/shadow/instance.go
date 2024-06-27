@@ -1,8 +1,6 @@
 package shadow
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/event"
-	"github.com/ibuilding-x/driver-box/internal/export"
 	"sync"
 	"time"
 )
@@ -29,14 +27,8 @@ func NewDeviceShadow() DeviceShadow {
 }
 
 func (d *deviceShadow) AddDevice(id string, modelName string, ttl ...time.Duration) {
-	trigger := false
 	d.mutex.Lock()
-	defer func() {
-		d.mutex.Unlock()
-		if trigger {
-			export.TriggerEvents(event.EventCodeAddDevice, id, nil)
-		}
-	}()
+	defer d.mutex.Unlock()
 
 	// 已存在
 	if d.devices[id] != nil {
@@ -51,8 +43,6 @@ func (d *deviceShadow) AddDevice(id string, modelName string, ttl ...time.Durati
 
 	// 添加
 	d.devices[id] = newDevice(id, modelName, customTTL)
-	trigger = true
-
 }
 
 func (d *deviceShadow) GetDevice(id string) (device Device, ok bool) {

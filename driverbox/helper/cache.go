@@ -5,8 +5,10 @@ package helper
 import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/export"
 	"go.uber.org/zap"
 	"sync"
 )
@@ -92,6 +94,7 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 				}
 				if deviceRaw, ok := c.devices.Load(deviceId); !ok {
 					c.devices.Store(deviceId, device)
+					export.TriggerEvents(event.EventCodeAddDevice, device.ID, nil)
 				} else {
 					storedDeviceBase := deviceRaw.(config.Device)
 					if storedDeviceBase.ModelName != device.ModelName {
@@ -401,6 +404,10 @@ func (c *cache) AddOrUpdateDevice(device config.Device) error {
 		device.Description = device.ID
 	}
 	// 更新核心缓存
+	_, ok = c.devices.Load(device.ID)
+	if !ok {
+		defer export.TriggerEvents(event.EventCodeAddDevice, device.ID, nil)
+	}
 	c.devices.Store(device.ID, device)
 	// 更新设备影子
 	if DeviceShadow != nil && !DeviceShadow.HasDevice(device.ID) {
