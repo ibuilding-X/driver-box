@@ -58,7 +58,9 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 		return export.autoCreateMirrorDevice(key)
 	case event.EventCodeWillExportTo:
 		deviceData := eventValue.(plugin.DeviceData)
-		callback.OnReceiveHandler(export.plugin.VirtualConnector, deviceData)
+		if export.plugin.VirtualConnector != nil {
+			callback.OnReceiveHandler(export.plugin.VirtualConnector, deviceData)
+		}
 	}
 	return nil
 }
