@@ -99,12 +99,13 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	modeName := rawModel.Name + "_mirror_" + deviceId
 	properties := device.Properties
 	properties[PropertyKeyAutoMirrorFrom] = deviceId
+	delete(properties, PropertyKeyAutoMirrorTo)
 	mirrorDevice := config.Device{
 		ID:          "mirror_" + deviceId,
 		Description: device.Description,
 		Ttl:         device.Ttl,
 		Tags:        device.Tags,
-		Properties:  device.Properties,
+		Properties:  properties,
 		DriverKey:   mirrorConfig.DriverKey,
 		ModelName:   modeName,
 	}
