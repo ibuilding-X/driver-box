@@ -481,7 +481,11 @@ func (c *cache) GetConnectionPluginName(key string) string {
 
 // AddModel 新增模型
 func (c *cache) AddModel(plugin string, model config.DeviceModel) error {
-	return cmanager.AddModel(plugin, model)
+	err := cmanager.AddModel(plugin, model)
+	if err == nil {
+		c.models.Store(model.Name, model)
+	}
+	return err
 }
 
 // RemoveDevice 根据 ID 删除设备
