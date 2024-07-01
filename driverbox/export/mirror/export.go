@@ -122,8 +122,9 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 
 	mirrorModel := config.DeviceModel{
 		ModelBase: config.ModelBase{
-			Name:    modeName,
-			ModelID: mirrorConfig.ModelId,
+			Name:        modeName,
+			ModelID:     mirrorConfig.ModelId,
+			Description: mirrorConfig.Description,
 		},
 		Devices: []config.Device{
 			mirrorDevice,
