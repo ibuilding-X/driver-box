@@ -66,17 +66,21 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 }
 
 func (export *Export) autoCreateMirrorDevice(deviceId string) error {
+	helper.Logger.Info("auto create mirror device checking", zap.String("deviceId", deviceId))
 	//自动生成镜像设备
 	device, _ := helper.CoreCache.GetDevice(deviceId)
 	rawModel, ok := helper.CoreCache.GetModel(device.ModelName)
 	if !ok {
+		helper.Logger.Info("auto create mirror device failed, model not found", zap.String("deviceId", deviceId))
 		return nil
 	}
 	c, err := export.getMirrorConfig(rawModel)
 	if err != nil {
+		helper.Logger.Error("auto create mirror device failed", zap.String("deviceId", deviceId), zap.Error(err))
 		return err
 	}
 	if c == nil {
+		helper.Logger.Info("auto create mirror device failed, no mirror config", zap.String("deviceId", deviceId))
 		return nil
 	}
 
@@ -84,6 +88,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	if err := helper.Map2Struct(c, mirrorConfig); err != nil {
 		return err
 	}
+	helper.Logger.Info("auto create mirror device", zap.String("deviceId", deviceId), zap.Any("mirrorConfig", mirrorConfig))
 	points := make([]config.PointMap, 0)
 	for _, point := range mirrorConfig.Points {
 		pointMap := config.PointMap{}
@@ -122,6 +127,8 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	e = helper.CoreCache.AddOrUpdateDevice(mirrorDevice)
 	if e != nil {
 		helper.Logger.Error("add mirror model error", zap.Error(e))
+	} else {
+		helper.Logger.Info("auto create mirror device success", zap.String("deviceId", deviceId))
 	}
 	return e
 }
