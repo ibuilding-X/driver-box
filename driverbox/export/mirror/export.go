@@ -142,7 +142,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 		return e
 	}
 	e = export.plugin.UpdateMirrorMapping(mirrorModel)
-	if e != nil {
+	if e == nil {
 		helper.Logger.Info("auto create mirror device success", zap.String("deviceId", deviceId))
 	}
 	return e
