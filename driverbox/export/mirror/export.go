@@ -68,7 +68,11 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	helper.Logger.Info("auto create mirror device checking", zap.String("deviceId", deviceId))
 	//自动生成镜像设备
-	device, _ := helper.CoreCache.GetDevice(deviceId)
+	device, ok := helper.CoreCache.GetDevice(deviceId)
+	if !ok {
+		helper.Logger.Info("auto create mirror device failed, device not found", zap.String("deviceId", deviceId))
+		return nil
+	}
 	rawModel, ok := helper.CoreCache.GetModel(device.ModelName)
 	if !ok {
 		helper.Logger.Info("auto create mirror device failed, model not found", zap.String("deviceId", deviceId))
