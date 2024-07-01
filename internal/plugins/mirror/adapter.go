@@ -67,6 +67,7 @@ func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error)
 			//镜像设备分组以存在，填充点位
 			if mirrorData, ok := group[mirror.ID]; ok {
 				mirrorData.Values = append(mirrorData.Values, point)
+				group[mirror.ID] = mirrorData
 				continue
 			}
 			//通讯设备对应同一镜像设备的多个点
