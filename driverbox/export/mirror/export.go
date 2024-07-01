@@ -58,8 +58,10 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 		return export.autoCreateMirrorDevice(key)
 	case event.EventCodeWillExportTo:
 		deviceData := eventValue.(plugin.DeviceData)
-		if export.plugin.VirtualConnector != nil {
-			callback.OnReceiveHandler(export.plugin.VirtualConnector, deviceData)
+		//镜像设备仅存在一个虚拟连接
+		virtualConnector, _ := export.plugin.Connector("", "")
+		if virtualConnector != nil {
+			callback.OnReceiveHandler(virtualConnector, deviceData)
 		}
 	}
 	return nil
@@ -93,15 +95,6 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 		return err
 	}
 	helper.Logger.Info("auto create mirror device", zap.String("deviceId", deviceId), zap.Any("mirrorConfig", mirrorConfig))
-	points := make([]config.PointMap, 0)
-	for _, point := range mirrorConfig.Points {
-		pointMap := config.PointMap{}
-		for key, val := range point {
-			pointMap[key] = val
-		}
-		pointMap["rawDevice"] = deviceId
-		points = append(points, pointMap)
-	}
 	modeName := rawModel.Name + "_mirror_" + deviceId
 	mirrorDevice := config.Device{
 		ID:          "mirror_" + deviceId,
@@ -112,6 +105,21 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 		DriverKey:   mirrorConfig.DriverKey,
 		ModelName:   modeName,
 	}
+	if _, ok := helper.CoreCache.GetDevice(mirrorDevice.ID); ok {
+		helper.Logger.Info("auto create mirror device ignore, device already exists", zap.String("deviceId", deviceId))
+		return nil
+	}
+
+	points := make([]config.PointMap, 0)
+	for _, point := range mirrorConfig.Points {
+		pointMap := config.PointMap{}
+		for key, val := range point {
+			pointMap[key] = val
+		}
+		pointMap["rawDevice"] = deviceId
+		points = append(points, pointMap)
+	}
+
 	mirrorModel := config.DeviceModel{
 		ModelBase: config.ModelBase{
 			Name:    modeName,
@@ -131,7 +139,10 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	e = helper.CoreCache.AddOrUpdateDevice(mirrorDevice)
 	if e != nil {
 		helper.Logger.Error("add mirror model error", zap.Error(e))
-	} else {
+		return e
+	}
+	e = export.plugin.UpdateMirrorMapping(mirrorModel)
+	if e != nil {
 		helper.Logger.Info("auto create mirror device success", zap.String("deviceId", deviceId))
 	}
 	return e
