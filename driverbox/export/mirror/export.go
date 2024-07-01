@@ -75,7 +75,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	}
 	rawModel, ok := helper.CoreCache.GetModel(device.ModelName)
 	if !ok {
-		helper.Logger.Info("auto create mirror device failed, model not found", zap.String("deviceId", deviceId))
+		helper.Logger.Info("auto create mirror device failed, model not found", zap.String("deviceId", deviceId), zap.String("modelName", device.ModelName))
 		return nil
 	}
 	c, err := export.getMirrorConfig(rawModel)
