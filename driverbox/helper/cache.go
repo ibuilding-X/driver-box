@@ -346,6 +346,7 @@ func (c *cache) UpdateDeviceProperty(id string, key string, value string) {
 
 // DeleteDevice 删除设备
 func (c *cache) DeleteDevice(id string) {
+	export.TriggerEvents(event.EventCodeDeleteDevice, id, nil)
 	c.devices.Delete(id)
 	_ = cmanager.RemoveDeviceByID(id)
 }
@@ -510,6 +511,7 @@ func (c *cache) RemoveDevice(modelName string, deviceID string) error {
 
 // RemoveDeviceByID 根据 ID 删除设备
 func (c *cache) RemoveDeviceByID(id string) error {
+	export.TriggerEvents(event.EventCodeDeleteDevice, id, nil)
 	c.devices.Delete(id)
 	return cmanager.RemoveDeviceByID(id)
 }
@@ -517,6 +519,7 @@ func (c *cache) RemoveDeviceByID(id string) error {
 // BatchRemoveDevice 批量删除设备
 func (c *cache) BatchRemoveDevice(ids []string) error {
 	for _, id := range ids {
+		export.TriggerEvents(event.EventCodeDeleteDevice, id, nil)
 		c.devices.Delete(id)
 	}
 	return cmanager.BatchRemoveDevice(ids)
