@@ -483,7 +483,19 @@ func (c *cache) GetConnectionPluginName(key string) string {
 func (c *cache) AddModel(plugin string, model config.DeviceModel) error {
 	err := cmanager.AddModel(plugin, model)
 	if err == nil {
-		c.models.Store(model.Name, model)
+		points := make(map[string]config.Point)
+		for _, p := range model.DevicePoints {
+			points[p.ToPoint().Name] = p.ToPoint()
+		}
+		devices := make(map[string]config.Device)
+		for _, d := range model.Devices {
+			devices[d.ID] = d
+		}
+		c.models.Store(model.Name, config.Model{
+			ModelBase: model.ModelBase,
+			Points:    points,
+			Devices:   devices,
+		})
 	}
 	return err
 }
