@@ -94,7 +94,6 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 				}
 				if deviceRaw, ok := c.devices.Load(deviceId); !ok {
 					c.devices.Store(deviceId, device)
-					export.TriggerEvents(event.EventCodeAddDevice, device.ID, nil)
 				} else {
 					storedDeviceBase := deviceRaw.(config.Device)
 					if storedDeviceBase.ModelName != device.ModelName {
@@ -135,6 +134,10 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 		}
 	}
 
+	//触发设备添加事件通知
+	for _, device := range c.Devices() {
+		export.TriggerEvents(event.EventCodeAddDevice, device.ID, nil)
+	}
 	return nil
 }
 
