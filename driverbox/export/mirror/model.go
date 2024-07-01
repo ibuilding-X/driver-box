@@ -1,5 +1,10 @@
 package mirror
 
+const (
+	PropertyKeyAutoMirrorFrom string = "autoMirrorFrom"
+	PropertyKeyAutoMirrorTo   string = "autoMirrorTo"
+)
+
 // 自动生成镜像的配置结构
 type autoMirrorConfig struct {
 	ModelId     string `json:"modelId"`

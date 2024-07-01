@@ -69,7 +69,7 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 
 func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	helper.Logger.Info("auto create mirror device checking", zap.String("deviceId", deviceId))
-	//自动生成镜像设备
+	//第一步：参数合法性校验
 	device, ok := helper.CoreCache.GetDevice(deviceId)
 	if !ok {
 		helper.Logger.Info("auto create mirror device failed, device not found", zap.String("deviceId", deviceId))
@@ -90,12 +90,15 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 		return nil
 	}
 
+	//第二步：生成设备、模型的内存结构
 	mirrorConfig := new(autoMirrorConfig)
 	if err := helper.Map2Struct(c, mirrorConfig); err != nil {
 		return err
 	}
 	helper.Logger.Info("auto create mirror device", zap.String("deviceId", deviceId), zap.Any("mirrorConfig", mirrorConfig))
 	modeName := rawModel.Name + "_mirror_" + deviceId
+	properties := device.Properties
+	properties[PropertyKeyAutoMirrorFrom] = deviceId
 	mirrorDevice := config.Device{
 		ID:          "mirror_" + deviceId,
 		Description: device.Description,
@@ -131,7 +134,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 		},
 		DevicePoints: points,
 	}
-	//若模型已存在，则忽略
+	//第三步：配置持久化
 	e := helper.CoreCache.AddModel(MirrorPluginName, mirrorModel)
 	if e != nil {
 		helper.Logger.Error("add mirror model error", zap.Error(e))
@@ -146,6 +149,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	if e == nil {
 		helper.Logger.Info("auto create mirror device success", zap.String("deviceId", deviceId))
 	}
+	helper.CoreCache.UpdateDeviceProperty(deviceId, PropertyKeyAutoMirrorTo, mirrorDevice.ID)
 	return e
 }
 
