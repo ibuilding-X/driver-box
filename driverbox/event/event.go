@@ -7,8 +7,6 @@ const (
 	EventCodeServiceStatus = "serviceStatus"
 	//添加设备
 	EventCodeAddDevice = "addDevice"
-	//删除设备,在真正之前删除操作之前触发
-	EventCodeDeleteDevice = "deleteDevice"
 	//即将执行ExportTo
 	EventCodeWillExportTo = "willExportTo"
 )
