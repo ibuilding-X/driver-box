@@ -485,7 +485,8 @@ func (c *cache) AddModel(plugin string, model config.DeviceModel) error {
 	if err == nil {
 		points := make(map[string]config.Point)
 		for _, p := range model.DevicePoints {
-			points[p.ToPoint().Name] = p.ToPoint()
+			point := p.ToPoint()
+			points[point.Name] = point
 		}
 		devices := make(map[string]config.Device)
 		for _, d := range model.Devices {
