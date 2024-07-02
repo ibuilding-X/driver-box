@@ -112,8 +112,10 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 		DriverKey:   mirrorConfig.DriverKey,
 		ModelName:   modeName,
 	}
+
+	helper.CoreCache.UpdateDeviceProperty(deviceId, PropertyKeyAutoMirrorTo, mirrorDevice.ID)
 	if _, ok := helper.CoreCache.GetDevice(mirrorDevice.ID); ok {
-		helper.Logger.Info("auto create mirror device ignore, device already exists", zap.String("deviceId", deviceId))
+		helper.Logger.Info("auto create mirror device ignore, device already exists", zap.String("deviceId", mirrorDevice.ID))
 		return nil
 	}
 
@@ -153,7 +155,6 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	if e == nil {
 		helper.Logger.Info("auto create mirror device success", zap.String("deviceId", deviceId))
 	}
-	helper.CoreCache.UpdateDeviceProperty(deviceId, PropertyKeyAutoMirrorTo, mirrorDevice.ID)
 	return e
 }
 
