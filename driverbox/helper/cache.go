@@ -342,6 +342,10 @@ func (c *cache) UpdateDeviceProperty(id string, key string, value string) {
 // DeleteDevice 删除设备
 func (c *cache) DeleteDevice(id string) {
 	c.devices.Delete(id)
+	// 删除设备影子
+	if DeviceShadow != nil {
+		_ = DeviceShadow.DeleteDevice(id)
+	}
 	_ = cmanager.RemoveDeviceByID(id)
 }
 
@@ -500,12 +504,20 @@ func (c *cache) AddModel(plugin string, model config.DeviceModel) error {
 // RemoveDevice 根据 ID 删除设备
 func (c *cache) RemoveDevice(modelName string, deviceID string) error {
 	c.devices.Delete(deviceID)
+	// 删除设备影子
+	if DeviceShadow != nil {
+		_ = DeviceShadow.DeleteDevice(deviceID)
+	}
 	return cmanager.RemoveDevice(modelName, deviceID)
 }
 
 // RemoveDeviceByID 根据 ID 删除设备
 func (c *cache) RemoveDeviceByID(id string) error {
 	c.devices.Delete(id)
+	// 删除设备影子
+	if DeviceShadow != nil {
+		_ = DeviceShadow.DeleteDevice(id)
+	}
 	return cmanager.RemoveDeviceByID(id)
 }
 
@@ -513,6 +525,10 @@ func (c *cache) RemoveDeviceByID(id string) error {
 func (c *cache) BatchRemoveDevice(ids []string) error {
 	for _, id := range ids {
 		c.devices.Delete(id)
+	}
+	// 删除设备影子
+	if DeviceShadow != nil {
+		_ = DeviceShadow.DeleteDevice(ids...)
 	}
 	return cmanager.BatchRemoveDevice(ids)
 }
