@@ -158,7 +158,8 @@ func getConnector(deviceId string, points []plugin.PointData) (plugin.Connector,
 	for _, pd := range points {
 		p, ok := helper.CoreCache.GetRunningPluginByDeviceAndPoint(deviceId, pd.PointName)
 		if !ok {
-			return nil, fmt.Errorf("not found running plugin, device name is %s", deviceId)
+			logger.Logger.Error("not found running plugin", zap.String("deviceId", deviceId), zap.String("pointName", pd.PointName))
+			return nil, fmt.Errorf("not found running plugin, deviceId: %s ,point: %s", deviceId, pd.PointName)
 		}
 		connector, err := p.Connector(deviceId, pd.PointName)
 		if err != nil {
