@@ -67,6 +67,21 @@ func (d *deviceShadow) HasDevice(id string) bool {
 	return false
 }
 
+func (d *deviceShadow) DeleteDevice(id ...string) (err error) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	if len(id) == 0 {
+		return nil
+	}
+
+	for _, v := range id {
+		delete(d.devices, v)
+	}
+
+	return nil
+}
+
 func (d *deviceShadow) SetDevicePoint(id, pointName string, value interface{}) (err error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
