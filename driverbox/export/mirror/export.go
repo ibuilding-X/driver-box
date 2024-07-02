@@ -97,9 +97,11 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	}
 	helper.Logger.Info("auto create mirror device", zap.String("deviceId", deviceId), zap.Any("mirrorConfig", mirrorConfig))
 	modeName := rawModel.Name + "_mirror_" + deviceId
-	properties := device.Properties
-	if properties == nil {
-		properties = make(map[string]string)
+	properties := make(map[string]string)
+	if device.Properties != nil {
+		for key, val := range device.Properties {
+			properties[key] = val
+		}
 	}
 	properties[PropertyKeyAutoMirrorFrom] = deviceId
 	delete(properties, PropertyKeyAutoMirrorTo)
