@@ -84,6 +84,11 @@ func LoadPlugins() error {
 		helper.Logger.Info("start success", zap.Any("directoryName", key), zap.Any("plugin", configMap[key].ProtocolName))
 	}
 
+	//完成初始化后触发设备添加事件通知
+	for _, device := range helper.CoreCache.Devices() {
+		export.TriggerEvents(event.EventCodeAddDevice, device.ID, nil)
+	}
+
 	return nil
 }
 

@@ -133,11 +133,6 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 			c.models.Store(model.Name, model)
 		}
 	}
-
-	//触发设备添加事件通知
-	for _, device := range c.Devices() {
-		export.TriggerEvents(event.EventCodeAddDevice, device.ID, nil)
-	}
 	return nil
 }
 
