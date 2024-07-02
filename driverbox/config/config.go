@@ -23,6 +23,9 @@ const (
 
 	//场景联动配置存放目录
 	ENV_LINKEDGE_CONFIG_PATH = "EXPORT_LINKEDGE_CONFIG_PATH"
+
+	//镜像设备功能是否可用
+	ENV_EXPORT_MIRROR_ENABLED = "EXPORT_MIRROR_ENABLED"
 )
 
 // 点位上报模式

@@ -10,6 +10,7 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/library"
 	"github.com/ibuilding-x/driver-box/internal/plugins/mirror"
 	"go.uber.org/zap"
+	"os"
 	"sync"
 )
 
@@ -29,8 +30,12 @@ type Export struct {
 }
 
 func (export *Export) Init() error {
+	if os.Getenv(config.ENV_EXPORT_MIRROR_ENABLED) == "false" {
+		helper.Logger.Warn("mirror export is disabled")
+		return nil
+	}
 	//注册镜像插件
-	export.plugin = new(mirror.Plugin)
+	export.plugin = mirror.NewPlugin()
 	driverbox.RegisterPlugin(MirrorPluginName, export.plugin)
 	export.ready = true
 	return nil

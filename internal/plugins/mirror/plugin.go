@@ -10,21 +10,32 @@ import (
 	"sync"
 )
 
+var instance *Plugin
+var once = &sync.Once{}
+
 type Plugin struct {
 	ls        *lua.LState // lua 虚拟机
 	connector *connector
 	mutex     *sync.Mutex
+	//是否已就绪
+	ready bool
+}
+
+func NewPlugin() *Plugin {
+	once.Do(func() {
+		instance = &Plugin{}
+		instance.mutex = &sync.Mutex{}
+		instance.connector = &connector{
+			plugin:     instance,
+			mirrors:    make(map[string]map[string]Device),
+			rawMapping: make(map[string]map[string][]plugin.DeviceData),
+		}
+	})
+	return instance
 }
 
 func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error) {
 	p.ls = ls
-	p.mutex = &sync.Mutex{}
-	p.connector = &connector{
-		plugin:     p,
-		mirrors:    make(map[string]map[string]Device),
-		rawMapping: make(map[string]map[string][]plugin.DeviceData),
-	}
-
 	//生成镜像设备映射关系
 	for _, model := range c.DeviceModels {
 		err = p.UpdateMirrorMapping(model)
@@ -32,7 +43,7 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState)
 			return err
 		}
 	}
-
+	p.ready = true
 	return nil
 }
 
@@ -110,9 +121,15 @@ func (p *Plugin) Connector(deviceSn, pointName string) (connector plugin.Connect
 	return p.connector, nil
 }
 
+// 插件是否已就绪
+func (p *Plugin) IsReady() bool {
+	return p.ready
+}
+
 func (p *Plugin) Destroy() error {
 	if p.ls != nil {
 		helper.Close(p.ls)
 	}
+	p.ready = false
 	return nil
 }
