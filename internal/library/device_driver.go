@@ -16,7 +16,7 @@ type DeviceDriver struct {
 
 // 加载指定key的驱动
 func (device *DeviceDriver) LoadLibrary(driverKey string) error {
-	L, err := lua.InitLuaVM(path.Join(config.ResourcePath, "library", string(deviceDriver), driverKey+".lua"))
+	L, err := lua.InitLuaVM(path.Join(config.ResourcePath, baseDir, string(deviceDriver), driverKey+".lua"))
 	if err != nil {
 		return err
 	}

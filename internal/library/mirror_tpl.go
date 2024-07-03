@@ -13,7 +13,7 @@ type MirrorTemplate struct {
 
 // 加载指定key的驱动
 func (device *MirrorTemplate) LoadLibrary(key string) (map[string]interface{}, error) {
-	filePath := path.Join(config.ResourcePath, "library", string(mirrorTemplate), key+".json")
+	filePath := path.Join(config.ResourcePath, baseDir, string(mirrorTemplate), key+".json")
 	if !common.FileExists(filePath) {
 		return nil, fmt.Errorf("mirror template not found: %s", key)
 	}
