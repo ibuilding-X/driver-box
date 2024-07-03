@@ -46,10 +46,12 @@ type decodeStruct struct {
 
 // 消息编码结构体
 type encodeStruct struct {
+	connection *websocket.Conn
+	payload    string
 }
 
 type connector struct {
-	plugin *Plugin
+	config connectorConfig
 	server *http.Server
 	//设备与连接的映射
 	deviceMappingConn *sync.Map
@@ -72,29 +74,29 @@ func (p *connector) ProtocolAdapter() plugin.ProtocolAdapter {
 
 // Send 被动接收数据模式，无需实现
 func (c *connector) Send(raw interface{}) (err error) {
-
-	return nil
+	data := raw.(encodeStruct)
+	return data.connection.WriteMessage(websocket.TextMessage, []byte(data.payload))
 }
 
 // startServer 启动服务
-func (c *connector) startServer(opts connectorConfig) {
+func (c *connector) startServer() {
 	//复用driver-box自身服务
-	if strconv.Itoa(opts.Port) == helper.EnvConfig.HttpListen {
-		c.handleFunc(http.DefaultServeMux, opts)
+	if strconv.Itoa(c.config.Port) == helper.EnvConfig.HttpListen {
+		c.handleFunc(http.DefaultServeMux)
 		return
 	}
 	//启动新的服务
 	serverMux := &http.ServeMux{}
 	c.server = &http.Server{
-		Addr:    ":" + strconv.Itoa(opts.Port),
+		Addr:    ":" + strconv.Itoa(c.config.Port),
 		Handler: serverMux,
 	}
-	c.handleFunc(serverMux, opts)
+	c.handleFunc(serverMux)
 	c.server.ListenAndServe()
 }
 
-func (c *connector) handleFunc(server *http.ServeMux, opts connectorConfig) {
-	server.HandleFunc(opts.Pattern, func(writer http.ResponseWriter, request *http.Request) {
+func (c *connector) handleFunc(server *http.ServeMux) {
+	server.HandleFunc(c.config.Pattern, func(writer http.ResponseWriter, request *http.Request) {
 		conn, err := upgrader.Upgrade(writer, request, nil)
 		if err != nil {
 			fmt.Println("Failed to upgrade connection:", err)
@@ -121,7 +123,7 @@ func (c *connector) handleFunc(server *http.ServeMux, opts connectorConfig) {
 			logger.Logger.Info("Received message", zap.Any("messageType", messageType), zap.Any("payload", string(p)))
 			decode.Event = "read"
 			decode.Payload = string(p)
-			deviceDatas, err := library.Protocol().Decode(opts.DriverKey, decode)
+			deviceDatas, err := library.Protocol().Decode(c.config.DriverKey, decode)
 			if err != nil {
 				fmt.Println("Failed to decode message:", err)
 				continue
@@ -144,7 +146,7 @@ func (c *connector) handleFunc(server *http.ServeMux, opts connectorConfig) {
 				c.connMappingDevice.Store(conn, devices)
 			}
 			//自动添加设备
-			if opts.Discover {
+			if c.config.Discover {
 				for _, deviceData := range deviceDatas {
 					if _, ok := helper.CoreCache.GetDevice(deviceData.ID); !ok {
 						//helper.CoreCache.AddDevice()

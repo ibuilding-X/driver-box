@@ -58,11 +58,11 @@ func (p *Plugin) initConnPool() (err error) {
 			return
 		}
 		conn := &connector{
-			plugin:            p,
+			config:            c,
 			deviceMappingConn: &sync.Map{},
 			connMappingDevice: &sync.Map{},
 		}
-		conn.startServer(c)
+		conn.startServer()
 		p.connPool = append(p.connPool, conn)
 	}
 	return
