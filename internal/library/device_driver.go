@@ -77,6 +77,8 @@ func (device *DeviceDriver) DeviceDecode(driverKey string, req DeviceDecodeReque
 			pointData.RawSetString("value", glua.LVAsNumber(glua.LNumber(v)))
 		case int64:
 			pointData.RawSetString("value", glua.LVAsNumber(glua.LNumber(v)))
+		case int16:
+			pointData.RawSetString("value", glua.LVAsNumber(glua.LNumber(v)))
 		default:
 			return &DeviceDecodeResult{Error: fmt.Errorf("unsupported point value type: %T", v)}
 		}
