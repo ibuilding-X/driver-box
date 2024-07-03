@@ -54,7 +54,7 @@ func Start(exports []export.Export) error {
 	go func() {
 		registerApi()
 		core.RegisterApi()
-		e := http.ListenAndServe(":8081", nil)
+		e := http.ListenAndServe(":"+helper.EnvConfig.HttpListen, nil)
 		if e != nil {
 			helper.Logger.Error("start rest server error", zap.Error(e))
 		}
@@ -91,7 +91,7 @@ func initEnvConfig() error {
 	if httpListen != "" {
 		helper.EnvConfig.HttpListen = httpListen
 	} else {
-		helper.EnvConfig.HttpListen = ":8081"
+		helper.EnvConfig.HttpListen = "8081"
 	}
 
 	logPath := os.Getenv(config.ENV_LOG_PATH)

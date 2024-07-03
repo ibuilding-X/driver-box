@@ -12,7 +12,7 @@ import (
 const (
 	//资源文件存放目录
 	ENV_RESOURCE_PATH = "DRIVERBOX_RESOURCE_PATH"
-	//http服务绑定地址
+	//http服务监听端口号
 	ENV_HTTP_LISTEN = "DRIVERBOX_HTTP_LISTEN"
 
 	//日志文件存放路径
@@ -61,6 +61,7 @@ var ResourcePath = "./res"
 
 type EnvConfig struct {
 	ConfigPath string
+	//http服务监听端口号
 	HttpListen string
 	LogPath    string
 }
