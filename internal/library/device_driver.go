@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/lua"
 	glua "github.com/yuin/gopher-lua"
@@ -35,7 +36,7 @@ func (device *DeviceDriver) DeviceEncode(driverKey string, req DeviceEncodeReque
 		pointData := L.NewTable()
 		pointData.RawSetString("name", glua.LString(point.PointName))
 		if req.Mode == plugin.WriteMode {
-			//经过ConvPointType加工，数据类型一定属于string、float64、int64之一
+			//经过 ConvPointType 加工，数据类型一定属于string、float64、int64之一
 			switch v := point.Value.(type) {
 			case string:
 				pointData.RawSetString("value", glua.LString(v))
@@ -73,12 +74,18 @@ func (device *DeviceDriver) DeviceDecode(driverKey string, req DeviceDecodeReque
 		switch v := point.Value.(type) {
 		case string:
 			pointData.RawSetString("value", glua.LString(v))
-		case float64:
-			pointData.RawSetString("value", glua.LVAsNumber(glua.LNumber(v)))
-		case int64:
-			pointData.RawSetString("value", glua.LVAsNumber(glua.LNumber(v)))
-		case int16:
-			pointData.RawSetString("value", glua.LVAsNumber(glua.LNumber(v)))
+		case int8, int16, int32, int64, int, uint, uint8, uint16, uint32, uint64:
+			intValue, e := helper.Conv2Int64(v)
+			if e != nil {
+				return &DeviceDecodeResult{Error: e}
+			}
+			pointData.RawSetString("value", glua.LVAsNumber(glua.LNumber(intValue)))
+		case float32, float64:
+			floatValue, e := helper.Conv2Float64(v)
+			if e != nil {
+				return &DeviceDecodeResult{Error: e}
+			}
+			pointData.RawSetString("value", glua.LVAsNumber(glua.LNumber(floatValue)))
 		default:
 			return &DeviceDecodeResult{Error: fmt.Errorf("unsupported point value type: %T", v)}
 		}
