@@ -12,6 +12,7 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins/modbus"
 	"github.com/ibuilding-x/driver-box/internal/plugins/mqtt"
 	"github.com/ibuilding-x/driver-box/internal/plugins/tcpserver"
+	"github.com/ibuilding-x/driver-box/internal/plugins/websocket"
 	"sync"
 )
 
@@ -29,6 +30,7 @@ func init() {
 	Manager.Register("http_client", new(httpclient.Plugin))
 	//Manager.Register("virtual", new(virtual.Plugin))
 	Manager.Register("bacnet", new(bacnet.Plugin))
+	Manager.Register(websocket.ProtocolName, new(websocket.Plugin))
 }
 
 // manager 管理器
