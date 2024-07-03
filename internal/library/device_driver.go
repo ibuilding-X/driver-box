@@ -70,7 +70,6 @@ func (device *DeviceDriver) DeviceDecode(driverKey string, req DeviceDecodeReque
 	for _, point := range req.Points {
 		pointData := L.NewTable()
 		pointData.RawSetString("name", glua.LString(point.PointName))
-		//经过ConvPointType加工，数据类型一定属于string、float64、int64之一
 		switch v := point.Value.(type) {
 		case string:
 			pointData.RawSetString("value", glua.LString(v))
