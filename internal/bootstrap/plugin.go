@@ -53,6 +53,12 @@ func LoadPlugins() error {
 	//初始化设备层驱动
 	initDeviceDriver(configMap)
 
+	//初始化协议层驱动
+	err = initProtocolDriver(configMap)
+	if err != nil {
+		return err
+	}
+
 	// 启动插件
 	for key, _ := range configMap {
 		helper.Logger.Info(key+" begin start", zap.Any("directoryName", key), zap.Any("plugin", configMap[key].ProtocolName))
@@ -113,6 +119,30 @@ func initDeviceDriver(configMap map[string]config.Config) {
 			helper.Logger.Error("load device driver error", zap.String("driverKey", key), zap.Error(err))
 		}
 	}
+}
+
+// 初始化协议层驱动
+func initProtocolDriver(configMap map[string]config.Config) error {
+	//清空设备驱动库
+	library.Protocol().UnloadDeviceDrivers()
+	//重新添加
+	drivers := make(map[string]string)
+	for _, c := range configMap {
+		for _, connection := range c.Connections {
+			driverKey, ok := connection.(map[string]any)["driverKey"]
+			if ok {
+				drivers[driverKey.(string)] = driverKey.(string)
+			}
+		}
+	}
+	for key, _ := range drivers {
+		err := library.Protocol().LoadLibrary(key)
+		if err != nil {
+			helper.Logger.Error("load device protocol error", zap.String("driverKey", key), zap.Error(err))
+			return err
+		}
+	}
+	return nil
 }
 
 // 初始化影子服务
