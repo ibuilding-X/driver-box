@@ -70,11 +70,17 @@ func (device *DeviceDriver) DeviceDecode(driverKey string, req DeviceDecodeReque
 	for _, point := range req.Points {
 		pointData := L.NewTable()
 		pointData.RawSetString("name", glua.LString(point.PointName))
-		b, e := json.Marshal(point.Value)
-		if e != nil {
-			return &DeviceDecodeResult{Error: e}
+		//经过ConvPointType加工，数据类型一定属于string、float64、int64之一
+		switch v := point.Value.(type) {
+		case string:
+			pointData.RawSetString("value", glua.LString(v))
+		case float64:
+			pointData.RawSetString("value", glua.LVAsNumber(glua.LNumber(v)))
+		case int64:
+			pointData.RawSetString("value", glua.LVAsNumber(glua.LNumber(v)))
+		default:
+			return &DeviceDecodeResult{Error: fmt.Errorf("unsupported point value type: %T", v)}
 		}
-		pointData.RawSetString("value", glua.LString(b))
 		points.Append(pointData)
 	}
 	result, e := lua.CallLuaMethod(L, "decode", glua.LString(req.DeviceId), points)
