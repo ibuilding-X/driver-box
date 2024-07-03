@@ -133,7 +133,7 @@ func (c *connector) handleFunc(server *http.ServeMux) {
 			for _, deviceData := range deviceDatas {
 				//更新映射关系
 				preConn, ok := c.deviceMappingConn.Swap(deviceData.ID, conn)
-				if !ok || preConn == conn {
+				if preConn == conn {
 					continue
 				}
 				//在新连接中加入当前设备
