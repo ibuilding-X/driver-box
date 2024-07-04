@@ -58,7 +58,6 @@ func (p *Plugin) Destroy() error {
 	return nil
 }
 
-// initConnPool 初始化连接池
 func (p *Plugin) initConnPool() (err error) {
 	p.connPool = make(map[string]*connector)
 	for key, _ := range p.config.Connections {
@@ -66,15 +65,15 @@ func (p *Plugin) initConnPool() (err error) {
 		if err = helper.Map2Struct(p.config.Connections[key], &c); err != nil {
 			return
 		}
+		if c.Timeout <= 0 {
+			c.Timeout = 5000
+		}
 		conn := &connector{
 			plugin: p,
 			config: c,
 			client: &http.Client{},
-			adapter: &adapter{
-				scriptDir: p.config.Key,
-				ls:        p.ls,
-			},
 		}
+		conn.initCollectTask()
 		p.connPool[key] = conn
 	}
 	return
