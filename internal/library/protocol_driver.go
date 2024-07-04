@@ -24,6 +24,12 @@ func (device *ProtocolDriver) LoadLibrary(driverKey string) error {
 	return nil
 }
 
+// 执行制定的方法
+func (device *ProtocolDriver) Execute(driverKey string, luaMethod string, param string) (string, error) {
+	L := device.drivers[driverKey]
+	return lua.CallLuaMethod(L, luaMethod, glua.LString(param))
+}
+
 // 设备下行指令编码，该接口试下如下功能：
 // 1. 写操作时，对点位值进行加工
 // 2. 针对点位A发起的读写操作，通过编码可变更为点位B
