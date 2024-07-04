@@ -10,6 +10,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/simonvetter/modbus"
 	"github.com/spf13/cast"
 	"go.uber.org/zap"
@@ -58,10 +59,12 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 
 func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, error) {
 	if !conf.Enable {
-		return nil, errors.New("modbus connection is disabled, ignore collect task")
+		logger.Logger.Warn("modbus connection is disabled, ignore collect task", zap.String("key", c.ConnectionKey))
+		return nil, nil
 	}
 	if len(c.devices) == 0 {
-		return nil, errors.New("no device to collect")
+		logger.Logger.Warn("modbus connection has no device to collect", zap.String("key", c.ConnectionKey))
+		return nil, nil
 	}
 
 	//注册定时采集任务
