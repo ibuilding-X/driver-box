@@ -11,6 +11,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/internal/library"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/internal/lua"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	glua "github.com/yuin/gopher-lua"
@@ -130,9 +131,14 @@ func initProtocolDriver(configMap map[string]config.Config) error {
 	for _, c := range configMap {
 		for _, connection := range c.Connections {
 			driverKey, ok := connection.(map[string]any)["driverKey"]
-			if ok {
-				drivers[driverKey.(string)] = driverKey.(string)
+			if !ok {
+				continue
 			}
+			if len(driverKey.(string)) == 0 {
+				logger.Logger.Warn("driverKey is empty", zap.Any("connection", connection))
+				continue
+			}
+			drivers[driverKey.(string)] = driverKey.(string)
 		}
 	}
 	for key, _ := range drivers {
