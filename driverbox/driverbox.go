@@ -49,7 +49,7 @@ func Start(exports []export.Export) error {
 
 	export0.Exports = append(exports, linkedge.NewExport(), mirror.NewExport(), discover.NewExport())
 
-	for _, item := range exports {
+	for _, item := range export0.Exports {
 		if err := item.Init(); err != nil {
 			helper.Logger.Error("init export error", zap.Error(err))
 		}
