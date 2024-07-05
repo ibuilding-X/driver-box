@@ -12,7 +12,7 @@ const (
 	//设备层驱动
 	deviceDriver Type = "driver"
 	//物模型
-	DeviceModel Type = "model"
+	deviceModel Type = "model"
 	//协议层驱动
 	protocolDriver Type = "protocol"
 
@@ -23,9 +23,11 @@ const (
 var driverOnce = &sync.Once{}
 var mirrorOnce = &sync.Once{}
 var protocolOnce = &sync.Once{}
+var modelOnce = &sync.Once{}
 var driver *DeviceDriver
 var mirror *MirrorTemplate
 var protocol *ProtocolDriver
+var model *DeviceModel
 
 // 设备驱动库
 func Driver() *DeviceDriver {
@@ -53,4 +55,12 @@ func Protocol() *ProtocolDriver {
 		}
 	})
 	return protocol
+}
+
+// 设备模型库
+func Model() *DeviceModel {
+	modelOnce.Do(func() {
+		model = &DeviceModel{}
+	})
+	return model
 }
