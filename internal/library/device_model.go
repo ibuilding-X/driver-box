@@ -12,17 +12,17 @@ type DeviceModel struct {
 }
 
 // 加载指定key的驱动
-func (device *DeviceModel) LoadLibrary(driverKey string) (config.Model, error) {
+func (device *DeviceModel) LoadLibrary(driverKey string) (config.DeviceModel, error) {
 	filePath := path.Join(config.ResourcePath, baseDir, string(deviceModel), driverKey+".json")
 	if !common.FileExists(filePath) {
-		return config.Model{}, fmt.Errorf("mirror template not found: %s", driverKey)
+		return config.DeviceModel{}, fmt.Errorf("device model library not found: %s", driverKey)
 	}
 	//读取filePath中的文件内容
 	bytes, e := common.ReadFileBytes(filePath)
 	if e != nil {
-		return config.Model{}, e
+		return config.DeviceModel{}, e
 	}
-	model := config.Model{}
+	model := config.DeviceModel{}
 	e = json.Unmarshal(bytes, &model)
 	return model, e
 }
