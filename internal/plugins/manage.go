@@ -27,7 +27,7 @@ func init() {
 	Manager.Register("modbus", new(modbus.Plugin))
 	Manager.Register("tcp_server", new(tcpserver.Plugin))
 	Manager.Register("mqtt", new(mqtt.Plugin))
-	Manager.Register("http_client", new(httpclient.Plugin))
+	Manager.Register(httpclient.ProtocolName, new(httpclient.Plugin))
 	//Manager.Register("virtual", new(virtual.Plugin))
 	Manager.Register("bacnet", new(bacnet.Plugin))
 	Manager.Register(websocket.ProtocolName, new(websocket.Plugin))

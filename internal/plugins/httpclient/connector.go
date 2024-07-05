@@ -2,6 +2,7 @@ package httpclient
 
 import (
 	"encoding/json"
+	event2 "github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -49,9 +50,10 @@ type TimerParam struct {
 }
 
 type connector struct {
-	plugin *Plugin
-	config connectorConfig
-	client *http.Client
+	plugin        *Plugin
+	config        connectorConfig
+	client        *http.Client
+	connectionKey string
 }
 
 // startServer 启动服务
@@ -159,6 +161,19 @@ func (c *connector) Send(raw interface{}) (err error) {
 	deviceData, err := library.Protocol().Decode(c.config.DriverKey, response)
 	if err != nil {
 		return err
+	}
+	for _, device := range deviceData {
+		if device.Events == nil || len(device.Events) == 0 {
+			continue
+		}
+		for _, event := range device.Events {
+			//补充信息要素
+			if event.Code == event2.EventDeviceDiscover {
+				value := event.Value.(map[string]interface{})
+				value["connectionKey"] = c.connectionKey
+				value["protocolName"] = ProtocolName
+			}
+		}
 	}
 	callback.ExportTo(deviceData)
 	return nil

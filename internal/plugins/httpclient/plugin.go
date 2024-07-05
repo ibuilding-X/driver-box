@@ -10,6 +10,8 @@ import (
 	"net/http"
 )
 
+const ProtocolName = "http_client"
+
 type Plugin struct {
 	logger   *zap.Logger           // 日志记录器
 	config   config.Config         // 核心配置
@@ -69,9 +71,10 @@ func (p *Plugin) initConnPool() (err error) {
 			c.Timeout = 5000
 		}
 		conn := &connector{
-			plugin: p,
-			config: c,
-			client: &http.Client{},
+			connectionKey: key,
+			plugin:        p,
+			config:        c,
+			client:        &http.Client{},
 		}
 		conn.initCollectTask()
 		p.connPool[key] = conn

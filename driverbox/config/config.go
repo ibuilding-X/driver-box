@@ -26,6 +26,9 @@ const (
 
 	//镜像设备功能是否可用
 	ENV_EXPORT_MIRROR_ENABLED = "EXPORT_MIRROR_ENABLED"
+
+	//镜像设备功能是否可用
+	ENV_EXPORT_DISCOVER_ENABLED = "EXPORT_DISCOVER_ENABLED"
 )
 
 // 点位上报模式

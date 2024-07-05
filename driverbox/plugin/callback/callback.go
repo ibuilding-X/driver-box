@@ -50,7 +50,7 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 	// 设备层驱动，对点位进行预处理
 	err := pointValueProcess(deviceData)
 	if err != nil {
-		helper.Logger.Error("device driver process error", zap.Error(err))
+		helper.Logger.Error("device driver process error", zap.Any("deviceData", deviceData), zap.Error(err))
 		return
 	}
 	//获取完成点位加工后的真实 deviceData

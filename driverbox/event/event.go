@@ -9,6 +9,8 @@ const (
 	EventCodeAddDevice = "addDevice"
 	//即将执行ExportTo
 	EventCodeWillExportTo = "willExportTo"
+	//设备自动发现事件
+	EventDeviceDiscover = "deviceDiscover"
 )
 
 const (
