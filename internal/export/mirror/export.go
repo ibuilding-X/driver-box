@@ -1,7 +1,6 @@
 package mirror
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
@@ -16,8 +15,6 @@ import (
 
 var driverInstance *Export
 var once = &sync.Once{}
-
-const MirrorPluginName = "mirror"
 
 // 在 model attributes 中可以的key值
 const MirrorTemplateName = "mirror_tpl"
@@ -36,7 +33,7 @@ func (export *Export) Init() error {
 	}
 	//注册镜像插件
 	export.plugin = mirror.NewPlugin()
-	driverbox.RegisterPlugin(MirrorPluginName, export.plugin)
+
 	export.ready = true
 	return nil
 }
@@ -148,7 +145,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 		DevicePoints: points,
 	}
 	//第三步：配置持久化
-	e := helper.CoreCache.AddModel(MirrorPluginName, mirrorModel)
+	e := helper.CoreCache.AddModel(mirror.ProtocolName, mirrorModel)
 	if e != nil {
 		helper.Logger.Error("add mirror model error", zap.Error(e))
 		return e

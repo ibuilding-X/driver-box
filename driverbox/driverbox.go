@@ -11,6 +11,9 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
 	"github.com/ibuilding-x/driver-box/internal/core"
 	export0 "github.com/ibuilding-x/driver-box/internal/export"
+	"github.com/ibuilding-x/driver-box/internal/export/discover"
+	"github.com/ibuilding-x/driver-box/internal/export/linkedge"
+	"github.com/ibuilding-x/driver-box/internal/export/mirror"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	"go.uber.org/zap"
 	"net/http"
@@ -43,7 +46,9 @@ func Start(exports []export.Export) error {
 	helper.Crontab.Start()
 
 	//第四步：启动Export
-	export0.Exports = exports
+
+	export0.Exports = append(exports, linkedge.NewExport(), mirror.NewExport(), discover.NewExport())
+
 	for _, item := range exports {
 		if err := item.Init(); err != nil {
 			helper.Logger.Error("init export error", zap.Error(err))

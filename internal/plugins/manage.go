@@ -9,6 +9,7 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet"
 	"github.com/ibuilding-x/driver-box/internal/plugins/httpclient"
 	"github.com/ibuilding-x/driver-box/internal/plugins/httpserver"
+	"github.com/ibuilding-x/driver-box/internal/plugins/mirror"
 	"github.com/ibuilding-x/driver-box/internal/plugins/modbus"
 	"github.com/ibuilding-x/driver-box/internal/plugins/mqtt"
 	"github.com/ibuilding-x/driver-box/internal/plugins/tcpserver"
@@ -31,6 +32,7 @@ func init() {
 	//Manager.Register("virtual", new(virtual.Plugin))
 	Manager.Register("bacnet", new(bacnet.Plugin))
 	Manager.Register(websocket.ProtocolName, new(websocket.Plugin))
+	Manager.Register(mirror.ProtocolName, mirror.NewPlugin())
 }
 
 // manager 管理器

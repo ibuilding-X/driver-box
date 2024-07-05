@@ -10,6 +10,8 @@ import (
 	"sync"
 )
 
+const ProtocolName = "mirror"
+
 var instance *Plugin
 var once = &sync.Once{}
 

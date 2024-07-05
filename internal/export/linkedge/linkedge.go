@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/restful"
@@ -467,11 +468,11 @@ func (linkEdge *service) triggerLinkEdge(id string, depth int, conf ...ModelConf
 	if id != "" {
 		// value:全部成功\部分成功\全部失败
 		if sucCount == len(config.Action) {
-			export.TriggerEvents(EventCodeLinkEdgeTrigger, id, LinkEdgeExecuteResultAllSuccess)
+			export.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, LinkEdgeExecuteResultAllSuccess)
 		} else if sucCount == 0 {
-			export.TriggerEvents(EventCodeLinkEdgeTrigger, id, LinkEdgeExecuteResultAllFail)
+			export.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, LinkEdgeExecuteResultAllFail)
 		} else {
-			export.TriggerEvents(EventCodeLinkEdgeTrigger, id, LinkEdgeExecuteResultPartSuccess)
+			export.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, LinkEdgeExecuteResultPartSuccess)
 		}
 	}
 

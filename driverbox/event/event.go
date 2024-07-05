@@ -11,6 +11,8 @@ const (
 	EventCodeWillExportTo = "willExportTo"
 	//设备自动发现事件
 	EventDeviceDiscover = "deviceDiscover"
+
+	EventCodeLinkEdgeTrigger = "linkEdgeTrigger"
 )
 
 const (

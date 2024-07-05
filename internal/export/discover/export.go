@@ -15,13 +15,6 @@ import (
 var driverInstance *Export
 var once = &sync.Once{}
 
-const MirrorPluginName = "mirror"
-
-// 在 model attributes 中可以的key值
-const MirrorTemplateName = "mirror_tpl"
-
-const MirrorTemplateKeyName = "mirror_tpl_key"
-
 // 设备自动发现插件
 type Export struct {
 	ready bool
