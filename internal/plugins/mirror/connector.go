@@ -19,6 +19,8 @@ type connector struct {
 
 // Release 虚拟链接，无需释放
 func (c *connector) Release() (err error) {
+	c.mirrors = make(map[string]map[string]Device)
+	c.rawMapping = make(map[string]map[string][]plugin.DeviceData)
 	return
 }
 
