@@ -165,8 +165,9 @@ func checkPoint(model *config.DeviceModel, point *config.Point) {
 
 // coreCache 核心缓存
 type coreCache interface {
-	GetModel(modelName string) (model config.Model, ok bool)                               // model info
-	GetDevice(id string) (device config.Device, ok bool)                                   // device info
+	GetModel(modelName string) (model config.Model, ok bool) // model info
+	GetDevice(id string) (device config.Device, ok bool)
+	//Deprecated 弃用，请使用GetDevice
 	GetDeviceByDeviceAndPoint(id string, pointName string) (device config.Device, ok bool) // connection config
 	//查询指定标签的设备列表
 	GetDevicesByTag(tag string) (devices []config.Device)
