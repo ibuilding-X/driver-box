@@ -29,13 +29,13 @@ func ExportTo(deviceData []plugin.DeviceData) {
 	helper.Logger.Debug("export data", zap.Any("data", deviceData))
 	// 写入消息总线
 	for _, data := range deviceData {
-		pointCacheFilter(&data)
 		//触发事件通知
 		if len(data.Events) > 0 {
 			for _, event := range data.Events {
 				export.TriggerEvents(event.Code, data.ID, event.Value)
 			}
 		}
+		pointCacheFilter(&data)
 		if len(data.Values) == 0 {
 			continue
 		}
