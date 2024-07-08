@@ -17,12 +17,11 @@ import (
 )
 
 type connectorConfig struct {
-	BaseUrl     string        `json:"baseUrl"`     // 基础URL
-	Timeout     int           `json:"timeout"`     // 请求超时
-	Timer       []timerConfig `json:"timer"`       //定时采集器
-	Enable      bool          `json:"enable"`      //当前连接是否可用
-	ProtocolKey string        `json:"protocolKey"` //协议层驱动
-	Auth        string        `json:"auth"`        //认证信息
+	plugin.BaseConnection
+	BaseUrl string        `json:"baseUrl"` // 基础URL
+	Timeout int           `json:"timeout"` // 请求超时
+	Timer   []timerConfig `json:"timer"`   //定时采集器
+	Auth    string        `json:"auth"`    //认证信息
 }
 
 type timerConfig struct {
@@ -50,10 +49,9 @@ type TimerParam struct {
 }
 
 type connector struct {
-	plugin        *Plugin
-	config        connectorConfig
-	client        *http.Client
-	connectionKey string
+	plugin *Plugin
+	config connectorConfig
+	client *http.Client
 }
 
 // startServer 启动服务
@@ -163,7 +161,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 		return err
 	}
 	//自动添加设备
-	common.WrapperDiscoverEvent(deviceData, c.connectionKey, ProtocolName)
+	common.WrapperDiscoverEvent(deviceData, c.config.ConnectionKey, ProtocolName)
 	callback.ExportTo(deviceData)
 	return nil
 }

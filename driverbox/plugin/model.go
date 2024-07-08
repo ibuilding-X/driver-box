@@ -59,3 +59,11 @@ type Connection struct {
 	//当前连接的 lua 虚拟机
 	Ls *lua.LState
 }
+
+// 连接配置基础模型
+type BaseConnection struct {
+	ConnectionKey string //连接标识
+	ProtocolKey   string `json:"protocolKey"` //协议驱动库标识
+	Discover      bool   `json:"discover"`    //是否支持设备发现
+	Enable        bool   `json:"enable"`      //是否启用
+}

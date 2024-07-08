@@ -10,7 +10,7 @@ import (
 
 // Encode 编码数据，无需实现
 func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
-	payload, err := library.Protocol().Encode(c.config.DriverKey, library.ProtocolEncodeRequest{
+	payload, err := library.Protocol().Encode(c.config.ProtocolKey, library.ProtocolEncodeRequest{
 		DeviceId: deviceId,
 		Mode:     mode,
 		Points:   values,

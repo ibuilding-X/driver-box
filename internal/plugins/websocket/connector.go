@@ -25,14 +25,11 @@ var upgrader = websocket.Upgrader{
 }
 
 type connectorConfig struct {
+	plugin.BaseConnection
 	Host string `json:"host"`
 	Port int    `json:"port"`
 	//匹配路径
 	Pattern string `json:"pattern"`
-	//是否支持设备自动发现
-	Discover bool `json:"discover"`
-	//驱动key
-	DriverKey string `json:"driverKey"`
 }
 
 // 消息解码结构体
@@ -52,9 +49,8 @@ type encodeStruct struct {
 }
 
 type connector struct {
-	connectionKey string
-	config        connectorConfig
-	server        *http.Server
+	config connectorConfig
+	server *http.Server
 	//设备与连接的映射
 	deviceMappingConn *sync.Map
 	//连接与设备的映射
@@ -125,7 +121,7 @@ func (c *connector) handleFunc(server *http.ServeMux) {
 			logger.Logger.Info("Received message", zap.Any("messageType", messageType), zap.Any("payload", string(p)))
 			decode.Event = "read"
 			decode.Payload = string(p)
-			deviceDatas, err := library.Protocol().Decode(c.config.DriverKey, decode)
+			deviceDatas, err := library.Protocol().Decode(c.config.ProtocolKey, decode)
 			if err != nil {
 				fmt.Println("Failed to decode message:", err)
 				continue
@@ -148,7 +144,7 @@ func (c *connector) handleFunc(server *http.ServeMux) {
 				c.connMappingDevice.Store(conn, devices)
 			}
 			//自动添加设备
-			common.WrapperDiscoverEvent(deviceDatas, c.connectionKey, ProtocolName)
+			common.WrapperDiscoverEvent(deviceDatas, c.config.ConnectionKey, ProtocolName)
 			callback.ExportTo(deviceDatas)
 		}
 

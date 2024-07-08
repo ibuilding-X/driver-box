@@ -70,11 +70,11 @@ func (p *Plugin) initConnPool() (err error) {
 		if c.Timeout <= 0 {
 			c.Timeout = 5000
 		}
+		c.ConnectionKey = key
 		conn := &connector{
-			connectionKey: key,
-			plugin:        p,
-			config:        c,
-			client:        &http.Client{},
+			plugin: p,
+			config: c,
+			client: &http.Client{},
 		}
 		conn.initCollectTask()
 		p.connPool[key] = conn

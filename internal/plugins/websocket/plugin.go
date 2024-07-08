@@ -67,8 +67,8 @@ func (p *Plugin) initConnPool() (err error) {
 		if err = helper.Map2Struct(p.config.Connections[key], &c); err != nil {
 			return
 		}
+		c.ConnectionKey = key
 		conn := &connector{
-			connectionKey:     key,
 			config:            c,
 			deviceMappingConn: &sync.Map{},
 			connMappingDevice: &sync.Map{},
