@@ -84,7 +84,7 @@ func (c *connector) startServer() {
 	}
 	//复用driver-box自身服务
 	if strconv.Itoa(c.config.Port) == helper.EnvConfig.HttpListen {
-		c.handleFunc(http.DefaultServeMux)
+		logger.Logger.Error("websocket connector port is same as driver-box http listen port", zap.Any("connector", c.config))
 		return
 	}
 	//启动新的服务
@@ -94,7 +94,12 @@ func (c *connector) startServer() {
 		Handler: serverMux,
 	}
 	c.handleFunc(serverMux)
-	c.server.ListenAndServe()
+	go func() {
+		e := c.server.ListenAndServe()
+		if e != nil {
+			logger.Logger.Error("websocket connector start server error", zap.Any("error", e))
+		}
+	}()
 }
 
 func (c *connector) handleFunc(server *http.ServeMux) {
