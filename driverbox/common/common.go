@@ -2,6 +2,8 @@ package common
 
 import (
 	"errors"
+	"github.com/ibuilding-x/driver-box/driverbox/event"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"io"
 	"os"
 )
@@ -70,4 +72,22 @@ func ReadFileBytes(path string) ([]byte, error) {
 	defer f.Close()
 
 	return io.ReadAll(f)
+}
+
+// 封装设备自动发现事件，补充必要字段
+func WrapperDiscoverEvent(devicesData []plugin.DeviceData, connectionKey string, protocolName string) {
+	for _, device := range devicesData {
+		if device.Events == nil || len(device.Events) == 0 {
+			continue
+		}
+		for _, eventData := range device.Events {
+			//补充信息要素
+			if eventData.Code != event.EventDeviceDiscover {
+				continue
+			}
+			value := eventData.Value.(map[string]interface{})
+			value["connectionKey"] = connectionKey
+			value["protocolName"] = protocolName
+		}
+	}
 }

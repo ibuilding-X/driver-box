@@ -2,7 +2,7 @@ package httpclient
 
 import (
 	"encoding/json"
-	event2 "github.com/ibuilding-x/driver-box/driverbox/event"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -162,19 +162,8 @@ func (c *connector) Send(raw interface{}) (err error) {
 	if err != nil {
 		return err
 	}
-	for _, device := range deviceData {
-		if device.Events == nil || len(device.Events) == 0 {
-			continue
-		}
-		for _, event := range device.Events {
-			//补充信息要素
-			if event.Code == event2.EventDeviceDiscover {
-				value := event.Value.(map[string]interface{})
-				value["connectionKey"] = c.connectionKey
-				value["protocolName"] = ProtocolName
-			}
-		}
-	}
+	//自动添加设备
+	common.WrapperDiscoverEvent(deviceData, c.connectionKey, ProtocolName)
 	callback.ExportTo(deviceData)
 	return nil
 }

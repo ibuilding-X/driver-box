@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
@@ -51,8 +52,9 @@ type encodeStruct struct {
 }
 
 type connector struct {
-	config connectorConfig
-	server *http.Server
+	connectionKey string
+	config        connectorConfig
+	server        *http.Server
 	//设备与连接的映射
 	deviceMappingConn *sync.Map
 	//连接与设备的映射
@@ -146,13 +148,7 @@ func (c *connector) handleFunc(server *http.ServeMux) {
 				c.connMappingDevice.Store(conn, devices)
 			}
 			//自动添加设备
-			if c.config.Discover {
-				for _, deviceData := range deviceDatas {
-					if _, ok := helper.CoreCache.GetDevice(deviceData.ID); !ok {
-						//helper.CoreCache.AddDevice()
-					}
-				}
-			}
+			common.WrapperDiscoverEvent(deviceDatas, c.connectionKey, ProtocolName)
 			callback.ExportTo(deviceDatas)
 		}
 

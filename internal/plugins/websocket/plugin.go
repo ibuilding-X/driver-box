@@ -68,6 +68,7 @@ func (p *Plugin) initConnPool() (err error) {
 			return
 		}
 		conn := &connector{
+			connectionKey:     key,
 			config:            c,
 			deviceMappingConn: &sync.Map{},
 			connMappingDevice: &sync.Map{},
