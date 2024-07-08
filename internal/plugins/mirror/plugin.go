@@ -132,6 +132,8 @@ func (p *Plugin) Destroy() error {
 	if p.ls != nil {
 		helper.Close(p.ls)
 	}
+	p.connector.mirrors = make(map[string]map[string]Device)
+	p.connector.rawMapping = make(map[string]map[string][]plugin.DeviceData)
 	p.ready = false
 	return nil
 }
