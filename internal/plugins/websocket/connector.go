@@ -78,6 +78,10 @@ func (c *connector) Send(raw interface{}) (err error) {
 
 // startServer 启动服务
 func (c *connector) startServer() {
+	if !c.config.Enable {
+		logger.Logger.Warn("websocket connector is not enable", zap.Any("connector", c.config))
+		return
+	}
 	//复用driver-box自身服务
 	if strconv.Itoa(c.config.Port) == helper.EnvConfig.HttpListen {
 		c.handleFunc(http.DefaultServeMux)
