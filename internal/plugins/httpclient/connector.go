@@ -17,12 +17,12 @@ import (
 )
 
 type connectorConfig struct {
-	BaseUrl   string        `json:"baseUrl"`   // 基础URL
-	Timeout   int           `json:"timeout"`   // 请求超时
-	Timer     []timerConfig `json:"timer"`     //定时采集器
-	Enable    bool          `json:"enable"`    //当前连接是否可用
-	DriverKey string        `json:"driverKey"` //协议层驱动
-	Auth      string        `json:"auth"`      //认证信息
+	BaseUrl     string        `json:"baseUrl"`     // 基础URL
+	Timeout     int           `json:"timeout"`     // 请求超时
+	Timer       []timerConfig `json:"timer"`       //定时采集器
+	Enable      bool          `json:"enable"`      //当前连接是否可用
+	ProtocolKey string        `json:"protocolKey"` //协议层驱动
+	Auth        string        `json:"auth"`        //认证信息
 }
 
 type timerConfig struct {
@@ -89,9 +89,9 @@ func (c *connector) initCollectTask() (*crontab.Future, error) {
 			if timer.latestTime.Add(timer.duration).After(time.Now()) {
 				continue
 			}
-			payload, err := library.Protocol().Execute(c.config.DriverKey, timer.Action, action)
+			payload, err := library.Protocol().Execute(c.config.ProtocolKey, timer.Action, action)
 			if err != nil {
-				logger.Logger.Error("execute protocol driver error", zap.Any("driverKey", c.config.DriverKey), zap.Any("action", timer.Action), zap.Any("error", err))
+				logger.Logger.Error("execute protocol driver error", zap.Any("driverKey", c.config.ProtocolKey), zap.Any("action", timer.Action), zap.Any("error", err))
 				continue
 			}
 			var data HttpRequest
@@ -158,7 +158,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 		},
 		StatusCode: res.StatusCode,
 	}
-	deviceData, err := library.Protocol().Decode(c.config.DriverKey, response)
+	deviceData, err := library.Protocol().Decode(c.config.ProtocolKey, response)
 	if err != nil {
 		return err
 	}

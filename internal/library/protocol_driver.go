@@ -15,18 +15,18 @@ type ProtocolDriver struct {
 }
 
 // 加载指定key的驱动
-func (device *ProtocolDriver) LoadLibrary(driverKey string) error {
-	L, err := lua.InitLuaVM(path.Join(config.ResourcePath, baseDir, string(protocolDriver), driverKey+".lua"))
+func (device *ProtocolDriver) LoadLibrary(protocolKey string) error {
+	L, err := lua.InitLuaVM(path.Join(config.ResourcePath, baseDir, string(protocolDriver), protocolKey+".lua"))
 	if err != nil {
 		return err
 	}
-	device.drivers[driverKey] = L
+	device.drivers[protocolKey] = L
 	return nil
 }
 
 // 执行制定的方法
-func (device *ProtocolDriver) Execute(driverKey string, luaMethod string, param string) (string, error) {
-	L := device.drivers[driverKey]
+func (device *ProtocolDriver) Execute(protocolKey string, luaMethod string, param string) (string, error) {
+	L := device.drivers[protocolKey]
 	return lua.CallLuaMethod(L, luaMethod, glua.LString(param))
 }
 
@@ -34,8 +34,8 @@ func (device *ProtocolDriver) Execute(driverKey string, luaMethod string, param 
 // 1. 写操作时，对点位值进行加工
 // 2. 针对点位A发起的读写操作，通过编码可变更为点位B
 // 3. 对单点位发起的读写请求，通过编码可扩展为多点位。例如：执行空开的开关操作，会先触发解锁，再执行开关行为。
-func (device *ProtocolDriver) Encode(driverKey string, req ProtocolEncodeRequest) (string, error) {
-	L := device.drivers[driverKey]
+func (device *ProtocolDriver) Encode(protocolKey string, req ProtocolEncodeRequest) (string, error) {
+	L := device.drivers[protocolKey]
 	points := L.NewTable()
 	for _, point := range req.Points {
 		pointData := L.NewTable()
@@ -61,8 +61,8 @@ func (device *ProtocolDriver) Encode(driverKey string, req ProtocolEncodeRequest
 // 设备上行数据解码，该接口主要功能如下：
 // 1. 对读到的数据进行点位值加工
 // 2. 将读到的点位值，同步到本设备的另外一个点位上
-func (device *ProtocolDriver) Decode(driverKey string, req any) ([]plugin.DeviceData, error) {
-	L := device.drivers[driverKey]
+func (device *ProtocolDriver) Decode(protocolKey string, req any) ([]plugin.DeviceData, error) {
+	L := device.drivers[protocolKey]
 	bytes, e := json.Marshal(req)
 	if e != nil {
 		return nil, e

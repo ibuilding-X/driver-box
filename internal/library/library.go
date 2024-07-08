@@ -18,6 +18,9 @@ const (
 
 	//镜像设备模版
 	mirrorTemplate Type = "mirror_tpl"
+
+	ProtocolConfigKey = "protocolKey"
+	DriverConfigKey   = "driverKey"
 )
 
 var driverOnce = &sync.Once{}

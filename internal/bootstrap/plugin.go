@@ -130,15 +130,15 @@ func initProtocolDriver(configMap map[string]config.Config) error {
 	drivers := make(map[string]string)
 	for _, c := range configMap {
 		for _, connection := range c.Connections {
-			driverKey, ok := connection.(map[string]any)["driverKey"]
+			protocolKey, ok := connection.(map[string]any)[library.ProtocolConfigKey]
 			if !ok {
 				continue
 			}
-			if len(driverKey.(string)) == 0 {
-				logger.Logger.Warn("driverKey is empty", zap.Any("connection", connection))
+			if len(protocolKey.(string)) == 0 {
+				logger.Logger.Warn("protocolKey is empty", zap.Any("connection", connection))
 				continue
 			}
-			drivers[driverKey.(string)] = driverKey.(string)
+			drivers[protocolKey.(string)] = protocolKey.(string)
 		}
 	}
 	for key, _ := range drivers {
