@@ -1,7 +1,6 @@
 package websocket
 
 import (
-	"context"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
@@ -59,9 +58,6 @@ type connector struct {
 
 // Release 释放资源
 func (c *connector) Release() (err error) {
-	if c.server != nil {
-		_ = c.server.Shutdown(context.Background())
-	}
 	return nil
 }
 

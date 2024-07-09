@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"context"
 	"errors"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
@@ -51,9 +52,9 @@ func (p *Plugin) Destroy() error {
 		helper.Close(p.ls)
 	}
 	if len(p.connPool) > 0 {
-		for i, _ := range p.connPool {
-			if err := p.connPool[i].Release(); err != nil {
-				return err
+		for _, c := range p.connPool {
+			if c.server != nil {
+				_ = c.server.Shutdown(context.Background())
 			}
 		}
 	}
