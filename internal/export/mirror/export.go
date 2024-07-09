@@ -88,7 +88,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 		return err
 	}
 	if c == nil {
-		helper.Logger.Info("auto create mirror device failed, no mirror config", zap.String("deviceId", deviceId), zap.Any("rawModel", rawModel))
+		helper.Logger.Info("auto create mirror device failed, no mirror config", zap.String("deviceId", deviceId), zap.Any("modeName", rawModel.Name))
 		return nil
 	}
 
