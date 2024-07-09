@@ -12,7 +12,7 @@ var Exports []export.Export
 func TriggerEvents(eventCode string, key string, value interface{}) {
 	for _, export0 := range Exports {
 		if !export0.IsReady() {
-			logger.Logger.Warn("export not ready")
+			logger.Logger.Debug("export not ready")
 			continue
 		}
 		err := export0.OnEvent(eventCode, key, value)
