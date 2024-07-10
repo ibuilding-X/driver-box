@@ -12,7 +12,7 @@ import (
 const (
 	//资源文件存放目录
 	ENV_RESOURCE_PATH = "DRIVERBOX_RESOURCE_PATH"
-	//http服务绑定地址
+	//http服务监听端口号
 	ENV_HTTP_LISTEN = "DRIVERBOX_HTTP_LISTEN"
 
 	//日志文件存放路径
@@ -23,6 +23,12 @@ const (
 
 	//场景联动配置存放目录
 	ENV_LINKEDGE_CONFIG_PATH = "EXPORT_LINKEDGE_CONFIG_PATH"
+
+	//镜像设备功能是否可用
+	ENV_EXPORT_MIRROR_ENABLED = "EXPORT_MIRROR_ENABLED"
+
+	//镜像设备功能是否可用
+	ENV_EXPORT_DISCOVER_ENABLED = "EXPORT_DISCOVER_ENABLED"
 )
 
 // 点位上报模式
@@ -58,6 +64,7 @@ var ResourcePath = "./res"
 
 type EnvConfig struct {
 	ConfigPath string
+	//http服务监听端口号
 	HttpListen string
 	LogPath    string
 }
@@ -118,6 +125,8 @@ type ModelBase struct {
 	ModelID string `json:"modelId" validate:"required"`
 	// 模型描述
 	Description string `json:"description" validate:"required"`
+	//扩展属性
+	Attributes map[string]interface{} `json:"attributes"`
 }
 
 // DeviceModel 设备模型

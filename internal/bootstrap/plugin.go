@@ -9,7 +9,9 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
+	"github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/internal/library"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/internal/lua"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	glua "github.com/yuin/gopher-lua"
@@ -52,6 +54,12 @@ func LoadPlugins() error {
 	//初始化设备层驱动
 	initDeviceDriver(configMap)
 
+	//初始化协议层驱动
+	err = initProtocolDriver(configMap)
+	if err != nil {
+		return err
+	}
+
 	// 启动插件
 	for key, _ := range configMap {
 		helper.Logger.Info(key+" begin start", zap.Any("directoryName", key), zap.Any("plugin", configMap[key].ProtocolName))
@@ -64,7 +72,7 @@ func LoadPlugins() error {
 
 		var ls *glua.LState
 		path := filepath.Join(helper.EnvConfig.ConfigPath, key, common.LuaScriptName)
-		if lua.FileExists(path) {
+		if common.FileExists(path) {
 			ls, err = lua.InitLuaVM(path)
 			if err != nil {
 				helper.Logger.Error(err.Error())
@@ -83,13 +91,18 @@ func LoadPlugins() error {
 		helper.Logger.Info("start success", zap.Any("directoryName", key), zap.Any("plugin", configMap[key].ProtocolName))
 	}
 
+	//完成初始化后触发设备添加事件通知
+	for _, device := range helper.CoreCache.Devices() {
+		export.TriggerEvents(event.EventCodeAddDevice, device.ID, nil)
+	}
+
 	return nil
 }
 
 // 初始化设备层驱动
 func initDeviceDriver(configMap map[string]config.Config) {
 	//清空设备驱动库
-	library.UnloadDeviceDrivers()
+	library.Driver().UnloadDeviceDrivers()
 	//重新添加
 	drivers := make(map[string]string)
 	for _, c := range configMap {
@@ -102,11 +115,40 @@ func initDeviceDriver(configMap map[string]config.Config) {
 		}
 	}
 	for key, _ := range drivers {
-		err := library.LoadLibrary(library.DeviceDriver, key)
+		err := library.Driver().LoadLibrary(key)
 		if err != nil {
 			helper.Logger.Error("load device driver error", zap.String("driverKey", key), zap.Error(err))
 		}
 	}
+}
+
+// 初始化协议层驱动
+func initProtocolDriver(configMap map[string]config.Config) error {
+	//清空设备驱动库
+	library.Protocol().UnloadDeviceDrivers()
+	//重新添加
+	drivers := make(map[string]string)
+	for _, c := range configMap {
+		for _, connection := range c.Connections {
+			protocolKey, ok := connection.(map[string]any)[library.ProtocolConfigKey]
+			if !ok {
+				continue
+			}
+			if len(protocolKey.(string)) == 0 {
+				logger.Logger.Warn("protocolKey is empty", zap.Any("connection", connection))
+				continue
+			}
+			drivers[protocolKey.(string)] = protocolKey.(string)
+		}
+	}
+	for key, _ := range drivers {
+		err := library.Protocol().LoadLibrary(key)
+		if err != nil {
+			helper.Logger.Error("load device protocol error", zap.String("driverKey", key), zap.Error(err))
+			return err
+		}
+	}
+	return nil
 }
 
 // 初始化影子服务
@@ -122,7 +164,7 @@ func initDeviceShadow(configMap map[string]config.Config) {
 				helper.Logger.Warn("device offline...", zap.String("deviceId", deviceId))
 			}
 			//触发设备在离线事件
-			helper.TriggerEvents(event.EventCodeDeviceStatus, deviceId, online)
+			export.TriggerEvents(event.EventCodeDeviceStatus, deviceId, online)
 		})
 	}
 	// 添加设备

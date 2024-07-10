@@ -10,6 +10,10 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
 	"github.com/ibuilding-x/driver-box/internal/core"
+	export0 "github.com/ibuilding-x/driver-box/internal/export"
+	"github.com/ibuilding-x/driver-box/internal/export/discover"
+	"github.com/ibuilding-x/driver-box/internal/export/linkedge"
+	"github.com/ibuilding-x/driver-box/internal/export/mirror"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	"go.uber.org/zap"
 	"net/http"
@@ -42,8 +46,10 @@ func Start(exports []export.Export) error {
 	helper.Crontab.Start()
 
 	//第四步：启动Export
-	helper.Exports = exports
-	for _, item := range exports {
+
+	export0.Exports = append(exports, linkedge.NewExport(), mirror.NewExport(), discover.NewExport())
+
+	for _, item := range export0.Exports {
 		if err := item.Init(); err != nil {
 			helper.Logger.Error("init export error", zap.Error(err))
 		}
@@ -53,7 +59,7 @@ func Start(exports []export.Export) error {
 	go func() {
 		registerApi()
 		core.RegisterApi()
-		e := http.ListenAndServe(":8081", nil)
+		e := http.ListenAndServe(":"+helper.EnvConfig.HttpListen, nil)
 		if e != nil {
 			helper.Logger.Error("start rest server error", zap.Error(e))
 		}
@@ -66,9 +72,9 @@ func Start(exports []export.Export) error {
 	}
 
 	if err != nil {
-		helper.TriggerEvents(event.EventCodeServiceStatus, SerialNo, event.ServiceStatusError)
+		TriggerEvents(event.EventCodeServiceStatus, SerialNo, event.ServiceStatusError)
 	} else {
-		helper.TriggerEvents(event.EventCodeServiceStatus, SerialNo, event.ServiceStatusHealthy)
+		TriggerEvents(event.EventCodeServiceStatus, SerialNo, event.ServiceStatusHealthy)
 	}
 
 	helper.Logger.Info("start driver-box success.")
@@ -90,7 +96,7 @@ func initEnvConfig() error {
 	if httpListen != "" {
 		helper.EnvConfig.HttpListen = httpListen
 	} else {
-		helper.EnvConfig.HttpListen = ":8081"
+		helper.EnvConfig.HttpListen = "8081"
 	}
 
 	logPath := os.Getenv(config.ENV_LOG_PATH)
@@ -115,4 +121,14 @@ func WritePoint(deviceId string, pointData plugin.PointData) error {
 // 批量写点位
 func WritePoints(deviceId string, pointData []plugin.PointData) error {
 	return core.SendBatchWrite(deviceId, pointData)
+}
+
+//// 获取当前被注册至 driver-box 的所有export
+//func GetExports() []export.Export {
+//	return export0.Exports
+//}
+
+// 触发运行时事件
+func TriggerEvents(eventCode string, key string, value interface{}) {
+	export0.TriggerEvents(eventCode, key, value)
 }

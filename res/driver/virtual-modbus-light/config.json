@@ -1,0 +1,148 @@
+{
+  "deviceModels": [
+    {
+      "name": " light:switch",
+      "modelId": " light:switch",
+      "description": "照明设备",
+      "devicePoints": [
+        {
+          "bit": 0,
+          "bitLen": 1,
+          "byteSwap": false,
+          "description": "运行状态",
+          "name": "onOff",
+          "primaryTable": "HOLDING_REGISTER",
+          "quantity": 1,
+          "rawType": "uint16",
+          "readWrite": "R",
+          "realReport": true,
+          "reportMode": "change",
+          "scale": "",
+          "startAddress": "0xB524",
+          "valueType": "int",
+          "wordSwap": false
+        }
+      ],
+      "devices": [
+        {
+          "id": "virtual_light_1",
+          "description": "模拟照明_1",
+          "ttl": "",
+          "tags": null,
+          "connectionKey": "virtual_connection",
+          "properties": {
+            "area": "",
+            "unitID": "1"
+          }
+        },
+        {
+          "id": "virtual_light_2",
+          "description": "模拟照明_2",
+          "ttl": "",
+          "tags": null,
+          "connectionKey": "virtual_connection",
+          "properties": {
+            "area": "",
+            "unitID": "2"
+          }
+        },
+        {
+          "id": "virtual_light_3",
+          "description": "模拟照明_3",
+          "ttl": "",
+          "tags": null,
+          "connectionKey": "virtual_connection",
+          "properties": {
+            "area": "",
+            "unitID": "3"
+          }
+        },
+        {
+          "id": "virtual_light_4",
+          "description": "模拟照明_4",
+          "ttl": "",
+          "tags": null,
+          "connectionKey": "virtual_connection",
+          "properties": {
+            "area": "",
+            "unitID": "4"
+          }
+        },
+        {
+          "id": "virtual_light_5",
+          "description": "模拟照明_5",
+          "ttl": "",
+          "tags": null,
+          "connectionKey": "virtual_connection",
+          "properties": {
+            "area": "",
+            "unitID": "5"
+          }
+        },
+        {
+          "id": "virtual_light_6",
+          "description": "模拟照明_6",
+          "ttl": "",
+          "tags": null,
+          "connectionKey": "virtual_connection",
+          "properties": {
+            "area": "",
+            "unitID": "6"
+          }
+        },
+        {
+          "id": "virtual_light_7",
+          "description": "模拟照明_7",
+          "ttl": "",
+          "tags": null,
+          "connectionKey": "virtual_connection",
+          "properties": {
+            "area": "",
+            "unitID": "7"
+          }
+        },
+        {
+          "id": "virtual_light_8",
+          "description": "模拟照明_8",
+          "ttl": "",
+          "tags": null,
+          "connectionKey": "virtual_connection",
+          "properties": {
+            "area": "",
+            "unitID": "8"
+          }
+        },
+        {
+          "id": "virtual_light_9",
+          "description": "模拟照明_9",
+          "ttl": "",
+          "tags": null,
+          "connectionKey": "virtual_connection",
+          "properties": {
+            "area": "",
+            "unitID": "9"
+          }
+        },
+        {
+          "id": "virtual_light_10",
+          "description": "模拟照明_10",
+          "ttl": "",
+          "tags": null,
+          "connectionKey": "virtual_connection",
+          "properties": {
+            "area": "",
+            "unitID": "10"
+          }
+        }
+      ]
+    }
+  ],
+  "connections": {
+    "virtual_connection": {
+      "enable": true,
+      "mode": "rtu",
+      "virtual": true
+    }
+  },
+  "protocolName": "modbus"
+}

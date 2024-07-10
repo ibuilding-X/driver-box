@@ -12,7 +12,6 @@ import (
 	"go.uber.org/zap"
 	luajson "layeh.com/gopher-json"
 	"net/http"
-	"os"
 	"sync"
 )
 
@@ -21,7 +20,7 @@ var luaLocks = sync.Map{}
 
 // InitLuaVM 编译 lua 脚本
 func InitLuaVM(filePath string) (*lua.LState, error) {
-	if !FileExists(filePath) {
+	if !common.FileExists(filePath) {
 		logger.Logger.Warn("lua script not found, aborting initializing lua vm", zap.Any("filePath", filePath))
 		return nil, errors.New("lua script not found")
 	}
@@ -41,12 +40,6 @@ func InitLuaVM(filePath string) (*lua.LState, error) {
 	//注册同步锁
 	luaLocks.Store(ls, &sync.Mutex{})
 	return ls, nil
-}
-
-// FileExists 判断文件存在
-func FileExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
 }
 
 // CallLuaConverter 调用 Lua 脚本转换器

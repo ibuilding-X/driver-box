@@ -5,8 +5,10 @@ package helper
 import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/export"
 	"go.uber.org/zap"
 	"sync"
 )
@@ -131,7 +133,6 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 			c.models.Store(model.Name, model)
 		}
 	}
-
 	return nil
 }
 
@@ -164,8 +165,9 @@ func checkPoint(model *config.DeviceModel, point *config.Point) {
 
 // coreCache 核心缓存
 type coreCache interface {
-	GetModel(modelName string) (model config.Model, ok bool)                               // model info
-	GetDevice(id string) (device config.Device, ok bool)                                   // device info
+	GetModel(modelName string) (model config.Model, ok bool) // model info
+	GetDevice(id string) (device config.Device, ok bool)
+	//Deprecated 弃用，请使用GetDevice
 	GetDeviceByDeviceAndPoint(id string, pointName string) (device config.Device, ok bool) // connection config
 	//查询指定标签的设备列表
 	GetDevicesByTag(tag string) (devices []config.Device)
@@ -341,6 +343,11 @@ func (c *cache) UpdateDeviceProperty(id string, key string, value string) {
 // DeleteDevice 删除设备
 func (c *cache) DeleteDevice(id string) {
 	c.devices.Delete(id)
+	// 删除设备影子
+	if DeviceShadow != nil {
+		_ = DeviceShadow.DeleteDevice(id)
+	}
+	_ = cmanager.RemoveDeviceByID(id)
 }
 
 // UpdateDeviceDesc 更新设备描述
@@ -401,6 +408,10 @@ func (c *cache) AddOrUpdateDevice(device config.Device) error {
 		device.Description = device.ID
 	}
 	// 更新核心缓存
+	_, ok = c.devices.Load(device.ID)
+	if !ok {
+		defer export.TriggerEvents(event.EventCodeAddDevice, device.ID, nil)
+	}
 	c.devices.Store(device.ID, device)
 	// 更新设备影子
 	if DeviceShadow != nil && !DeviceShadow.HasDevice(device.ID) {
@@ -471,20 +482,54 @@ func (c *cache) GetConnectionPluginName(key string) string {
 
 // AddModel 新增模型
 func (c *cache) AddModel(plugin string, model config.DeviceModel) error {
-	return cmanager.AddModel(plugin, model)
+	err := cmanager.AddModel(plugin, model)
+	if err == nil {
+		points := make(map[string]config.Point)
+		for _, p := range model.DevicePoints {
+			point := p.ToPoint()
+			points[point.Name] = point
+		}
+		devices := make(map[string]config.Device)
+		for _, d := range model.Devices {
+			devices[d.ID] = d
+		}
+		c.models.Store(model.Name, config.Model{
+			ModelBase: model.ModelBase,
+			Points:    points,
+			Devices:   devices,
+		})
+	}
+	return err
 }
 
 // RemoveDevice 根据 ID 删除设备
 func (c *cache) RemoveDevice(modelName string, deviceID string) error {
+	c.devices.Delete(deviceID)
+	// 删除设备影子
+	if DeviceShadow != nil {
+		_ = DeviceShadow.DeleteDevice(deviceID)
+	}
 	return cmanager.RemoveDevice(modelName, deviceID)
 }
 
 // RemoveDeviceByID 根据 ID 删除设备
 func (c *cache) RemoveDeviceByID(id string) error {
+	c.devices.Delete(id)
+	// 删除设备影子
+	if DeviceShadow != nil {
+		_ = DeviceShadow.DeleteDevice(id)
+	}
 	return cmanager.RemoveDeviceByID(id)
 }
 
 // BatchRemoveDevice 批量删除设备
 func (c *cache) BatchRemoveDevice(ids []string) error {
+	for _, id := range ids {
+		c.devices.Delete(id)
+	}
+	// 删除设备影子
+	if DeviceShadow != nil {
+		_ = DeviceShadow.DeleteDevice(ids...)
+	}
 	return cmanager.BatchRemoveDevice(ids)
 }

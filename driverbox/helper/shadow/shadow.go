@@ -35,6 +35,8 @@ type DeviceShadow interface {
 	GetDevice(id string) (device Device, ok bool)
 	// HasDevice 是否存在设备
 	HasDevice(id string) bool
+	// DeleteDevice 删除设备
+	DeleteDevice(id ...string) (err error)
 
 	// SetDevicePoint 设置设备点位值
 	SetDevicePoint(id, pointName string, value interface{}) (err error)

@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/restful"
 	"github.com/ibuilding-x/driver-box/driverbox/restful/route"
 	"github.com/ibuilding-x/driver-box/internal/core"
+	"github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 	"io"
@@ -466,11 +468,11 @@ func (linkEdge *service) triggerLinkEdge(id string, depth int, conf ...ModelConf
 	if id != "" {
 		// value:全部成功\部分成功\全部失败
 		if sucCount == len(config.Action) {
-			helper.TriggerEvents(EventCodeLinkEdgeTrigger, id, LinkEdgeExecuteResultAllSuccess)
+			export.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, LinkEdgeExecuteResultAllSuccess)
 		} else if sucCount == 0 {
-			helper.TriggerEvents(EventCodeLinkEdgeTrigger, id, LinkEdgeExecuteResultAllFail)
+			export.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, LinkEdgeExecuteResultAllFail)
 		} else {
-			helper.TriggerEvents(EventCodeLinkEdgeTrigger, id, LinkEdgeExecuteResultPartSuccess)
+			export.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, LinkEdgeExecuteResultPartSuccess)
 		}
 	}
 

@@ -3,6 +3,8 @@ package mirror
 import (
 	"errors"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/logger"
+	"go.uber.org/zap"
 )
 
 // Encode 编码数据
@@ -63,27 +65,26 @@ func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error)
 		}
 		for _, mirror := range mirrors {
 			//镜像设备分组以存在，填充点位
-			if mirrorData, ok := group[mirror.ID]; ok {
-				mirrorData.Values = append(mirrorData.Values, point)
-				continue
+			mirrorData, ok := group[mirror.ID]
+			if !ok {
+				mirrorData = plugin.DeviceData{
+					ID:     mirror.ID,
+					Values: make([]plugin.PointData, 0),
+				}
 			}
 			//通讯设备对应同一镜像设备的多个点
 			for _, pointData := range mirror.Values {
-				group[mirror.ID] = plugin.DeviceData{
-					ID: mirror.ID,
-					Values: []plugin.PointData{
-						{
-							PointName: pointData.PointName,
-							Value:     point.Value,
-						},
-					},
-				}
+				mirrorData.Values = append(mirrorData.Values, plugin.PointData{
+					PointName: pointData.PointName,
+					Value:     point.Value,
+				})
 			}
-
+			group[mirror.ID] = mirrorData
 		}
 	}
 	for _, data := range group {
 		res = append(res, data)
 	}
+	logger.Logger.Info("mirror decode result", zap.Any("raw", rawDeviceData), zap.Any("mirror", res))
 	return res, err
 }
