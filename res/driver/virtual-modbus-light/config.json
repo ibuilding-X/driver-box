@@ -1,7 +1,7 @@
 {
   "deviceModels": [
     {
-      "name": " light:switch",
+      "name": " virtual-light:switch",
       "modelId": " light:switch",
       "description": "照明设备",
       "devicePoints": [

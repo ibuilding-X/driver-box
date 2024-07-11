@@ -93,12 +93,13 @@ func (p *Plugin) initNetworks(config config.Config) {
 // Connector 连接器
 func (p *Plugin) Connector(deviceId, pointName string) (conn plugin.Connector, err error) {
 	// 获取连接key
-	device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceId, pointName)
+	device, ok := helper.CoreCache.GetDevice(deviceId)
 	if !ok {
 		return nil, errors.New("not found device connection key")
 	}
 	c, ok := p.connPool[device.ConnectionKey]
 	if !ok {
+		helper.Logger.Error("not found connection key, key is ", zap.String("key", device.ConnectionKey), zap.Any("connections", p.connPool))
 		return nil, errors.New("not found connection key, key is " + device.ConnectionKey)
 	}
 	return c, nil
