@@ -89,7 +89,7 @@ func (c *connector) initCollectTask() (*crontab.Future, error) {
 			}
 			payload, err := library.Protocol().Execute(c.config.ProtocolKey, timer.Action, action)
 			if err != nil {
-				logger.Logger.Error("execute protocol driver error", zap.Any("driverKey", c.config.ProtocolKey), zap.Any("action", timer.Action), zap.Any("error", err))
+				logger.Logger.Error("execute protocol driver error", zap.Any("protocolKey", c.config.ProtocolKey), zap.Any("action", timer.Action), zap.Any("error", err))
 				continue
 			}
 			var data HttpRequest
