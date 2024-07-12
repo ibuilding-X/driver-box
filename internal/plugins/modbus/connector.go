@@ -453,7 +453,7 @@ func (c *connector) read(slaveId uint8, registerType string, address, quantity u
 	if err != nil {
 		return nil, err
 	}
-	defer c.closeModbusClient(err)
+	defer func() { c.closeModbusClient(err) }()
 	if err = c.client.SetUnitId(slaveId); err != nil {
 		return nil, err
 	}
@@ -472,17 +472,9 @@ func (c *connector) read(slaveId uint8, registerType string, address, quantity u
 		}
 		values = boolSliceToUint16(responseData)
 	case string(InputRegister):
-		responseData, err := c.client.ReadRegisters(address, quantity, modbus.INPUT_REGISTER)
-		if err != nil {
-			return nil, err
-		}
-		values = responseData
+		values, err = c.client.ReadRegisters(address, quantity, modbus.INPUT_REGISTER)
 	case string(HoldingRegister):
-		responseData, err := c.client.ReadRegisters(address, quantity, modbus.HOLDING_REGISTER)
-		if err != nil {
-			return nil, err
-		}
-		values = responseData
+		values, err = c.client.ReadRegisters(address, quantity, modbus.HOLDING_REGISTER)
 	default:
 		return nil, fmt.Errorf("unsupported register type %v", registerType)
 	}
@@ -498,6 +490,7 @@ func (c *connector) openModbusClient() error {
 	err := c.client.Open()
 	if err != nil {
 		c.mutex.Unlock()
+		helper.Logger.Error("open modbus client error", zap.Any("modbus", c.config), zap.Error(err))
 	} else {
 		c.keepAlive = true
 	}
@@ -508,6 +501,9 @@ func (c *connector) closeModbusClient(e error) {
 	defer func() {
 		c.mutex.Unlock()
 	}()
+	if e != nil {
+		helper.Logger.Error("modbus client error, will close it", zap.Error(e))
+	}
 	//RTU 模式下，连接不关闭
 	if c.config.Mode != "rtu" || e != nil {
 		c.keepAlive = false

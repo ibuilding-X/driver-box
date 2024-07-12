@@ -124,8 +124,10 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 		//点位值类型还原
 		value, err := helper.ConvPointType(p.Value, point.ValueType)
 		if err != nil {
-			helper.Logger.Error("convert point value error", zap.Error(err), zap.Any("deviceId", deviceData.ID),
-				zap.String("pointName", p.PointName), zap.Any("value", p.Value))
+			if !strings.HasPrefix(deviceData.ID, "vrf/") {
+				helper.Logger.Error("convert point value error", zap.Error(err), zap.Any("deviceId", deviceData.ID),
+					zap.String("pointName", p.PointName), zap.Any("value", p.Value))
+			}
 			continue
 		}
 
