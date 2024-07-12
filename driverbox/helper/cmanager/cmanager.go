@@ -260,9 +260,9 @@ func (m *manager) LoadConfig() error {
 			return err
 		}
 		if preConfig, ok := protocols[c.ProtocolName]; ok {
-			return fmt.Errorf("protocol:%s is repeated, prePath: %s, curPath: %s", c.ProtocolName, preConfig, dirs[i])
+			return fmt.Errorf("protocol:%s is repeated, prePath: %s, curPath: %s", c.ProtocolName, preConfig, path)
 		}
-		protocols[c.ProtocolName] = dirs[i]
+		protocols[c.ProtocolName] = path
 
 		// 保存配置
 		m.configs[dirs[i]] = c.UpdateIndexAndClean()
