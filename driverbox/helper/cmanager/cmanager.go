@@ -242,6 +242,9 @@ func (m *manager) LoadConfig() error {
 		return nil
 	}
 
+	//config 协议唯一性
+	protocols := make(map[string]string)
+
 	// 解析每个文件夹的配置
 	for i, _ := range dirs {
 		path := filepath.Join(m.root, dirs[i], m.configName)
@@ -256,6 +259,11 @@ func (m *manager) LoadConfig() error {
 			logger.Logger.Error("parse config from file error", zap.String("path", path), zap.Error(err))
 			return err
 		}
+		if preConfig, ok := protocols[c.ProtocolName]; ok {
+			return fmt.Errorf("protocol:%s is repeated, prePath: %s, curPath: %s", c.ProtocolName, preConfig, dirs[i])
+		}
+		protocols[c.ProtocolName] = dirs[i]
+
 		// 保存配置
 		m.configs[dirs[i]] = c.UpdateIndexAndClean()
 	}
