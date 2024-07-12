@@ -472,7 +472,7 @@ func (c *connector) read(slaveId uint8, registerType string, address, quantity u
 		}
 		values = boolSliceToUint16(responseData)
 	case string(InputRegister):
-		return c.client.ReadRegisters(address, quantity, modbus.INPUT_REGISTER)
+		values, err = c.client.ReadRegisters(address, quantity, modbus.INPUT_REGISTER)
 	case string(HoldingRegister):
 		values, err = c.client.ReadRegisters(address, quantity, modbus.HOLDING_REGISTER)
 	default:
