@@ -498,6 +498,7 @@ func (c *connector) openModbusClient() error {
 	err := c.client.Open()
 	if err != nil {
 		c.mutex.Unlock()
+		helper.Logger.Error("open modbus client error", zap.Any("modbus", c.config), zap.Error(err))
 	} else {
 		c.keepAlive = true
 	}
