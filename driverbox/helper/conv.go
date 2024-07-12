@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
@@ -165,4 +166,12 @@ func Conv2String(value interface{}) (s string, err error) {
 	default:
 		return "", errors.New(fmt.Sprintf("%T convert to string error", v))
 	}
+}
+
+func Conv2Struct(from any, to any) error {
+	bytes, err := json.Marshal(from)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(bytes, to)
 }

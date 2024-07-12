@@ -1,0 +1,29 @@
+{
+  "deviceModels": [
+    {
+      "name": "swtich",
+      "description": "开关",
+      "devicePoints": [
+        {
+          "description": "开关",
+          "name": "onOff",
+          "readWrite": "RW",
+          "reportMode": "change",
+          "valueType": "int",
+          "rawDevice": "swtich-1",
+          "rawPoint": "onOff"
+        }
+      ],
+      "devices": [
+        {
+          "id": "mirror-swtich-3",
+          "description": "1号开关",
+          "ttl": "5m"
+        }
+      ]
+    }
+  ],
+  "connections": {
+  },
+  "protocolName": "mirror"
+}

@@ -51,7 +51,7 @@ func deviceDriverProcess(deviceId string, mode plugin.EncodeMode, pointData ...p
 	if scaleEnable {
 		return pointData, nil
 	}
-	result := library.DeviceEncode(device.DriverKey, library.DeviceEncodeRequest{
+	result := library.Driver().DeviceEncode(device.DriverKey, library.DeviceEncodeRequest{
 		DeviceId: deviceId,
 		Mode:     mode,
 		Points:   pointData,

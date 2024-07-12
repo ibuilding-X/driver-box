@@ -47,7 +47,3 @@ func (c *connector) Send(raw interface{}) (err error) {
 	return err
 
 }
-
-func getMirrorKey(deviceId, pointName string) string {
-	return deviceId + "_" + pointName
-}

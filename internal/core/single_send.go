@@ -13,6 +13,7 @@ import (
 // 单点操作
 func SendSinglePoint(deviceId string, mode plugin.EncodeMode, pointData plugin.PointData) error {
 	logger.Logger.Info("send single point", zap.String("deviceId", deviceId), zap.Any("mode", mode), zap.Any("pointData", pointData))
+	_ = helper.DeviceShadow.SetWritePointValue(deviceId, pointData.PointName, pointData.Value)
 	if !checkMode(mode) {
 		return errors.New("invalid mode")
 	}
@@ -60,7 +61,8 @@ func singleRead(deviceId string, pointData plugin.PointData) error {
 	// 获取插件
 	p, ok := helper.CoreCache.GetRunningPluginByDeviceAndPoint(deviceId, pointData.PointName)
 	if !ok {
-		return fmt.Errorf("not found running plugin, device name is %s", deviceId)
+		logger.Logger.Error("not found running plugin", zap.String("deviceId", deviceId), zap.String("pointName", pointData.PointName))
+		return fmt.Errorf("not found running plugin, deviceId: %s ,point: %s", deviceId, pointData.PointName)
 	}
 	// 获取连接
 	conn, err := p.Connector(deviceId, pointData.PointName)
@@ -100,7 +102,8 @@ func singleWrite(deviceId string, pointData plugin.PointData) error {
 	// 获取插件
 	p, ok := helper.CoreCache.GetRunningPluginByDeviceAndPoint(deviceId, pointData.PointName)
 	if !ok {
-		return fmt.Errorf("not found running plugin, device name is %s", deviceId)
+		logger.Logger.Error("not found running plugin", zap.String("deviceId", deviceId), zap.String("pointName", pointData.PointName))
+		return fmt.Errorf("not found running plugin, deviceId: %s ,point: %s", deviceId, pointData.PointName)
 	}
 	// 获取连接
 	conn, err := p.Connector(deviceId, pointData.PointName)

@@ -10,18 +10,18 @@ import (
 
 func TestDeviceEncode(t *testing.T) {
 	Init()
-	e := library.LoadLibrary(library.DeviceDriver, "test_2")
+	e := library.Driver().LoadLibrary("test_2")
 	if e != nil {
 		t.Error(e)
 		return
 	}
-	result := library.DeviceEncode("test_2", library.DeviceEncodeRequest{
+	result := library.Driver().DeviceEncode("test_2", library.DeviceEncodeRequest{
 		DeviceId: "switch_1",
 		Mode:     plugin.WriteMode,
 		Points: []plugin.PointData{
 			{
 				PointName: "aa",
-				Value:     6,
+				Value:     int64(6),
 			},
 		},
 	})
@@ -34,12 +34,12 @@ func TestDeviceEncode(t *testing.T) {
 
 func TestDeviceDecode(t *testing.T) {
 	Init()
-	e := library.LoadLibrary(library.DeviceDriver, "test_1")
+	e := library.Driver().LoadLibrary("test_1")
 	if e != nil {
 		t.Error(e)
 		return
 	}
-	result := library.DeviceDecode("test_1", library.DeviceDecodeRequest{
+	result := library.Driver().DeviceDecode("test_1", library.DeviceDecodeRequest{
 		DeviceId: "test_1",
 		Points: []plugin.PointData{
 			{

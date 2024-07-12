@@ -30,5 +30,5 @@ func Close(L *glua.LState) {
 
 // scriptExists 判断lua脚本是否存在
 func ScriptExists(dir string) bool {
-	return lua.FileExists(filepath.Join(EnvConfig.ConfigPath, dir, common.LuaScriptName))
+	return common.FileExists(filepath.Join(EnvConfig.ConfigPath, dir, common.LuaScriptName))
 }

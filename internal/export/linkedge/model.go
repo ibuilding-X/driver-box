@@ -45,7 +45,6 @@ const (
 	ConditionLt conditionSymbol = "<"
 	ConditionLe conditionSymbol = "<="
 
-	EventCodeLinkEdgeTrigger = "linkEdgeTrigger"
 	//场景联动执行结果：全部成功、部分成功、全部失败
 	LinkEdgeExecuteResultAllSuccess  = "success"
 	LinkEdgeExecuteResultPartSuccess = "partSuccess"

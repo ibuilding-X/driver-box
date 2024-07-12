@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/internal/logger"
+	"go.uber.org/zap"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -251,6 +253,7 @@ func (m *manager) LoadConfig() error {
 			if errors.Is(err, ErrConfigEmpty) {
 				continue
 			}
+			logger.Logger.Error("parse config from file error", zap.String("path", path), zap.Error(err))
 			return err
 		}
 		// 保存配置

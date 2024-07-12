@@ -10,6 +10,8 @@ import (
 	"net/http"
 )
 
+const ProtocolName = "http_client"
+
 type Plugin struct {
 	logger   *zap.Logger           // 日志记录器
 	config   config.Config         // 核心配置
@@ -33,7 +35,7 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState)
 // Connector 此协议不支持获取连接器
 func (p *Plugin) Connector(deviceSn, pointName string) (connector plugin.Connector, err error) {
 	// 获取连接key
-	device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceSn, pointName)
+	device, ok := helper.CoreCache.GetDevice(deviceSn)
 	if !ok {
 		return nil, errors.New("not found device connection key")
 	}
@@ -58,7 +60,6 @@ func (p *Plugin) Destroy() error {
 	return nil
 }
 
-// initConnPool 初始化连接池
 func (p *Plugin) initConnPool() (err error) {
 	p.connPool = make(map[string]*connector)
 	for key, _ := range p.config.Connections {
@@ -66,15 +67,16 @@ func (p *Plugin) initConnPool() (err error) {
 		if err = helper.Map2Struct(p.config.Connections[key], &c); err != nil {
 			return
 		}
+		if c.Timeout <= 0 {
+			c.Timeout = 5000
+		}
+		c.ConnectionKey = key
 		conn := &connector{
 			plugin: p,
 			config: c,
 			client: &http.Client{},
-			adapter: &adapter{
-				scriptDir: p.config.Key,
-				ls:        p.ls,
-			},
 		}
+		conn.initCollectTask()
 		p.connPool[key] = conn
 	}
 	return

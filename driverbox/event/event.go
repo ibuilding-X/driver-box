@@ -5,6 +5,14 @@ const (
 	EventCodeDeviceStatus = "deviceStatus"
 	//driver-box服务状态
 	EventCodeServiceStatus = "serviceStatus"
+	//添加设备
+	EventCodeAddDevice = "addDevice"
+	//即将执行ExportTo
+	EventCodeWillExportTo = "willExportTo"
+	//设备自动发现事件
+	EventDeviceDiscover = "deviceDiscover"
+
+	EventCodeLinkEdgeTrigger = "linkEdgeTrigger"
 )
 
 const (

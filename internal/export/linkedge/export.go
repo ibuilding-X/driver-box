@@ -3,6 +3,7 @@ package linkedge
 import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/robfig/cron/v3"
@@ -88,7 +89,7 @@ func (export *Export) ExportTo(deviceData plugin.DeviceData) {
 
 // 继承Export OnEvent接口
 func (export *Export) OnEvent(eventCode string, key string, eventValue interface{}) error {
-	if eventCode == EventCodeLinkEdgeTrigger {
+	if eventCode == event.EventCodeLinkEdgeTrigger {
 		helper.Logger.Info("trigger linkEdge", zap.String("id", key), zap.Any("result", eventValue))
 	}
 	return nil

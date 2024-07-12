@@ -1,6 +1,12 @@
 package common
 
-import "errors"
+import (
+	"errors"
+	"github.com/ibuilding-x/driver-box/driverbox/event"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"io"
+	"os"
+)
 
 const (
 	LuaScriptName           = "converter.lua"         // lua 转换器脚本名称
@@ -50,3 +56,38 @@ const (
 	ValueTypeFloat64Array = "Float64Array"
 	ValueTypeObject       = "Object"
 )
+
+// FileExists 判断文件存在
+func FileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+// 读取文件内容
+func ReadFileBytes(path string) ([]byte, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	return io.ReadAll(f)
+}
+
+// 封装设备自动发现事件，补充必要字段
+func WrapperDiscoverEvent(devicesData []plugin.DeviceData, connectionKey string, protocolName string) {
+	for _, device := range devicesData {
+		if device.Events == nil || len(device.Events) == 0 {
+			continue
+		}
+		for _, eventData := range device.Events {
+			//补充信息要素
+			if eventData.Code != event.EventDeviceDiscover {
+				continue
+			}
+			value := eventData.Value.(map[string]interface{})
+			value["connectionKey"] = connectionKey
+			value["protocolName"] = protocolName
+		}
+	}
+}
