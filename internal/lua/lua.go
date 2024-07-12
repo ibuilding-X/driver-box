@@ -62,7 +62,7 @@ func CallLuaConverter(L *lua.LState, method string, raw interface{}) ([]plugin.D
 func CallLuaMethod(L *lua.LState, method string, args ...lua.LValue) (string, error) {
 	defer func() {
 		if err := recover(); err != nil {
-			logger.Logger.Error("call lua script error", zap.Any("error", err))
+			logger.Logger.Error("call lua script error", zap.Any("method", method), zap.Any("args", args), zap.Any("error", err))
 		}
 	}()
 
