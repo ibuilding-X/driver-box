@@ -472,17 +472,9 @@ func (c *connector) read(slaveId uint8, registerType string, address, quantity u
 		}
 		values = boolSliceToUint16(responseData)
 	case string(InputRegister):
-		responseData, err := c.client.ReadRegisters(address, quantity, modbus.INPUT_REGISTER)
-		if err != nil {
-			return nil, err
-		}
-		values = responseData
+		return c.client.ReadRegisters(address, quantity, modbus.INPUT_REGISTER)
 	case string(HoldingRegister):
-		responseData, err := c.client.ReadRegisters(address, quantity, modbus.HOLDING_REGISTER)
-		if err != nil {
-			return nil, err
-		}
-		values = responseData
+		return c.client.ReadRegisters(address, quantity, modbus.HOLDING_REGISTER)
 	default:
 		return nil, fmt.Errorf("unsupported register type %v", registerType)
 	}
