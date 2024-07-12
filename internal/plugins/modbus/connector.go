@@ -453,7 +453,7 @@ func (c *connector) read(slaveId uint8, registerType string, address, quantity u
 	if err != nil {
 		return nil, err
 	}
-	defer c.closeModbusClient(err)
+	defer func() { c.closeModbusClient(err) }()
 	if err = c.client.SetUnitId(slaveId); err != nil {
 		return nil, err
 	}
@@ -474,7 +474,7 @@ func (c *connector) read(slaveId uint8, registerType string, address, quantity u
 	case string(InputRegister):
 		return c.client.ReadRegisters(address, quantity, modbus.INPUT_REGISTER)
 	case string(HoldingRegister):
-		return c.client.ReadRegisters(address, quantity, modbus.HOLDING_REGISTER)
+		values, err = c.client.ReadRegisters(address, quantity, modbus.HOLDING_REGISTER)
 	default:
 		return nil, fmt.Errorf("unsupported register type %v", registerType)
 	}
