@@ -508,6 +508,9 @@ func (c *connector) closeModbusClient(e error) {
 	defer func() {
 		c.mutex.Unlock()
 	}()
+	if e != nil {
+		helper.Logger.Error("modbus client error, will close it", zap.Error(e))
+	}
 	//RTU 模式下，连接不关闭
 	if c.config.Mode != "rtu" || e != nil {
 		c.keepAlive = false
