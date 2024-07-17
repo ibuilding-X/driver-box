@@ -3,3 +3,69 @@ title: mirror_tpl-镜像模版
 description: A reference page in my new Starlight docs site.
 ---
 
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+镜像模版是对实现 [镜像设备](/driver-box/export/mirror/) 的一种提效手段。
+通过预定义镜像模版，并在需要时引用模块key，实现镜像设备配置的自动化生产。
+
+<Tabs>
+    <TabItem label="接口定义" icon="document">
+        | 参数名                                | 类型     | 必填 | 说明               |
+        |:-----------------------------------|--------|:---|:-----------------|
+        | modelId                            | string | 可选 | 云平台定义的物模型 ID           |
+        | description                        | string | 可选 | 物模型描述           |
+        | driverKey         | array | 必填 | 生成镜像设备引用的设备驱动key             |
+        | points | array | 必填 | [设备点表配置](/driver-box/export/mirror/#第一步配置文件)           |
+    </TabItem>
+    <TabItem label="example.json" icon="seti:json">
+        ```json5
+        {
+            "modelId": "sgsdfgsdfgdaf",
+            "driverKey": "vrf_indoor_to_common_indoor",
+            "description": "镜像设备模型描述",
+            "points": [
+                {
+                    "description": "室内温度",
+                    "name": "roomTemp",
+                    "rawPoint": "roomTemp",
+                    "readWrite": "R",
+                    "reportMode": "change",
+                    "valueType": "float"
+                },
+                {
+                    "description": "开关机",
+                    "name": "onOff",
+                    "rawPoint": "onOff",
+                    "readWrite": "RW",
+                    "reportMode": "change",
+                    "valueType": "int"
+                },
+                {
+                    "description": "运行模式",
+                    "name": "runMode",
+                    "rawPoint": "runMode",
+                    "readWrite": "RW",
+                    "reportMode": "change",
+                    "valueType": "int"
+                },
+                {
+                    "description": "温度设定",
+                    "name": "tempSetting",
+                    "rawPoint": "tempSetting",
+                    "readWrite": "RW",
+                    "reportMode": "change",
+                    "valueType": "float"
+                },
+                {
+                    "description": "风速",
+                    "name": "fanSpeedSetting",
+                    "rawPoint": "fan7SpeedSetting",
+                    "readWrite": "RW",
+                    "reportMode": "change",
+                    "valueType": "int"
+                }
+            ]
+        }
+        ```
+    </TabItem>
+</Tabs>
