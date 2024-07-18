@@ -256,14 +256,8 @@ func (c *connector) ensureInterval() {
 func (c *connector) sendReadCommand(group *pointGroup) error {
 	//存在写指令，读操作临时避让，同时提升下一次读优先级
 	if atomic.LoadInt64(&c.writeSemaphore) >= 0 {
-		for _, device := range c.devices {
-			if device.unitID != group.UnitID {
-				continue
-			}
-			for _, g := range device.pointGroup {
-				g.LatestTime = time.Now().Add(-group.Duration)
-			}
-		}
+		c.resetCollectTime(group)
+		logger.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.ConnectionKey), zap.Any("semaphore", c.writeSemaphore))
 		return nil
 	}
 
@@ -346,6 +340,17 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 		}
 	}
 	return nil
+}
+
+func (c *connector) resetCollectTime(group *pointGroup) {
+	for _, device := range c.devices {
+		if device.unitID == group.UnitID {
+			for _, g := range device.pointGroup {
+				g.LatestTime = time.Now().Add(-group.Duration)
+			}
+			break
+		}
+	}
 }
 
 func getBytesFromUint16s(values []uint16, byteSwap bool) (out []byte) {
