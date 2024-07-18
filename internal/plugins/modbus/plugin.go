@@ -40,6 +40,9 @@ type connector struct {
 	close bool
 	//是否虚拟链接
 	virtual bool
+
+	//写操作信号量
+	writeSemaphore int64
 }
 
 // Initialize 插件初始化
