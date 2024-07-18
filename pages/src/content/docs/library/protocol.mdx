@@ -3,3 +3,116 @@ title: protocol-通信协议驱动
 description: A reference page in my new Starlight docs site.
 ---
 
+import { Tabs, TabItem,FileTree } from '@astrojs/starlight/components';
+
+通信协议层驱动库是一种主要面向 TCP 通信方式提供的编解码补充能力。
+
+以 Http、WebSocket、Mqtt 为例，虽然这些协议都标准的 TCP 应用层协议。但其 Body/Payload 承载的数据格式和业务含义，却因人而异、因场景而异、因设备而异。
+
+
+通信协议驱动库位于`res/library/protocol`目录，该目录下的每一个 lua 文件的文件名便代表该驱动的 **protocolKey**。
+
+<FileTree>
+- driver-box
+    - res
+        - library
+            - **protocol**
+                - http_server_环境传感器.lua
+                - http_client_开关.lua
+                - websocket_照明.lua
+                - mqtt_水电气表.lua
+                - ...
+</FileTree>
+其工作原理与 [设备驱动库](/driver-box/library/protocol/) 大致相同，都是通过在 Lua 脚本中内置 `encode` 和 `decode` 函数，
+实现通信数据与 driver-box 内置标准化数据结构的互转。
+
+<Tabs>
+<TabItem label="驱动模板.lua" icon="seti:lua">
+```lua
+local json = require("json")
+-- 上行解码
+function decode(raw)
+    print("raw: "..raw)
+    local data = json.decode(raw)
+
+    local devices = {
+
+    }
+    return json.encode(devices)
+end
+
+-- 下发指令
+function encode(deviceId, rw, points)
+
+
+    local payload = {
+    }
+    return json.encode(payload)
+end
+```
+</TabItem>
+
+<TabItem label="decode函数说明" icon="document">
+decode 函数的入参为一个结构化的字符串，格式规范随具体的插件而定：
+- HttpServer 插件
+- HttpClient 插件
+- WebSocket 插件
+- MQTT 插件
+
+无论是何种插件，其出参是统一的数据结构，并支持批量返回设备列表信息，包括点位和事件。
+```json5
+[
+    {
+        "id": "deviceId-1", //设备ID
+        "values": [ //点位列表
+            {
+                "name": "pointName-1", //点位名
+                "value": "pointValue1" //点位值
+            },
+            {
+                "name": "pointName-2", //点位名
+                "value": "pointValue2" //点位值
+            }
+        ],
+        "events": [
+            {
+                "code": "deviceDiscover", //系统内置事件：设备自动发现
+                "value": {
+                    "modelKey": "modelKey-1", //物模型库模型Key
+                    "device": {
+                        "id": "deviceId-1",  //设备ID
+                        "name": "deviceName-1", //设备名称
+                    }
+                }
+            },
+            {
+                "code": "eventName-2", //自定义事件名
+                "value": "eventValue2" //自定义事件值
+            }
+        ]
+    },
+    {
+        "id": "deviceId-2",
+        ...
+    }
+]
+```
+</TabItem>
+<TabItem label="encode函数说明" icon="document">
+encode 函数的出入参设计与 decode 函数刚好相反。
+对上层应用而言，所有的下行指令都是围绕着设备点位开展的读写操作行为。
+
+所以，如论对接何种通信插件 ，encode 的入参可以用统一的数据结构表达：
+|参数名|类型|说明|
+|---|---|---|
+|deviceId|string|设备ID|
+|rw|string|读写类型，枚举值：`read`、`write`|
+|points|object|点位列表，格式如下：<br/>`[{"name":"pointName_1","value":"val_1"},{"name":"pointName_2","value":"val_2"}]`|
+
+encode 函数的入参为一个结构化的字符串，格式规范随具体的插件而定：
+- HttpServer 插件
+- HttpClient 插件
+- WebSocket 插件
+- MQTT 插件
+</TabItem>
+</Tabs>
