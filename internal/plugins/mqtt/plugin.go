@@ -44,6 +44,7 @@ func (p *Plugin) initConnPool(c config.Config) error {
 			logger.Logger.Warn("mqtt connection is disable", zap.String("connectionKey", k))
 			continue
 		}
+		connectConfig.ConnectionKey = k
 		conn := &connector{
 			plugin: p,
 			config: connectConfig,
