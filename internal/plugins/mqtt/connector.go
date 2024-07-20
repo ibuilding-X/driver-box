@@ -29,18 +29,21 @@ func (conn *connector) ProtocolAdapter() plugin.ProtocolAdapter {
 }
 func (conn *connector) Send(data interface{}) error {
 	res := []byte(data.(string))
-	var encodeData EncodeData
-	err := json.Unmarshal(res, &encodeData)
+	var encodeDatas []EncodeData
+	err := json.Unmarshal(res, &encodeDatas)
 	if err != nil {
 		conn.plugin.logger.Error(fmt.Sprintf("unmarshal error: %s", err.Error()))
 		conn.plugin.logger.Error(fmt.Sprintf("origin data is: %s", data.(string)))
 		return err
 	}
-	if token := conn.client.Publish(encodeData.Topic, 0, false, encodeData.Payload); token.Wait() && token.Error() != nil {
-		conn.plugin.logger.Error(fmt.Sprintf("publish %s to topic %s error: %s",
-			encodeData.Payload, encodeData.Topic, token.Error().Error()))
-		return token.Error()
+	for _, encodeData := range encodeDatas {
+		if token := conn.client.Publish(encodeData.Topic, 0, false, encodeData.Payload); token.Wait() && token.Error() != nil {
+			conn.plugin.logger.Error(fmt.Sprintf("publish %s to topic %s error: %s",
+				encodeData.Payload, encodeData.Topic, token.Error().Error()))
+			return token.Error()
+		}
 	}
+
 	return nil
 }
 
