@@ -96,13 +96,8 @@ func (conn *connector) onReceiveHandler(_ mqtt.Client, message mqtt.Message) {
 		Topic:   message.Topic(),
 		Payload: string(message.Payload()),
 	}
-	msgJson, err := json.Marshal(msg)
-	if err != nil {
-		conn.plugin.logger.Error(fmt.Sprintf("marshal error: %s", err.Error()))
-		return
-	}
 	// 执行回调 写入消息总线
-	_, err = callback.OnReceiveHandler(conn, string(msgJson))
+	_, err := callback.OnReceiveHandler(conn, msg)
 	if err != nil {
 		conn.plugin.logger.Error(fmt.Sprintf("decode error: %s", err.Error()))
 	}
