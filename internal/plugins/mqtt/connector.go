@@ -4,8 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
+	"github.com/ibuilding-x/driver-box/internal/library"
+	"github.com/ibuilding-x/driver-box/internal/logger"
+	"go.uber.org/zap"
 )
 
 type connector struct {
@@ -97,8 +101,12 @@ func (conn *connector) onReceiveHandler(_ mqtt.Client, message mqtt.Message) {
 		Payload: string(message.Payload()),
 	}
 	// 执行回调 写入消息总线
-	_, err := callback.OnReceiveHandler(conn, msg)
+	deviceData, err := library.Protocol().Decode(conn.config.ProtocolKey, msg)
 	if err != nil {
-		conn.plugin.logger.Error(fmt.Sprintf("decode error: %s", err.Error()))
+		logger.Logger.Error("decode error", zap.Error(err))
+		return
 	}
+	//自动添加设备
+	common.WrapperDiscoverEvent(deviceData, conn.config.ConnectionKey, ProtocolName)
+	callback.ExportTo(deviceData)
 }

@@ -11,6 +11,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const ProtocolName = "mqtt"
+
 type Plugin struct {
 	logger     *zap.Logger           // 日志
 	connectors map[string]*connector // mqtt连接池
