@@ -9,11 +9,9 @@ import (
 )
 
 type connector struct {
-	plugin  *Plugin
-	client  mqtt.Client
-	topics  []string
-	name    string
-	adapter plugin.ProtocolAdapter
+	plugin *Plugin
+	client mqtt.Client
+	config ConnectConfig
 }
 
 type EncodeData struct {
@@ -23,7 +21,7 @@ type EncodeData struct {
 
 // ProtocolAdapter 协议适配器
 func (conn *connector) ProtocolAdapter() plugin.ProtocolAdapter {
-	return conn.adapter
+	return conn
 }
 func (conn *connector) Send(data interface{}) error {
 	res := []byte(data.(string))
@@ -47,6 +45,7 @@ func (conn *connector) Release() (err error) {
 }
 
 type ConnectConfig struct {
+	plugin.BaseConnection
 	ClientId string   `json:"clientId"`
 	Broker   string   `json:"broker"`
 	Username string   `json:"username"`
@@ -78,9 +77,9 @@ func (conn *connector) newMqttClientOptions(connectConfig ConnectConfig) *mqtt.C
 
 // onConnectHandler 执行连接回调： 完成订阅
 func (conn *connector) onConnectHandler(client mqtt.Client) {
-	for _, topic := range conn.topics {
+	for _, topic := range conn.config.Topics {
 		if token := client.Subscribe(topic, 0, conn.onReceiveHandler); token.Wait() && token.Error() != nil {
-			conn.plugin.logger.Error(fmt.Sprintf("unable to subscribe topic: %s for client: %s", topic, conn.name))
+			conn.plugin.logger.Error(fmt.Sprintf("unable to subscribe topic: %s for client: %s", topic, conn.config.ClientId))
 			continue
 		}
 	}
