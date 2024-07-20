@@ -6,6 +6,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )
@@ -35,6 +36,10 @@ func (p *Plugin) initConnPool(c config.Config) error {
 		var connectConfig ConnectConfig
 		if err := helper.Map2Struct(connection, &connectConfig); err != nil {
 			p.logger.Error(fmt.Sprintf("unmarshal mqtt config error: %s", err.Error()))
+			continue
+		}
+		if !connectConfig.Enable {
+			logger.Logger.Warn("mqtt connection is disable", zap.String("connectionKey", k))
 			continue
 		}
 		conn := &connector{
