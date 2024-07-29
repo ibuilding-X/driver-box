@@ -356,6 +356,8 @@ func (c *cache) UpdateDeviceDesc(id string, desc string) {
 		device, _ := deviceAny.(config.Device)
 		device.Description = desc
 		c.devices.Store(id, device)
+		// 持久化
+		_ = cmanager.AddOrUpdateDevice(device)
 	}
 }
 
