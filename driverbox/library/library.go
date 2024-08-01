@@ -36,7 +36,7 @@ var model *DeviceModel
 func Driver() *DeviceDriver {
 	driverOnce.Do(func() {
 		driver = &DeviceDriver{
-			drivers: make(map[string]*glua.LState),
+			drivers: &sync.Map{},
 		}
 	})
 	return driver

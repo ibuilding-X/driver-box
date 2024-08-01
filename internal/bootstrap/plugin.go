@@ -114,12 +114,6 @@ func initDeviceDriver(configMap map[string]config.Config) {
 			}
 		}
 	}
-	for key, _ := range drivers {
-		err := library.Driver().LoadLibrary(key)
-		if err != nil {
-			helper.Logger.Error("load device driver error", zap.String("driverKey", key), zap.Error(err))
-		}
-	}
 }
 
 // 初始化协议层驱动

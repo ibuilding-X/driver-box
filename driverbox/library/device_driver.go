@@ -9,20 +9,30 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/lua"
 	glua "github.com/yuin/gopher-lua"
 	"path"
+	"sync"
 )
 
+// 同步锁
+var deviceDriverLock sync.Mutex
+
 type DeviceDriver struct {
-	drivers map[string]*glua.LState
+	drivers *sync.Map
 }
 
 // 加载指定key的驱动
-func (device *DeviceDriver) LoadLibrary(driverKey string) error {
+func (device *DeviceDriver) loadLibrary(driverKey string) (*glua.LState, error) {
+	deviceDriverLock.Lock()
+	defer deviceDriverLock.Unlock()
+	cache, ok := device.drivers.Load(driverKey)
+	if ok {
+		return cache.(*glua.LState), nil
+	}
 	L, err := lua.InitLuaVM(path.Join(config.ResourcePath, baseDir, string(deviceDriver), driverKey+".lua"))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	device.drivers[driverKey] = L
-	return nil
+	device.drivers.Store(driverKey, L)
+	return L, nil
 }
 
 // 设备下行指令编码，该接口试下如下功能：
@@ -30,7 +40,18 @@ func (device *DeviceDriver) LoadLibrary(driverKey string) error {
 // 2. 针对点位A发起的读写操作，通过编码可变更为点位B
 // 3. 对单点位发起的读写请求，通过编码可扩展为多点位。例如：执行空开的开关操作，会先触发解锁，再执行开关行为。
 func (device *DeviceDriver) DeviceEncode(driverKey string, req DeviceEncodeRequest) *DeviceEncodeResult {
-	L := device.drivers[driverKey]
+	cache, ok := device.drivers.Load(driverKey)
+	var L *glua.LState
+	if !ok {
+		l, err := device.loadLibrary(driverKey)
+		if err != nil {
+			return &DeviceEncodeResult{Error: err}
+		}
+		L = l
+	} else {
+		L = cache.(*glua.LState)
+	}
+
 	points := L.NewTable()
 	for _, point := range req.Points {
 		pointData := L.NewTable()
@@ -66,7 +87,17 @@ func (device *DeviceDriver) DeviceEncode(driverKey string, req DeviceEncodeReque
 // 1. 对读到的数据进行点位值加工
 // 2. 将读到的点位值，同步到本设备的另外一个点位上
 func (device *DeviceDriver) DeviceDecode(driverKey string, req DeviceDecodeRequest) *DeviceDecodeResult {
-	L := device.drivers[driverKey]
+	cache, ok := device.drivers.Load(driverKey)
+	var L *glua.LState
+	if !ok {
+		l, err := device.loadLibrary(driverKey)
+		if err != nil {
+			return &DeviceDecodeResult{Error: err}
+		}
+		L = l
+	} else {
+		L = cache.(*glua.LState)
+	}
 	points := L.NewTable()
 	for _, point := range req.Points {
 		pointData := L.NewTable()
@@ -106,10 +137,11 @@ func (device *DeviceDriver) DeviceDecode(driverKey string, req DeviceDecodeReque
 // 卸载驱动
 func (device *DeviceDriver) UnloadDeviceDrivers() {
 	temp := device.drivers
-	device.drivers = make(map[string]*glua.LState)
-	for _, L := range temp {
-		lua.Close(L)
-	}
+	device.drivers = &sync.Map{}
+	temp.Range(func(key, value interface{}) bool {
+		lua.Close(value.(*glua.LState))
+		return true
+	})
 }
 
 // 设备驱动编码请求
