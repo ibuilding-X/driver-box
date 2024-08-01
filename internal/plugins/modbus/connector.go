@@ -255,7 +255,7 @@ func (c *connector) ensureInterval() {
 
 func (c *connector) sendReadCommand(group *pointGroup) error {
 	//存在写指令，读操作临时避让，同时提升下一次读优先级
-	if atomic.LoadInt64(&c.writeSemaphore) >= 0 {
+	if atomic.LoadInt64(&c.writeSemaphore) > 0 {
 		c.resetCollectTime(group)
 		logger.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.ConnectionKey), zap.Any("semaphore", c.writeSemaphore))
 		return nil
