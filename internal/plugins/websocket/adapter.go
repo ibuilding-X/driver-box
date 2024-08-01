@@ -4,8 +4,8 @@ import (
 	"errors"
 	"github.com/gorilla/websocket"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
+	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/internal/library"
 )
 
 // Encode 编码数据，无需实现
