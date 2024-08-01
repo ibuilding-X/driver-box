@@ -28,7 +28,10 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 		} else {
 			points = make([]plugin.PointData, 0)
 		}
-		points = append(points, point)
+		points = append(points, plugin.PointData{
+			PointName: rawDevice.pointName,
+			Value:     point.Value,
+		})
 		group[rawDevice.deviceId] = EncodeModel{
 			deviceId: rawDevice.deviceId,
 			points:   points,
