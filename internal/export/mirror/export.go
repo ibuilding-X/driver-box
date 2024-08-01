@@ -61,7 +61,7 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 	case event.EventCodeWillExportTo:
 		deviceData := eventValue.(plugin.DeviceData)
 		//镜像设备仅存在一个虚拟连接
-		virtualConnector, _ := export.plugin.Connector("", "")
+		virtualConnector, _ := export.plugin.Connector("")
 		if virtualConnector != nil {
 			callback.OnReceiveHandler(virtualConnector, deviceData)
 		}
