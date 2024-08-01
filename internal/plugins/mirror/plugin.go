@@ -119,7 +119,7 @@ func (p *Plugin) UpdateMirrorMapping(model config.DeviceModel) error {
 	return nil
 }
 
-func (p *Plugin) Connector(deviceSn, pointName string) (connector plugin.Connector, err error) {
+func (p *Plugin) Connector(deviceSn string) (connector plugin.Connector, err error) {
 	return p.connector, nil
 }
 

@@ -94,7 +94,7 @@ func (p *Plugin) initNetworks(config config.Config) {
 }
 
 // Connector 连接器
-func (p *Plugin) Connector(deviceId, pointName string) (conn plugin.Connector, err error) {
+func (p *Plugin) Connector(deviceId string) (conn plugin.Connector, err error) {
 	// 获取连接key
 	device, ok := helper.CoreCache.GetDevice(deviceId)
 	if !ok {

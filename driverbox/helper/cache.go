@@ -32,7 +32,6 @@ type cache struct {
 	points           *sync.Map // deviceSn_pointName => config.Point
 	devicePlugins    *sync.Map // deviceSn => plugin key
 	runningPlugins   *sync.Map // key => plugin.Plugin
-	devicePointConn  *sync.Map // deviceSn_pointName => config.Device
 	//根据tag分组存储的设备列表
 	tagDevices *sync.Map // tag => []config.Device
 }
@@ -51,7 +50,6 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 		points:           &sync.Map{},
 		devicePlugins:    &sync.Map{},
 		runningPlugins:   &sync.Map{},
-		devicePointConn:  &sync.Map{},
 		tagDevices:       &sync.Map{},
 	}
 	CoreCache = c
@@ -116,7 +114,6 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 					}
 					c.points.Store(devicePointKey, point)
 					c.devicePlugins.Store(deviceId, key)
-					c.devicePointConn.Store(devicePointKey, device)
 				}
 
 				//根据tag分组存储设备列表
@@ -167,14 +164,12 @@ func checkPoint(model *config.DeviceModel, point *config.Point) {
 type coreCache interface {
 	GetModel(modelName string) (model config.Model, ok bool) // model info
 	GetDevice(id string) (device config.Device, ok bool)
-	//Deprecated 弃用，请使用GetDevice
-	GetDeviceByDeviceAndPoint(id string, pointName string) (device config.Device, ok bool) // connection config
 	//查询指定标签的设备列表
 	GetDevicesByTag(tag string) (devices []config.Device)
 	AddTag(tag string) (e error)                                                      //
 	GetPointByModel(modelName string, pointName string) (point config.Point, ok bool) // search point by model
 	GetPointByDevice(id string, pointName string) (point config.Point, ok bool)       // search point by device
-	GetRunningPluginByDeviceAndPoint(id string) (plugin plugin.Plugin, ok bool)       // search plugin by device and point
+	GetRunningPluginByDevice(deviceId string) (plugin plugin.Plugin, ok bool)         // search plugin by device and point
 	GetRunningPluginByKey(key string) (plugin plugin.Plugin, ok bool)                 // search plugin by directory name
 	AddRunningPlugin(key string, plugin plugin.Plugin)                                // add running plugin
 	Models() (models []config.Model)                                                  // all model
@@ -245,14 +240,6 @@ func (c *cache) GetDeviceByDeviceAndConn(id, connectionKey string) (device confi
 	return config.Device{}, false
 }
 
-func (c *cache) GetDeviceByDeviceAndPoint(id, pointName string) (device config.Device, ok bool) {
-	if raw, ok := c.devicePointConn.Load(id + "_" + pointName); ok {
-		device, _ = raw.(config.Device)
-		return device, true
-	}
-	return config.Device{}, false
-}
-
 func (c *cache) GetPointByModel(modelName string, pointName string) (point config.Point, ok bool) {
 	if raw, ok := c.models.Load(modelName); ok {
 		model := raw.(config.Model)
@@ -281,7 +268,7 @@ func (c *cache) GetPointByDevice(id string, pointName string) (point config.Poin
 	return config.Point{}, false
 }
 
-func (c *cache) GetRunningPluginByDeviceAndPoint(id string) (plugin plugin.Plugin, ok bool) {
+func (c *cache) GetRunningPluginByDevice(id string) (plugin plugin.Plugin, ok bool) {
 	if key, ok := c.devicePlugins.Load(id); ok {
 		return c.GetRunningPluginByKey(key.(string))
 	}
@@ -376,7 +363,6 @@ func (c *cache) Reset() {
 	c.resetSyncMap(c.points)
 	c.resetSyncMap(c.devicePlugins)
 	c.resetSyncMap(c.runningPlugins)
-	c.resetSyncMap(c.devicePointConn)
 	c.resetSyncMap(c.tagDevices)
 }
 

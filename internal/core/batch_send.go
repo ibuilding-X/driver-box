@@ -27,7 +27,7 @@ func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 		return nil
 	}
 
-	connector, err := getConnector(deviceId, result)
+	connector, err := getConnector(deviceId)
 	defer func() {
 		// 释放连接
 		if connector != nil {
@@ -71,7 +71,7 @@ func SendBatchRead(deviceId string, points []plugin.PointData) (err error) {
 		return
 	}
 
-	connector, err := getConnector(deviceId, readPoints)
+	connector, err := getConnector(deviceId)
 	defer func() {
 		// 释放连接
 		if connector != nil {
@@ -153,21 +153,20 @@ func tryReadNewValues(deviceId string, points []plugin.PointData) {
 	}(deviceId, readPoints)
 }
 
-func getConnector(deviceId string, points []plugin.PointData) (plugin.Connector, error) {
+func getConnector(deviceId string) (plugin.Connector, error) {
 	//按照点位的协议、连接分组
-	for _, pd := range points {
-		p, ok := helper.CoreCache.GetRunningPluginByDeviceAndPoint(deviceId, pd.PointName)
-		if !ok {
-			logger.Logger.Error("not found running plugin", zap.String("deviceId", deviceId), zap.String("pointName", pd.PointName))
-			return nil, fmt.Errorf("not found running plugin, deviceId: %s ,point: %s", deviceId, pd.PointName)
-		}
-		connector, err := p.Connector(deviceId, pd.PointName)
-		if err != nil {
-			_ = helper.DeviceShadow.MayBeOffline(deviceId)
-			return nil, err
-		} else {
-			return connector, nil
-		}
+	p, ok := helper.CoreCache.GetRunningPluginByDevice(deviceId)
+	if !ok {
+		logger.Logger.Error("not found running plugin", zap.String("deviceId", deviceId))
+		return nil, fmt.Errorf("not found running plugin, deviceId: %s ,point: %s", deviceId)
 	}
-	return nil, errors.New("not found connector")
+	connector, err := p.Connector(deviceId)
+	if err != nil {
+		_ = helper.DeviceShadow.MayBeOffline(deviceId)
+		return nil, err
+	} else if connector != nil {
+		return connector, nil
+	} else {
+		return nil, errors.New("not found connector")
+	}
 }

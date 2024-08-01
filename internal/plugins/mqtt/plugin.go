@@ -60,7 +60,7 @@ func (p *Plugin) initConnPool(c config.Config) error {
 }
 
 // Connector 连接器
-func (p *Plugin) Connector(deviceId, pointName string) (plugin.Connector, error) {
+func (p *Plugin) Connector(deviceId string) (plugin.Connector, error) {
 	// 获取连接key
 	device, ok := helper.CoreCache.GetDevice(deviceId)
 	if !ok {

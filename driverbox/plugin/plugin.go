@@ -20,7 +20,7 @@ type Plugin interface {
 	// Initialize 初始化日志、配置、接收回调
 	Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error)
 	// Connector 连接器
-	Connector(deviceId, pointName string) (connector Connector, err error)
+	Connector(deviceId string) (connector Connector, err error)
 	// Destroy 销毁驱动
 	Destroy() error
 }

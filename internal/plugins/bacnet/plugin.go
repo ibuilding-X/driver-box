@@ -31,8 +31,8 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState)
 }
 
 // Connector 连接器
-func (p *Plugin) Connector(deviceName, pointName string) (connector plugin.Connector, err error) {
-	if device, ok := helper.CoreCache.GetDeviceByDeviceAndPoint(deviceName, pointName); ok {
+func (p *Plugin) Connector(deviceName string) (connector plugin.Connector, err error) {
+	if device, ok := helper.CoreCache.GetDevice(deviceName); ok {
 		if conn, ok := p.connPool[device.ConnectionKey]; ok {
 			return conn, nil
 		}

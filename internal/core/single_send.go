@@ -59,13 +59,13 @@ func singleRead(deviceId string, pointData plugin.PointData) error {
 	}
 
 	// 获取插件
-	p, ok := helper.CoreCache.GetRunningPluginByDeviceAndPoint(deviceId, pointData.PointName)
+	p, ok := helper.CoreCache.GetRunningPluginByDevice(deviceId)
 	if !ok {
 		logger.Logger.Error("not found running plugin", zap.String("deviceId", deviceId), zap.String("pointName", pointData.PointName))
 		return fmt.Errorf("not found running plugin, deviceId: %s ,point: %s", deviceId, pointData.PointName)
 	}
 	// 获取连接
-	conn, err := p.Connector(deviceId, pointData.PointName)
+	conn, err := p.Connector(deviceId)
 	if err != nil {
 		_ = helper.DeviceShadow.MayBeOffline(deviceId)
 		return err
@@ -100,13 +100,13 @@ func singleWrite(deviceId string, pointData plugin.PointData) error {
 	}
 
 	// 获取插件
-	p, ok := helper.CoreCache.GetRunningPluginByDeviceAndPoint(deviceId, pointData.PointName)
+	p, ok := helper.CoreCache.GetRunningPluginByDevice(deviceId)
 	if !ok {
 		logger.Logger.Error("not found running plugin", zap.String("deviceId", deviceId), zap.String("pointName", pointData.PointName))
 		return fmt.Errorf("not found running plugin, deviceId: %s ,point: %s", deviceId, pointData.PointName)
 	}
 	// 获取连接
-	conn, err := p.Connector(deviceId, pointData.PointName)
+	conn, err := p.Connector(deviceId)
 	if err != nil {
 		_ = helper.DeviceShadow.MayBeOffline(deviceId)
 		return err
