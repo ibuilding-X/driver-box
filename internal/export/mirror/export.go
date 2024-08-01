@@ -1,12 +1,15 @@
 package mirror
 
 import (
+	"errors"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/internal/plugins/mirror"
 	"go.uber.org/zap"
 	"os"
@@ -166,7 +169,26 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 		helper.Logger.Error("add mirror model error", zap.Error(e))
 		return e
 	}
-	e = export.plugin.UpdateMirrorMapping(mirrorModel)
+	//ready为false，说明不存在mirror目录
+	if export.plugin.IsReady() {
+		e = export.plugin.UpdateMirrorMapping(mirrorModel)
+	} else {
+		logger.Logger.Info("add mirror model success, but mirror plugin is not ready. will initialize...")
+		c, ok := cmanager.GetConfig(mirror.ProtocolName)
+		if !ok {
+			logger.Logger.Info("mirror plugin initialize fail")
+			return errors.New("mirror config not found")
+		}
+		e = export.plugin.Initialize(nil, c, nil)
+		if e != nil {
+			logger.Logger.Info("mirror plugin initialize fail", zap.Error(e))
+			return e
+		}
+		// 缓存插件
+		helper.CoreCache.AddRunningPlugin(mirror.ProtocolName, export.plugin)
+		logger.Logger.Info("mirror plugin initialize success")
+	}
+
 	if e == nil {
 		helper.Logger.Info("auto create mirror device success", zap.String("deviceId", deviceId))
 	}

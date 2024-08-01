@@ -9,6 +9,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/export"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
 	"sync"
 )
@@ -107,13 +108,14 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 				}
 				properties[configMap[key].ProtocolName+"_"+device.ConnectionKey] = device.Properties
 				c.deviceProperties.Store(deviceId, properties)
+				c.devicePlugins.Store(deviceId, key)
 				for _, point := range pointMap {
 					devicePointKey := deviceId + "_" + point.Name
 					if _, ok := c.points.Load(devicePointKey); ok {
 						return fmt.Errorf("device %s duplicate point %s found", deviceId, point.Name)
 					}
 					c.points.Store(devicePointKey, point)
-					c.devicePlugins.Store(deviceId, key)
+
 				}
 
 				//根据tag分组存储设备列表
@@ -272,6 +274,7 @@ func (c *cache) GetRunningPluginByDevice(id string) (plugin plugin.Plugin, ok bo
 	if key, ok := c.devicePlugins.Load(id); ok {
 		return c.GetRunningPluginByKey(key.(string))
 	}
+	logger.Logger.Error("device not found plugin", zap.String("id", id))
 	return nil, false
 }
 
