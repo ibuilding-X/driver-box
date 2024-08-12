@@ -2,7 +2,7 @@
 
 ## 文档
 
-[快速开始](https://ibuilding-x.gitee.io/driver-box/quick_start/)
+[快速开始](https://ibuilding-x.github.io/driver-box/)
 
 
 ## 安装
