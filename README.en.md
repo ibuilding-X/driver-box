@@ -1,36 +1,53 @@
-# driver-box
+# DriverBox
 
-#### Description
-简单易用的设备驱动编排服务
+## Document
 
-#### Software Architecture
-Software architecture description
-
-#### Installation
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### Instructions
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### Contribution
-
-1.  Fork the repository
-2.  Create Feat_xxx branch
-3.  Commit your code
-4.  Create Pull Request
+[Quick start](https://ibuilding-x.github.io/driver-box/)
 
 
-#### Gitee Feature
+## Install
 
-1.  You can use Readme\_XXX.md to support different languages, such as Readme\_en.md, Readme\_zh.md
-2.  Gitee blog [blog.gitee.com](https://blog.gitee.com)
-3.  Explore open source project [https://gitee.com/explore](https://gitee.com/explore)
-4.  The most valuable open source project [GVP](https://gitee.com/gvp)
-5.  The manual of Gitee [https://gitee.com/help](https://gitee.com/help)
-6.  The most popular members  [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+1. Download The Source Code
+
+```bash
+git clone https://gitee.com/iBUILDING-X/driver-box.git
+```
+
+2. Load GO dependencies
+
+```bash
+cd driver-box
+go mod vendor # 国内用户可以切换源：go env -w GOPROXY=https://goproxy.cn,direct
+```
+
+## Run locally
+
+1. Open the main.go file
+
+```go
+func main() {
+    driverbox.Start([]export.Export{&export.DefaultExport{}})
+    select {}
+}
+```
+
+2. Start the driver box
+
+```bash
+go run main.go
+```
+
+## Participate and contribute
+
+1. Fork's own warehouse
+2. Create a new Feat_xxx branch
+3. Submit code
+4. Create a new Pull Request
+
+## Feedback
+
+If you have any questions, please contact [issues](https://gitee.com/iBUILDING-X/driver-box/issues) Quick feedback
+
+## Thank
+
+- [EdgeX Foundry](https://www.edgexfoundry.org/)
