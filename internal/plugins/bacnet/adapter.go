@@ -11,17 +11,10 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/network"
 	"github.com/spf13/cast"
-	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 	"os"
 	"path/filepath"
 )
-
-// adapter 协议适配器
-type adapter struct {
-	scriptDir string // 脚本目录名称
-	ls        *lua.LState
-}
 
 type bacRequest struct {
 	deviceId string            // 通讯设备ID
@@ -46,7 +39,7 @@ type bacWriteCmd struct {
 }
 
 // Encode 编码
-func (a *adapter) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
+func (a *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
 	if len(values) != 1 {
 		return nil, common.NotSupportEncode
 	}
@@ -222,7 +215,7 @@ func validObjType(objType string) bool {
 }
 
 // Decode 解码
-func (a *adapter) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
+func (a *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
 	if a.scriptExists() {
 		return helper.CallLuaConverter(a.ls, "decode", raw)
 	} else {
@@ -247,7 +240,7 @@ func (a *adapter) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
 }
 
 // scriptExists 判断lua脚本是否存在
-func (a *adapter) scriptExists() bool {
+func (a *connector) scriptExists() bool {
 	scriptPath := filepath.Join(helper.EnvConfig.ConfigPath, a.scriptDir, common.LuaScriptName)
 	_, err := os.Stat(scriptPath)
 	return err == nil

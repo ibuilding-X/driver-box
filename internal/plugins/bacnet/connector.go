@@ -13,6 +13,7 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/network"
 	"github.com/spf13/cast"
+	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 	"net"
 	"time"
@@ -23,10 +24,11 @@ const (
 )
 
 type connector struct {
-	key     string
-	adapter plugin.ProtocolAdapter
-	plugin  *Plugin
-	network *network.Network
+	key       string
+	scriptDir string // 脚本目录名称
+	ls        *lua.LState
+	plugin    *Plugin
+	network   *network.Network
 	//通讯设备集合
 	devices map[string]*device
 	//当前连接的定时扫描任务
@@ -189,11 +191,6 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 		c.collectTask = future
 		return nil
 	}
-}
-
-// ProtocolAdapter 协议适配器
-func (p *connector) ProtocolAdapter() plugin.ProtocolAdapter {
-	return p.adapter
 }
 
 func (c *connector) Send(raw interface{}) (err error) {
@@ -413,14 +410,12 @@ func initConnector(key string, config map[string]interface{}, p *Plugin) (*conne
 				n.NetworkRun()
 
 				c := &connector{
-					key:     key,
-					network: n,
-					plugin:  p,
-					devices: make(map[string]*device),
-					adapter: &adapter{
-						scriptDir: p.config.Key,
-						ls:        p.ls,
-					},
+					key:       key,
+					network:   n,
+					plugin:    p,
+					devices:   make(map[string]*device),
+					scriptDir: p.config.Key,
+					ls:        p.ls,
 				}
 				//启动数据采集任务
 				err = c.initCollectTask(&bic)

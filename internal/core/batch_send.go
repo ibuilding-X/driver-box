@@ -38,8 +38,7 @@ func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 		return err
 	}
 	//按连接批量下发
-	adapter := connector.ProtocolAdapter()
-	res, err := adapter.Encode(deviceId, plugin.WriteMode, result...)
+	res, err := connector.Encode(deviceId, plugin.WriteMode, result...)
 	if err != nil {
 		return err
 	}
@@ -82,8 +81,7 @@ func SendBatchRead(deviceId string, points []plugin.PointData) (err error) {
 		return err
 	}
 	//按连接批量下发
-	adapter := connector.ProtocolAdapter()
-	res, err := adapter.Encode(deviceId, plugin.ReadMode, points...)
+	res, err := connector.Encode(deviceId, plugin.ReadMode, points...)
 	if err != nil {
 		return err
 	}

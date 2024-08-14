@@ -66,9 +66,8 @@ func singleRead(deviceId string, pointData plugin.PointData) error {
 	// 释放连接
 	defer conn.Release()
 
-	// 协议适配器
-	adapter := conn.ProtocolAdapter()
-	res, err := adapter.Encode(deviceId, plugin.ReadMode, pointData)
+	// 协议编码
+	res, err := conn.Encode(deviceId, plugin.ReadMode, pointData)
 	if err != nil {
 		return err
 	}
@@ -100,9 +99,8 @@ func singleWrite(deviceId string, pointData plugin.PointData) error {
 	// 释放连接
 	defer conn.Release()
 
-	// 协议适配器
-	adapter := conn.ProtocolAdapter()
-	res, err := adapter.Encode(deviceId, plugin.WriteMode, pointData)
+	// 协议编码
+	res, err := conn.Encode(deviceId, plugin.WriteMode, pointData)
 	if err != nil {
 		return err
 	}

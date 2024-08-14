@@ -195,11 +195,6 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 
 }
 
-// ProtocolAdapter 协议适配器
-func (p *connector) ProtocolAdapter() plugin.ProtocolAdapter {
-	return p
-}
-
 // Send 发送数据
 func (c *connector) Send(data interface{}) (err error) {
 	cmd := data.(command)

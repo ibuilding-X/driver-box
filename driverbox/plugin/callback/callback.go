@@ -17,7 +17,7 @@ import (
 func OnReceiveHandler(connector plugin.Connector, raw interface{}) (result interface{}, err error) {
 	helper.Logger.Debug("raw data", zap.Any("data", raw))
 	// 协议适配器
-	deviceData, err := connector.ProtocolAdapter().Decode(raw)
+	deviceData, err := connector.Decode(raw)
 	if err != nil {
 		return nil, err
 	}

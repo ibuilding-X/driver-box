@@ -27,15 +27,8 @@ type Plugin interface {
 
 // Connector 连接器
 type Connector interface {
-	// ProtocolAdapter 协议适配器
-	ProtocolAdapter() ProtocolAdapter
-	Send(data interface{}) (err error) // 发送数据
-	Release() (err error)              // 释放连接资源
-}
-
-// ProtocolAdapter 协议适配器
-// 点位数据 <=> 协议数据
-type ProtocolAdapter interface {
 	Encode(deviceId string, mode EncodeMode, values ...PointData) (res interface{}, err error) // 编码，是否支持批量的读写操作，由各插件觉得
 	Decode(raw interface{}) (res []DeviceData, err error)                                      // 解码
+	Send(data interface{}) (err error)                                                         // 发送数据
+	Release() (err error)                                                                      // 释放连接资源
 }

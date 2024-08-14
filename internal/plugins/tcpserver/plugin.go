@@ -52,12 +52,10 @@ func (p *Plugin) initConnPool() (err error) {
 			return
 		}
 		conn := &connector{
-			config: c,
-			plugin: p,
-			adapter: &adapter{
-				scriptDir: p.config.Key,
-				ls:        p.ls,
-			},
+			config:    c,
+			plugin:    p,
+			scriptDir: p.config.Key,
+			ls:        p.ls,
 		}
 		if err = conn.startServer(); err != nil {
 			return

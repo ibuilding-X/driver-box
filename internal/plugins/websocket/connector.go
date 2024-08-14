@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
@@ -59,11 +60,6 @@ type connector struct {
 // Release 释放资源
 func (c *connector) Release() (err error) {
 	return nil
-}
-
-// ProtocolAdapter 协议适配器
-func (p *connector) ProtocolAdapter() plugin.ProtocolAdapter {
-	return p
 }
 
 // Send 被动接收数据模式，无需实现
@@ -166,4 +162,29 @@ func (c *connector) handleFunc(server *http.ServeMux) {
 			}
 		}
 	})
+}
+
+// Encode 编码数据，无需实现
+func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
+	payload, err := library.Protocol().Encode(c.config.ProtocolKey, library.ProtocolEncodeRequest{
+		DeviceId: deviceId,
+		Mode:     mode,
+		Points:   values,
+	})
+	if err != nil {
+		return nil, err
+	}
+	conn, ok := c.deviceMappingConn.Load(deviceId)
+	if !ok {
+		return nil, errors.New("device is disconnected")
+	}
+	return encodeStruct{
+		payload:    payload,
+		connection: conn.(*websocket.Conn),
+	}, nil
+}
+
+// Decode 解码数据，调用动态脚本解析
+func (a *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
+	return nil, common.NotSupportDecode
 }

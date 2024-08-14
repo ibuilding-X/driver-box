@@ -2,10 +2,14 @@ package httpserver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
+	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
@@ -17,19 +21,15 @@ type connectorConfig struct {
 }
 
 type connector struct {
-	plugin  *Plugin
-	server  *http.Server
-	adapter plugin.ProtocolAdapter // 协议适配器
+	scriptDir string      // 脚本目录名称
+	ls        *lua.LState // lua 虚拟机
+	plugin    *Plugin
+	server    *http.Server
 }
 
 // Release 释放资源
 func (c *connector) Release() (err error) {
 	return c.server.Shutdown(context.Background())
-}
-
-// ProtocolAdapter 协议适配器
-func (p *connector) ProtocolAdapter() plugin.ProtocolAdapter {
-	return p.adapter
 }
 
 // Send 被动接收数据模式，无需实现
@@ -88,4 +88,28 @@ func (c *connector) startServer(opts connectorConfig) {
 			c.plugin.logger.Error("start http server error", zap.Error(err))
 		}
 	}(addr)
+}
+
+// protoData 协议数据，框架重组交由动态脚本解析
+type protoData struct {
+	Path   string `json:"path"`   // 请求路径
+	Method string `json:"method"` // 请求方法
+	Body   string `json:"body"`   // 请求 body
+	// todo 后续待扩充
+}
+
+// ToJSON 协议数据转 json 字符串
+func (pd protoData) ToJSON() string {
+	b, _ := json.Marshal(pd)
+	return string(b)
+}
+
+// Encode 编码数据，无需实现
+func (a *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
+	return nil, common.NotSupportEncode
+}
+
+// Decode 解码数据，调用动态脚本解析
+func (a *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
+	return helper.CallLuaConverter(a.ls, "decode", raw)
 }

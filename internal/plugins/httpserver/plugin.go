@@ -57,11 +57,9 @@ func (p *Plugin) initConnPool() (err error) {
 			return
 		}
 		conn := &connector{
-			plugin: p,
-			adapter: &adapter{
-				scriptDir: p.config.Key,
-				ls:        p.ls,
-			},
+			plugin:    p,
+			scriptDir: p.config.Key,
+			ls:        p.ls,
 		}
 		conn.startServer(c)
 		p.connPool = append(p.connPool, conn)

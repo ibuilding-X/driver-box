@@ -23,10 +23,6 @@ type EncodeData struct {
 	Payload string `json:"payload"`
 }
 
-// ProtocolAdapter 协议适配器
-func (conn *connector) ProtocolAdapter() plugin.ProtocolAdapter {
-	return conn
-}
 func (conn *connector) Send(data interface{}) error {
 	res := []byte(data.(string))
 	var encodeDatas []EncodeData
@@ -112,4 +108,17 @@ func (conn *connector) onReceiveHandler(_ mqtt.Client, message mqtt.Message) {
 	//自动添加设备
 	common.WrapperDiscoverEvent(deviceData, conn.config.ConnectionKey, ProtocolName)
 	callback.ExportTo(deviceData)
+}
+
+func (conn *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
+	return library.Protocol().Encode(conn.config.ProtocolKey, library.ProtocolEncodeRequest{
+		DeviceId: deviceSn,
+		Mode:     mode,
+		Points:   values,
+	})
+}
+
+// Decode 解析数据
+func (conn *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
+	return library.Protocol().Decode(conn.config.ProtocolKey, raw)
 }
