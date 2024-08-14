@@ -56,7 +56,7 @@ func InitLogger(logPath, level string) {
 	}
 
 	encoder := zapcore.NewConsoleEncoder(config.EncoderConfig)
-	writer := zapcore.NewMultiWriteSyncer(zapcore.AddSync(w))
+	writer := zapcore.NewMultiWriteSyncer(zapcore.AddSync(w), zapcore.AddSync(ChanWriter))
 	core := zapcore.NewCore(encoder, writer, config.Level)
 
 	Logger = zap.New(core, options...)
