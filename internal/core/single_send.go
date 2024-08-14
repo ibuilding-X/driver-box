@@ -58,16 +58,9 @@ func singleRead(deviceId string, pointData plugin.PointData) error {
 		return errors.New("point is writeOnly, can not read")
 	}
 
-	// 获取插件
-	p, ok := helper.CoreCache.GetRunningPluginByDevice(deviceId)
-	if !ok {
-		logger.Logger.Error("not found running plugin", zap.String("deviceId", deviceId), zap.String("pointName", pointData.PointName))
-		return fmt.Errorf("not found running plugin, deviceId: %s ,point: %s", deviceId, pointData.PointName)
-	}
 	// 获取连接
-	conn, err := p.Connector(deviceId)
+	conn, err := getConnector(deviceId)
 	if err != nil {
-		_ = helper.DeviceShadow.MayBeOffline(deviceId)
 		return err
 	}
 	// 释放连接
@@ -99,16 +92,9 @@ func singleWrite(deviceId string, pointData plugin.PointData) error {
 		return errors.New("point is readonly, can not write")
 	}
 
-	// 获取插件
-	p, ok := helper.CoreCache.GetRunningPluginByDevice(deviceId)
-	if !ok {
-		logger.Logger.Error("not found running plugin", zap.String("deviceId", deviceId), zap.String("pointName", pointData.PointName))
-		return fmt.Errorf("not found running plugin, deviceId: %s ,point: %s", deviceId, pointData.PointName)
-	}
 	// 获取连接
-	conn, err := p.Connector(deviceId)
+	conn, err := getConnector(deviceId)
 	if err != nil {
-		_ = helper.DeviceShadow.MayBeOffline(deviceId)
 		return err
 	}
 	// 释放连接

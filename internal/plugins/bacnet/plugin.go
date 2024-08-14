@@ -17,6 +17,7 @@ type Plugin struct {
 }
 
 // Initialize 插件初始化
+// logger *zap.Logger、ls *lua.LState 参数未来可能会废弃
 func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error) {
 	p.logger = logger
 	p.config = c
