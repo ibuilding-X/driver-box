@@ -1,19 +1,20 @@
 package mqtt
 
 import (
+	"errors"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )
 
+const ProtocolName = "mqtt"
+
 type Plugin struct {
 	logger     *zap.Logger           // 日志
-	config     config.Config         // 配置
-	adapter    *adapter              // 适配
 	connectors map[string]*connector // mqtt连接池
 	ls         *lua.LState           // lua 虚拟机
 }
@@ -21,34 +22,32 @@ type Plugin struct {
 // Initialize 初始化日志、配置、接收回调
 func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error) {
 	p.logger = logger
-	p.config = c
 	p.ls = ls
 
 	// 初始化连接池
-	if err = p.initConnPool(); err != nil {
+	if err = p.initConnPool(c); err != nil {
 		return
 	}
 
 	return nil
 }
 
-func (p *Plugin) initConnPool() error {
+func (p *Plugin) initConnPool(c config.Config) error {
 	p.connectors = make(map[string]*connector)
-	connections := p.config.Connections
-	for k, connection := range connections {
+	for k, connection := range c.Connections {
 		var connectConfig ConnectConfig
 		if err := helper.Map2Struct(connection, &connectConfig); err != nil {
 			p.logger.Error(fmt.Sprintf("unmarshal mqtt config error: %s", err.Error()))
 			continue
 		}
+		if !connectConfig.Enable {
+			logger.Logger.Warn("mqtt connection is disable", zap.String("connectionKey", k))
+			continue
+		}
+		connectConfig.ConnectionKey = k
 		conn := &connector{
 			plugin: p,
-			topics: connectConfig.Topics,
-			name:   k,
-			adapter: &adapter{
-				scriptDir: p.config.Key,
-				ls:        p.ls,
-			},
+			config: connectConfig,
 		}
 		err := conn.connect(connectConfig)
 		if err != nil {
@@ -61,21 +60,18 @@ func (p *Plugin) initConnPool() error {
 }
 
 // Connector 连接器
-func (p *Plugin) Connector(deviceId, pointName string) (plugin.Connector, error) {
-	deviceModels := p.config.DeviceModels
-	for _, deviceModel := range deviceModels {
-		devices := deviceModel.Devices
-		for _, device := range devices {
-			if device.ID == deviceId {
-				conn, ok := p.connectors[device.ConnectionKey]
-				if !ok {
-					return nil, common.ConnectorNotFound
-				}
-				return conn, nil
-			}
-		}
+func (p *Plugin) Connector(deviceId string) (plugin.Connector, error) {
+	// 获取连接key
+	device, ok := helper.CoreCache.GetDevice(deviceId)
+	if !ok {
+		return nil, errors.New("not found device connection key")
 	}
-	return nil, common.ConnectorNotFound
+	c, ok := p.connectors[device.ConnectionKey]
+	if !ok {
+		helper.Logger.Error("not found connection key, key is ", zap.String("key", device.ConnectionKey), zap.Any("connections", p.connectors))
+		return nil, errors.New("not found connection key, key is " + device.ConnectionKey)
+	}
+	return c, nil
 }
 
 // Destroy 销毁驱动

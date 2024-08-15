@@ -4,16 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
+	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
+	"github.com/ibuilding-x/driver-box/internal/logger"
+	"go.uber.org/zap"
 )
 
 type connector struct {
-	plugin  *Plugin
-	client  mqtt.Client
-	topics  []string
-	name    string
-	adapter plugin.ProtocolAdapter
+	plugin *Plugin
+	client mqtt.Client
+	config ConnectConfig
 }
 
 type EncodeData struct {
@@ -21,24 +23,23 @@ type EncodeData struct {
 	Payload string `json:"payload"`
 }
 
-// ProtocolAdapter 协议适配器
-func (conn *connector) ProtocolAdapter() plugin.ProtocolAdapter {
-	return conn.adapter
-}
 func (conn *connector) Send(data interface{}) error {
 	res := []byte(data.(string))
-	var encodeData EncodeData
-	err := json.Unmarshal(res, &encodeData)
+	var encodeDatas []EncodeData
+	err := json.Unmarshal(res, &encodeDatas)
 	if err != nil {
 		conn.plugin.logger.Error(fmt.Sprintf("unmarshal error: %s", err.Error()))
 		conn.plugin.logger.Error(fmt.Sprintf("origin data is: %s", data.(string)))
 		return err
 	}
-	if token := conn.client.Publish(encodeData.Topic, 0, false, encodeData.Payload); token.Wait() && token.Error() != nil {
-		conn.plugin.logger.Error(fmt.Sprintf("publish %s to topic %s error: %s",
-			encodeData.Payload, encodeData.Topic, token.Error().Error()))
-		return token.Error()
+	for _, encodeData := range encodeDatas {
+		if token := conn.client.Publish(encodeData.Topic, 0, false, encodeData.Payload); token.Wait() && token.Error() != nil {
+			conn.plugin.logger.Error(fmt.Sprintf("publish %s to topic %s error: %s",
+				encodeData.Payload, encodeData.Topic, token.Error().Error()))
+			return token.Error()
+		}
 	}
+
 	return nil
 }
 
@@ -47,6 +48,7 @@ func (conn *connector) Release() (err error) {
 }
 
 type ConnectConfig struct {
+	plugin.BaseConnection
 	ClientId string   `json:"clientId"`
 	Broker   string   `json:"broker"`
 	Username string   `json:"username"`
@@ -78,9 +80,9 @@ func (conn *connector) newMqttClientOptions(connectConfig ConnectConfig) *mqtt.C
 
 // onConnectHandler 执行连接回调： 完成订阅
 func (conn *connector) onConnectHandler(client mqtt.Client) {
-	for _, topic := range conn.topics {
+	for _, topic := range conn.config.Topics {
 		if token := client.Subscribe(topic, 0, conn.onReceiveHandler); token.Wait() && token.Error() != nil {
-			conn.plugin.logger.Error(fmt.Sprintf("unable to subscribe topic: %s for client: %s", topic, conn.name))
+			conn.plugin.logger.Error(fmt.Sprintf("unable to subscribe topic: %s for client: %s", topic, conn.config.ClientId))
 			continue
 		}
 	}
@@ -97,14 +99,26 @@ func (conn *connector) onReceiveHandler(_ mqtt.Client, message mqtt.Message) {
 		Topic:   message.Topic(),
 		Payload: string(message.Payload()),
 	}
-	msgJson, err := json.Marshal(msg)
+	// 执行回调 写入消息总线
+	deviceData, err := library.Protocol().Decode(conn.config.ProtocolKey, msg)
 	if err != nil {
-		conn.plugin.logger.Error(fmt.Sprintf("marshal error: %s", err.Error()))
+		logger.Logger.Error("decode error", zap.Error(err))
 		return
 	}
-	// 执行回调 写入消息总线
-	_, err = callback.OnReceiveHandler(conn, string(msgJson))
-	if err != nil {
-		conn.plugin.logger.Error(fmt.Sprintf("decode error: %s", err.Error()))
-	}
+	//自动添加设备
+	common.WrapperDiscoverEvent(deviceData, conn.config.ConnectionKey, ProtocolName)
+	callback.ExportTo(deviceData)
+}
+
+func (conn *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
+	return library.Protocol().Encode(conn.config.ProtocolKey, library.ProtocolEncodeRequest{
+		DeviceId: deviceSn,
+		Mode:     mode,
+		Points:   values,
+	})
+}
+
+// Decode 解析数据
+func (conn *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
+	return library.Protocol().Decode(conn.config.ProtocolKey, raw)
 }

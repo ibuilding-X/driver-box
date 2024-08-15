@@ -9,6 +9,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/export"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
 	"sync"
 )
@@ -28,11 +29,10 @@ type cache struct {
 	models  *sync.Map // name => config.Model
 	devices *sync.Map // deviceSn => config.Device
 	//设备属性
-	deviceProperties   *sync.Map // deviceSn => map[string]map[string]string
-	points             *sync.Map // deviceSn_pointName => config.Point
-	devicePointPlugins *sync.Map // deviceSn_pointName => plugin key
-	runningPlugins     *sync.Map // key => plugin.Plugin
-	devicePointConn    *sync.Map // deviceSn_pointName => config.Device
+	deviceProperties *sync.Map // deviceSn => map[string]map[string]string
+	points           *sync.Map // deviceSn_pointName => config.Point
+	devicePlugins    *sync.Map // deviceSn => plugin key
+	runningPlugins   *sync.Map // key => plugin.Plugin
 	//根据tag分组存储的设备列表
 	tagDevices *sync.Map // tag => []config.Device
 }
@@ -45,14 +45,13 @@ func (c *cache) AddTag(tag string) (e error) {
 // InitCoreCache 初始化核心缓存
 func InitCoreCache(configMap map[string]config.Config) (err error) {
 	c := &cache{
-		models:             &sync.Map{},
-		devices:            &sync.Map{},
-		deviceProperties:   &sync.Map{},
-		points:             &sync.Map{},
-		devicePointPlugins: &sync.Map{},
-		runningPlugins:     &sync.Map{},
-		devicePointConn:    &sync.Map{},
-		tagDevices:         &sync.Map{},
+		models:           &sync.Map{},
+		devices:          &sync.Map{},
+		deviceProperties: &sync.Map{},
+		points:           &sync.Map{},
+		devicePlugins:    &sync.Map{},
+		runningPlugins:   &sync.Map{},
+		tagDevices:       &sync.Map{},
 	}
 	CoreCache = c
 
@@ -109,14 +108,14 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 				}
 				properties[configMap[key].ProtocolName+"_"+device.ConnectionKey] = device.Properties
 				c.deviceProperties.Store(deviceId, properties)
+				c.devicePlugins.Store(deviceId, key)
 				for _, point := range pointMap {
 					devicePointKey := deviceId + "_" + point.Name
 					if _, ok := c.points.Load(devicePointKey); ok {
 						return fmt.Errorf("device %s duplicate point %s found", deviceId, point.Name)
 					}
 					c.points.Store(devicePointKey, point)
-					c.devicePointPlugins.Store(devicePointKey, key)
-					c.devicePointConn.Store(devicePointKey, device)
+
 				}
 
 				//根据tag分组存储设备列表
@@ -167,17 +166,15 @@ func checkPoint(model *config.DeviceModel, point *config.Point) {
 type coreCache interface {
 	GetModel(modelName string) (model config.Model, ok bool) // model info
 	GetDevice(id string) (device config.Device, ok bool)
-	//Deprecated 弃用，请使用GetDevice
-	GetDeviceByDeviceAndPoint(id string, pointName string) (device config.Device, ok bool) // connection config
 	//查询指定标签的设备列表
 	GetDevicesByTag(tag string) (devices []config.Device)
-	AddTag(tag string) (e error)                                                                  //
-	GetPointByModel(modelName string, pointName string) (point config.Point, ok bool)             // search point by model
-	GetPointByDevice(id string, pointName string) (point config.Point, ok bool)                   // search point by device
-	GetRunningPluginByDeviceAndPoint(id string, pointName string) (plugin plugin.Plugin, ok bool) // search plugin by device and point
-	GetRunningPluginByKey(key string) (plugin plugin.Plugin, ok bool)                             // search plugin by directory name
-	AddRunningPlugin(key string, plugin plugin.Plugin)                                            // add running plugin
-	Models() (models []config.Model)                                                              // all model
+	AddTag(tag string) (e error)                                                      //
+	GetPointByModel(modelName string, pointName string) (point config.Point, ok bool) // search point by model
+	GetPointByDevice(id string, pointName string) (point config.Point, ok bool)       // search point by device
+	GetRunningPluginByDevice(deviceId string) (plugin plugin.Plugin, ok bool)         // search plugin by device and point
+	GetRunningPluginByKey(key string) (plugin plugin.Plugin, ok bool)                 // search plugin by directory name
+	AddRunningPlugin(key string, plugin plugin.Plugin)                                // add running plugin
+	Models() (models []config.Model)                                                  // all model
 	Devices() (devices []config.Device)
 	GetProtocolsByDevice(id string) (map[string]DeviceProperties, bool) // device protocols
 	GetAllRunningPluginKey() (keys []string)                            // get running plugin keys
@@ -245,14 +242,6 @@ func (c *cache) GetDeviceByDeviceAndConn(id, connectionKey string) (device confi
 	return config.Device{}, false
 }
 
-func (c *cache) GetDeviceByDeviceAndPoint(id, pointName string) (device config.Device, ok bool) {
-	if raw, ok := c.devicePointConn.Load(id + "_" + pointName); ok {
-		device, _ = raw.(config.Device)
-		return device, true
-	}
-	return config.Device{}, false
-}
-
 func (c *cache) GetPointByModel(modelName string, pointName string) (point config.Point, ok bool) {
 	if raw, ok := c.models.Load(modelName); ok {
 		model := raw.(config.Model)
@@ -281,10 +270,11 @@ func (c *cache) GetPointByDevice(id string, pointName string) (point config.Poin
 	return config.Point{}, false
 }
 
-func (c *cache) GetRunningPluginByDeviceAndPoint(id, pointName string) (plugin plugin.Plugin, ok bool) {
-	if key, ok := c.devicePointPlugins.Load(fmt.Sprintf("%s_%s", id, pointName)); ok {
+func (c *cache) GetRunningPluginByDevice(id string) (plugin plugin.Plugin, ok bool) {
+	if key, ok := c.devicePlugins.Load(id); ok {
 		return c.GetRunningPluginByKey(key.(string))
 	}
+	logger.Logger.Error("device not found plugin", zap.String("id", id))
 	return nil, false
 }
 
@@ -374,9 +364,8 @@ func (c *cache) Reset() {
 	c.resetSyncMap(c.devices)
 	c.resetSyncMap(c.deviceProperties)
 	c.resetSyncMap(c.points)
-	c.resetSyncMap(c.devicePointPlugins)
+	c.resetSyncMap(c.devicePlugins)
 	c.resetSyncMap(c.runningPlugins)
-	c.resetSyncMap(c.devicePointConn)
 	c.resetSyncMap(c.tagDevices)
 }
 
@@ -401,10 +390,8 @@ func (c *cache) AddOrUpdateDevice(device config.Device) error {
 		Logger.Error("config key not found", zap.String("modelName", model.Name))
 		return fmt.Errorf("config key not found for model %s", model.Name)
 	}
-	// 更新 devicePointPlugins
-	for _, pointMap := range model.DevicePoints {
-		c.devicePointPlugins.Store(fmt.Sprintf("%s_%s", device.ID, pointMap.ToPoint().Name), key)
-	}
+	// 更新 devicePlugins
+	c.devicePlugins.Store(device.ID, key)
 	// 自动补全设备描述
 	if device.Description == "" {
 		device.Description = device.ID

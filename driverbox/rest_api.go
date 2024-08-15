@@ -11,12 +11,14 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/restful/request"
 	"github.com/ibuilding-x/driver-box/driverbox/restful/route"
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"os"
 	"path"
 	"sort"
+	"strings"
 )
 
 func registerApi() {
@@ -30,6 +32,42 @@ func registerApi() {
 	restful.HandleFunc(route.V1Prefix+"shadow/all", getAllDevices)
 	restful.HandleFunc(route.V1Prefix+"shadow/device", deviceShadow)
 	restful.HandleFunc(route.V1Prefix+"shadow/devicePoint", getDevicePoint)
+
+	//sse服务
+	http.HandleFunc("/sse/log", func(w http.ResponseWriter, r *http.Request) {
+		include := r.URL.Query().Get("include")
+		exclude := r.URL.Query().Get("exclude")
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		//定义一个channel，注册至logger
+		loggerChannel := make(chan []byte, 100)
+		logger.ChanWriter.Add(loggerChannel)
+		defer func() {
+			logger.ChanWriter.Remove(loggerChannel)
+			close(loggerChannel)
+			logger.Logger.Info("sse client disconnected")
+		}()
+		for bytes := range loggerChannel {
+			// 将消息格式化为SSE格式
+			message := string(bytes)
+			if len(include) > 0 && strings.Index(message, include) == -1 {
+				continue
+			}
+			if len(exclude) > 0 && strings.Index(message, exclude) != -1 {
+				continue
+			}
+			// 写入响应体
+			_, e := w.Write(bytes)
+			if e != nil {
+				break
+			}
+			//刷新
+			w.(http.Flusher).Flush()
+		}
+	})
 }
 
 type kv map[string]interface{}

@@ -4,6 +4,7 @@ description: A guide in my new Starlight docs site.
 sidebar:
   order: 1
 ---
+import { FileTree } from '@astrojs/starlight/components';
 
 ## 简介
 driver-box 是一款支持泛化协议接入的边缘网关框架， 以插件化的形式融合了 Modbus、Bacnet、HTTP、MQTT 等主流协议，同时也支持基于TCP的各类私有化协议对接。
@@ -52,14 +53,27 @@ Export，一时找不到合适的中文名词来表示这个单词在 driver-box
 ### 资产库
 资产库是 driver-box 框架提供的一种资源管理能力。通过持续沉淀和复用资产库中的已有资源，逐渐提升项目工程实施效率。
 
-资产库存储于`res/library/driver`目录。
-### 设备驱动库
-率属于资源库中的资源类型。通过 lua 脚本实现真实设备通讯点位与物模型点为的映射与数据加工能力。
+:::tip[为什么叫资产库，而不是资源库？]
+虽然本质上都是一些配置型资源文件，但我们认为这些资源文件都是企业实际项目的宝贵经验积累。
+这份积累能够在帮助企业极大的提升产品后期推广、复制效率，从某种角度而言，它更像企业的一份独特资产。
 
-设备驱动库存储于`res/library/driver`目录。
+:::
+
+资产库存储于`res/library/`目录。
+<FileTree>
+
+    - driver-box
+        - res
+            - library
+                - index.json    资产库索引文件，便于快速定位资源
+                - driver/       设备层驱动库
+                - mirror_tpl/   镜像模块库
+                - model/        物模型库
+                - protocol/     通信协议层驱动库
+</FileTree>
 
 ### 虚拟设备
-虚拟设备是 DriverBox 框架提供的一种设备通讯方式模拟能力。
+虚拟设备是 driver-box 框架提供的一种设备通讯方式模拟能力。
 使用户可在无需对接真实设备的情况下，进行本地设备配置和调试。
 
 开启虚拟设备模式，只需将 connections 中的 `virtual` 配置项设置为 `true`。
@@ -67,3 +81,6 @@ Export，一时找不到合适的中文名词来表示这个单词在 driver-box
 现以支持以下几种通讯插件：
 - Bacnet
 - [Modbus](../../plugins/modbus/#虚拟设备)
+
+### Event
+Event 是 driver-box 框架提供的一种事件通知能力。

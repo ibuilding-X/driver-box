@@ -5,9 +5,9 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/export"
-	"github.com/ibuilding-x/driver-box/internal/library"
 	"go.uber.org/zap"
 	"strconv"
 	"strings"
@@ -17,7 +17,7 @@ import (
 func OnReceiveHandler(connector plugin.Connector, raw interface{}) (result interface{}, err error) {
 	helper.Logger.Debug("raw data", zap.Any("data", raw))
 	// 协议适配器
-	deviceData, err := connector.ProtocolAdapter().Decode(raw)
+	deviceData, err := connector.Decode(raw)
 	if err != nil {
 		return nil, err
 	}

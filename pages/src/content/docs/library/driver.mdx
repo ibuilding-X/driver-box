@@ -1,0 +1,189 @@
+---
+title: driver-设备驱动
+description: A reference page in my new Starlight docs site.
+---
+
+import { Tabs, TabItem,FileTree } from '@astrojs/starlight/components';
+
+设备驱动库是一种通过 lua 脚本，实现真实设备通讯点位与物模型点位的映射与数据加工能力。
+
+**应用场景**
+1. 单位换算。例如：1KW 转换为 1000W；华氏度转换为摄氏度。
+2. 数据清洗。识别并过滤异常数据，避免污染业务数据，亦可触发事件告警。
+3. 数据加工。基于某个点的数据，生成新的点位数据或事件。
+
+设备驱动库位于`res/library/driver`目录，该目录下的每一个 lua 文件的文件名便代表该设备驱的 **driverKey**。
+<FileTree>
+- driver-box
+    - res
+        - library
+            - **driver**
+                - 环境传感器.lua
+                - 电表.lua
+                - 开关.lua
+                - ...lua
+            - ...
+</FileTree>
+
+当 `config.json` 中的某个设备关联了某个 driverKey，当发生数据上下行时，会在下图所处环节执行相应的 encode、decode 函数。
+![](/driver-box/library_driver.svg)
+
+
+
+<Tabs>
+    <TabItem label="接口定义：encode" icon="document">
+        **入参**
+        |字段名|类型|字段描述|
+        |---|---|---|
+        |deviceId|string|设备ID|
+        |rw|string|读写模式，取值：`read`、`write`|
+        |points|array|点位数据，格式如下：`[{"name":"点位名","value":"点位值"}]`。<br/>点位值的数据类型包括：string、int、float|
+
+        **出参**
+        |字段名|类型|字段描述|
+        |---|---|---|
+        |points|string|**设备点位数组**的json格式字符串，格式如下：`"[{\"name\":\"点位名\",\"value\":\"点位值\"}]"`|
+
+        因为已经是针对具体的某个设备进行 encode，所以出参无需再返回 deviceId、rw。
+
+    </TabItem>
+    <TabItem label="接口定义：decode" icon="document">
+        **入参**
+        |字段名|类型|字段描述|
+        |---|---|---|
+        |deviceId|string|设备ID|
+        |points|array|点位数据，格式如下：`[{"name":"点位名","value":"点位值"}]`。<br/>点位值的数据类型包括：string、int、float|
+
+        **出参**
+        |字段名|类型|字段描述|
+        |---|---|---|
+        |points|string|**设备点位数组**的json格式字符串，格式如下：`"[{\"name\":\"点位名\",\"value\":\"点位值\"}]"`|
+    </TabItem>
+    <TabItem label="converter.lua" icon="seti:lua">
+        ```lua
+        local json = require("json")
+
+        function encode(deviceId, rw, points)
+            local returnPoints = {}
+
+            return json.encode(returnPoints)
+        end
+
+        function decode(deviceId, points)
+            local returnPoints = {}
+
+            return json.encode(returnPoints)
+        end
+        ```
+    </TabItem>
+</Tabs>
+
+## 示例
+
+<Tabs>
+<TabItem label="示例一" icon="seti:lua">
+将采集到的点位数据，作最多保留2位小数加工处理，并针对温度属性进行上下行的系数换算。
+```lua
+local json = require("json")
+
+-- 格式化数字，最多保留两位小数
+function format_number(num)
+    v = math.floor(num)
+    if num == v then
+        return v
+    end
+    local formatted = string.format("%.2f", num)
+    formatted = string.gsub(formatted, "%.?0+$", "")
+    return formatted
+end
+
+function decode(deviceId, points)
+    local returnPoints = {}
+    for _, point in pairs(points) do
+        if point["name"] == 'roomTemp' or point["name"] == 'tempSetting' then
+            -- 室内温度、设定温度
+            table.insert(returnPoints, {
+                name = point["name"],
+                value = format_number(point["value"] * 0.1),
+            })
+        else
+            table.insert(returnPoints, {
+                name = point["name"],
+                value = point["value"],
+            })
+        end
+    end
+    return json.encode(returnPoints)
+end
+
+function encode(deviceId, rw, points)
+    local returnPoints = {}
+    for _, point in pairs(points) do
+        if point["name"] == 'roomTemp' or point["name"] == 'tempSetting' then
+            table.insert(returnPoints, {
+                name = point["name"],
+                value = point["value"] * 10,
+            })
+        else
+            table.insert(returnPoints, {
+                name = point["name"],
+                value = point["value"],
+            })
+        end
+    end
+    return json.encode(returnPoints)
+end
+```
+</TabItem>
+<TabItem label="示例二" icon="seti:lua">
+针对某款环境传感器作更为复杂系数换算，实现应用层的单位统一。
+```lua
+local json = require("json")
+
+-- 格式化数字，最多保留两位小数
+function format_number(num)
+    v = math.floor(num)
+    if num == v then
+        return v
+    end
+    local formatted = string.format("%.2f", num)
+    formatted = string.gsub(formatted, "%.?0+$", "")
+    return formatted
+end
+
+function decode(deviceId, points)
+    local returnPoints = {}
+    for _, point in pairs(points) do
+        if point["name"] == 'hcho' then
+            table.insert(returnPoints, {
+                name = 'hcho',
+                value = format_number((point["value"] / 1000 * 30.03) / 24.45),
+            })
+        elseif point["name"] == 'tvoc' then
+            table.insert(returnPoints, {
+                name = 'tvoc',
+                value = format_number(point["value"] / 1000),
+            })
+        elseif point['name'] == 'temperature' or point["name"] == 'humidity' then
+            -- 温度、湿度
+            table.insert(returnPoints, {
+                name = point["name"],
+                value = format_number(point["value"] * 0.1),
+            })
+        else
+            table.insert(returnPoints, {
+                name = point["name"],
+                value = point["value"],
+            })
+        end
+    end
+    return json.encode(returnPoints)
+end
+
+function encode(deviceId, rw, points)
+    return error("this device can not be encoded")
+end
+```
+</TabItem>
+</Tabs>
+

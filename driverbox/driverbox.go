@@ -47,7 +47,8 @@ func Start(exports []export.Export) error {
 
 	//第四步：启动Export
 
-	export0.Exports = append(exports, linkedge.NewExport(), mirror.NewExport(), discover.NewExport())
+	export0.Exports = []export.Export{linkedge.NewExport(), mirror.NewExport(), discover.NewExport()}
+	export0.Exports = append(export0.Exports, exports...)
 
 	for _, item := range export0.Exports {
 		if err := item.Init(); err != nil {

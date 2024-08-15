@@ -20,22 +20,15 @@ type Plugin interface {
 	// Initialize 初始化日志、配置、接收回调
 	Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error)
 	// Connector 连接器
-	Connector(deviceId, pointName string) (connector Connector, err error)
+	Connector(deviceId string) (connector Connector, err error)
 	// Destroy 销毁驱动
 	Destroy() error
 }
 
 // Connector 连接器
 type Connector interface {
-	// ProtocolAdapter 协议适配器
-	ProtocolAdapter() ProtocolAdapter
-	Send(data interface{}) (err error) // 发送数据
-	Release() (err error)              // 释放连接资源
-}
-
-// ProtocolAdapter 协议适配器
-// 点位数据 <=> 协议数据
-type ProtocolAdapter interface {
 	Encode(deviceId string, mode EncodeMode, values ...PointData) (res interface{}, err error) // 编码，是否支持批量的读写操作，由各插件觉得
 	Decode(raw interface{}) (res []DeviceData, err error)                                      // 解码
+	Send(data interface{}) (err error)                                                         // 发送数据
+	Release() (err error)                                                                      // 释放连接资源
 }

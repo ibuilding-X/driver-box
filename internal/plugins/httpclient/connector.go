@@ -5,9 +5,9 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
+	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
-	"github.com/ibuilding-x/driver-box/internal/library"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
 	"io"
@@ -108,11 +108,6 @@ func (c *connector) Release() (err error) {
 	return
 }
 
-// ProtocolAdapter 协议适配器
-func (p *connector) ProtocolAdapter() plugin.ProtocolAdapter {
-	return p
-}
-
 // Send 发送请求
 func (c *connector) Send(raw interface{}) (err error) {
 	sendData := raw.(HttpRequest)
@@ -164,4 +159,14 @@ func (c *connector) Send(raw interface{}) (err error) {
 	common.WrapperDiscoverEvent(deviceData, c.config.ConnectionKey, ProtocolName)
 	callback.ExportTo(deviceData)
 	return nil
+}
+
+// Encode 编码数据
+func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
+	return nil, common.NotSupportEncode
+}
+
+// Decode 解码数据，调用动态脚本解析
+func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
+	return nil, common.NotSupportDecode
 }

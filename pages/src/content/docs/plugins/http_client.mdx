@@ -1,0 +1,153 @@
+---
+title: HttpClient插件
+description: A reference page in my new Starlight docs site.
+---
+
+import { Tabs, TabItem,FileTree } from '@astrojs/starlight/components';
+
+## 插件介绍
+
+HttpClient插件是应用于 driver-box 作为客户端，南向设备/设备网关作为 Http 服务端的场景。
+## 连接配置
+
+| 配置项           | 必填 | 类型     | 参数说明                                                                                                          |
+|---------------|----|--------|---------------------------------------------------------------------------------------------------------------|
+| protocolKey       | 必填 | string | **基础属性**：通信协议驱动 key。<br/>对于 httpClient 场景，该属性为必填项。                                                                      |
+| discover          | 必填 | bool | **基础属性**：是否支持设备自动发现 |
+| enable      | 必填 | bool    | **基础属性**：当前连接是否可用                                                                      |
+| baseUrl      | 必填 | string    | 接口地址                                                                         |
+| timeout      | 选填 | int    | 接口请求超时时间，单位：毫秒。默认为 5000 毫秒。                                   |
+| auth        | 选填 | string    | 认证信息，默认为空。<br/>具体加工逻辑，由 [通信协议驱动](/driver-box/library/protocol/) 实现               |
+| timer      | 选填 | array | 定时执行器，周期性执行**通信协议驱动**中定义的函数。<br/>常用于状态采集，认证续期、心跳检测等。                                                           |
+
+
+## 通信协议驱动
+HttpClient 插件强依赖通信协议驱动库提供的 Http 报文编解码能力。
+<FileTree>
+- driver-box
+    - res
+        - library
+            - **protocol**
+                - http_server_环境传感器.lua
+                - **http_client_开关.lua**
+                - websocket_照明.lua
+                - mqtt_水电气表.lua
+                - ...
+</FileTree>
+
+### 自定义函数
+自定义函数需要搭配连接配置中的 timer 参数使用，函数名可以是除 encode 和 decode 之外的任意字符串。
+
+- 入参：一个 json 格式的字符串，目前仅包含一个属性字段。即连接配置中的 auth 信息。
+- 出参：一个 json 格式的字符串，包含 Http Request 所需的各项信息。
+    - api：接口地址，同 config.json 连接配置中的 baseUrl 拼凑成完整路径。
+    - method：请求方法，例如：GET、POST、PUT、DELETE。
+    - header：Http Request 头部信息，例如：Content-Type: application/json。
+    - body：字符串格式的请求体。
+<Tabs>
+    <TabItem label="示例" icon="seti:lua">
+        定义一个函数：getAllDevice，用于获取所有设备信息。
+
+        接口采用 Auth Basic 认证，账号密码为：admin/admin，经 base64 处理后为：`YWRtaW46YWRtaW4=`
+        ```lua
+        function getAllDevice(raw) -- raw: {"auth":"YWRtaW46YWRtaW4="}
+            local param = json.decode(data['body'])
+            local request = {
+                ["api"] = "/api/getAll",
+                ["method"] = "GET",
+                ["header"] = {
+                    ["Content-Type"] = "application/json",
+                    ["authorization"] = "Basic " .. param["auth"],
+                }
+            }
+            --body = {
+            --    ["user"] = "admin",
+            --    ["password"] = "admin"
+            --}
+            --request["body"] = json.encode(body)
+            return json.encode(request)
+        end
+        ```
+    </TabItem>
+</Tabs>
+
+### encode
+待补充
+
+### decode
+decode 是针对 Http 响应的解析处理。
+- 入参：一个 json 格式的字符串，包含 Http 请求/响应相关信息。
+  - api：Http 请求接口。
+  - method：Http 请求方法，例如：GET、POST、PUT、DELETE。
+  - header：Http Response 头部信息，例如：Content-Type: application/json。
+  - body：字符串格式的响应体。
+- 出参：一个 json 格式的字符串，目前仅包含一个属性字段。即连接配置中的 auth 信息。
+```json5
+{
+  "api": "",
+  "method":"POST",
+  "header": {
+    "Content-Type": "application/json"
+  },
+  "body": ""
+}
+```
+
+
+
+### 示例
+
+<Tabs>
+<TabItem label="config.json" icon="seti:json">
+```json
+{
+    "deviceModels": [
+        {
+            "name": "http_client_lifesmart_SL_SW_ND3_V3",
+            "description": "单火三联开关",
+            "devicePoints": [
+                {
+                    "description": "P1开关",
+                    "name": "P1",
+                    "readWrite": "RW",
+                    "reportMode": "change",
+                    "valueType": "int"
+                },
+                {
+                    "description": "P2开关",
+                    "name": "P2",
+                    "readWrite": "RW",
+                    "reportMode": "change",
+                    "valueType": "int"
+                },
+                {
+                    "description": "P3开关",
+                    "name": "P3",
+                    "readWrite": "RW",
+                    "reportMode": "change",
+                    "valueType": "int"
+                }
+            ]
+        }
+    ],
+    "connections": {
+        "http://192.168.16.138:8081": {
+            "auth": "admin:admin",
+            "baseUrl": "http://192.168.16.138:8081",
+            "discover": true,
+            "enable": true,
+            "protocolKey": "http_client_lifesmart",
+            "timer": [
+                {
+                    "action": "getAllDevice",
+                    "duration": "1s"
+                }
+            ]
+        }
+    },
+    "protocolName": "http_client"
+}
+```
+</TabItem>
+
+</Tabs>

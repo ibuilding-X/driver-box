@@ -320,6 +320,9 @@ func (m *manager) GetModel(modelName string) (config.DeviceModel, bool) {
 // AddModel 新增模型
 // 说明：仅用于新增模型，不用于更新模型
 func (m *manager) AddModel(plugin string, model config.DeviceModel) error {
+	if model.Name == "" {
+		return errors.New("model name is null")
+	}
 	m.mux.Lock()
 	defer m.mux.Unlock()
 

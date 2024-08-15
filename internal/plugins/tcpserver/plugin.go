@@ -31,7 +31,7 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState)
 }
 
 // Connector 连接器
-func (p *Plugin) Connector(deviceSn, pointName string) (connector plugin.Connector, err error) {
+func (p *Plugin) Connector(deviceSn string) (connector plugin.Connector, err error) {
 	return nil, common.NotSupportGetConnector
 }
 
@@ -52,12 +52,10 @@ func (p *Plugin) initConnPool() (err error) {
 			return
 		}
 		conn := &connector{
-			config: c,
-			plugin: p,
-			adapter: &adapter{
-				scriptDir: p.config.Key,
-				ls:        p.ls,
-			},
+			config:    c,
+			plugin:    p,
+			scriptDir: p.config.Key,
+			ls:        p.ls,
 		}
 		if err = conn.startServer(); err != nil {
 			return

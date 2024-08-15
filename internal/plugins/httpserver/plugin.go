@@ -31,7 +31,7 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState)
 }
 
 // Connector 此协议不支持获取连接器
-func (p *Plugin) Connector(deviceSn, pointName string) (connector plugin.Connector, err error) {
+func (p *Plugin) Connector(deviceSn string) (connector plugin.Connector, err error) {
 	return nil, common.NotSupportGetConnector
 }
 
@@ -57,11 +57,9 @@ func (p *Plugin) initConnPool() (err error) {
 			return
 		}
 		conn := &connector{
-			plugin: p,
-			adapter: &adapter{
-				scriptDir: p.config.Key,
-				ls:        p.ls,
-			},
+			plugin:    p,
+			scriptDir: p.config.Key,
+			ls:        p.ls,
 		}
 		conn.startServer(c)
 		p.connPool = append(p.connPool, conn)

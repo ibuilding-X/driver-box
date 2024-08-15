@@ -9,8 +9,8 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
+	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/internal/export"
-	"github.com/ibuilding-x/driver-box/internal/library"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/internal/lua"
 	"github.com/ibuilding-x/driver-box/internal/plugins"
@@ -112,12 +112,6 @@ func initDeviceDriver(configMap map[string]config.Config) {
 					drivers[d.DriverKey] = d.DriverKey
 				}
 			}
-		}
-	}
-	for key, _ := range drivers {
-		err := library.Driver().LoadLibrary(key)
-		if err != nil {
-			helper.Logger.Error("load device driver error", zap.String("driverKey", key), zap.Error(err))
 		}
 	}
 }

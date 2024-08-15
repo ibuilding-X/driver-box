@@ -2,12 +2,12 @@
   "deviceModels": [
     {
       "name": " virtual-light:switch",
-      "modelId": " light:switch",
+      "modelId": "light:switch",
       "description": "照明设备",
       "devicePoints": [
         {
           "bit": 0,
-          "bitLen": 1,
+          "bitLen": 0,
           "byteSwap": false,
           "description": "运行状态",
           "name": "onOff",

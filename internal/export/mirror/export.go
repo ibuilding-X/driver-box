@@ -1,12 +1,15 @@
 package mirror
 
 import (
+	"errors"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
+	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
-	"github.com/ibuilding-x/driver-box/internal/library"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/internal/plugins/mirror"
 	"go.uber.org/zap"
 	"os"
@@ -61,7 +64,7 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 	case event.EventCodeWillExportTo:
 		deviceData := eventValue.(plugin.DeviceData)
 		//镜像设备仅存在一个虚拟连接
-		virtualConnector, _ := export.plugin.Connector("", "")
+		virtualConnector, _ := export.plugin.Connector("")
 		if virtualConnector != nil {
 			callback.OnReceiveHandler(virtualConnector, deviceData)
 		}
@@ -98,7 +101,6 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 		return err
 	}
 	helper.Logger.Info("auto create mirror device", zap.String("deviceId", deviceId), zap.Any("mirrorConfig", mirrorConfig))
-	modeName := rawModel.Name + "_mirror_" + deviceId
 	properties := make(map[string]string)
 	if device.Properties != nil {
 		for key, val := range device.Properties {
@@ -114,7 +116,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 		Tags:        device.Tags,
 		Properties:  properties,
 		DriverKey:   mirrorConfig.DriverKey,
-		ModelName:   modeName,
+		ModelName:   rawModel.Name + "_mirror_" + deviceId,
 	}
 
 	helper.CoreCache.UpdateDeviceProperty(deviceId, PropertyKeyAutoMirrorTo, mirrorDevice.ID)
@@ -123,27 +125,39 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 		return nil
 	}
 
+	//加载模型库资源
+	mirrorModel, err := library.Model().LoadLibrary(mirrorConfig.ModelKey)
+	if err != nil {
+		helper.Logger.Error("auto create mirror device failed, modelKey not exists", zap.String("deviceId", deviceId), zap.String("modelKey", mirrorConfig.ModelKey), zap.Error(err))
+		return err
+	}
+	mirrorModel.Name = mirrorDevice.ModelName
+	mirrorModel.Description = mirrorConfig.Description
+	mirrorModel.Devices = []config.Device{mirrorDevice}
+
 	points := make([]config.PointMap, 0)
 	for _, point := range mirrorConfig.Points {
-		pointMap := config.PointMap{}
-		for key, val := range point {
-			pointMap[key] = val
+		pointName, ok := point["name"]
+		if !ok || len(pointName) == 0 {
+			helper.Logger.Error("auto create mirror device failed, point name is nil", zap.Any("mirrorConfig", mirrorConfig), zap.String("deviceId", deviceId))
+			return nil
 		}
-		pointMap["rawDevice"] = deviceId
-		points = append(points, pointMap)
+		//根据镜像模版中定义的点名，找到镜像模型的点位配置
+		for _, mirrorPoint := range mirrorModel.DevicePoints {
+			if mirrorPoint["name"] != pointName {
+				continue
+			}
+			//镜像模版中的点位配置作为高优先级，覆盖镜像模型的点位配置
+			for k, v := range point {
+				mirrorPoint[k] = v
+			}
+			mirrorPoint["rawDevice"] = deviceId
+			points = append(points, mirrorPoint)
+			break
+		}
 	}
+	mirrorModel.DevicePoints = points
 
-	mirrorModel := config.DeviceModel{
-		ModelBase: config.ModelBase{
-			Name:        modeName,
-			ModelID:     mirrorConfig.ModelId,
-			Description: mirrorConfig.Description,
-		},
-		Devices: []config.Device{
-			mirrorDevice,
-		},
-		DevicePoints: points,
-	}
 	//第三步：配置持久化
 	e := helper.CoreCache.AddModel(mirror.ProtocolName, mirrorModel)
 	if e != nil {
@@ -155,7 +169,26 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 		helper.Logger.Error("add mirror model error", zap.Error(e))
 		return e
 	}
-	e = export.plugin.UpdateMirrorMapping(mirrorModel)
+	//ready为false，说明不存在mirror目录
+	if export.plugin.IsReady() {
+		e = export.plugin.UpdateMirrorMapping(mirrorModel)
+	} else {
+		logger.Logger.Info("add mirror model success, but mirror plugin is not ready. will initialize...")
+		c, ok := cmanager.GetConfig(mirror.ProtocolName)
+		if !ok {
+			logger.Logger.Info("mirror plugin initialize fail")
+			return errors.New("mirror config not found")
+		}
+		e = export.plugin.Initialize(nil, c, nil)
+		if e != nil {
+			logger.Logger.Info("mirror plugin initialize fail", zap.Error(e))
+			return e
+		}
+		// 缓存插件
+		helper.CoreCache.AddRunningPlugin(mirror.ProtocolName, export.plugin)
+		logger.Logger.Info("mirror plugin initialize success")
+	}
+
 	if e == nil {
 		helper.Logger.Info("auto create mirror device success", zap.String("deviceId", deviceId))
 	}

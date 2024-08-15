@@ -68,7 +68,7 @@ func CallLuaMethod(L *lua.LState, method string, args ...lua.LValue) (string, er
 
 	lock, ok := luaLocks.Load(L)
 	if !ok {
-		return "", common.ProtocolDataFormatErr
+		return "", errors.New("lua VM not exists")
 	}
 	lock.(*sync.Mutex).Lock()
 	defer lock.(*sync.Mutex).Unlock()

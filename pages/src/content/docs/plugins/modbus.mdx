@@ -216,6 +216,7 @@ modbus 虚拟设备的寄存器值皆为 0，需要在 `converter.lua` 脚本中
             -- 寻找从机
             slave = slaves[slaveId]
             if slaves[slaveId] == nil then
+                -- 初始化设备太多会增加内存消耗
                 slave = initSlave(slaveId, 65535, 65535, 65535, 65535);
             end
 

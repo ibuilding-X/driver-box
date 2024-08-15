@@ -44,6 +44,10 @@ export default defineConfig({
                     autogenerate: {directory: 'export'},
                 },
                 {
+                    label: '资产库',
+                    autogenerate: {directory: 'library'},
+                },
+                {
                     label: '开发指南',
                     autogenerate: {directory: 'developer'},
                 },
