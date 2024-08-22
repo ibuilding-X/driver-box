@@ -3,24 +3,34 @@ package linkedge
 import "time"
 
 type Config struct {
-	//场景ID
-	Id string `json:"id,omitempty"`
-	//是否可用
+	// ID 场景ID
+	ID string `json:"id,omitempty"`
+	// Enable 是否可用
 	Enable bool `json:"enable"`
-	//场景名称
+	// Name 场景名称
 	Name string `json:"name"`
-	//场景标签
+	// Tags 场景标签
 	Tags []string `json:"tags"`
-	// 场景描述
+	// Description 场景描述
 	Description string `json:"description"`
-	// 静默期,单位：秒
+	// SilentPeriod 静默期,单位：秒
 	SilentPeriod int64 `json:"silentPeriod"`
-	// 触发器
+	// Trigger 触发器
 	Trigger []Trigger `json:"trigger"`
-	// 场景联动的执行条件
+	// Condition 执行条件
 	Condition []Condition `json:"condition"`
-	// 执行动作
+	// Action 执行动作
 	Action []Action `json:"action"`
-	//上一次执行时间
-	executeTime time.Time
+	// ExecuteTime 最后执行时间
+	ExecuteTime time.Time
+}
+
+func (c *Config) ExistTag(tag string) bool {
+	for i, _ := range c.Tags {
+		if tag == c.Tags[i] {
+			return true
+		}
+	}
+
+	return false
 }

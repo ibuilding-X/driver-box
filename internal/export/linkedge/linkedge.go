@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
+	"github.com/ibuilding-x/driver-box/driverbox/export/linkedge"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/restful"
@@ -16,7 +17,6 @@ import (
 	"go.uber.org/zap"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -27,33 +27,42 @@ import (
 )
 
 const (
+	// ExecuteResultAllSuccess 全部成功
+	ExecuteResultAllSuccess = "success"
+	// ExecuteResultPartSuccess 部分成功
+	ExecuteResultPartSuccess = "partSuccess"
+	// ExecuteResultAllFail 全部失败
+	ExecuteResultAllFail = "fail"
+)
+
+const (
 	LinkConfigPath = "./config/linkedge" // 场景联动配置路径
 )
 
-// ActionListIsEmptyErr action 列表为空错误
-var ActionListIsEmptyErr = errors.New("linkEdge action list cannot be empty")
+// ErrActionListIsEmpty action 列表为空错误
+var ErrActionListIsEmpty = errors.New("linkEdge action list cannot be empty")
 
 type service struct {
 	// 场景联动配置缓存
-	configs map[string]ModelConfig
+	configs map[string]linkedge.Config
 	// 定时任务
 	schedules map[string]*cron.Cron
 	//点位触发器
-	triggerConditions map[string][]pointCondition
+	triggerConditions map[string][]linkedge.DevicePointCondition
 
 	envConfig EnvConfig
 }
 
-func (linkedge *service) NewService() error {
+func (s *service) NewService() error {
 	// 创建联动场景
 	restful.HandleFunc(route.LinkEdgeCreate, func(request *http.Request) (any, error) {
 		data, err := readBody(request)
 		if err != nil {
-			err = fmt.Errorf("Incoming reading ignored. Unable to read request body: %s", err.Error())
+			err = fmt.Errorf("incoming reading ignored. Unable to read request body: %s", err.Error())
 			helper.Logger.Error(err.Error())
 			return false, err
 		}
-		err = linkedge.Create(data)
+		err = s.Create(data)
 		if err != nil {
 			err = fmt.Errorf("create linkEdge error: %s", err.Error())
 			helper.Logger.Error(err.Error())
@@ -70,13 +79,13 @@ func (linkedge *service) NewService() error {
 			return false, err
 		}
 		// 解析数据
-		var config ModelConfig
+		var config linkedge.Config
 		err = json.Unmarshal(data, &config)
 		if err != nil {
 			return false, err
 		}
 		// 执行
-		err = linkedge.triggerLinkEdge("", 0, config)
+		err = s.triggerLinkEdge("", 0, config)
 		if err != nil {
 			err = fmt.Errorf("preview linkEdge error: %s", err.Error())
 			helper.Logger.Error(err.Error())
@@ -87,28 +96,28 @@ func (linkedge *service) NewService() error {
 
 	//删除联动场景
 	restful.HandleFunc(route.LinkEdgeDelete, func(request *http.Request) (any, error) {
-		err := linkedge.Delete(request.FormValue("id"))
+		err := s.Delete(request.FormValue("id"))
 		return err != nil, err
 	})
 
 	//触发联动场景
 	restful.HandleFunc(route.LinkEdgeTrigger, func(request *http.Request) (any, error) {
 		helper.Logger.Info(fmt.Sprintf("trigger linkEdge:%s from: %s", request.FormValue("id"), request.FormValue("source")))
-		err := linkedge.TriggerLinkEdge(request.FormValue("id"))
+		err := s.TriggerLinkEdge(request.FormValue("id"))
 		return err != nil, err
 	})
 
 	//查看场景联动
 	restful.HandleFunc(route.LinkEdgeGet, func(request *http.Request) (any, error) {
 		helper.Logger.Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
-		return linkedge.getLinkEdge(request.FormValue("id"))
+		return s.getLinkEdge(request.FormValue("id"))
 	})
 
 	// 查看场景联动列表
 	restful.HandleFunc(route.LinkEdgeList, func(request *http.Request) (any, error) {
 		// 获取查询参数
 		tag := request.URL.Query().Get("tag")
-		return linkedge.GetList(tag)
+		return s.GetList(tag)
 	})
 
 	restful.HandleFunc(route.LinkEdgeUpdate, func(request *http.Request) (any, error) {
@@ -116,16 +125,16 @@ func (linkedge *service) NewService() error {
 		if err != nil {
 			return false, err
 		}
-		var model ModelConfig
+		var model linkedge.Config
 		err = json.Unmarshal(body, &model)
 		if err != nil {
 			return false, err
 		}
-		_, err = linkedge.getLinkEdge(model.Id)
+		_, err = s.getLinkEdge(model.ID)
 		if err != nil {
 			return false, err
 		}
-		err = linkedge.Update(body)
+		err = s.Update(body)
 		if err != nil {
 			return false, err
 		} else {
@@ -136,7 +145,7 @@ func (linkedge *service) NewService() error {
 	//更新场景联动状态
 	restful.HandleFunc(route.LinkEdgeStatus, func(request *http.Request) (any, error) {
 		helper.Logger.Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
-		config, err := linkedge.getLinkEdge(request.FormValue("id"))
+		config, err := s.getLinkEdge(request.FormValue("id"))
 		if err != nil {
 			return false, fmt.Errorf("unable to find link edge: %s", err)
 		}
@@ -153,7 +162,7 @@ func (linkedge *service) NewService() error {
 		if err != nil {
 			return false, fmt.Errorf("encode %v error: %v", config, err)
 		}
-		if err = linkedge.Update(bf.Bytes()); err == nil {
+		if err = s.Update(bf.Bytes()); err == nil {
 			return true, nil
 		} else {
 			return false, fmt.Errorf("update %v error: %v", config, err)
@@ -162,16 +171,16 @@ func (linkedge *service) NewService() error {
 
 	// 获取最后一次执行的场景信息
 	restful.HandleFunc(route.LinkEdgeGetLast, func(r *http.Request) (any, error) {
-		return linkedge.GetLast()
+		return s.GetLast()
 	})
 
 	//启动场景联动
-	configs, e := linkedge.GetList()
+	configs, e := s.GetList()
 	if e != nil {
 		return e
 	}
 	for _, config := range configs {
-		e = linkedge.registerTrigger(config.Id)
+		e = s.registerTrigger(config.ID)
 		if e != nil {
 			return e
 		}
@@ -181,114 +190,96 @@ func (linkedge *service) NewService() error {
 }
 
 // Create 创建场景联动规则
-func (linkEdge *service) Create(bytes []byte) error {
-	var model ModelConfig
+func (s *service) Create(bytes []byte) error {
+	var model linkedge.Config
 	e := json.Unmarshal(bytes, &model)
 	if e != nil {
 		return e
 	}
-	if _, exists := linkEdge.configs[model.Id]; exists {
-		return errors.New("linkEdge id is exists!")
+	if _, exists := s.configs[model.ID]; exists {
+		return errors.New("linkEdge id is exists")
 	}
 
 	// 空 Action 校验
-	if len(model.Action) <= 0 {
-		return ActionListIsEmptyErr
+	if len(model.Action) == 0 {
+		return ErrActionListIsEmpty
 	}
 
 	//持久化
-	file := path.Join(linkEdge.envConfig.ConfigPath, model.Id+".json")
+	file := path.Join(s.envConfig.ConfigPath, model.ID+".json")
 	e = os.WriteFile(file, bytes, 0666)
 	if e != nil {
 		return e
 	}
 
 	//启动场景联动
-	e = linkEdge.registerTrigger(model.Id)
+	e = s.registerTrigger(model.ID)
 	if e != nil {
 		//注册触发器存在异常,清理脏数据
-		_ = linkEdge.Delete(model.Id)
+		_ = s.Delete(model.ID)
 		return e
 	}
 	return nil
 }
 
 // 注册触发器
-func (linkEdge *service) registerTrigger(id string) error {
-	model, e := linkEdge.getLinkEdge(id)
+func (s *service) registerTrigger(id string) error {
+	model, e := s.getLinkEdge(id)
 	if e != nil {
 		return e
 	}
 	//注册触发器
-	for _, d := range model.Trigger {
-		bytes, e := json.Marshal(d)
-		if e != nil {
-			return e
-		}
-		var baseTrigger baseTrigger
-		e = json.Unmarshal(bytes, &baseTrigger)
-		if e != nil {
-			return e
-		}
-		switch baseTrigger.Type {
-		case TriggerTypeSchedule:
-			var scheduleTrigger scheduleTrigger
-			e = json.Unmarshal(bytes, &scheduleTrigger)
-			if e != nil {
-				return e
-			}
-
-			schedule, exists := linkEdge.schedules[model.Id]
+	for _, trigger := range model.Trigger {
+		switch trigger.Type {
+		case linkedge.TriggerTypeSchedule:
+			schedule, exists := s.schedules[model.ID]
 			if !exists {
 				schedule = cron.New()
-				linkEdge.schedules[model.Id] = schedule
+				s.schedules[model.ID] = schedule
 				schedule.Start()
 			}
-			_, e = schedule.AddFunc(scheduleTrigger.Cron, func() {
-				linkEdge.TriggerLinkEdge(model.Id)
+			_, e = schedule.AddFunc(trigger.Cron, func() {
+				s.TriggerLinkEdge(model.ID)
 			})
 			if e != nil {
 				return e
 			} else {
-				helper.Logger.Info(fmt.Sprintf("add schedule trigger:%v", scheduleTrigger.Cron))
+				helper.Logger.Info(fmt.Sprintf("add schedule trigger:%v", trigger.Cron))
 			}
 			break
-		case TriggerTypeDevicePoint:
+		case linkedge.TriggerTypeDevicePoint:
 			//注册eKuiper监听设备点位状态
-			var devicePointTrigger devicePointTrigger
-			e = json.Unmarshal(bytes, &devicePointTrigger)
-			if e != nil {
-				return e
-			}
-			if len(devicePointTrigger.DeviceId) == 0 || len(devicePointTrigger.DevicePoint) == 0 || len(devicePointTrigger.Condition) == 0 || len(devicePointTrigger.Value) == 0 {
-				return errors.New("invalid trigger:" + string(bytes))
+			if len(trigger.DeviceID) == 0 || len(trigger.DevicePoint) == 0 || len(trigger.Condition) == 0 || len(trigger.Value) == 0 {
+				bs, _ := json.Marshal(trigger.DevicePointTrigger)
+				return errors.New("invalid trigger:" + string(bs))
 			}
 
 			//定义触发器
-			triggers, _ := linkEdge.triggerConditions[id]
-			triggers = append(triggers, devicePointTrigger.pointCondition)
-			linkEdge.triggerConditions[id] = triggers
+			triggers, _ := s.triggerConditions[id]
+			triggers = append(triggers, trigger.DevicePointCondition)
+			s.triggerConditions[id] = triggers
 			break
-		case TriggerTypeDeviceEvent:
+		case linkedge.TriggerTypeDeviceEvent:
 			break
 		default:
-			helper.Logger.Error(fmt.Sprintf("unsupport trigger type:%s", string(bytes)))
+			bs, _ := json.Marshal(trigger)
+			helper.Logger.Error(fmt.Sprintf("unsupport trigger type:%s", string(bs)))
 		}
 	}
 	return nil
 }
 
 // Delete 删除场景联动规则
-func (linkEdge *service) Delete(id string) error {
+func (s *service) Delete(id string) error {
 	if len(id) == 0 {
 		return errors.New("id is nil")
 	}
 	helper.Logger.Info(fmt.Sprintf("delete linkEdge:%v", id))
 
 	//删除配置
-	delete(linkEdge.configs, id)
-	delete(linkEdge.triggerConditions, id)
-	file := path.Join(linkEdge.envConfig.ConfigPath, id+".json")
+	delete(s.configs, id)
+	delete(s.triggerConditions, id)
+	file := path.Join(s.envConfig.ConfigPath, id+".json")
 	e := os.Remove(file)
 	if e != nil {
 		return e
@@ -296,63 +287,63 @@ func (linkEdge *service) Delete(id string) error {
 
 	// 清理当前场景ID的所有时间表触发器
 	helper.Logger.Info(fmt.Sprintf("clear schedule trigger..."))
-	s, exists := linkEdge.schedules[id]
+	task, exists := s.schedules[id]
 	if exists {
-		s.Stop()
-		delete(linkEdge.schedules, id)
+		task.Stop()
+		delete(s.schedules, id)
 	}
 	return nil
 }
 
-// UpdateLinkEdgeStatus 调整联动规则状态,用于启停控制
-func (linkEdge *service) Update(bytes []byte) error {
-	var model ModelConfig
+// Update UpdateLinkEdgeStatus 调整联动规则状态,用于启停控制
+func (s *service) Update(bytes []byte) error {
+	var model linkedge.Config
 	e := json.Unmarshal(bytes, &model)
 	if e != nil {
 		return e
 	}
 	// action 为空校验
 	if len(model.Action) <= 0 {
-		return ActionListIsEmptyErr
+		return ErrActionListIsEmpty
 	}
-	e = linkEdge.Delete(model.Id)
+	e = s.Delete(model.ID)
 	if e != nil {
 		return e
 	}
-	return linkEdge.Create(bytes)
+	return s.Create(bytes)
 }
 
 // TriggerLinkEdge 触发场景联动规则
 // id: 场景联动ID
 // source: 场景触发来源
-func (linkEdge *service) TriggerLinkEdge(id string) error {
+func (s *service) TriggerLinkEdge(id string) error {
 	//记录场景执行记录
-	e := linkEdge.triggerLinkEdge(id, 0)
+	e := s.triggerLinkEdge(id, 0)
 	if e != nil {
 		helper.Logger.Error(fmt.Sprintf("linkEdge:%s trigger", e.Error()))
 		return e
 	}
 	//缓存场景联动执行时间
-	config, e := linkEdge.getLinkEdge(id)
+	config, e := s.getLinkEdge(id)
 	if e == nil {
-		config.executeTime = time.Now()
-		linkEdge.configs[id] = config
+		config.ExecuteTime = time.Now()
+		s.configs[id] = config
 	}
 	return e
 }
 
 // depth:联动深度
-func (linkEdge *service) triggerLinkEdge(id string, depth int, conf ...ModelConfig) error {
+func (s *service) triggerLinkEdge(id string, depth int, conf ...linkedge.Config) error {
 	if depth > 10 {
 		return errors.New("execute level is too deep, max deep:" + strconv.Itoa(depth))
 	}
-	var config ModelConfig
+	var config linkedge.Config
 	var e error
 	if len(conf) > 0 {
 		config = conf[0]
 	} else {
 		// 核对触发器
-		config, e = linkEdge.getLinkEdge(id)
+		config, e = s.getLinkEdge(id)
 		if e != nil {
 			return errors.New("get linkEdge error: " + e.Error())
 		}
@@ -365,12 +356,12 @@ func (linkEdge *service) triggerLinkEdge(id string, depth int, conf ...ModelConf
 	//静默期判断
 	if config.SilentPeriod > 0 {
 		//缓存场景联动执行时间
-		if time.Now().Add(-time.Duration(config.SilentPeriod) * time.Second).Before(config.executeTime) {
+		if time.Now().Add(-time.Duration(config.SilentPeriod) * time.Second).Before(config.ExecuteTime) {
 			return errors.New("execute frequency is too high")
 		}
 	}
 	//校验执行条件
-	e = linkEdge.checkConditions(config.Condition)
+	e = s.checkConditions(config.Condition)
 	if e != nil {
 		return errors.New("check condition error: " + e.Error())
 	}
@@ -380,44 +371,25 @@ func (linkEdge *service) triggerLinkEdge(id string, depth int, conf ...ModelConf
 	sucCount := 0
 	//执行动作
 	for _, action := range config.Action {
-		bytes, e := json.Marshal(action)
-		helper.Logger.Info(fmt.Sprintf("will doAction: %s", string(bytes)))
-		if e != nil {
-			helper.Logger.Error(fmt.Sprintf("execute linkEdge:%s action error:%s", id, e.Error()))
-			continue
-		}
-		var baseAction baseAction
-		e = json.Unmarshal(bytes, &baseAction)
-		if e != nil {
-			helper.Logger.Error(fmt.Sprintf("execute linkEdge:%s action error:%s", id, e.Error()))
-			continue
-		}
-
 		//判断执行动作是否匹配条件
-		e = linkEdge.checkConditions(baseAction.Condition)
+		e = s.checkConditions(action.Condition)
 		if e != nil {
 			sucCount++
 			continue
 		}
 
-		switch baseAction.Type {
+		switch action.Type {
 		// 设置设备点位
-		case ActionTypeDevicePoint:
-			var devicePointAction devicePointAction
-			e = json.Unmarshal(bytes, &devicePointAction)
-			if e != nil {
-				helper.Logger.Error(fmt.Sprintf("execute linkEdge:%s action error:%s", id, e.Error()))
-				continue
-			}
-			points, ok := actions[devicePointAction.DeviceId]
+		case linkedge.ActionTypeDevicePoint:
+			points, ok := actions[action.DeviceID]
 			if !ok {
 				points = make([]plugin.PointData, 0)
 			}
 			points = append(points, plugin.PointData{
-				PointName: devicePointAction.DevicePoint,
-				Value:     devicePointAction.Value,
+				PointName: action.DevicePoint,
+				Value:     action.Value,
 			})
-			actions[devicePointAction.DeviceId] = points
+			actions[action.DeviceID] = points
 			//err := core.SendSinglePoint(devicePointAction.DeviceId, plugin.WriteMode, plugin.PointData{
 			//	PointName: devicePointAction.DevicePoint,
 			//	Value:     devicePointAction.Value,
@@ -429,31 +401,23 @@ func (linkEdge *service) triggerLinkEdge(id string, depth int, conf ...ModelConf
 			//	sucCount++
 			//	helper.Logger.Info(fmt.Sprintf("execute linkEdge:%s action", id))
 			//}
-			break
-			//触发下一个场景联动
-		case ActionTypeLinkEdge:
-			var linkEdgeAction linkEdgeAction
-			e = json.Unmarshal(bytes, &linkEdgeAction)
-			if e != nil {
-				helper.Logger.Error(fmt.Sprintf("execute linkEdge:%s action error:%s", id, e.Error()))
-			} else {
-				sucCount++
-				go linkEdge.triggerLinkEdge(linkEdgeAction.Id, depth+1)
-			}
-			break
+		case linkedge.ActionTypeLinkEdge:
+			sucCount++
+			go s.triggerLinkEdge(action.ID, depth+1)
 		default:
+			bytes, _ := json.Marshal(action)
 			helper.Logger.Error(fmt.Sprintf("unsupport action:%s", string(bytes)))
 		}
 
 		//场景执行后休眠指定时长
-		if len(baseAction.Sleep) > 0 {
-			d, err := time.ParseDuration(baseAction.Sleep)
+		if len(action.Sleep) > 0 {
+			d, err := time.ParseDuration(action.Sleep)
 			if err == nil {
 				time.Sleep(d)
 			}
 		}
 	}
-	//遍历执行acitons
+	//遍历执行actions
 	for deviceId, points := range actions {
 		err := core.SendBatchWrite(deviceId, points)
 		if err != nil {
@@ -468,131 +432,89 @@ func (linkEdge *service) triggerLinkEdge(id string, depth int, conf ...ModelConf
 	if id != "" {
 		// value:全部成功\部分成功\全部失败
 		if sucCount == len(config.Action) {
-			export.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, LinkEdgeExecuteResultAllSuccess)
+			export.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, ExecuteResultAllSuccess)
 		} else if sucCount == 0 {
-			export.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, LinkEdgeExecuteResultAllFail)
+			export.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, ExecuteResultAllFail)
 		} else {
-			export.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, LinkEdgeExecuteResultPartSuccess)
+			export.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, ExecuteResultPartSuccess)
 		}
 	}
 
 	return nil
 }
 
-func (linkEdge *service) checkConditions(conditions []interface{}) error {
+func (s *service) checkConditions(conditions []linkedge.Condition) error {
 	//优先执行点位持续时间条件校验
-	err := linkEdge.checkListTimeCondition(conditions)
+	err := s.checkListTimeCondition(conditions)
 	if err != nil {
 		return err
 	}
 	now := time.Now().UnixMilli()
-	for _, c := range conditions {
-		helper.Logger.Info(fmt.Sprintf("check condition:%v", c))
-		bytes, e := json.Marshal(c)
-		if e != nil {
-			return e
-		}
-		var baseCondition baseCondition
-		err := json.Unmarshal(bytes, &baseCondition)
-		if err != nil {
-			return err
-		}
-		if baseCondition.Type == ConditionLastTime {
+	for _, condition := range conditions {
+		helper.Logger.Info(fmt.Sprintf("check condition:%v", condition))
+		if condition.Type == linkedge.ConditionTypeLastTime {
 			continue
 		}
-		switch baseCondition.Type {
-		case ConditionTypeDevicePoint:
+		switch condition.Type {
+		case linkedge.ConditionTypeDevicePoint:
 			//注册eKuiper监听设备点位状态
-			var condition devicePointCondition
-			err = json.Unmarshal(bytes, &condition)
-			if err != nil {
-				return err
-			}
-			if len(condition.DeviceId) == 0 || len(condition.DevicePoint) == 0 || len(condition.Condition) == 0 || len(condition.Value) == 0 {
+			if len(condition.DeviceID) == 0 || len(condition.DevicePoint) == 0 || len(condition.Condition) == 0 || len(condition.Value) == 0 {
+				bytes, _ := json.Marshal(condition.DevicePointCondition)
 				return errors.New("invalid trigger:" + string(bytes))
 			}
-			pointValue, err := helper.DeviceShadow.GetDevicePoint(condition.DeviceId, condition.DevicePoint)
+			pointValue, err := helper.DeviceShadow.GetDevicePoint(condition.DeviceID, condition.DevicePoint)
 			if err != nil {
-				return fmt.Errorf("get device:%v point:%v value error:%v", condition.DeviceId, condition.DevicePoint, err)
+				return fmt.Errorf("get device:%v point:%v value error:%v", condition.DeviceID, condition.DevicePoint, err)
 			}
 			//helper.Logger.Info(fmt.Sprintf("point value:%s", point))
-			err = linkEdge.checkConditionValue(condition.pointCondition, pointValue)
+			err = s.checkConditionValue(condition.DevicePointCondition, pointValue)
 			if err != nil {
 				return err
 			}
-		case ConditionExecuteTime:
-			var condition executeTimeCondition
-			err = json.Unmarshal(bytes, &condition)
-			if err != nil {
-				return err
-			}
+		case linkedge.ConditionTypeExecuteTime:
 			if condition.Begin > now {
 				return errors.New("execution time has not started")
 			}
 			if condition.End < now {
 				return errors.New("execution time has expired")
 			}
-		case ConditionDateInterval:
-			var condition dateIntervalCondition
-			if err = json.Unmarshal(bytes, &condition); err != nil {
-				return err
-			}
+		case linkedge.ConditionTypeDateInterval:
 			if condition.BeginDate == "" || condition.EndDate == "" {
 				return nil
 			}
 			yearDay := time.Now().YearDay()
-			begin, err := linkEdge.parseDate(condition.BeginDate)
+			begin, err := s.parseDate(condition.BeginDate)
 			if err != nil {
 				return errors.New("execution begin date parse error")
 			}
 			if yearDay < begin.YearDay() {
 				return errors.New("execution time has not started")
 			}
-			end, err := linkEdge.parseDate(condition.EndDate)
+			end, err := s.parseDate(condition.EndDate)
 			if err != nil {
 				return errors.New("execution end date parse error")
 			}
 			if yearDay > end.YearDay() {
 				return errors.New("execution time has expired")
 			}
-		case ConditionYears:
-			var condition yearsCondition
-			if err = json.Unmarshal(bytes, &condition); err != nil {
-				return err
-			}
-			if !condition.Verify(time.Now().Year()) {
+		case linkedge.ConditionTypeYears:
+			if !condition.YearsCondition.Verify(time.Now().Year()) {
 				return errors.New("mismatch years condition")
 			}
-		case ConditionMonths:
-			var condition monthsCondition
-			if err = json.Unmarshal(bytes, &condition); err != nil {
-				return err
-			}
-			if !condition.Verify(int(time.Now().Month())) {
+		case linkedge.ConditionTypeMonths:
+			if !condition.MonthsCondition.Verify(int(time.Now().Month())) {
 				return errors.New("mismatch months condition")
 			}
-		case ConditionDays:
-			var condition daysCondition
-			if err = json.Unmarshal(bytes, &condition); err != nil {
-				return err
-			}
-			if !condition.Verify(time.Now().Day()) {
+		case linkedge.ConditionTypeDays:
+			if !condition.DaysCondition.Verify(time.Now().Day()) {
 				return errors.New("mismatch days condition")
 			}
-		case ConditionWeeks:
-			var condition weeksCondition
-			if err = json.Unmarshal(bytes, &condition); err != nil {
-				return err
-			}
-			if !condition.Verify(int(time.Now().Weekday())) {
+		case linkedge.ConditionTypeWeeks:
+			if !condition.WeeksCondition.Verify(int(time.Now().Weekday())) {
 				return errors.New("mismatch weeks condition")
 			}
-		case ConditionTimes:
-			var condition timesCondition
-			if err = json.Unmarshal(bytes, &condition); err != nil {
-				return err
-			}
-			if !condition.Verify(time.Now()) {
+		case linkedge.ConditionTypeTimes:
+			if !condition.TimesCondition.Verify(time.Now()) {
 				return errors.New("mismatch times condition")
 			}
 		}
@@ -600,23 +522,23 @@ func (linkEdge *service) checkConditions(conditions []interface{}) error {
 	return nil
 }
 
-func (linkEdge *service) checkListTimeCondition(conditions []interface{}) error {
+func (s *service) checkListTimeCondition(conditions []linkedge.Condition) error {
 	//return errors.New("功能未迁移...")
 	return nil
 }
 
-func (linkEdge *service) checkConditionValue(condition pointCondition, pointValue interface{}) error {
+func (s *service) checkConditionValue(condition linkedge.DevicePointCondition, pointValue interface{}) error {
 	helper.Logger.Info(fmt.Sprintf("checkConditionValue condition:%v, pointValue:%v", condition, pointValue))
 	e := errors.New(fmt.Sprintf("condition check fail. expect %v%v%v ,actual value=%v", condition.DevicePoint, condition.Condition, condition.Value, pointValue))
 	switch pointValue.(type) {
 	case string:
 		switch condition.Condition {
-		case ConditionEq:
+		case linkedge.ConditionEq:
 			if condition.Value != pointValue {
 				return e
 			}
 			break
-		case ConditionNe:
+		case linkedge.ConditionNe:
 			if condition.Value == pointValue {
 				return e
 			}
@@ -636,32 +558,32 @@ func (linkEdge *service) checkConditionValue(condition pointCondition, pointValu
 		}
 
 		switch condition.Condition {
-		case ConditionEq:
+		case linkedge.ConditionEq:
 			if conditionValue != pointValue {
 				return e
 			}
 			break
-		case ConditionNe:
+		case linkedge.ConditionNe:
 			if conditionValue == pointValue {
 				return e
 			}
 			break
-		case ConditionGt:
+		case linkedge.ConditionGt:
 			if conditionValue >= pointValue {
 				return e
 			}
 			break
-		case ConditionGe:
+		case linkedge.ConditionGe:
 			if conditionValue > pointValue {
 				return e
 			}
 			break
-		case ConditionLt:
+		case linkedge.ConditionLt:
 			if conditionValue <= pointValue {
 				return e
 			}
 			break
-		case ConditionLe:
+		case linkedge.ConditionLe:
 			if conditionValue < pointValue {
 				return e
 			}
@@ -672,14 +594,14 @@ func (linkEdge *service) checkConditionValue(condition pointCondition, pointValu
 	return nil
 }
 
-func (linkEdge *service) getLinkEdge(id string) (ModelConfig, error) {
-	config, exists := linkEdge.configs[id]
+func (s *service) getLinkEdge(id string) (linkedge.Config, error) {
+	config, exists := s.configs[id]
 	if exists {
 		return config, nil
 	}
 
-	config = ModelConfig{}
-	fileName := filepath.Join(linkEdge.envConfig.ConfigPath, id+".json")
+	config = linkedge.Config{}
+	fileName := filepath.Join(s.envConfig.ConfigPath, id+".json")
 	f, err := os.Open(fileName)
 	if err != nil {
 		return config, err
@@ -691,17 +613,17 @@ func (linkEdge *service) getLinkEdge(id string) (ModelConfig, error) {
 		return config, err
 	}
 	err = json.Unmarshal(body, &config)
-	linkEdge.configs[id] = config
+	s.configs[id] = config
 	return config, err
 }
 
-func (linkEdge *service) GetList(tag ...string) ([]ModelConfig, error) {
+func (s *service) GetList(tag ...string) ([]linkedge.Config, error) {
 	files := make([]string, 0)
 	//若目录不存在，则自动创建
-	_, err := os.Stat(linkEdge.envConfig.ConfigPath)
+	_, err := os.Stat(s.envConfig.ConfigPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			err = os.MkdirAll(linkEdge.envConfig.ConfigPath, os.ModePerm)
+			err = os.MkdirAll(s.envConfig.ConfigPath, os.ModePerm)
 			if err != nil {
 				return nil, err
 			}
@@ -709,23 +631,23 @@ func (linkEdge *service) GetList(tag ...string) ([]ModelConfig, error) {
 			return nil, err
 		}
 	}
-	filepath.Walk(linkEdge.envConfig.ConfigPath, func(path string, d fs.FileInfo, err error) error {
+	filepath.Walk(s.envConfig.ConfigPath, func(path string, d fs.FileInfo, err error) error {
 		if !d.IsDir() {
 			files = append(files, d.Name())
 		}
 		return nil
 	})
 
-	var configs []ModelConfig
+	var configs []linkedge.Config
 
 	for _, key := range files {
 		id := strings.TrimSuffix(key, ".json")
-		config, err := linkEdge.getLinkEdge(id)
+		config, err := s.getLinkEdge(id)
 		if err != nil {
 			return configs, err
 		} else {
 			if len(tag) > 0 && tag[0] != "" {
-				if config.hasTag(tag[0]) {
+				if config.ExistTag(tag[0]) {
 					configs = append(configs, config)
 				}
 				continue
@@ -738,28 +660,28 @@ func (linkEdge *service) GetList(tag ...string) ([]ModelConfig, error) {
 }
 
 // GetLast 获取最后一次执行的场景信息
-func (linkEdge *service) GetLast() (c ModelConfig, err error) {
+func (s *service) GetLast() (c linkedge.Config, err error) {
 	defaultTime := time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC)
-	configs, err := linkEdge.GetList()
+	configs, err := s.GetList()
 	if err != nil {
 		return
 	}
 	for _, config := range configs {
-		if config.executeTime.After(defaultTime) || config.executeTime.Equal(defaultTime) {
-			defaultTime = config.executeTime
+		if config.ExecuteTime.After(defaultTime) || config.ExecuteTime.Equal(defaultTime) {
+			defaultTime = config.ExecuteTime
 			c = config
 		}
 	}
 	// 判断执行时间，若执行时间为空，则返回空
-	if c.executeTime.IsZero() {
-		return ModelConfig{}, nil
+	if c.ExecuteTime.IsZero() {
+		return linkedge.Config{}, nil
 	}
 	return
 }
 
 func readBody(request *http.Request) ([]byte, error) {
 	defer request.Body.Close()
-	body, err := ioutil.ReadAll(request.Body)
+	body, err := io.ReadAll(request.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -773,7 +695,7 @@ func readBody(request *http.Request) ([]byte, error) {
 
 // parseDate 解析日期
 // 修复：02-29 问题
-func (linkEdge *service) parseDate(d string) (time.Time, error) {
+func (s *service) parseDate(d string) (time.Time, error) {
 	year := time.Now().Year()
 	if d == "02-29" && (year%4 != 0) {
 		d = "02-28"
@@ -783,7 +705,7 @@ func (linkEdge *service) parseDate(d string) (time.Time, error) {
 
 // Preview 预览场景
 // 提示：不真实创建场景，仅看执行效果使用
-func (linkEdge *service) Preview(config ModelConfig) error {
+func (s *service) Preview(config linkedge.Config) error {
 	// 记录场景执行记录
-	return linkEdge.triggerLinkEdge("", 0, config)
+	return s.triggerLinkEdge("", 0, config)
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
+	"github.com/ibuilding-x/driver-box/driverbox/export/linkedge"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/robfig/cron/v3"
@@ -35,8 +36,8 @@ func (export *Export) Init() error {
 
 	//启动场景联动服务
 	export.linkEdge = service{
-		triggerConditions: make(map[string][]pointCondition),
-		configs:           make(map[string]ModelConfig),
+		triggerConditions: make(map[string][]linkedge.DevicePointCondition),
+		configs:           make(map[string]linkedge.Config),
 		schedules:         make(map[string]*cron.Cron),
 		envConfig:         export.EnvConfig,
 	}
@@ -65,7 +66,7 @@ func (export *Export) ExportTo(deviceData plugin.DeviceData) {
 		for id, conditions := range export.linkEdge.triggerConditions {
 			helper.Logger.Debug("check linkedge condition ", zap.String("id", id))
 			for _, condition := range conditions {
-				if condition.DeviceId != deviceData.ID || condition.DevicePoint != p.PointName {
+				if condition.DeviceID != deviceData.ID || condition.DevicePoint != p.PointName {
 					continue
 				}
 
