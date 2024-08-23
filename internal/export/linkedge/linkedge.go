@@ -381,15 +381,29 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...linkedge.Config)
 		switch action.Type {
 		// 设置设备点位
 		case linkedge.ActionTypeDevicePoint:
-			points, ok := actions[action.DeviceID]
-			if !ok {
-				points = make([]plugin.PointData, 0)
+			deviceID := action.DeviceID
+			if _, ok := actions[deviceID]; !ok {
+				actions[deviceID] = make([]plugin.PointData, 0)
 			}
-			points = append(points, plugin.PointData{
-				PointName: action.DevicePoint,
-				Value:     action.Value,
-			})
-			actions[action.DeviceID] = points
+
+			// （单点位设置）兼容旧版本
+			if action.DevicePoint != "" && action.Value != "" {
+				actions[deviceID] = append(actions[deviceID], plugin.PointData{
+					PointName: action.DevicePoint,
+					Value:     action.Value,
+				})
+			}
+
+			// 多点位设置
+			if len(action.Points) != 0 {
+				for _, point := range action.Points {
+					actions[deviceID] = append(actions[deviceID], plugin.PointData{
+						PointName: point.Point,
+						Value:     point.Value,
+					})
+				}
+			}
+
 			//err := core.SendSinglePoint(devicePointAction.DeviceId, plugin.WriteMode, plugin.PointData{
 			//	PointName: devicePointAction.DevicePoint,
 			//	Value:     devicePointAction.Value,
