@@ -5,8 +5,6 @@ import (
 	"time"
 )
 
-var instance = NewDeviceShadow()
-
 type OnlineChangeCallback func(id string, online bool) // 设备上/下线回调
 
 type deviceShadow struct {
