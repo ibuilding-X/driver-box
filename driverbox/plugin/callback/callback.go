@@ -5,6 +5,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/export"
@@ -122,7 +123,7 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 			continue
 		}
 		//点位值类型还原
-		value, err := helper.ConvPointType(p.Value, point.ValueType)
+		value, err := utils.ConvPointType(p.Value, point.ValueType)
 		if err != nil {
 			if !strings.HasPrefix(deviceData.ID, "vrf/") {
 				helper.Logger.Error("convert point value error", zap.Error(err), zap.Any("deviceId", deviceData.ID),

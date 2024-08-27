@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
 	lua "github.com/yuin/gopher-lua"
@@ -17,7 +18,7 @@ func mockRead(plugin *connector, L *lua.LState, data btypes.MultiplePropertyData
 			if e != nil {
 				helper.Logger.Error("mockRead error", zap.Error(e))
 			}
-			v, e := helper.Conv2Float64(mockData)
+			v, e := utils.Conv2Float64(mockData)
 			if e != nil {
 				helper.Logger.Error("mockRead error", zap.Error(e))
 				continue

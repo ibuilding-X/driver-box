@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/lua"
 	glua "github.com/yuin/gopher-lua"
@@ -106,13 +106,13 @@ func (device *DeviceDriver) DeviceDecode(driverKey string, req DeviceDecodeReque
 		case string:
 			pointData.RawSetString("value", glua.LString(v))
 		case int8, int16, int32, int64, int, uint, uint8, uint16, uint32, uint64:
-			intValue, e := helper.Conv2Int64(v)
+			intValue, e := utils.Conv2Int64(v)
 			if e != nil {
 				return &DeviceDecodeResult{Error: e}
 			}
 			pointData.RawSetString("value", glua.LVAsNumber(glua.LNumber(intValue)))
 		case float32, float64:
-			floatValue, e := helper.Conv2Float64(v)
+			floatValue, e := utils.Conv2Float64(v)
 			if e != nil {
 				return &DeviceDecodeResult{Error: e}
 			}

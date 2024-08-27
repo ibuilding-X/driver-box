@@ -4,6 +4,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/logger"
@@ -57,7 +58,7 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 func (export *Export) deviceAutoDiscover(deviceId string, value interface{}) error {
 	logger.Logger.Info("device auto discover", zap.Any("deviceId", deviceId), zap.Any("value", value))
 	deviceDiscover := DeviceDiscover{}
-	if err := helper.Conv2Struct(value, &deviceDiscover); err != nil {
+	if err := utils.Conv2Struct(value, &deviceDiscover); err != nil {
 		logger.Logger.Error("device auto discover conv2struct error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
 		return err
 	}
