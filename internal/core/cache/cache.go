@@ -323,6 +323,17 @@ func (c *cache) AddOrUpdateDevice(device config.Device) error {
 		logger.Logger.Error("model not found", zap.String("modelName", device.ModelName))
 		return fmt.Errorf("model %s not found", device.ModelName)
 	}
+	// 校验设备是否已存在
+	deviceRaw, ok := c.devices.Load(device.ID)
+	if ok {
+		storedDeviceBase := deviceRaw.(config.Device)
+		if storedDeviceBase.ModelName != device.ModelName {
+			logger.Logger.Error("conflict model for device", zap.String("deviceId", device.ID))
+			return fmt.Errorf("conflict model for device [%s]: %s -> %s", device.ID,
+				device.ModelName, storedDeviceBase.ModelName)
+		}
+	}
+
 	// 查找配置 key
 	key := cmanager.GetConfigKeyByModel(model.Name)
 	if key == "" {
