@@ -212,7 +212,6 @@ func (d *deviceShadow) StopStatusListener() {
 	if d.ticker != nil {
 		d.ticker.Stop()
 	}
-	DeviceShadow = nil
 }
 
 func (d *deviceShadow) GetDevices() []shadow2.Device {

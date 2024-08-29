@@ -35,6 +35,7 @@ func ReloadPlugins() error {
 	}
 	// 3. 停止影子服务设备状态监听、删除影子服务
 	helper.DeviceShadow.StopStatusListener()
+	helper.DeviceShadow = nil
 	// 4. 清除核心缓存数据
 	helper.CoreCache.Reset()
 	// 5. 加载 plugins
