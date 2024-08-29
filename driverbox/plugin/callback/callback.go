@@ -55,12 +55,12 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 		return
 	}
 	//获取完成点位加工后的真实 deviceData
-	export.TriggerEvents(event.EventCodeWillExportTo, deviceData.ID, plugin.DeviceData{
+	originalData := plugin.DeviceData{
 		ID:         deviceData.ID,
 		Values:     deviceData.Values,
 		Events:     deviceData.Events,
 		ExportType: deviceData.ExportType,
-	})
+	}
 
 	// 定义一个空的整型数组
 	var points []plugin.PointData
@@ -93,6 +93,8 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 	}
 	deviceData.Values = points
 	deviceData.ExportType = plugin.RealTimeExport
+
+	export.TriggerEvents(event.EventCodeWillExportTo, deviceData.ID, originalData)
 }
 
 func pointValueProcess(deviceData *plugin.DeviceData) error {
