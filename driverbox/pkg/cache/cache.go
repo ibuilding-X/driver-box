@@ -23,11 +23,10 @@ type CoreCache interface {
 	AddRunningPlugin(key string, plugin plugin.Plugin)                                // add running plugin
 	Models() (models []config.Model)                                                  // all model
 	Devices() (devices []config.Device)
-	GetProtocolsByDevice(id string) (map[string]DeviceProperties, bool) // device protocols
-	GetAllRunningPluginKey() (keys []string)                            // get running plugin keys
-	UpdateDeviceProperty(id string, key string, value string)           // 更新设备属性
-	DeleteDevice(id string)                                             // 删除设备
-	UpdateDeviceDesc(id string, desc string)                            // 更新设备描述
+	GetAllRunningPluginKey() (keys []string)                  // get running plugin keys
+	UpdateDeviceProperty(id string, key string, value string) // 更新设备属性
+	DeleteDevice(id string)                                   // 删除设备
+	UpdateDeviceDesc(id string, desc string)                  // 更新设备描述
 	Reset()
 
 	// businessPropCache 业务属性接口
