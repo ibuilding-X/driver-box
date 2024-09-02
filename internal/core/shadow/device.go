@@ -118,10 +118,10 @@ func (d *device) toPublic() shadow2.Device {
 	defer d.mutex.RUnlock()
 
 	// 点位转换
-	points := make(map[string]shadow2.DevicePoint)
-	for pointName, _ := range d.points {
+	points := make(map[string]shadow2.DevicePoint, len(d.points))
+	for pointName, point := range d.points {
 		if d.points[pointName] != nil {
-			points[pointName] = toPublic(d.points[pointName])
+			points[pointName] = toPublic(point)
 		}
 	}
 
