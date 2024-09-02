@@ -1,6 +1,7 @@
 package linkedge
 
 import (
+	"github.com/ibuilding-x/driver-box/driverbox/export/linkedge"
 	"github.com/robfig/cron/v3"
 	"testing"
 )
@@ -88,7 +89,7 @@ var scene = `
             "sleep": "3s",
             "devSn": "device_1",
             "point": "onOff",
-            "value": 1
+            "value": "1"
         },
         {
             "type": "linkEdge",
@@ -100,9 +101,9 @@ var scene = `
 
 func TestCreate(t *testing.T) {
 	s := &service{
-		configs:           make(map[string]ModelConfig),
+		configs:           make(map[string]linkedge.Config),
 		schedules:         make(map[string]*cron.Cron),
-		triggerConditions: make(map[string][]pointCondition),
+		triggerConditions: make(map[string][]linkedge.DevicePointCondition),
 		envConfig:         EnvConfig{},
 	}
 	if err := s.Create([]byte(scene)); err != nil {

@@ -1,11 +1,10 @@
 package shadow
 
 import (
-	"errors"
 	"time"
 )
 
-var ErrUnknownDevice = errors.New("unknown device")
+type OnlineChangeCallback func(id string, online bool) // 设备上/下线回调
 
 // Device 设备
 type Device struct {

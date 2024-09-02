@@ -1,28 +1,29 @@
 package shadow
 
 import (
+	"errors"
+	shadow2 "github.com/ibuilding-x/driver-box/driverbox/pkg/shadow"
 	"sync"
 	"time"
 )
 
-var instance = NewDeviceShadow()
-
-type OnlineChangeCallback func(id string, online bool) // 设备上/下线回调
-
+var ErrUnknownDevice = errors.New("unknown device")
+var DeviceShadow shadow2.DeviceShadow // 本地设备影子
 type deviceShadow struct {
 	devices     map[string]*device
 	ticker      *time.Ticker
-	handlerFunc OnlineChangeCallback
+	handlerFunc shadow2.OnlineChangeCallback
 	mutex       *sync.RWMutex
 }
 
-func NewDeviceShadow() DeviceShadow {
+func NewDeviceShadow() shadow2.DeviceShadow {
 	ds := &deviceShadow{
 		devices: make(map[string]*device),
 		ticker:  time.NewTicker(5 * time.Second),
 		mutex:   &sync.RWMutex{},
 	}
 	go ds.startCheckOfflineTask()
+	DeviceShadow = ds
 	return ds
 }
 
@@ -45,7 +46,7 @@ func (d *deviceShadow) AddDevice(id string, modelName string, ttl ...time.Durati
 	d.devices[id] = newDevice(id, modelName, customTTL)
 }
 
-func (d *deviceShadow) GetDevice(id string) (device Device, ok bool) {
+func (d *deviceShadow) GetDevice(id string) (device shadow2.Device, ok bool) {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
@@ -113,7 +114,7 @@ func (d *deviceShadow) GetDevicePoint(id, pointName string) (value interface{}, 
 	return nil, ErrUnknownDevice
 }
 
-func (d *deviceShadow) GetDevicePoints(id string) (points map[string]DevicePoint, err error) {
+func (d *deviceShadow) GetDevicePoints(id string) (points map[string]shadow2.DevicePoint, err error) {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
@@ -124,18 +125,18 @@ func (d *deviceShadow) GetDevicePoints(id string) (points map[string]DevicePoint
 	return nil, ErrUnknownDevice
 }
 
-func (d *deviceShadow) GetDevicePointDetails(id, pointName string) (point DevicePoint, err error) {
+func (d *deviceShadow) GetDevicePointDetails(id, pointName string) (point shadow2.DevicePoint, err error) {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
 	if d.devices[id] != nil {
 		if p, ok := d.devices[id].getPoint(pointName); ok {
-			return p.toPublic(), nil
+			return toPublic(p), nil
 		}
-		return DevicePoint{}, nil
+		return shadow2.DevicePoint{}, nil
 	}
 
-	return DevicePoint{}, ErrUnknownDevice
+	return shadow2.DevicePoint{}, ErrUnknownDevice
 }
 
 func (d *deviceShadow) GetDeviceUpdateAt(id string) (time.Time, error) {
@@ -200,7 +201,7 @@ func (d *deviceShadow) MayBeOffline(id string) (err error) {
 	return ErrUnknownDevice
 }
 
-func (d *deviceShadow) SetOnlineChangeCallback(handlerFunc OnlineChangeCallback) {
+func (d *deviceShadow) SetOnlineChangeCallback(handlerFunc shadow2.OnlineChangeCallback) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
@@ -213,11 +214,11 @@ func (d *deviceShadow) StopStatusListener() {
 	}
 }
 
-func (d *deviceShadow) GetDevices() []Device {
+func (d *deviceShadow) GetDevices() []shadow2.Device {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	var devices []Device
+	var devices []shadow2.Device
 	for id, _ := range d.devices {
 		if d.devices[id] != nil {
 			devices = append(devices, d.devices[id].toPublic())

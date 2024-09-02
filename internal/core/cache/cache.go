@@ -1,13 +1,13 @@
-// 缓存助手
-
-package helper
+package cache
 
 import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
+	cache2 "github.com/ibuilding-x/driver-box/driverbox/pkg/cache"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/core/shadow"
 	"github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
@@ -20,10 +20,7 @@ const (
 	businessPropSystemID string = "_systemID"
 )
 
-type DeviceProperties map[string]string
-
-// CoreCache 核心缓存
-var CoreCache coreCache
+var Instance cache2.CoreCache
 
 type cache struct {
 	models  *sync.Map // name => config.Model
@@ -37,13 +34,8 @@ type cache struct {
 	tagDevices *sync.Map // tag => []config.Device
 }
 
-func (c *cache) AddTag(tag string) (e error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 // InitCoreCache 初始化核心缓存
-func InitCoreCache(configMap map[string]config.Config) (err error) {
+func InitCoreCache(configMap map[string]config.Config) (obj cache2.CoreCache, err error) {
 	c := &cache{
 		models:           &sync.Map{},
 		devices:          &sync.Map{},
@@ -53,7 +45,7 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 		runningPlugins:   &sync.Map{},
 		tagDevices:       &sync.Map{},
 	}
-	CoreCache = c
+	Instance = c
 
 	for key, _ := range configMap {
 		for _, deviceModel := range configMap[key].DeviceModels {
@@ -62,7 +54,7 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 				model = raw.(config.Model)
 				if model.ModelBase.Name != deviceModel.ModelBase.Name ||
 					model.ModelBase.ModelID != deviceModel.ModelBase.ModelID {
-					return fmt.Errorf("conflict model base information: %v  %v",
+					return c, fmt.Errorf("conflict model base information: %v  %v",
 						deviceModel.ModelBase, model.ModelBase)
 				}
 			} else {
@@ -83,7 +75,7 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 			}
 			for _, device := range deviceModel.Devices {
 				if device.ID == "" {
-					Logger.Error("config error , device id is empty", zap.Any("device", device))
+					logger.Logger.Error("config error , device id is empty", zap.Any("device", device))
 					continue
 				}
 				deviceId := device.ID
@@ -96,15 +88,15 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 				} else {
 					storedDeviceBase := deviceRaw.(config.Device)
 					if storedDeviceBase.ModelName != device.ModelName {
-						return fmt.Errorf("conflict model for device [%s]: %s -> %s", device.ID,
+						return c, fmt.Errorf("conflict model for device [%s]: %s -> %s", device.ID,
 							device.ModelName, storedDeviceBase.ModelName)
 					}
 				}
-				var properties map[string]DeviceProperties
+				var properties map[string]cache2.DeviceProperties
 				if raw, ok := c.deviceProperties.Load(deviceId); ok {
-					properties = raw.(map[string]DeviceProperties)
+					properties = raw.(map[string]cache2.DeviceProperties)
 				} else {
-					properties = make(map[string]DeviceProperties)
+					properties = make(map[string]cache2.DeviceProperties)
 				}
 				properties[configMap[key].ProtocolName+"_"+device.ConnectionKey] = device.Properties
 				c.deviceProperties.Store(deviceId, properties)
@@ -112,7 +104,7 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 				for _, point := range pointMap {
 					devicePointKey := deviceId + "_" + point.Name
 					if _, ok := c.points.Load(devicePointKey); ok {
-						return fmt.Errorf("device %s duplicate point %s found", deviceId, point.Name)
+						return c, fmt.Errorf("device %s duplicate point %s found", deviceId, point.Name)
 					}
 					c.points.Store(devicePointKey, point)
 
@@ -132,92 +124,39 @@ func InitCoreCache(configMap map[string]config.Config) (err error) {
 			c.models.Store(model.Name, model)
 		}
 	}
-	return nil
+	return c, nil
 }
 
 // 检查点位配置合法性
 func checkPoint(model *config.DeviceModel, point *config.Point) {
 	if point.Name == "" {
-		Logger.Error("config error , point name is empty", zap.Any("point", point), zap.String("modelName", model.Name))
+		logger.Logger.Error("config error , point name is empty", zap.Any("point", point), zap.String("modelName", model.Name))
 	}
 	if point.Description == "" {
-		Logger.Warn("config error , point description is empty", zap.Any("point", point), zap.String("model", model.Name))
+		logger.Logger.Warn("config error , point description is empty", zap.Any("point", point), zap.String("model", model.Name))
 	}
 	if point.ValueType != config.ValueType_Float && point.ValueType != config.ValueType_Int && point.ValueType != config.ValueType_String {
-		Logger.Error("point valueType config error , valid config is: int float string", zap.Any("point", point), zap.String("model", model.Name))
+		logger.Logger.Error("point valueType config error , valid config is: int float string", zap.Any("point", point), zap.String("model", model.Name))
 	}
 	if point.ReportMode == "" {
-		Logger.Warn("config error , point reportMode is empty, set default to real")
+		logger.Logger.Warn("config error , point reportMode is empty, set default to real")
 		point.ReportMode = config.ReportMode_Real
 	}
 	if point.ReadWrite != config.ReadWrite_RW && point.ReadWrite != config.ReadWrite_R && point.ReadWrite != config.ReadWrite_W {
-		Logger.Error("point readWrite config error , valid config is: R W RW", zap.Any("point", point), zap.String("model", model.Name))
+		logger.Logger.Error("point readWrite config error , valid config is: R W RW", zap.Any("point", point), zap.String("model", model.Name))
 	}
 	if point.ReportMode != config.ReportMode_Real && point.ReportMode != config.ReportMode_Change {
-		Logger.Error("point reportMode config error , valid config is: realTime change period", zap.Any("point", point), zap.String("model", model.Name))
+		logger.Logger.Error("point reportMode config error , valid config is: realTime change period", zap.Any("point", point), zap.String("model", model.Name))
 	}
 	//存在精度换算时，点位类型要求float
 	if point.Scale != 0 && point.ValueType != config.ValueType_Float {
-		Logger.Error("point scale config error , valid config is: float", zap.Any("point", point), zap.String("model", model.Name))
+		logger.Logger.Error("point scale config error , valid config is: float", zap.Any("point", point), zap.String("model", model.Name))
 	}
 }
-
-// coreCache 核心缓存
-type coreCache interface {
-	GetModel(modelName string) (model config.Model, ok bool) // model info
-	GetDevice(id string) (device config.Device, ok bool)
-	//查询指定标签的设备列表
-	GetDevicesByTag(tag string) (devices []config.Device)
-	AddTag(tag string) (e error)                                                      //
-	GetPointByModel(modelName string, pointName string) (point config.Point, ok bool) // search point by model
-	GetPointByDevice(id string, pointName string) (point config.Point, ok bool)       // search point by device
-	GetRunningPluginByDevice(deviceId string) (plugin plugin.Plugin, ok bool)         // search plugin by device and point
-	GetRunningPluginByKey(key string) (plugin plugin.Plugin, ok bool)                 // search plugin by directory name
-	AddRunningPlugin(key string, plugin plugin.Plugin)                                // add running plugin
-	Models() (models []config.Model)                                                  // all model
-	Devices() (devices []config.Device)
-	GetProtocolsByDevice(id string) (map[string]DeviceProperties, bool) // device protocols
-	GetAllRunningPluginKey() (keys []string)                            // get running plugin keys
-	UpdateDeviceProperty(id string, key string, value string)           // 更新设备属性
-	DeleteDevice(id string)                                             // 删除设备
-	UpdateDeviceDesc(id string, desc string)                            // 更新设备描述
-	Reset()
-
-	// businessPropCache 业务属性接口
-	businessPropCache
-
-	// configManager 配置管理器接口
-	configManager
+func (c *cache) AddTag(tag string) (e error) {
+	//TODO implement me
+	panic("implement me")
 }
-
-// businessPropCache 业务属性缓存
-type businessPropCache interface {
-	GetDeviceBusinessProp(id string) (props config.DeviceBusinessProp, err error) // 获取设备业务属性
-	UpdateDeviceBusinessPropSN(id string, value string) error                     // 更新设备业务属性SN
-	UpdateDeviceBusinessPropParentID(id string, value string) error               // 更新设备业务属性ParentID
-	UpdateDeviceBusinessPropSystemID(sn string, value string) error               // 更新设备业务属性SystemID
-}
-
-// configManager 配置管理器接口
-type configManager interface {
-	// AddConnection 新增连接
-	AddConnection(plugin string, key string, conn any) error
-	// GetConnection 获取连接信息
-	GetConnection(key string) (any, error)
-	// GetConnectionPluginName 获取连接所属的插件名称
-	GetConnectionPluginName(key string) string
-	// AddModel 新增模型
-	AddModel(plugin string, model config.DeviceModel) error
-	// AddOrUpdateDevice 新增或更新设备
-	AddOrUpdateDevice(device config.Device) error
-	// RemoveDevice 删除设备
-	RemoveDevice(modelName string, deviceID string) error
-	// RemoveDeviceByID 根据 ID 删除设备
-	RemoveDeviceByID(id string) error
-	// BatchRemoveDevice 批量删除设备
-	BatchRemoveDevice(ids []string) error
-}
-
 func (c *cache) GetModel(modelName string) (model config.Model, ok bool) {
 	if raw, exist := c.models.Load(modelName); exist {
 		m, _ := raw.(config.Model)
@@ -308,9 +247,9 @@ func (c *cache) Devices() (devices []config.Device) {
 	return
 }
 
-func (c *cache) GetProtocolsByDevice(id string) (map[string]DeviceProperties, bool) {
+func (c *cache) GetProtocolsByDevice(id string) (map[string]cache2.DeviceProperties, bool) {
 	if raw, ok := c.deviceProperties.Load(id); ok {
-		protocols, _ := raw.(map[string]DeviceProperties)
+		protocols, _ := raw.(map[string]cache2.DeviceProperties)
 		return protocols, true
 	}
 	return nil, false
@@ -334,8 +273,8 @@ func (c *cache) UpdateDeviceProperty(id string, key string, value string) {
 func (c *cache) DeleteDevice(id string) {
 	c.devices.Delete(id)
 	// 删除设备影子
-	if DeviceShadow != nil {
-		_ = DeviceShadow.DeleteDevice(id)
+	if shadow.DeviceShadow != nil {
+		_ = shadow.DeviceShadow.DeleteDevice(id)
 	}
 	_ = cmanager.RemoveDeviceByID(id)
 }
@@ -375,19 +314,30 @@ func (c *cache) Reset() {
 // * 设备影子
 // * 持久化文件
 func (c *cache) AddOrUpdateDevice(device config.Device) error {
-	if Logger != nil {
-		Logger.Info("core cache add device", zap.Any("device", device))
+	if logger.Logger != nil {
+		logger.Logger.Info("core cache add device", zap.Any("device", device))
 	}
 	// 查找模型信息
 	model, ok := cmanager.GetModel(device.ModelName)
 	if !ok {
-		Logger.Error("model not found", zap.String("modelName", device.ModelName))
+		logger.Logger.Error("model not found", zap.String("modelName", device.ModelName))
 		return fmt.Errorf("model %s not found", device.ModelName)
 	}
+	// 校验设备是否已存在
+	deviceRaw, ok := c.devices.Load(device.ID)
+	if ok {
+		storedDeviceBase := deviceRaw.(config.Device)
+		if storedDeviceBase.ModelName != device.ModelName {
+			logger.Logger.Error("conflict model for device", zap.String("deviceId", device.ID))
+			return fmt.Errorf("conflict model for device [%s]: %s -> %s", device.ID,
+				device.ModelName, storedDeviceBase.ModelName)
+		}
+	}
+
 	// 查找配置 key
 	key := cmanager.GetConfigKeyByModel(model.Name)
 	if key == "" {
-		Logger.Error("config key not found", zap.String("modelName", model.Name))
+		logger.Logger.Error("config key not found", zap.String("modelName", model.Name))
 		return fmt.Errorf("config key not found for model %s", model.Name)
 	}
 	// 更新 devicePlugins
@@ -403,8 +353,8 @@ func (c *cache) AddOrUpdateDevice(device config.Device) error {
 	}
 	c.devices.Store(device.ID, device)
 	// 更新设备影子
-	if DeviceShadow != nil && !DeviceShadow.HasDevice(device.ID) {
-		DeviceShadow.AddDevice(device.ID, device.ModelName)
+	if shadow.DeviceShadow != nil && !shadow.DeviceShadow.HasDevice(device.ID) {
+		shadow.DeviceShadow.AddDevice(device.ID, device.ModelName)
 	}
 	// 持久化
 	return cmanager.AddOrUpdateDevice(device)
@@ -495,8 +445,8 @@ func (c *cache) AddModel(plugin string, model config.DeviceModel) error {
 func (c *cache) RemoveDevice(modelName string, deviceID string) error {
 	c.devices.Delete(deviceID)
 	// 删除设备影子
-	if DeviceShadow != nil {
-		_ = DeviceShadow.DeleteDevice(deviceID)
+	if shadow.DeviceShadow != nil {
+		_ = shadow.DeviceShadow.DeleteDevice(deviceID)
 	}
 	return cmanager.RemoveDevice(modelName, deviceID)
 }
@@ -505,8 +455,8 @@ func (c *cache) RemoveDevice(modelName string, deviceID string) error {
 func (c *cache) RemoveDeviceByID(id string) error {
 	c.devices.Delete(id)
 	// 删除设备影子
-	if DeviceShadow != nil {
-		_ = DeviceShadow.DeleteDevice(id)
+	if shadow.DeviceShadow != nil {
+		_ = shadow.DeviceShadow.DeleteDevice(id)
 	}
 	return cmanager.RemoveDeviceByID(id)
 }
@@ -517,8 +467,8 @@ func (c *cache) BatchRemoveDevice(ids []string) error {
 		c.devices.Delete(id)
 	}
 	// 删除设备影子
-	if DeviceShadow != nil {
-		_ = DeviceShadow.DeleteDevice(ids...)
+	if shadow.DeviceShadow != nil {
+		_ = shadow.DeviceShadow.DeleteDevice(ids...)
 	}
 	return cmanager.BatchRemoveDevice(ids)
 }

@@ -8,8 +8,9 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
 	"github.com/ibuilding-x/driver-box/driverbox/library"
+	"github.com/ibuilding-x/driver-box/internal/core/cache"
+	"github.com/ibuilding-x/driver-box/internal/core/shadow"
 	"github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/internal/lua"
@@ -43,11 +44,12 @@ func LoadPlugins() error {
 	}
 
 	// 缓存核心配置
-	if err = helper.InitCoreCache(configMap); err != nil {
+	c, err := cache.InitCoreCache(configMap)
+	if err != nil {
 		helper.Logger.Error("init core cache error")
 		return err
 	}
-
+	helper.CoreCache = c
 	// 初始化本地影子服务
 	initDeviceShadow(configMap)
 

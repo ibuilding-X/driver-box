@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 	"math"
@@ -165,7 +166,7 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData) (
 	var values []uint16
 	switch ext.RegisterType {
 	case Coil: // 线圈固定长度1
-		i, err := helper.Conv2Int64(value)
+		i, err := utils.Conv2Int64(value)
 		if err != nil {
 			return writeValue{}, err
 		}

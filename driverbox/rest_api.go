@@ -183,7 +183,6 @@ func updateCoreConfig(r *http.Request) (any, error) {
 	}
 	// 3. 停止影子服务设备状态监听、删除影子服务
 	helper.DeviceShadow.StopStatusListener()
-	helper.DeviceShadow = nil
 
 	// 4. 加载 plugins
 	err = bootstrap.LoadPlugins()

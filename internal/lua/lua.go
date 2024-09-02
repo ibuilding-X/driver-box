@@ -30,7 +30,7 @@ func InitLuaVM(filePath string) (*lua.LState, error) {
 	// 预加载模块（json、http、storage）
 	ls.PreloadModule("http", gluahttp.NewHttpModule(&http.Client{}).Loader)
 	luajson.Preload(ls)
-	//ls.PreloadModule("driverbox", LuaModuleInstance.Loader)
+	ls.PreloadModule("driver-box", LuaModuleInstance.Loader)
 	// 文件路径
 	// 脚本解析
 	err := ls.DoFile(filePath)

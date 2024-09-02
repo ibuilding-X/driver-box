@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/shadow"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/cache"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/shadow"
 	"sync"
 )
 
 var DeviceShadow shadow.DeviceShadow // 本地设备影子
-
+// CoreCache 核心缓存
+var CoreCache cache.CoreCache
 var PluginCacheMap = &sync.Map{} // 插件通用缓存
 
 var Crontab crontab.Crontab // 全局定时任务实例

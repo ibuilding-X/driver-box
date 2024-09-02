@@ -13,27 +13,27 @@ func intInSlice(num int, nums []int) bool {
 }
 
 // Verify 验证条件是否满足
-func (c yearsCondition) Verify(year int) bool {
+func (c YearsCondition) Verify(year int) bool {
 	return intInSlice(year, c.Years)
 }
 
 // Verify 验证条件是否满足
-func (c monthsCondition) Verify(month int) bool {
+func (c MonthsCondition) Verify(month int) bool {
 	return intInSlice(month, c.Months)
 }
 
 // Verify 验证条件是否满足
-func (c daysCondition) Verify(day int) bool {
+func (c DaysCondition) Verify(day int) bool {
 	return intInSlice(day, c.Days)
 }
 
 // Verify 验证条件是否满足
-func (c weeksCondition) Verify(week int) bool {
+func (c WeeksCondition) Verify(week int) bool {
 	return intInSlice(week, c.Weeks)
 }
 
 // Verify 验证条件是否满足
-func (c timesCondition) Verify(t time.Time) bool {
+func (c TimesCondition) Verify(t time.Time) bool {
 	beginTime, _ := time.Parse("15:04", c.BeginTime)
 	endTime, _ := time.Parse("15:04", c.EndTime)
 
@@ -47,7 +47,7 @@ func (c timesCondition) Verify(t time.Time) bool {
 }
 
 // Check 检查条件是否合规
-func (c yearsCondition) Check() bool {
+func (c YearsCondition) Check() bool {
 	for i, _ := range c.Years {
 		if c.Years[i] < 0 || c.Years[i] > 9999 {
 			return false
@@ -57,7 +57,7 @@ func (c yearsCondition) Check() bool {
 }
 
 // Check 检查条件是否合规
-func (c monthsCondition) Check() bool {
+func (c MonthsCondition) Check() bool {
 	for i, _ := range c.Months {
 		if c.Months[i] <= 0 || c.Months[i] > 12 {
 			return false
@@ -67,7 +67,7 @@ func (c monthsCondition) Check() bool {
 }
 
 // Check 检查条件是否合规
-func (c daysCondition) Check() bool {
+func (c DaysCondition) Check() bool {
 	for i, _ := range c.Days {
 		if c.Days[i] <= 0 || c.Days[i] > 31 {
 			return false
@@ -77,7 +77,7 @@ func (c daysCondition) Check() bool {
 }
 
 // Check 检查条件是否合规
-func (c weeksCondition) Check() bool {
+func (c WeeksCondition) Check() bool {
 	for i, _ := range c.Weeks {
 		if c.Weeks[i] < 0 || c.Weeks[i] > 6 {
 			return false
@@ -87,7 +87,7 @@ func (c weeksCondition) Check() bool {
 }
 
 // Check 检查条件是否合规
-func (c timesCondition) Check() bool {
+func (c TimesCondition) Check() bool {
 	beginTime, _ := time.Parse("15:04", c.BeginTime)
 	endTime, _ := time.Parse("15:04", c.EndTime)
 
