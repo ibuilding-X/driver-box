@@ -18,17 +18,16 @@ type Plugin struct {
 
 // Initialize 插件初始化
 // logger *zap.Logger、ls *lua.LState 参数未来可能会废弃
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error) {
+func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) {
 	p.logger = logger
 	p.config = c
 	p.ls = ls
 
 	// 初始化连接
-	if err = p.initNetworks(); err != nil {
-		return
+	if err := p.initNetworks(); err != nil {
+		logger.Error("initialize bacnet plugin error", zap.Error(err))
 	}
 
-	return nil
 }
 
 // Connector 连接器

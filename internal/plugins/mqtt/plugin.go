@@ -20,16 +20,15 @@ type Plugin struct {
 }
 
 // Initialize 初始化日志、配置、接收回调
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error) {
+func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) {
 	p.logger = logger
 	p.ls = ls
 
 	// 初始化连接池
-	if err = p.initConnPool(c); err != nil {
-		return
+	if err := p.initConnPool(c); err != nil {
+		logger.Error("init mqtt connector error", zap.Error(err))
 	}
 
-	return nil
 }
 
 func (p *Plugin) initConnPool(c config.Config) error {

@@ -46,7 +46,7 @@ type connector struct {
 }
 
 // Initialize 插件初始化
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error) {
+func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) {
 	p.ls = ls
 	p.config = c
 	//初始化连接池
@@ -54,7 +54,6 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState)
 
 	//注册RestAPI
 	InitRestAPI()
-	return nil
 }
 
 // 初始化Modbus连接池

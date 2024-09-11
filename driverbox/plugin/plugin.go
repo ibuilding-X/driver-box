@@ -18,7 +18,7 @@ func (d DeviceData) ToJSON() string {
 // Plugin 驱动插件
 type Plugin interface {
 	// Initialize 初始化日志、配置、接收回调
-	Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error)
+	Initialize(logger *zap.Logger, c config.Config, ls *lua.LState)
 	// Connector 连接器
 	Connector(deviceId string) (connector Connector, err error)
 	// Destroy 销毁驱动
