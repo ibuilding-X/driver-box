@@ -1,7 +1,6 @@
 package library
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
@@ -71,12 +70,18 @@ func (device *DeviceDriver) DeviceEncode(driverKey string, req DeviceEncodeReque
 		}
 		points.Append(pointData)
 	}
-	result, e := lua.CallLuaMethod(L, "encode", glua.LString(req.DeviceId), glua.LString(req.Mode), points)
+	result, e := lua.CallLuaMethodV2(L, "encode", glua.LString(req.DeviceId), glua.LString(req.Mode), points)
 	if e != nil {
 		return &DeviceEncodeResult{Error: e}
 	}
 	res := make([]plugin.PointData, 0)
-	e = json.Unmarshal([]byte(result), &res)
+	result.ForEach(func(key, value glua.LValue) {
+		point := value.(*glua.LTable)
+		res = append(res, plugin.PointData{
+			PointName: glua.LVAsString(point.RawGetString("name")),
+			Value:     glua.LVAsString(point.RawGetString("value")),
+		})
+	})
 	return &DeviceEncodeResult{
 		Points: res,
 		Error:  e,
