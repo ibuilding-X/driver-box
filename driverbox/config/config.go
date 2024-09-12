@@ -92,7 +92,12 @@ func (pm PointMap) ToPoint() Point {
 		case "scale":
 			p.Scale = v.(float64)
 		case "decimals":
-			p.Decimals = v.(int)
+			switch v.(type) {
+			case float64:
+				p.Decimals = int(v.(float64))
+			default:
+				p.Decimals = v.(int)
+			}
 		default:
 			p.Extends[key] = v
 		}
