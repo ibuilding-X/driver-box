@@ -128,9 +128,10 @@ func (device *DeviceDriver) DeviceDecode(driverKey string, req DeviceDecodeReque
 	}
 	res := make([]plugin.PointData, 0)
 	result.ForEach(func(key, value glua.LValue) {
+		point := value.(*glua.LTable)
 		res = append(res, plugin.PointData{
-			PointName: glua.LVAsString(key),
-			Value:     glua.LVAsString(value),
+			PointName: glua.LVAsString(point.RawGetString("name")),
+			Value:     glua.LVAsString(point.RawGetString("value")),
 		})
 	})
 	return &DeviceDecodeResult{
