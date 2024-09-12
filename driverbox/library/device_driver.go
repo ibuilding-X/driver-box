@@ -122,12 +122,17 @@ func (device *DeviceDriver) DeviceDecode(driverKey string, req DeviceDecodeReque
 		}
 		points.Append(pointData)
 	}
-	result, e := lua.CallLuaMethod(L, "decode", glua.LString(req.DeviceId), points)
+	result, e := lua.CallLuaMethodV2(L, "decode", glua.LString(req.DeviceId), points)
 	if e != nil {
 		return &DeviceDecodeResult{Error: e}
 	}
 	res := make([]plugin.PointData, 0)
-	e = json.Unmarshal([]byte(result), &res)
+	result.ForEach(func(key, value glua.LValue) {
+		res = append(res, plugin.PointData{
+			PointName: glua.LVAsString(key),
+			Value:     glua.LVAsString(value),
+		})
+	})
 	return &DeviceDecodeResult{
 		Points: res,
 		Error:  e,

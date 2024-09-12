@@ -86,6 +86,33 @@ func CallLuaMethod(L *lua.LState, method string, args ...lua.LValue) (string, er
 	return L.Get(-1).String(), nil
 }
 
+func CallLuaMethodV2(L *lua.LState, method string, args ...lua.LValue) (*lua.LTable, error) {
+	defer func() {
+		if err := recover(); err != nil {
+			logger.Logger.Error("call lua script error", zap.Any("method", method), zap.Any("args", args), zap.Any("error", err))
+		}
+	}()
+
+	lock, ok := luaLocks.Load(L)
+	if !ok {
+		return nil, errors.New("lua VM not exists")
+	}
+	lock.(*sync.Mutex).Lock()
+	defer lock.(*sync.Mutex).Unlock()
+	// 调用脚本函数
+	err := L.CallByParam(lua.P{
+		Fn:      L.GetGlobal(method),
+		NRet:    1,
+		Protect: true,
+		Handler: nil,
+	}, args...)
+	defer L.Remove(1)
+	if err != nil {
+		return nil, err
+	}
+	return L.Get(-1).(*lua.LTable), nil
+}
+
 // CallLuaEncodeConverter 调用 Lua 脚本编码转换器
 func CallLuaEncodeConverter(L *lua.LState, deviceSn string, raw interface{}) (string, error) {
 	defer func() {
