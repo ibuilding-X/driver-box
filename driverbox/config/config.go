@@ -2,10 +2,8 @@
 package config
 
 import (
-	"encoding/json"
 	"github.com/go-playground/validator/v10"
 	"os"
-	"strings"
 )
 
 // 环境变量配置项
@@ -73,23 +71,34 @@ type PointMap map[string]interface{} // 点位 Map，可转换为标准点位数
 
 // ToPoint 转换为标准点位数据
 func (pm PointMap) ToPoint() Point {
-	var p Point
-	b, _ := json.Marshal(pm)
-	_ = json.Unmarshal(b, &p)
-	// 扩展参数
-	p.Extends = make(map[string]interface{})
+	p := Point{
+		Extends: make(map[string]interface{}),
+	}
 
-	var decimals interface{}
 	for key, v := range pm {
-		if !strings.Contains("name,description,valueType,readWrite,defaultValue,scale,decimals", key) {
-			p.Extends[key] = pm[key]
-		}
-		if key == "decimals" {
-			decimals = v
+		switch key {
+		case "name":
+			p.Name = v.(string)
+		case "description":
+			p.Description = v.(string)
+		case "valueType":
+			p.ValueType = ValueType(v.(string))
+		case "readWrite":
+			p.ReadWrite = ReadWrite(v.(string))
+		case "units":
+			p.Units = v.(string)
+		case "reportMode":
+			p.ReportMode = ReportMode(v.(string))
+		case "scale":
+			p.Scale = v.(float64)
+		case "decimals":
+			p.Decimals = v.(int)
+		default:
+			p.Extends[key] = v
 		}
 	}
 	//浮点数，且未指定decimals，默认未2
-	if p.ValueType == ValueType_Float && decimals == nil {
+	if p.ValueType == ValueType_Float && pm["decimals"] == nil {
 		p.Decimals = 2
 	}
 	return p

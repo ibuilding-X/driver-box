@@ -17,7 +17,7 @@
           "readWrite": "R",
           "realReport": true,
           "reportMode": "change",
-          "scale": "",
+
           "startAddress": "0xB524",
           "valueType": "int",
           "wordSwap": false
