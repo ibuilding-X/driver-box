@@ -64,3 +64,8 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+require (
+	github.com/shopspring/decimal v1.2.0
+	github.com/themeyic/timing v1.1.2
+)

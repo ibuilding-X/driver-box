@@ -1,0 +1,99 @@
+package dlt645
+
+import (
+	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"time"
+)
+
+type primaryTable string
+
+const BatchReadMode plugin.EncodeMode = "batchRead"
+const (
+	Coil            primaryTable = "COIL"             // 线圈
+	DiscreteInput   primaryTable = "DISCRETE_INPUT"   // 离散输入
+	InputRegister   primaryTable = "INPUT_REGISTER"   // 离散寄存器
+	HoldingRegister primaryTable = "HOLDING_REGISTER" // 保持寄存器
+)
+
+// ConnectionConfig 连接器配置
+type ConnectionConfig struct {
+	Enable             bool   `json:"enable"`        //当前连接是否可用
+	Address            string `json:"address"`       // 地址：例如：127.0.0.1:502
+	Mode               string `json:"mode"`          // 连接模式：rtuovertcp、rtu
+	BaudRate           uint   `json:"baudRate"`      // 波特率（仅串口模式）
+	DataBits           uint   `json:"dataBits"`      // 数据位（仅串口模式）
+	StopBits           uint   `json:"stopBits"`      // 停止位（仅串口模式）
+	Parity             string `json:"parity"`        // 奇偶性校验（仅串口模式）
+	BatchReadLen       uint16 `json:"batchReadLen"`  // 最长连续读个数
+	BatchWriteLen      uint16 `json:"batchWriteLen"` // 支持连续写的最大长度
+	MinInterval        uint16 `json:"minInterval"`   // 最小读取间隔
+	Timeout            uint16 `json:"timeout"`       // 请求超时
+	Retry              int    `json:"retry"`         // 重试次数
+	Virtual            bool   `json:"virtual"`       //虚拟设备功能
+	AutoReconnect      bool   `json:"autoReconnect"`
+	ProtocalLogEnabled bool   `json:"protocalLogEnabled"`
+}
+
+// Point modbus点位
+type Point struct {
+	config.Point
+	//冗余设备相关信息
+	DeviceId string
+
+	//点位采集周期
+	Duration     string `json:"duration"`
+	Address      uint16
+	RegisterType primaryTable `json:"primaryTable"`
+	//该配置无需设置
+	Quantity  uint16 `json:"quantity"`
+	Bit       uint8  `json:"bit"`
+	BitLen    uint8  `json:"bitLen"`
+	RawType   string `json:"rawType"`
+	ByteSwap  bool   `json:"byteSwap"`
+	WordSwap  bool   `json:"wordSwap"`
+	DataMaker string `json:"dataMaker"`
+}
+
+// 采集组
+type slaveDevice struct {
+	// 通讯设备，采集点位可以对应多个物模型设备
+	unitID uint8
+	//分组
+	pointGroup []*pointGroup
+}
+
+type pointGroup struct {
+	//分组索引
+	index int
+	// 从机地址
+	UnitID uint8
+	//采集间隔
+	Duration time.Duration
+	//寄存器类型
+	RegisterType primaryTable
+	//上一次采集时间
+	LatestTime time.Time
+	//起始地址
+	Address uint16
+	//数量
+	Quantity    uint16
+	Points      []*Point
+	DataMaker   string // dlt645标准中点位标识
+	MeterNumber string
+}
+
+// Connector#Send接入入参
+type command struct {
+	Mode  plugin.EncodeMode // 模式
+	Value interface{}
+}
+
+// 写操作时 command的value类型
+type writeValue struct {
+	// 从机地址
+	unitID       uint8
+	Address      uint16
+	Value        []uint16
+	RegisterType primaryTable `json:"primaryTable"`
+}

@@ -7,6 +7,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet"
+	"github.com/ibuilding-x/driver-box/internal/plugins/dlt645"
 	"github.com/ibuilding-x/driver-box/internal/plugins/httpclient"
 	"github.com/ibuilding-x/driver-box/internal/plugins/httpserver"
 	"github.com/ibuilding-x/driver-box/internal/plugins/mirror"
@@ -33,6 +34,7 @@ func init() {
 	Manager.Register("bacnet", new(bacnet.Plugin))
 	Manager.Register(websocket.ProtocolName, new(websocket.Plugin))
 	Manager.Register(mirror.ProtocolName, mirror.NewPlugin())
+	Manager.Register(dlt645.ProtocolName, new(dlt645.Plugin))
 }
 
 // manager 管理器
