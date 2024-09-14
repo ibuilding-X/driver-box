@@ -46,6 +46,14 @@ func analysis(dlt *Dlt645ClientProvider, command string) float64 {
 	command = strings.Replace(command, "[", "", -1)
 	command = strings.Replace(command, "]", "", -1)
 	newCommands := strings.Split(command, " ")
+
+	//跳过FE字段
+	i := 0
+	for ; i < len(newCommands) && (newCommands[i] == "FE" || newCommands[i] == "fe"); i++ {
+		i++
+	}
+	newCommands = newCommands[i:]
+
 	start, _ := strconv.Atoi(newCommands[0])
 	end, _ := strconv.Atoi(newCommands[len(newCommands)-1])
 	if len(newCommands) < 16 || len(newCommands) > 26 || start != 68 || end != 16 {
