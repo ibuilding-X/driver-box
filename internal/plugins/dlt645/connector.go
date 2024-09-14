@@ -54,7 +54,7 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 		config:  cf,
 		plugin:  p,
 		client:  client,
-		virtual: cf.Virtual || config.IsVirtual(),
+		virtual: cf.Virtual,
 		devices: make(map[string]*slaveDevice),
 	}
 
