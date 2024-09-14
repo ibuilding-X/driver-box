@@ -32,7 +32,7 @@ type connector struct {
 	latestIoTime time.Time // 最近一次执行IO的时间
 	mutex        sync.Mutex
 	retry        uint8 //通讯设备集合
-	devices      map[uint8]*slaveDevice
+	devices      map[string]*slaveDevice
 	collectTask  *crontab.Future //当前连接的定时扫描任务
 	close        bool            //当前连接是否已关闭
 	virtual      bool            //是否虚拟链接

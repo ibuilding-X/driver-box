@@ -55,7 +55,7 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 		plugin:  p,
 		client:  client,
 		virtual: cf.Virtual || config.IsVirtual(),
-		devices: make(map[uint8]*slaveDevice),
+		devices: make(map[string]*slaveDevice),
 	}
 
 	err := client.Start()
@@ -78,7 +78,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 		//遍历所有通讯设备
 		for unitID, device := range c.devices {
 			if len(device.pointGroup) == 0 {
-				helper.Logger.Warn("device has none read point", zap.Uint8("unitID", unitID))
+				helper.Logger.Warn("device has none read point", zap.String("address", unitID))
 				continue
 			}
 			//批量遍历通讯设备下的点位，并将结果关联至物模型设备
@@ -147,8 +147,8 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 		ext.DeviceId = dev.ID
 		ext.Name = p.Name
 		device.pointGroup = append(device.pointGroup, &pointGroup{
-			index:        groupIndex,
-			UnitID:       device.unitID,
+			index: groupIndex,
+			//UnitID:       device.address,
 			Duration:     duration,
 			RegisterType: ext.RegisterType,
 			MeterNumber:  dev.Properties["address"],
@@ -252,7 +252,7 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 
 func (c *connector) resetCollectTime(group *pointGroup) {
 	for _, device := range c.devices {
-		if device.unitID == group.UnitID {
+		if device.address == group.Address {
 			for _, g := range device.pointGroup {
 				g.LatestTime = time.Now().Add(-group.Duration)
 			}
@@ -351,30 +351,25 @@ func convToPointExtend(extends map[string]interface{}) (*Point, error) {
 }
 
 func (c *connector) createDevice(properties map[string]string) (d *slaveDevice, err error) {
-	unitID, err := getUnitId(properties)
-	d, ok := c.devices[unitID]
+	address, err := getMeterAddress(properties)
+	d, ok := c.devices[address]
 	if ok {
 		return d, nil
 	}
 
 	var group []*pointGroup
 	d = &slaveDevice{
-		unitID:     unitID,
+		address:    address,
 		pointGroup: group,
 	}
-	c.devices[unitID] = d
+	c.devices[address] = d
 	return d, nil
 }
 
-func getUnitId(properties map[string]string) (uint8, error) {
-	unitID := properties["unitID"]
-	if len(unitID) == 0 {
-		return 0, errors.New("none unitID")
+func getMeterAddress(properties map[string]string) (string, error) {
+	address := properties["address"]
+	if len(address) == 0 {
+		return "", errors.New("none address")
 	}
-	v, e := strconv.ParseUint(unitID, 10, 8)
-	if e != nil {
-		return 0, e
-	} else {
-		return uint8(v), nil
-	}
+	return address, nil
 }

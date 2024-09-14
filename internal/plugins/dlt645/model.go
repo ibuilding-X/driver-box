@@ -58,29 +58,21 @@ type Point struct {
 // 采集组
 type slaveDevice struct {
 	// 通讯设备，采集点位可以对应多个物模型设备
-	unitID uint8
+	address string
 	//分组
 	pointGroup []*pointGroup
 }
 
 type pointGroup struct {
-	//分组索引
-	index int
-	// 从机地址
-	UnitID uint8
-	//采集间隔
-	Duration time.Duration
-	//寄存器类型
-	RegisterType primaryTable
-	//上一次采集时间
-	LatestTime time.Time
-	//起始地址
-	Address uint16
-	//数量
-	Quantity    uint16
-	Points      []*Point
-	DataMaker   string // dlt645标准中点位标识
-	MeterNumber string
+	index        int           //分组索引
+	Duration     time.Duration //采集间隔
+	RegisterType primaryTable  //寄存器类型
+	LatestTime   time.Time     //上一次采集时间
+	Address      string        //起始地址
+	Quantity     uint16        //数量
+	Points       []*Point
+	DataMaker    string // dlt645标准中点位标识
+	MeterNumber  string
 }
 
 // Connector#Send接入入参

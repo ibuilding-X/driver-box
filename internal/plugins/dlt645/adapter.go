@@ -47,7 +47,7 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 	if !ok {
 		return nil, fmt.Errorf("device [%s] not found", deviceId)
 	}
-	unitId, e := getUnitId(device.Properties)
+	unitId, e := getMeterAddress(device.Properties)
 	if e != nil {
 		return nil, e
 	}
