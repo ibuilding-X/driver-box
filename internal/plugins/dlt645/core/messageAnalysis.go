@@ -122,22 +122,21 @@ func analysis(dlt *Dlt645ClientProvider, command string) float64 {
 		// 系数
 		var n2 decimal.Decimal
 
-		if dltDataFinished == "00" {
+		switch {
+		case dltDataFinished == "00":
 			n2, _ = decimal.NewFromString("0.01")
-		} else if dltDataFinished == "02" && dltDataFinished1 == "01" {
-			n2, _ = decimal.NewFromString("0.1")
-		} else if dltDataFinished == "02" && dltDataFinished1 == "02" {
-			n2, _ = decimal.NewFromString("0.01")
-		} else if (dltDataFinished == "02" && dltDataFinished1 == "03") || (dltDataFinished == "02" && dltDataFinished1 == "04") || (dltDataFinished == "02" && dltDataFinished1 == "05") {
-			n2, _ = decimal.NewFromString("0.0001")
-		} else if dltDataFinished == "02" && dltDataFinished1 == "06" {
-			n2, _ = decimal.NewFromString("0.001")
-		} else if dltDataFinished == "02" && dltDataFinished3 == "02" {
-			n2, _ = decimal.NewFromString("0.01")
-		} else if dltDataFinished == "02" && dltDataFinished1 == "01" {
-			n2, _ = decimal.NewFromString("0.1")
-		} else if dltDataFinished == "02" && dltDataFinished1 == "02" {
-			n2, _ = decimal.NewFromString("0.001")
+		case dltDataFinished == "02":
+			switch dltDataFinished1 {
+			case "01":
+				n2, _ = decimal.NewFromString("0.1")
+			case "02", "06":
+				n2, _ = decimal.NewFromString("0.001")
+			case "03", "04", "05":
+				n2, _ = decimal.NewFromString("0.0001")
+			}
+			if dltDataFinished3 == "02" {
+				n2, _ = decimal.NewFromString("0.01")
+			}
 		}
 
 		over := n1.Mul(n2)
