@@ -9,12 +9,6 @@ import (
 type primaryTable string
 
 const BatchReadMode plugin.EncodeMode = "batchRead"
-const (
-	Coil            primaryTable = "COIL"             // 线圈
-	DiscreteInput   primaryTable = "DISCRETE_INPUT"   // 离散输入
-	InputRegister   primaryTable = "INPUT_REGISTER"   // 离散寄存器
-	HoldingRegister primaryTable = "HOLDING_REGISTER" // 保持寄存器
-)
 
 // ConnectionConfig 连接器配置
 type ConnectionConfig struct {
@@ -35,7 +29,7 @@ type ConnectionConfig struct {
 	ProtocalLogEnabled bool   `json:"protocalLogEnabled"`
 }
 
-// Point modbus点位
+// Point 点位
 type Point struct {
 	config.Point
 	//冗余设备相关信息
@@ -72,20 +66,11 @@ type pointGroup struct {
 	Quantity     uint16        //数量
 	Points       []*Point
 	DataMaker    string // dlt645标准中点位标识
-	MeterNumber  string
+	SlaveId      string // 电表地址
 }
 
 // Connector#Send接入入参
 type command struct {
 	Mode  plugin.EncodeMode // 模式
 	Value interface{}
-}
-
-// 写操作时 command的value类型
-type writeValue struct {
-	// 从机地址
-	unitID       uint8
-	Address      uint16
-	Value        []uint16
-	RegisterType primaryTable `json:"primaryTable"`
 }

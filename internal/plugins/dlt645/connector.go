@@ -2,7 +2,6 @@ package dlt645
 
 import (
 	"errors"
-	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
@@ -12,10 +11,7 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	dlt "github.com/ibuilding-x/driver-box/internal/plugins/dlt645/core"
 	"github.com/ibuilding-x/driver-box/internal/plugins/dlt645/core/dltcon"
-	"github.com/spf13/cast"
 	"go.uber.org/zap"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -78,7 +74,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 		//遍历所有通讯设备
 		for unitID, device := range c.devices {
 			if len(device.pointGroup) == 0 {
-				helper.Logger.Warn("device has none read point", zap.String("address", unitID))
+				helper.Logger.Warn("device has none read point", zap.String("slaveId", unitID))
 				continue
 			}
 			//批量遍历通讯设备下的点位，并将结果关联至物模型设备
@@ -147,15 +143,13 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 		ext.DeviceId = dev.ID
 		ext.Name = p.Name
 		device.pointGroup = append(device.pointGroup, &pointGroup{
-			index: groupIndex,
-			//UnitID:       device.address,
-			Duration:     duration,
-			RegisterType: ext.RegisterType,
-			MeterNumber:  dev.Properties["address"],
-			Quantity:     ext.Quantity,
+			index:    groupIndex,
+			Duration: duration,
+			Quantity: ext.Quantity,
 			Points: []*Point{
 				ext,
 			},
+			SlaveId:   dev.Properties["slaveId"],
 			DataMaker: ext.DataMaker,
 		})
 		groupIndex++
@@ -172,18 +166,6 @@ func (c *connector) Send(data interface{}) (err error) {
 		group := cmd.Value.(*pointGroup)
 		err = c.sendReadCommand(group)
 	case plugin.WriteMode:
-		//values := cmd.Value.([]*writeValue)
-		//for _, value := range values {
-		//	err = c.sendWriteCommand(value)
-		//}
-	case BatchReadMode:
-		//groups := cmd.Value.([]*pointGroup)
-		//for _, group := range groups {
-		//	err = c.sendReadCommand(group)
-		//	if err != nil {
-		//		return err
-		//	}
-		//}
 	default:
 		return common.NotSupportMode
 	}
@@ -192,7 +174,6 @@ func (c *connector) Send(data interface{}) (err error) {
 }
 
 // Release 释放资源
-// 不释放连接资源，经测试该包不支持频繁创建连接
 func (c *connector) Release() (err error) {
 	return
 }
@@ -217,19 +198,13 @@ func (c *connector) ensureInterval() {
 }
 
 func (c *connector) sendReadCommand(group *pointGroup) error {
-	//存在写指令，读操作临时避让，同时提升下一次读优先级
-	//if atomic.LoadInt64(&c.writeSemaphore) > 0 {
-	//	c.resetCollectTime(group)
-	//	logger.Logger.Warn("dlt645 connection is writing, ignore collect task!", zap.String("key", c.ConnectionKey), zap.Any("semaphore", c.writeSemaphore))
-	//	return nil
-	//}
 
 	var value float64
 	var err error
 	if c.virtual {
 		value = 0
 	} else {
-		value, err = c.read(group.MeterNumber, group.DataMaker)
+		value, err = c.read(group.SlaveId, group.DataMaker)
 	}
 
 	if err != nil {
@@ -261,64 +236,8 @@ func (c *connector) resetCollectTime(group *pointGroup) {
 	}
 }
 
-func (c *connector) sendWriteCommand(pc *writeValue) error {
-	//atomic.AddInt64(&c.writeSemaphore, 1)
-	//defer atomic.AddInt64(&c.writeSemaphore, -1)
-	var err error
-	for i := 0; i < c.config.Retry; i++ {
-		if c.virtual {
-			err = c.mockWrite(pc.unitID, pc.RegisterType, pc.Address, pc.Value)
-		} else {
-			err = c.write(pc.unitID, pc.RegisterType, pc.Address, pc.Value)
-		}
-		if err == nil {
-			break
-		}
-	}
-	if err != nil {
-		return fmt.Errorf("write [%v] error: %v", pc, err)
-	}
+func (c *connector) sendWriteCommand() error {
 	return nil
-}
-
-// castdlt645Address dlt645 地址转换
-func castdlt645Address(i interface{}) (address uint16, err error) {
-	s := cast.ToString(i)
-	if strings.HasPrefix(s, "0x") { //check hex format
-		addr, err := strconv.ParseInt(s[2:], 16, 32)
-		if err != nil {
-			return 0, err
-		}
-		return cast.ToUint16(addr), nil
-	} else if strings.HasSuffix(s, "d") {
-		addr, err := strconv.Atoi(strings.ReplaceAll(s, "d", ""))
-		if err != nil {
-			return 0, err
-		}
-		return cast.ToUint16(addr), nil
-	} else if len(s) == 5 { //handle dlt645 format
-		res, err := cast.ToUint16E(s)
-		if err != nil {
-			return 0, err
-		}
-		if res > 0 && res < 10000 {
-			return res - 1, nil
-		} else if res > 10000 && res < 20000 {
-			return res - 10001, nil
-		} else if res > 30000 && res < 40000 {
-			return res - 30001, nil
-		} else if res > 40000 && res < 50000 {
-			return res - 40001, nil
-		} else {
-			return 0, fmt.Errorf("invalid dlt645 address: %v", s)
-		}
-	}
-
-	res, err := cast.ToUint16E(i)
-	if err != nil {
-		return 0, err
-	}
-	return res, nil
 }
 
 // read 读操作
@@ -333,7 +252,7 @@ func (c *connector) read(address, dataMaker string) (values float64, err error) 
 }
 
 // write 写操作
-func (c *connector) write(slaveID uint8, registerType primaryTable, address uint16, values []uint16) (err error) {
+func (c *connector) write() (err error) {
 	return
 }
 
@@ -367,7 +286,7 @@ func (c *connector) createDevice(properties map[string]string) (d *slaveDevice, 
 }
 
 func getMeterAddress(properties map[string]string) (string, error) {
-	address := properties["address"]
+	address := properties["slaveId"]
 	if len(address) == 0 {
 		return "", errors.New("none address")
 	}

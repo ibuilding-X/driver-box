@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"sort"
 )
 
 // Decode 解码数据
@@ -36,11 +35,7 @@ func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error)
 // Encode 编码数据
 func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
 	if mode == plugin.WriteMode {
-		writeValues, err := c.batchWriteEncode(deviceId, values)
-		return command{
-			Mode:  plugin.WriteMode,
-			Value: writeValues,
-		}, err
+		return nil, err
 	}
 
 	device, ok := helper.CoreCache.GetDevice(deviceId)
@@ -84,58 +79,4 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 		Mode:  BatchReadMode,
 		Value: pointGroups,
 	}, nil
-}
-
-func (c *connector) batchWriteEncode(deviceId string, points []plugin.PointData) ([]*writeValue, error) {
-	values := make([]*writeValue, 0)
-	for _, p := range points {
-		wv, err := c.getWriteValue(deviceId, p)
-		if err != nil {
-			return values, err
-		}
-		values = append(values, &wv)
-	}
-	//按照address排序
-	sort.Slice(values, func(i, j int) bool {
-		return values[i].Address < values[j].Address
-	})
-
-	mergedValues := make([]*writeValue, 0)
-	var preValue *writeValue
-	for _, v := range values {
-		//仅保持寄存器支持批量
-		if v.RegisterType != HoldingRegister {
-			mergedValues = append(mergedValues, v)
-			continue
-		}
-		if preValue == nil {
-			preValue = v
-			mergedValues = append(mergedValues, v)
-			continue
-		}
-
-		//批量下发必须为连续地址
-		if int(preValue.Address)+len(preValue.Value) != int(v.Address) {
-			preValue = v
-			mergedValues = append(mergedValues, v)
-			continue
-		}
-		//超过批量写支持的字节长度范围
-		batchLen := len(preValue.Value) + len(v.Value)
-		if uint16(batchLen) > c.config.BatchWriteLen {
-			preValue = v
-			mergedValues = append(mergedValues, v)
-			continue
-		}
-		//合并数据
-		bytes := make([]uint16, batchLen)
-		copy(bytes, preValue.Value)
-		copy(bytes[len(preValue.Value):], v.Value)
-		preValue.Value = bytes
-	}
-	return mergedValues, nil
-}
-
-func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData) (writeValue, error) {
-	return writeValue{}, nil
 }
