@@ -35,7 +35,7 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 	provider.Timeout = time.Duration(cf.Timeout) * time.Millisecond
 
 	client := dltcon.NewClient(provider)
-	client.LogMode(cf.ProtocalLogEnabled)
+	client.LogMode(cf.ProtocolLogEnabled)
 	if cf.AutoReconnect {
 		client.SetAutoReconnect(1)
 	} else {
