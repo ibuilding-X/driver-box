@@ -183,9 +183,7 @@ func (c *connector) Close() {
 	if c.collectTask != nil {
 		c.collectTask.Disable()
 	}
-	if c.keepAlive {
-		_ = c.client.Close()
-	}
+	_ = c.client.Close()
 }
 
 // ensureInterval 确保与前一次IO至少间隔minInterval毫秒
