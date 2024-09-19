@@ -2,6 +2,7 @@ package dlt645
 
 import (
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 )
@@ -28,14 +29,21 @@ func (dltconfig *Dlt645ConfigClient) SendMessageToSerial(dlt Client) (response f
 	DataMarkerHandle := HexStringToBytes(dltconfig.DataMarker)
 	DataMarkerHandleX := fmt.Sprintf("% x", DataMarkerHandle)
 	DataMarkerHandleReverse := strings.Split(DataMarkerHandleX, " ")
+
+	//反转后的数据标识
+	result := make([]string, len(DataMarkerHandleReverse))
+
 	for i := 0; i < len(DataMarkerHandleReverse)/2; i++ {
-		mid := DataMarkerHandleReverse[i]
-		DataMarkerForEnd, _ := strconv.Atoi(DataMarkerHandleReverse[len(DataMarkerHandleReverse)-1-i])
-		DataMarkerHandleReverse[i] = strconv.Itoa(DataMarkerForEnd + 33)
-		DataMarkerForStrt, _ := strconv.Atoi(mid)
-		DataMarkerHandleReverse[len(DataMarkerHandleReverse)-1-i] = strconv.Itoa(DataMarkerForStrt + 33)
+		process := func(hexStr string) string {
+			value := new(big.Int)
+			value.SetString(hexStr, 16)
+			value.Add(value, big.NewInt(0x33))
+			return fmt.Sprintf("%x", value)
+		}
+		result[i] = process(DataMarkerHandleReverse[len(DataMarkerHandleReverse)-i-1])
+		result[len(DataMarkerHandleReverse)-i-1] = process(DataMarkerHandleReverse[i])
 	}
-	midDataMarkerHandle := fmt.Sprintf("% s", DataMarkerHandleReverse)
+	midDataMarkerHandle := fmt.Sprintf("% s", result)
 	DataMarkerHandleReverseFinished := strings.Replace(midDataMarkerHandle, "[", "", -1)
 	DataMarkerHandleReverseFinished = strings.Replace(DataMarkerHandleReverseFinished, "]", "", -1)
 
