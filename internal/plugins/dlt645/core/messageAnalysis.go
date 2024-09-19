@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/shopspring/decimal"
+	"math/big"
 	"strconv"
 	"strings"
 )
@@ -73,47 +74,26 @@ func analysis(dlt *Dlt645ClientProvider, command string) float64 {
 		dlt.Debug("校验码：%s", newCommands[len(newCommands)-2])
 		dlt.Debug("停止位：%s", newCommands[len(newCommands)-1])
 
-		dltData, _ := strconv.ParseUint(newCommands[13], 16, 32)
-		dltData = dltData - 51
-		var dltDataFinished string
-		if len(strconv.FormatInt(int64(dltData), 10)) == 1 {
-			dltDataFinished = "0" + strconv.Itoa(int(dltData))
+		//逆序传输的，且需要统一逐个减去十六进制0x33后才是真实值
+		hexSub33 := func(hexStr string) string {
+			value := new(big.Int)
+			value.SetString(hexStr, 16)
+			value.Sub(value, big.NewInt(0x33))
+			return fmt.Sprintf("%02x", value)
 		}
 
-		dltData1, _ := strconv.ParseUint(newCommands[12], 16, 32)
-		dltData1 = dltData1 - 51
-		var dltDataFinished1 string
-		if len(strconv.FormatInt(int64(dltData1), 10)) == 1 {
-			dltDataFinished1 = "0" + strconv.Itoa(int(dltData1))
-		}
-
-		dltData2, _ := strconv.ParseUint(newCommands[11], 16, 32)
-		dltData2 = dltData2 - 51
-		var dltDataFinished2 string
-
-		if len(strconv.FormatInt(int64(dltData2), 10)) == 1 {
-			dltDataFinished2 = "0" + strconv.Itoa(int(dltData2))
-		}
-
-		dltData3, _ := strconv.ParseUint(newCommands[10], 16, 32)
-		dltData3 = dltData3 - 51
-
-		var dltDataFinished3 string
-		if len(strconv.FormatInt(int64(dltData3), 10)) == 1 {
-			dltDataFinished3 = "0" + strconv.Itoa(int(dltData3))
-		}
+		dltDataFinished := hexSub33(newCommands[13])
+		dltDataFinished1 := hexSub33(newCommands[12])
+		dltDataFinished2 := hexSub33(newCommands[11])
+		dltDataFinished3 := hexSub33(newCommands[10])
 
 		makers := dltDataFinished + dltDataFinished1 + dltDataFinished2 + dltDataFinished3
 		dlt.Debug("数据标识：%s", makers)
+
 		dataUnits := len(newCommands) - 2
 		var data string
 		for i := dataUnits; i > 14; i-- {
-			v1, _ := strconv.ParseUint(newCommands[i-1], 16, 32)
-			v2, _ := strconv.ParseUint("33", 16, 32)
-			midData, _ := DecConvertToX(int(v1-v2), 16)
-			if len(midData) == 1 {
-				midData = "0" + midData
-			}
+			midData := hexSub33(newCommands[i-1])
 			data += fmt.Sprintf("%s", midData)
 		}
 
