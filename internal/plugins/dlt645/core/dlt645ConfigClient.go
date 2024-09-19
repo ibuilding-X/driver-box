@@ -38,7 +38,7 @@ func (dltconfig *Dlt645ConfigClient) SendMessageToSerial(dlt Client) (response f
 			value := new(big.Int)
 			value.SetString(hexStr, 16)
 			value.Add(value, big.NewInt(0x33))
-			return fmt.Sprintf("%x", value)
+			return fmt.Sprintf("%02x", value)
 		}
 		result[i] = process(DataMarkerHandleReverse[len(DataMarkerHandleReverse)-i-1])
 		result[len(DataMarkerHandleReverse)-i-1] = process(DataMarkerHandleReverse[i])

@@ -79,7 +79,7 @@ func analysis(dlt *Dlt645ClientProvider, command string) float64 {
 			value := new(big.Int)
 			value.SetString(hexStr, 16)
 			value.Sub(value, big.NewInt(0x33))
-			return fmt.Sprintf("%x", value)
+			return fmt.Sprintf("%02x", value)
 		}
 
 		dltDataFinished := hexSub33(newCommands[13])
