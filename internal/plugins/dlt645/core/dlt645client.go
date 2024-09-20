@@ -119,6 +119,7 @@ func (dlt *Dlt645ClientProvider) SendRawFrame(request string) (response float64,
 
 	_, err = dlt.port.Write(serialMessage)
 	if err != nil {
+		_ = dlt.close()
 		helper.Logger.Error("dlt645 write port failed", zap.Error(err))
 		return
 	}

@@ -72,12 +72,17 @@ func (sf *serialPort) SetAutoReconnect(cnt byte) {
 
 // Close close current connection.
 func (sf *serialPort) Close() error {
-	var err error
 	sf.mu.Lock()
+	err := sf.close()
+	sf.mu.Unlock()
+	return err
+}
+
+func (sf *serialPort) close() error {
+	var err error
 	if sf.port != nil {
 		err = sf.port.Close()
 		sf.port = nil
 	}
-	sf.mu.Unlock()
 	return err
 }
