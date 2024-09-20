@@ -3,6 +3,8 @@ package dlt645
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"go.uber.org/zap"
 	"io"
 	"strings"
 	"time"
@@ -87,7 +89,20 @@ func (dlt *Dlt645ClientProvider) SendRawFrame(request string) (response float64,
 
 	// check  port is connected
 	if !dlt.isConnected() {
-		return 0, ErrClosedConnection
+		if dlt.autoReconnect == 0 {
+			return 0, ErrClosedConnection
+		}
+
+		var err error
+		for tryCnt := byte(0); tryCnt < dlt.autoReconnect; tryCnt++ {
+			err = dlt.connect()
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			return 0, ErrConnectionFailed
+		}
 	}
 
 	// Send the request
@@ -102,24 +117,10 @@ func (dlt *Dlt645ClientProvider) SendRawFrame(request string) (response float64,
 	//test := fmt.Sprintf("wtf?sending [% x]", aduRequest)
 	//fmt.Println(test)
 
-	var tryCnt byte
-	for {
-		_, err = dlt.port.Write(serialMessage)
-		if err == nil { // success
-			break
-		}
-		if dlt.autoReconnect == 0 {
-			return
-		}
-		for {
-			err = dlt.connect()
-			if err == nil {
-				break
-			}
-			if tryCnt++; tryCnt >= dlt.autoReconnect {
-				return
-			}
-		}
+	_, err = dlt.port.Write(serialMessage)
+	if err != nil {
+		helper.Logger.Error("dlt645 write port failed", zap.Error(err))
+		return
 	}
 
 	var data [rtuAduMaxSize]byte

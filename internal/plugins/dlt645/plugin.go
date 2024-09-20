@@ -63,7 +63,7 @@ func (p *Plugin) initNetworks(config config.Config) {
 		conn.ConnectionKey = key
 		if err != nil {
 			helper.Logger.Error("init dlt645 connector error", zap.Any("connection", connConfig), zap.Error(err))
-			continue
+			//continue
 		}
 
 		//生成点位采集组
