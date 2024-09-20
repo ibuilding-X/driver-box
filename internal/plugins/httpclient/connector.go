@@ -64,13 +64,13 @@ func (c *connector) initCollectTask() (*crontab.Future, error) {
 		logger.Logger.Warn("httpclient connector timer is empty", zap.Any("connector", c.config))
 		return nil, nil
 	}
-	for _, timer := range c.config.Timer {
+	for i, timer := range c.config.Timer {
 		duration, e := time.ParseDuration(timer.Duration)
 		if e != nil {
 			logger.Logger.Error("parse duration error", zap.Any("config", c.config))
 			duration = time.Second * 5
 		}
-		timer.duration = duration
+		c.config.Timer[i].duration = duration
 	}
 	actionParam := TimerParam{
 		Auth: c.config.Auth,
@@ -82,11 +82,12 @@ func (c *connector) initCollectTask() (*crontab.Future, error) {
 	}
 	action := string(bytes)
 	return helper.Crontab.AddFunc("1s", func() {
-		for _, timer := range c.config.Timer {
+		for i, timer := range c.config.Timer {
 			//采集周期不满足，跳过本次
 			if timer.latestTime.Add(timer.duration).After(time.Now()) {
 				continue
 			}
+			c.config.Timer[i].latestTime = time.Now()
 			payload, err := library.Protocol().Execute(c.config.ProtocolKey, timer.Action, action)
 			if err != nil {
 				logger.Logger.Error("execute protocol driver error", zap.Any("protocolKey", c.config.ProtocolKey), zap.Any("action", timer.Action), zap.Any("error", err))

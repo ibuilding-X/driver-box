@@ -23,13 +23,10 @@ const (
 var Instance cache2.CoreCache
 
 type cache struct {
-	models  *sync.Map // name => config.Model
-	devices *sync.Map // deviceSn => config.Device
-	//设备属性
-	deviceProperties *sync.Map // deviceSn => map[string]map[string]string
-	points           *sync.Map // deviceSn_pointName => config.Point
-	devicePlugins    *sync.Map // deviceSn => plugin key
-	runningPlugins   *sync.Map // key => plugin.Plugin
+	models         *sync.Map // name => config.Model
+	devices        *sync.Map // deviceSn => config.Device
+	devicePlugins  *sync.Map // deviceSn => plugin key
+	runningPlugins *sync.Map // key => plugin.Plugin
 	//根据tag分组存储的设备列表
 	tagDevices *sync.Map // tag => []config.Device
 }
@@ -37,13 +34,11 @@ type cache struct {
 // InitCoreCache 初始化核心缓存
 func InitCoreCache(configMap map[string]config.Config) (obj cache2.CoreCache, err error) {
 	c := &cache{
-		models:           &sync.Map{},
-		devices:          &sync.Map{},
-		deviceProperties: &sync.Map{},
-		points:           &sync.Map{},
-		devicePlugins:    &sync.Map{},
-		runningPlugins:   &sync.Map{},
-		tagDevices:       &sync.Map{},
+		models:         &sync.Map{},
+		devices:        &sync.Map{},
+		devicePlugins:  &sync.Map{},
+		runningPlugins: &sync.Map{},
+		tagDevices:     &sync.Map{},
 	}
 	Instance = c
 
@@ -92,23 +87,7 @@ func InitCoreCache(configMap map[string]config.Config) (obj cache2.CoreCache, er
 							device.ModelName, storedDeviceBase.ModelName)
 					}
 				}
-				var properties map[string]cache2.DeviceProperties
-				if raw, ok := c.deviceProperties.Load(deviceId); ok {
-					properties = raw.(map[string]cache2.DeviceProperties)
-				} else {
-					properties = make(map[string]cache2.DeviceProperties)
-				}
-				properties[configMap[key].ProtocolName+"_"+device.ConnectionKey] = device.Properties
-				c.deviceProperties.Store(deviceId, properties)
 				c.devicePlugins.Store(deviceId, key)
-				for _, point := range pointMap {
-					devicePointKey := deviceId + "_" + point.Name
-					if _, ok := c.points.Load(devicePointKey); ok {
-						return c, fmt.Errorf("device %s duplicate point %s found", deviceId, point.Name)
-					}
-					c.points.Store(devicePointKey, point)
-
-				}
 
 				//根据tag分组存储设备列表
 				for _, tag := range device.Tags {
@@ -167,14 +146,6 @@ func (c *cache) GetModel(modelName string) (model config.Model, ok bool) {
 
 func (c *cache) GetDevice(id string) (device config.Device, ok bool) {
 	if raw, exist := c.devices.Load(id); exist {
-		device, _ = raw.(config.Device)
-		return device, true
-	}
-	return config.Device{}, false
-}
-
-func (c *cache) GetDeviceByDeviceAndConn(id, connectionKey string) (device config.Device, ok bool) {
-	if raw, ok := c.deviceProperties.Load(id + "_" + connectionKey); ok {
 		device, _ = raw.(config.Device)
 		return device, true
 	}
@@ -247,14 +218,6 @@ func (c *cache) Devices() (devices []config.Device) {
 	return
 }
 
-func (c *cache) GetProtocolsByDevice(id string) (map[string]cache2.DeviceProperties, bool) {
-	if raw, ok := c.deviceProperties.Load(id); ok {
-		protocols, _ := raw.(map[string]cache2.DeviceProperties)
-		return protocols, true
-	}
-	return nil, false
-}
-
 func (c *cache) GetAllRunningPluginKey() (keys []string) {
 	c.runningPlugins.Range(func(key, value any) bool {
 		k, _ := key.(string)
@@ -301,8 +264,6 @@ func (c *cache) resetSyncMap(m *sync.Map) {
 func (c *cache) Reset() {
 	c.resetSyncMap(c.models)
 	c.resetSyncMap(c.devices)
-	c.resetSyncMap(c.deviceProperties)
-	c.resetSyncMap(c.points)
 	c.resetSyncMap(c.devicePlugins)
 	c.resetSyncMap(c.runningPlugins)
 	c.resetSyncMap(c.tagDevices)

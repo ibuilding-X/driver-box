@@ -17,17 +17,16 @@ type Plugin struct {
 }
 
 // Initialize 插件初始化
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error) {
+func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) {
 	p.logger = logger
 	p.config = c
 	p.ls = ls
 
 	// 初始化连接池
-	if err = p.initConnPool(); err != nil {
-		return
+	if err := p.initConnPool(); err != nil {
+		logger.Error("init connector pool failed", zap.Error(err))
 	}
 
-	return nil
 }
 
 // Connector 连接器

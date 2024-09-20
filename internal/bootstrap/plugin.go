@@ -82,10 +82,7 @@ func LoadPlugins() error {
 			}
 		}
 
-		err = p.Initialize(helper.Logger, configMap[key], ls)
-		if err != nil {
-			return err
-		}
+		p.Initialize(helper.Logger, configMap[key], ls)
 
 		// 缓存插件
 		helper.CoreCache.AddRunningPlugin(key, p)

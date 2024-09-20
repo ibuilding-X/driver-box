@@ -36,17 +36,16 @@ func NewPlugin() *Plugin {
 	return instance
 }
 
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) (err error) {
+func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) {
 	p.ls = ls
 	//生成镜像设备映射关系
 	for _, model := range c.DeviceModels {
-		err = p.UpdateMirrorMapping(model)
+		err := p.UpdateMirrorMapping(model)
 		if err != nil {
-			return err
+			logger.Error("update mirror mapping failed", zap.Error(err))
 		}
 	}
 	p.ready = true
-	return nil
 }
 
 // UpdateMirrorMapping 更新镜像设备映射关系
