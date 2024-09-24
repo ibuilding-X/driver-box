@@ -68,6 +68,18 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 		if virtualConnector != nil {
 			callback.OnReceiveHandler(virtualConnector, deviceData)
 		}
+	case event.EventCodeDeviceStatus:
+		// 设备状态变更事件
+		mirrorDeviceID := "mirror_" + key
+		if helper.DeviceShadow.HasDevice(mirrorDeviceID) {
+			if online, ok := eventValue.(bool); ok {
+				if online {
+					_ = helper.DeviceShadow.SetOnline(mirrorDeviceID)
+				} else {
+					_ = helper.DeviceShadow.SetOffline(mirrorDeviceID)
+				}
+			}
+		}
 	}
 	return nil
 }
