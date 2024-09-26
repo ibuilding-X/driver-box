@@ -12,6 +12,8 @@ type DeviceProperties map[string]string
 // coreCache 核心缓存
 type CoreCache interface {
 	GetModel(modelName string) (model config.Model, ok bool) // model info
+	// 查询指定模型的所有点，并保持该点位在配置文件中的有序性
+	GetPoints(modelName string) ([]config.Point, bool)
 	GetDevice(id string) (device config.Device, ok bool)
 	//查询指定标签的设备列表
 	GetDevicesByTag(tag string) (devices []config.Device)
