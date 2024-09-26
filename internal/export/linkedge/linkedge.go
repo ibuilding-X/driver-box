@@ -345,6 +345,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...linkedge.Config)
 		// 核对触发器
 		config, e = s.getLinkEdge(id)
 		if e != nil {
+			export.TriggerEvents(event.UnknownLinkEdge, "id", id)
 			return errors.New("get linkEdge error: " + e.Error())
 		}
 		//helper.Logger.Info(fmt.Sprintf("linkEdge:%v", config))
@@ -433,6 +434,13 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...linkedge.Config)
 	}
 	//遍历执行actions
 	for deviceId, points := range actions {
+		// 跳过未知设备
+		if !helper.DeviceShadow.HasDevice(deviceId) {
+			// 事件信息：场景ID、设备ID
+			export.TriggerEvents(event.UnknownDevice, id, deviceId)
+			continue
+		}
+
 		err := core.SendBatchWrite(deviceId, points)
 		if err != nil {
 			helper.Logger.Error("execute linkEdge error", zap.String("linkEdge", id),
