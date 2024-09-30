@@ -43,7 +43,7 @@ func DecConvertToX(n, num int) (string, error) {
 	return result, nil
 }
 
-func analysis(dlt *Dlt645ClientProvider, command string) float64 {
+func analysis(dlt *Dlt645ClientProvider, command string) (float64, error) {
 	command = strings.Replace(command, "[", "", -1)
 	command = strings.Replace(command, "]", "", -1)
 	newCommands := strings.Split(command, " ")
@@ -59,7 +59,7 @@ func analysis(dlt *Dlt645ClientProvider, command string) float64 {
 	end, _ := strconv.Atoi(newCommands[len(newCommands)-1])
 	if len(newCommands) < 16 || len(newCommands) > 26 || start != 68 || end != 16 {
 		dlt.Debug("invalid response", newCommands)
-		return 0
+		return 0, fmt.Errorf("invalid response")
 	} else {
 		helper.Logger.Debug(fmt.Sprintf("报文源码：%s", command))
 		helper.Logger.Debug(fmt.Sprintf("帧起始符：%s", newCommands[0]))
@@ -122,9 +122,8 @@ func analysis(dlt *Dlt645ClientProvider, command string) float64 {
 		over := n1.Mul(n2)
 		val, b := over.Float64()
 		if !b {
-
+			return 0, fmt.Errorf("data format eroor")
 		}
-		return val
+		return val, nil
 	}
-	return 0
 }
