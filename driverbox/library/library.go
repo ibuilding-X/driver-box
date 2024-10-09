@@ -32,6 +32,8 @@ var mirror *MirrorTemplate
 var protocol *ProtocolDriver
 var model *DeviceModel
 
+var defaultLanguage = "zh-CN"
+
 // 设备驱动库
 func Driver() *DeviceDriver {
 	driverOnce.Do(func() {
@@ -66,4 +68,9 @@ func Model() *DeviceModel {
 		model = &DeviceModel{}
 	})
 	return model
+}
+
+// SetLanguage 设置默认语言
+func SetLanguage(language string) {
+	defaultLanguage = language
 }
