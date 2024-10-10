@@ -3,6 +3,7 @@ package library
 import (
 	"encoding/json"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"golang.org/x/exp/slices"
 	"os"
 	"path"
 )
@@ -12,7 +13,9 @@ const (
 	tagFile = "tag.json"
 )
 
-var cacheTags []Tag
+var UsageTag = &usageTag{
+	language: "zh-CN",
+}
 
 type Tag struct {
 	// Key 唯一标识
@@ -26,17 +29,58 @@ func (t Tag) GetDesc(lang ...string) string {
 		return t.Desc[lang[0]]
 	}
 
-	return t.Desc[defaultLanguage]
+	return t.Desc[UsageTag.language]
 }
 
-// LoadTags 加载所有标签（缓存）
-func LoadTags() []Tag {
-	if cacheTags == nil {
+type usageTag struct {
+	language  string
+	cacheTags []Tag
+}
+
+func (ut *usageTag) SetLanguage(lang string) {
+	if lang != "" {
+		ut.language = lang
+	}
+}
+
+func (ut *usageTag) All() []Tag {
+	if ut.cacheTags == nil {
 		filePath := path.Join(config.ResourcePath, baseDir, tagDir, tagFile)
 		if bs, err := os.ReadFile(filePath); err == nil {
-			_ = json.Unmarshal(bs, &cacheTags)
+			_ = json.Unmarshal(bs, &ut.cacheTags)
 		}
 	}
 
-	return cacheTags
+	if len(ut.cacheTags) == 0 {
+		return nil
+	}
+
+	result := make([]Tag, len(ut.cacheTags))
+	copy(result, ut.cacheTags)
+	return result
+}
+
+func (ut *usageTag) Get(key string) (Tag, bool) {
+	tags := ut.All()
+	for _, tag := range tags {
+		if tag.Key == key {
+			return tag, true
+		}
+	}
+	return Tag{}, false
+}
+
+func (ut *usageTag) Filter(filter []string) []Tag {
+	tags := ut.All()
+	if len(filter) == 0 {
+		return tags
+	}
+
+	result := make([]Tag, 0, len(tags))
+	for _, tag := range tags {
+		if slices.Contains(filter, tag.Key) {
+			result = append(result, tag)
+		}
+	}
+	return result
 }
