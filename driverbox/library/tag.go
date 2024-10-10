@@ -6,6 +6,7 @@ import (
 	"golang.org/x/exp/slices"
 	"os"
 	"path"
+	"sync"
 )
 
 const (
@@ -35,6 +36,7 @@ func (t Tag) GetDesc(lang ...string) string {
 type usageTag struct {
 	language  string
 	cacheTags []Tag
+	lock      sync.Mutex
 }
 
 func (ut *usageTag) SetLanguage(lang string) {
@@ -44,6 +46,9 @@ func (ut *usageTag) SetLanguage(lang string) {
 }
 
 func (ut *usageTag) All() []Tag {
+	ut.lock.Lock()
+	defer ut.lock.Unlock()
+
 	if ut.cacheTags == nil {
 		filePath := path.Join(config.ResourcePath, baseDir, tagDir, tagFile)
 		if bs, err := os.ReadFile(filePath); err == nil {
