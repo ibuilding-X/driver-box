@@ -120,10 +120,7 @@ func analysis(dlt *Dlt645ClientProvider, command string) (float64, error) {
 		}
 
 		over := n1.Mul(n2)
-		val, b := over.Float64()
-		if !b {
-			return 0, fmt.Errorf("data format eroor")
-		}
+		val, _ := over.Float64()
 		return val, nil
 	}
 }
