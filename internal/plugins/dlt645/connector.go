@@ -164,7 +164,7 @@ func (c *connector) Send(data interface{}) (err error) {
 	// 读
 	case plugin.ReadMode:
 		group := cmd.Value.(*pointGroup)
-		err = c.sendReadCommand(group)
+		return c.sendReadCommand(group)
 	case plugin.WriteMode:
 	default:
 		return common.NotSupportMode

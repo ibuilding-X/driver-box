@@ -15,6 +15,14 @@ const (
 	EventCodeLinkEdgeTrigger = "linkEdgeTrigger"
 )
 
+// 场景相关事件
+const (
+	// UnknownDevice 未知设备
+	UnknownDevice = "unknownDevice"
+	// UnknownLinkEdge 未知场景
+	UnknownLinkEdge = "unknownLinkEdge"
+)
+
 const (
 	//服务启动成功
 	ServiceStatusHealthy = "healthy"

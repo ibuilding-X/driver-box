@@ -121,7 +121,7 @@ func (dlt *Dlt645ClientProvider) SendRawFrame(request string) (response float64,
 	if err != nil {
 		_ = dlt.close()
 		helper.Logger.Error("dlt645 write port failed", zap.Error(err))
-		return
+		return 0, err
 	}
 
 	var data [rtuAduMaxSize]byte
@@ -132,7 +132,7 @@ func (dlt *Dlt645ClientProvider) SendRawFrame(request string) (response float64,
 	sum, _ := io.ReadFull(dlt.port, data[:])
 	backData := fmt.Sprintf("[% x]", data[0:sum])
 
-	return analysis(dlt, backData), nil
+	return analysis(dlt, backData)
 }
 
 // 把字符串转换成字节数组

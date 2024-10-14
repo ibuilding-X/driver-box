@@ -157,6 +157,8 @@ func multiplyWithFloat64(value interface{}, scale float64) (float64, error) {
 	switch v := value.(type) {
 	case float64:
 		return v * scale, nil
+	case int:
+		return float64(v) * scale, nil
 	case int16:
 		return float64(v) * scale, nil
 	case uint16:
