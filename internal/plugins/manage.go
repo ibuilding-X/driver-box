@@ -45,10 +45,10 @@ type manager struct {
 // 注册自定义插件
 func (m *manager) Register(name string, plugin plugin.Plugin) error {
 	if _, ok := m.plugins.Load(name); ok {
-		panic("plugin:" + name + " is exists")
-	} else {
-		m.plugins.Store(name, plugin)
+		fmt.Printf("plugin %s already exists, replace it", name)
 	}
+	fmt.Printf("register plugin: %s\n", name)
+	m.plugins.Store(name, plugin)
 	return nil
 }
 
