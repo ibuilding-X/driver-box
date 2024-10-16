@@ -10,6 +10,7 @@ import (
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -42,7 +43,7 @@ type connector struct {
 	virtual bool
 
 	//写操作信号量
-	writeSemaphore int64
+	writeSemaphore atomic.Int32
 }
 
 // Initialize 插件初始化
