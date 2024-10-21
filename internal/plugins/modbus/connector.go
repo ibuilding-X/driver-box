@@ -17,7 +17,6 @@ import (
 	"math"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"time"
 )
 
@@ -89,7 +88,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 				}
 
 				//写操作优先
-				if atomic.LoadInt64(&c.writeSemaphore) > 0 {
+				if c.writeSemaphore.Load() > 0 {
 					helper.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.ConnectionKey), zap.Any("semaphore", c.writeSemaphore))
 					continue
 				}
@@ -250,7 +249,8 @@ func (c *connector) ensureInterval() {
 
 func (c *connector) sendReadCommand(group *pointGroup) error {
 	//存在写指令，读操作临时避让，同时提升下一次读优先级
-	if atomic.LoadInt64(&c.writeSemaphore) > 0 {
+
+	if c.writeSemaphore.Load() > 0 {
 		c.resetCollectTime(group)
 		logger.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.ConnectionKey), zap.Any("semaphore", c.writeSemaphore))
 		return nil
@@ -403,8 +403,8 @@ func mergeBitsIntoUint16(num int, startPos, bitCount uint8, regValue uint16) uin
 }
 
 func (c *connector) sendWriteCommand(pc *writeValue) error {
-	atomic.AddInt64(&c.writeSemaphore, 1)
-	defer atomic.AddInt64(&c.writeSemaphore, -1)
+	c.writeSemaphore.Add(1)
+	defer c.writeSemaphore.Add(-1)
 	var err error
 	for i := 0; i < c.config.Retry; i++ {
 		if c.virtual {
