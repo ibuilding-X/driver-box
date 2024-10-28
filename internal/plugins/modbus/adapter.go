@@ -180,7 +180,7 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 		switch strings.ToUpper(ext.RawType) {
 		case strings.ToUpper(common.ValueTypeInt16):
 		case strings.ToUpper(common.ValueTypeUint16):
-			v, err := strconv.ParseInt(valueStr, 10, 16)
+			v, err := strconv.ParseUint(valueStr, 10, 16)
 			if err != nil {
 				return writeValue{}, fmt.Errorf("convert value %v to int16 error: %v", value, err)
 			}
