@@ -5,15 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
+	"sort"
+	"strconv"
+	"strings"
+
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
-	"math"
-	"sort"
-	"strconv"
-	"strings"
 )
 
 // Decode 解码数据
@@ -206,7 +207,7 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 				for _, writeVal := range writeValues {
 					if writeVal.Address == ext.Address && writeVal.RegisterType == ext.RegisterType && len(writeVal.Value) == 1 {
 						helper.Logger.Info("merge bits", zap.Uint16("preValue", writeVal.Value[0]), zap.Uint16("bitValue", intoUint16), zap.Uint16("finalValue", writeVal.Value[0]|intoUint16))
-						writeVal.Value[0] = writeVal.Value[0] | intoUint16
+						writeVal.Value[0] = (writeVal.Value[0] & ^(((1 << ext.BitLen) - 1) << ext.Bit)) | intoUint16
 						return writeValue{}, nil
 					}
 				}
