@@ -206,8 +206,9 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 				// 如果之前已经写入过，则合并
 				for _, writeVal := range writeValues {
 					if writeVal.Address == ext.Address && writeVal.RegisterType == ext.RegisterType && len(writeVal.Value) == 1 {
-						helper.Logger.Info("merge bits", zap.Uint16("preValue", writeVal.Value[0]), zap.Uint16("bitValue", intoUint16), zap.Uint16("finalValue", writeVal.Value[0]|intoUint16))
+						helper.Logger.Info("merge bits", zap.Uint16("preValue", writeVal.Value[0]), zap.Uint16("bitValue", intoUint16))
 						writeVal.Value[0] = (writeVal.Value[0] & ^(((1 << ext.BitLen) - 1) << ext.Bit)) | (intoUint16 & (((1 << ext.BitLen) - 1) << ext.Bit))
+						helper.Logger.Info("merge bits result", zap.Uint16("finalVal", writeVal.Value[0]))
 						return writeValue{}, nil
 					}
 				}
