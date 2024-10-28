@@ -5,15 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
+	"sort"
+	"strconv"
+	"strings"
+
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
-	"math"
-	"sort"
-	"strconv"
-	"strings"
 )
 
 // Decode 解码数据
@@ -97,9 +98,13 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 func (c *connector) batchWriteEncode(deviceId string, points []plugin.PointData) ([]*writeValue, error) {
 	values := make([]*writeValue, 0)
 	for _, p := range points {
-		wv, err := c.getWriteValue(deviceId, p)
+		wv, err := c.getWriteValue(deviceId, p, values)
 		if err != nil {
 			return values, err
+		}
+		//发生点位合并，跳过
+		if wv.unitID == 0 {
+			continue
 		}
 		values = append(values, &wv)
 	}
@@ -143,7 +148,7 @@ func (c *connector) batchWriteEncode(deviceId string, points []plugin.PointData)
 	}
 	return mergedValues, nil
 }
-func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData) (writeValue, error) {
+func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, writeValues []*writeValue) (writeValue, error) {
 	value := pointData.Value
 	d, ok := helper.CoreCache.GetDevice(deviceId)
 	if !ok {
@@ -174,40 +179,9 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData) (
 	case HoldingRegister:
 		valueStr := fmt.Sprintf("%v", value)
 		switch strings.ToUpper(ext.RawType) {
+		case strings.ToUpper(common.ValueTypeInt16):
 		case strings.ToUpper(common.ValueTypeUint16):
 			v, err := strconv.ParseUint(valueStr, 10, 16)
-			if err != nil {
-				return writeValue{}, fmt.Errorf("convert value %v to uint16 error: %v", value, err)
-			}
-			// TODO: 位写
-			if ext.BitLen > 0 {
-				if v > (1<<ext.BitLen - 1) {
-					return writeValue{}, fmt.Errorf("too large value %v to set in %d bits", v, ext.BitLen)
-				}
-				uint16s, err := c.read(unitId, string(ext.RegisterType), ext.Address, ext.Quantity)
-				uint16Val := uint16s[0]
-				if ext.ByteSwap {
-					uint16Val = (uint16Val << 8) | (uint16Val >> 8)
-				}
-				if err != nil {
-					return writeValue{}, fmt.Errorf("read original register error: %v", err)
-				}
-				intoUint16 := mergeBitsIntoUint16(int(v), ext.Bit, ext.BitLen, uint16Val)
-				if ext.ByteSwap {
-					intoUint16 = (intoUint16 << 8) | (intoUint16 >> 8)
-				}
-				values = []uint16{intoUint16}
-				break
-			}
-			out := make([]byte, 2)
-			if ext.ByteSwap {
-				binary.LittleEndian.PutUint16(out, uint16(v))
-			} else {
-				binary.BigEndian.PutUint16(out, uint16(v))
-			}
-			values = []uint16{binary.BigEndian.Uint16(out)}
-		case strings.ToUpper(common.ValueTypeInt16):
-			v, err := strconv.ParseInt(valueStr, 10, 16)
 			if err != nil {
 				return writeValue{}, fmt.Errorf("convert value %v to int16 error: %v", value, err)
 			}
@@ -228,6 +202,15 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData) (
 				intoUint16 := mergeBitsIntoUint16(int(v), ext.Bit, ext.BitLen, uint16Val)
 				if ext.ByteSwap {
 					intoUint16 = (intoUint16 << 8) | (intoUint16 >> 8)
+				}
+				// 如果之前已经写入过，则合并
+				for _, writeVal := range writeValues {
+					if writeVal.Address == ext.Address && writeVal.RegisterType == ext.RegisterType && len(writeVal.Value) == 1 {
+						helper.Logger.Info("merge bits", zap.Uint16("preValue", writeVal.Value[0]), zap.Uint16("bitValue", intoUint16))
+						writeVal.Value[0] = (writeVal.Value[0] & ^(((1 << ext.BitLen) - 1) << ext.Bit)) | (intoUint16 & (((1 << ext.BitLen) - 1) << ext.Bit))
+						helper.Logger.Info("merge bits result", zap.Uint16("finalVal", writeVal.Value[0]))
+						return writeValue{}, nil
+					}
 				}
 				values = []uint16{intoUint16}
 				break
