@@ -191,12 +191,12 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 					return writeValue{}, fmt.Errorf("negative value %v not allowed to set in bits", v)
 				}
 				uint16s, err := c.read(unitId, string(ext.RegisterType), ext.Address, ext.Quantity)
+				if err != nil {
+					return writeValue{}, fmt.Errorf("read original register error: %v", err)
+				}
 				uint16Val := uint16s[0]
 				if ext.ByteSwap {
 					uint16Val = (uint16Val << 8) | (uint16Val >> 8)
-				}
-				if err != nil {
-					return writeValue{}, fmt.Errorf("read original register error: %v", err)
 				}
 				intoUint16 := mergeBitsIntoUint16(int(v), ext.Bit, ext.BitLen, uint16Val)
 				if ext.ByteSwap {
