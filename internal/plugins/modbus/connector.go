@@ -205,7 +205,10 @@ func (c *connector) Send(data interface{}) (err error) {
 	case plugin.WriteMode:
 		values := cmd.Value.([]*writeValue)
 		for _, value := range values {
-			err = c.sendWriteCommand(value)
+			// fix: 修复错误信息可能会被覆盖问题，当前版本仅返回最后一次执行错误信息
+			if e := c.sendWriteCommand(value); e != nil {
+				err = e
+			}
 		}
 	case BatchReadMode:
 		groups := cmd.Value.([]*pointGroup)
@@ -248,6 +251,10 @@ func (c *connector) ensureInterval() {
 }
 
 func (c *connector) sendReadCommand(group *pointGroup) error {
+	if group.Quantity == 0 {
+		return errors.New("read quantity is zero")
+	}
+
 	//存在写指令，读操作临时避让，同时提升下一次读优先级
 
 	if c.writeSemaphore.Load() > 0 {
@@ -403,6 +410,11 @@ func mergeBitsIntoUint16(num int, startPos, bitCount uint8, regValue uint16) uin
 }
 
 func (c *connector) sendWriteCommand(pc *writeValue) error {
+	// fix：当写入数据长度为 0 时，直接返回错误
+	if len(pc.Value) == 0 {
+		return errors.New("write data is empty")
+	}
+
 	c.writeSemaphore.Add(1)
 	defer c.writeSemaphore.Add(-1)
 	var err error
@@ -573,14 +585,27 @@ func (c *connector) write(slaveID uint8, registerType primaryTable, address uint
 	c.ensureInterval()
 	switch registerType {
 	case Coil:
+		// fix: 单线圈和多线圈采用不同的功能码
 		bools := uint16SliceToBool(values)
-		err = c.client.WriteCoils(address, bools)
+		if len(bools) == 0 {
+			return
+		}
+		if len(bools) == 1 {
+			return c.client.WriteCoil(address, bools[0])
+		}
+		return c.client.WriteCoils(address, bools)
 	case HoldingRegister:
-		err = c.client.WriteRegisters(address, values)
+		// fix：单寄存器和多寄存器采用不同的功能码
+		if len(values) == 0 {
+			return
+		}
+		if len(values) == 1 {
+			return c.client.WriteRegister(address, values[0])
+		}
+		return c.client.WriteRegisters(address, values)
 	default:
 		return common.UnsupportedWriteCommandRegisterType
 	}
-	return
 }
 
 func convToPointExtend(extends map[string]interface{}) (*Point, error) {
