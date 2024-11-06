@@ -379,5 +379,6 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 		RegisterType: ext.RegisterType,
 		Address:      ext.Address,
 		Value:        values,
+		MultiWrite:   ext.MultiWrite,
 	}, nil
 }

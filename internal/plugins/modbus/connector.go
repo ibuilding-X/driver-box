@@ -422,7 +422,7 @@ func (c *connector) sendWriteCommand(pc *writeValue) error {
 		if c.virtual {
 			err = c.mockWrite(pc.unitID, pc.RegisterType, pc.Address, pc.Value)
 		} else {
-			err = c.write(pc.unitID, pc.RegisterType, pc.Address, pc.Value)
+			err = c.write(pc)
 		}
 		if err == nil {
 			break
@@ -572,7 +572,11 @@ func uint16SliceToBool(arr []uint16) []bool {
 }
 
 // write 写操作
-func (c *connector) write(slaveID uint8, registerType primaryTable, address uint16, values []uint16) (err error) {
+func (c *connector) write(wv *writeValue) (err error) {
+	slaveID := wv.unitID
+	registerType := wv.RegisterType
+	address := wv.Address
+	values := wv.Value
 	err = c.openModbusClient()
 	if err != nil {
 		return err
@@ -599,7 +603,7 @@ func (c *connector) write(slaveID uint8, registerType primaryTable, address uint
 		if len(values) == 0 {
 			return
 		}
-		if len(values) == 1 {
+		if len(values) == 1 && !wv.MultiWrite {
 			return c.client.WriteRegister(address, values[0])
 		}
 		return c.client.WriteRegisters(address, values)

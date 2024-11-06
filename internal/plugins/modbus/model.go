@@ -44,12 +44,14 @@ type Point struct {
 	Address      uint16
 	RegisterType primaryTable `json:"primaryTable"`
 	//该配置无需设置
-	Quantity uint16 `json:"quantity"`
+	Quantity uint16 `json:"-"`
 	Bit      uint8  `json:"bit"`
 	BitLen   uint8  `json:"bitLen"`
 	RawType  string `json:"rawType"`
 	ByteSwap bool   `json:"byteSwap"`
 	WordSwap bool   `json:"wordSwap"`
+	//写操作是否强制要求多寄存器写接口。某些设备点位虽然只占据一个寄存器地址，但要求采用多寄存器写接口
+	MultiWrite bool `json:"multiWrite"`
 }
 
 // 采集组
@@ -87,8 +89,10 @@ type command struct {
 // 写操作时 command的value类型
 type writeValue struct {
 	// 从机地址
-	unitID       uint8
-	Address      uint16
-	Value        []uint16
+	unitID  uint8
+	Address uint16
+	Value   []uint16
+	//写操作是否强制要求多寄存器写接口
+	MultiWrite   bool
 	RegisterType primaryTable `json:"primaryTable"`
 }
