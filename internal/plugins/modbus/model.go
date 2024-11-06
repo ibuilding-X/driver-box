@@ -50,7 +50,7 @@ type Point struct {
 	RawType  string `json:"rawType"`
 	ByteSwap bool   `json:"byteSwap"`
 	WordSwap bool   `json:"wordSwap"`
-	//写操作是否强制要求多寄存器写接口
+	//写操作是否强制要求多寄存器写接口。某些设备点位虽然只占据一个寄存器地址，但要求采用多寄存器写接口
 	MultiWrite bool `json:"multiWrite"`
 }
 
