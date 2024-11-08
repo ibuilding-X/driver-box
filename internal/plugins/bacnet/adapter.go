@@ -40,25 +40,27 @@ type bacWriteCmd struct {
 
 // Encode 编码
 func (a *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
-	if len(values) != 1 {
-		return nil, common.NotSupportEncode
-	}
-	value := values[0]
 	device, ok := helper.CoreCache.GetDevice(deviceSn)
 	if !ok {
 		return nil, common.DeviceNotFoundError
 	}
 	deviceId := device.Properties["id"]
-	point, ok := helper.CoreCache.GetPointByDevice(deviceSn, value.PointName)
-	if !ok {
-		return nil, common.PointNotFoundError
-	}
-	var ext extends
-	if err = helper.Map2Struct(point.Extends, &ext); err != nil {
-		return nil, err
-	}
+
 	switch mode {
 	case plugin.ReadMode:
+		if len(values) != 1 {
+			return nil, common.NotSupportEncode
+		}
+		value := values[0]
+		point, ok := helper.CoreCache.GetPointByDevice(deviceSn, value.PointName)
+		if !ok {
+			return nil, common.PointNotFoundError
+		}
+		var ext extends
+		if err = helper.Map2Struct(point.Extends, &ext); err != nil {
+			return nil, err
+		}
+
 		if req, err := createReadReq(deviceSn, value.PointName, ext); err == nil {
 			return bacRequest{
 				req:      req,
@@ -69,64 +71,67 @@ func (a *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 			return nil, err
 		}
 	case plugin.WriteMode:
-		var bwc bacWriteCmd
-		v, ok := value.Value.(string)
-		if !ok || v == "" || json.Unmarshal([]byte(v), &bwc) != nil {
-			bwc.Value = value.Value
-			bwc.Priority = ext.DefaultPriority
-			bwc.NullValue = ext.DefaultNull
-		}
-		bwc.PointName = value.PointName
-		bwc.ModelName = device.ModelName
-		if a.scriptExists() {
-			bytes, err := json.Marshal(bwc)
-			if err != nil {
+		writeReqs := make([]*network.Write, 0)
+		for _, value := range values {
+			point, ok := helper.CoreCache.GetPointByDevice(deviceSn, value.PointName)
+			if !ok {
+				return nil, common.PointNotFoundError
+			}
+			var ext extends
+			if err = helper.Map2Struct(point.Extends, &ext); err != nil {
 				return nil, err
 			}
-			result, err := helper.CallLuaEncodeConverter(a.ls, deviceSn, string(bytes))
-			err = json.Unmarshal([]byte(result), &bwc)
-			if err != nil {
-				return nil, err
+			var bwc bacWriteCmd
+			v, ok := value.Value.(string)
+			if !ok || v == "" || json.Unmarshal([]byte(v), &bwc) != nil {
+				bwc.Value = value.Value
+				bwc.Priority = ext.DefaultPriority
+				bwc.NullValue = ext.DefaultNull
 			}
-		}
-		//是否存在前置操作
-		if len(bwc.PreOp) > 0 {
-			for _, op := range bwc.PreOp {
-				helper.Logger.Info("Send preOp", zap.String("deviceId", deviceSn), zap.String("pointName", op.PointName), zap.Any("value", op.Value))
-				err = core.SendSinglePoint(deviceSn, plugin.WriteMode, plugin.PointData{
-					PointName: op.PointName,
-					Value:     op.Value,
-				})
+			bwc.PointName = value.PointName
+			bwc.ModelName = device.ModelName
+			if a.scriptExists() {
+				bytes, err := json.Marshal(bwc)
+				if err != nil {
+					return nil, err
+				}
+				result, err := helper.CallLuaEncodeConverter(a.ls, deviceSn, string(bytes))
+				err = json.Unmarshal([]byte(result), &bwc)
 				if err != nil {
 					return nil, err
 				}
 			}
+			//是否存在前置操作
+			if len(bwc.PreOp) > 0 {
+				for _, op := range bwc.PreOp {
+					helper.Logger.Info("Send preOp", zap.String("deviceId", deviceSn), zap.String("pointName", op.PointName), zap.Any("value", op.Value))
+					err = core.SendSinglePoint(deviceSn, plugin.WriteMode, plugin.PointData{
+						PointName: op.PointName,
+						Value:     op.Value,
+					})
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+
+			err = bwc.transformData(ext.ObjType)
+			if err != nil {
+				return nil, err
+			}
+			if req, err := createWriteReq(bwc, ext); err == nil {
+				req.DeviceId = deviceSn
+				req.PointName = bwc.PointName
+				writeReqs = append(writeReqs, req)
+			} else {
+				return nil, err
+			}
 		}
-		// begin--临时bugfix
-		point, ok = helper.CoreCache.GetPointByDevice(deviceSn, bwc.PointName)
-		if !ok {
-			return nil, common.PointNotFoundError
-		}
-		var ext extends
-		if err = helper.Map2Struct(point.Extends, &ext); err != nil {
-			return nil, err
-		}
-		// end--临时bugfix
-		err = bwc.transformData(ext.ObjType)
-		if err != nil {
-			return nil, err
-		}
-		if req, err := createWriteReq(bwc, ext); err == nil {
-			req.DeviceId = deviceSn
-			req.PointName = bwc.PointName
-			return bacRequest{
-				req:      req,
-				mode:     mode,
-				deviceId: deviceId,
-			}, nil
-		} else {
-			return nil, err
-		}
+		return bacRequest{
+			req:      writeReqs,
+			mode:     mode,
+			deviceId: deviceId,
+		}, nil
 	default:
 		return nil, common.NotSupportEncode
 	}

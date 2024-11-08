@@ -240,14 +240,21 @@ func (c *connector) Send(raw interface{}) (err error) {
 			}
 		}
 	case plugin.WriteMode:
-		write := br.req.(*network.Write)
-		if c.virtual {
-			return mockWrite(c.plugin.ls, write.DeviceId, write.PointName, write.WriteValue)
+		writes := br.req.([]*network.Write)
+		for _, write := range writes {
+			if c.virtual {
+				err = mockWrite(c.plugin.ls, write.DeviceId, write.PointName, write.WriteValue)
+				if err != nil {
+					helper.Logger.Error("mock write error", zap.Error(err))
+				}
+			} else {
+				err = device.device.Write(write)
+				if err != nil {
+					c.plugin.logger.Error(fmt.Sprintf("write error: %s", err.Error()))
+				}
+			}
 		}
-		if err := device.device.Write(write); err != nil {
-			c.plugin.logger.Error(fmt.Sprintf("write error: %s", err.Error()))
-			return err
-		}
+
 	default:
 		return common.NotSupportMode
 	}
