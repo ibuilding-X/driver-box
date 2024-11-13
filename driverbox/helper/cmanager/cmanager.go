@@ -259,6 +259,8 @@ func (m *manager) LoadConfig() error {
 			logger.Logger.Error("parse config from file error", zap.String("path", path), zap.Error(err))
 			return err
 		}
+		// fix：填充配置文件 Key 字段
+		c.Key = dirs[i]
 		if preConfig, ok := protocols[c.ProtocolName]; ok {
 			return fmt.Errorf("protocol:%s is repeated, prePath: %s, curPath: %s", c.ProtocolName, preConfig, path)
 		}
@@ -567,6 +569,8 @@ func (m *manager) addConfig(c config.Config) error {
 
 	// 新增配置
 	dirName := m.generateDirName(c.ProtocolName)
+	// fix：填充配置文件 Key 字段
+	c.Key = dirName
 	m.configs[dirName] = c.UpdateIndexAndClean()
 	return m.saveConfig(dirName)
 }
