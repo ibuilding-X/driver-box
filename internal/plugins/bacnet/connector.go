@@ -13,7 +13,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/network"
 	"github.com/spf13/cast"
-	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 	"net"
 	"time"
@@ -24,11 +23,9 @@ const (
 )
 
 type connector struct {
-	key       string
-	scriptDir string // 脚本目录名称
-	ls        *lua.LState
-	plugin    *Plugin
-	network   *network.Network
+	key     string
+	plugin  *Plugin
+	network *network.Network
 	//通讯设备集合
 	devices map[string]*device
 	//当前连接的定时扫描任务
@@ -417,12 +414,10 @@ func initConnector(key string, config map[string]interface{}, p *Plugin) (*conne
 				n.NetworkRun()
 
 				c := &connector{
-					key:       key,
-					network:   n,
-					plugin:    p,
-					devices:   make(map[string]*device),
-					scriptDir: p.config.Key,
-					ls:        p.ls,
+					key:     key,
+					network: n,
+					plugin:  p,
+					devices: make(map[string]*device),
 				}
 				//启动数据采集任务
 				err = c.initCollectTask(&bic)

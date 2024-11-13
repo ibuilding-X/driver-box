@@ -93,7 +93,7 @@ func (a *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 				if err != nil {
 					return nil, err
 				}
-				result, err := helper.CallLuaEncodeConverter(a.ls, deviceSn, string(bytes))
+				result, err := helper.CallLuaEncodeConverter(a.plugin.ls, deviceSn, string(bytes))
 				err = json.Unmarshal([]byte(result), &bwc)
 				if err != nil {
 					return nil, err
@@ -220,7 +220,7 @@ func validObjType(objType string) bool {
 // Decode 解码
 func (a *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
 	if helper.ScriptExists(a.plugin.config.Key) {
-		return helper.CallLuaConverter(a.ls, "decode", raw)
+		return helper.CallLuaConverter(a.plugin.ls, "decode", raw)
 	} else {
 		rawJson := raw.(string)
 		var resp readResponse
