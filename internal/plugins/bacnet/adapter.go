@@ -12,8 +12,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/network"
 	"github.com/spf13/cast"
 	"go.uber.org/zap"
-	"os"
-	"path/filepath"
 )
 
 type bacRequest struct {
@@ -90,7 +88,7 @@ func (a *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 			}
 			bwc.PointName = value.PointName
 			bwc.ModelName = device.ModelName
-			if a.scriptExists() {
+			if helper.ScriptExists(a.plugin.config.Key) {
 				bytes, err := json.Marshal(bwc)
 				if err != nil {
 					return nil, err
@@ -221,7 +219,7 @@ func validObjType(objType string) bool {
 
 // Decode 解码
 func (a *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
-	if a.scriptExists() {
+	if helper.ScriptExists(a.plugin.config.Key) {
 		return helper.CallLuaConverter(a.ls, "decode", raw)
 	} else {
 		rawJson := raw.(string)
@@ -242,11 +240,4 @@ func (a *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error)
 	}
 
 	return
-}
-
-// scriptExists 判断lua脚本是否存在
-func (a *connector) scriptExists() bool {
-	scriptPath := filepath.Join(helper.EnvConfig.ConfigPath, a.scriptDir, common.LuaScriptName)
-	_, err := os.Stat(scriptPath)
-	return err == nil
 }
