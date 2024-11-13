@@ -37,7 +37,7 @@ type bacWriteCmd struct {
 }
 
 // Encode 编码
-func (a *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
+func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
 	device, ok := helper.CoreCache.GetDevice(deviceSn)
 	if !ok {
 		return nil, common.DeviceNotFoundError
@@ -88,12 +88,12 @@ func (a *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 			}
 			bwc.PointName = value.PointName
 			bwc.ModelName = device.ModelName
-			if helper.ScriptExists(a.plugin.config.Key) {
+			if c.plugin.ls != nil {
 				bytes, err := json.Marshal(bwc)
 				if err != nil {
 					return nil, err
 				}
-				result, err := helper.CallLuaEncodeConverter(a.plugin.ls, deviceSn, string(bytes))
+				result, err := helper.CallLuaEncodeConverter(c.plugin.ls, deviceSn, string(bytes))
 				err = json.Unmarshal([]byte(result), &bwc)
 				if err != nil {
 					return nil, err
@@ -218,9 +218,9 @@ func validObjType(objType string) bool {
 }
 
 // Decode 解码
-func (a *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
-	if helper.ScriptExists(a.plugin.config.Key) {
-		return helper.CallLuaConverter(a.plugin.ls, "decode", raw)
+func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
+	if c.plugin.ls != nil {
+		return helper.CallLuaConverter(c.plugin.ls, "decode", raw)
 	} else {
 		rawJson := raw.(string)
 		var resp readResponse
