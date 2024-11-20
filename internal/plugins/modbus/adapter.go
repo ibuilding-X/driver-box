@@ -5,20 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
-	"sort"
-	"strconv"
-	"strings"
-	"sync"
-
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
+	"math"
+	"sort"
+	"strconv"
+	"strings"
 )
-
-var writeEncodeMu sync.Mutex
 
 // Decode 解码数据
 func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
@@ -50,7 +46,7 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 	if mode == plugin.WriteMode {
 		writeValues, err := c.batchWriteEncode(deviceId, values)
 		if err != nil {
-			writeEncodeMu.Unlock()
+			c.writeEncodeMu.Unlock()
 		}
 		return command{
 			Mode:  plugin.WriteMode,
@@ -102,7 +98,7 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 }
 
 func (c *connector) batchWriteEncode(deviceId string, points []plugin.PointData) ([]*writeValue, error) {
-	writeEncodeMu.Lock()
+	c.writeEncodeMu.Lock()
 
 	values := make([]*writeValue, 0)
 	for _, p := range points {

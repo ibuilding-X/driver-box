@@ -44,6 +44,8 @@ type connector struct {
 
 	//写操作信号量
 	writeSemaphore atomic.Int32
+
+	writeEncodeMu sync.Mutex
 }
 
 // Initialize 插件初始化
