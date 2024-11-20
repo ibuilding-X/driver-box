@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
@@ -16,6 +17,8 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 )
+
+var writeEncodeMu sync.Mutex
 
 // Decode 解码数据
 func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
@@ -96,6 +99,9 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 }
 
 func (c *connector) batchWriteEncode(deviceId string, points []plugin.PointData) ([]*writeValue, error) {
+	writeEncodeMu.Lock()
+	defer writeEncodeMu.Unlock()
+
 	values := make([]*writeValue, 0)
 	for _, p := range points {
 		wv, err := c.getWriteValue(deviceId, p, values)
