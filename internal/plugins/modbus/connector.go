@@ -203,6 +203,7 @@ func (c *connector) Send(data interface{}) (err error) {
 		group := cmd.Value.(*pointGroup)
 		err = c.sendReadCommand(group)
 	case plugin.WriteMode:
+		defer writeEncodeMu.Unlock()
 		values := cmd.Value.([]*writeValue)
 		for _, value := range values {
 			// fix: 修复错误信息可能会被覆盖问题，当前版本仅返回最后一次执行错误信息
