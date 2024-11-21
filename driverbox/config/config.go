@@ -27,6 +27,9 @@ const (
 
 	//镜像设备功能是否可用
 	ENV_EXPORT_DISCOVER_ENABLED = "EXPORT_DISCOVER_ENABLED"
+
+	//driver-box默认UI是否可用
+	ENV_EXPORT_UI_ENABLED = "EXPORT_UI_ENABLED"
 )
 
 // 点位上报模式

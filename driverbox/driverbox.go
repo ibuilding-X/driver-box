@@ -5,6 +5,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/export"
+	"github.com/ibuilding-x/driver-box/driverbox/export/ui"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -47,7 +48,7 @@ func Start(exports []export.Export) error {
 
 	//第四步：启动Export
 
-	export0.Exports = []export.Export{linkedge.NewExport(), mirror.NewExport(), discover.NewExport()}
+	export0.Exports = []export.Export{linkedge.NewExport(), mirror.NewExport(), discover.NewExport(), ui.NewExport()}
 	export0.Exports = append(export0.Exports, exports...)
 
 	for _, item := range export0.Exports {
