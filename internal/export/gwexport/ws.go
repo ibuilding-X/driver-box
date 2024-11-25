@@ -22,9 +22,10 @@ var (
 
 // websocketService websocket 服务（提供 websocket 所需的所有服务功能，并非仅仅启动 websocket 服务端）
 type websocketService struct {
-	upGrader    websocket.Upgrader
-	mainGateway string // 主网关 Key
-	mu          sync.Mutex
+	upGrader        websocket.Upgrader
+	mainGateway     string          // 主网关 Key
+	mainGatewayConn *websocket.Conn // 主网关连接
+	mu              sync.Mutex
 }
 
 // Start 启动 websocket 服务
@@ -73,7 +74,7 @@ func (wss *websocketService) handleMessage(conn *websocket.Conn, message []byte)
 	switch payload.Type {
 	case dto.WSForRegister: // 网关注册
 		res.Type = dto.WSForRegisterRes
-		if err := wss.gatewayRegister(payload); err != nil {
+		if err := wss.gatewayRegister(conn, payload); err != nil {
 			res.Error = err.Error()
 		}
 	case dto.WSForPing: // 心跳
@@ -85,7 +86,7 @@ func (wss *websocketService) handleMessage(conn *websocket.Conn, message []byte)
 		}
 	case dto.WSForUnregister: // 网关注销
 		res.Type = dto.WSForUnregisterRes
-		if err := wss.gatewayUnregister(payload); err != nil {
+		if err := wss.gatewayUnregister(conn, payload); err != nil {
 			res.Error = err.Error()
 		}
 	default:
@@ -114,12 +115,31 @@ func (wss *websocketService) syncDevices() {
 
 // sendDeviceData 发送设备数据（包含点位、事件等）
 func (wss *websocketService) sendDeviceData(data plugin.DeviceData) {
-	// todo something
+	if data.ID == "" {
+		return
+	}
+
+	if len(data.Values) == 0 && len(data.Events) == 0 {
+		return
+	}
+
+	// 汇总数据
+	var sendData dto.WSPayload
+	sendData.Type = dto.WSForReport
+	sendData.Points = data.Values
+	sendData.Events = data.Events
+
+	// 发送数据
+	if wss.mainGateway != "" && wss.mainGatewayConn != nil {
+		if err := wss.mainGatewayConn.WriteJSON(sendData); err != nil {
+			helper.Logger.Error("gateway export send device data error", zap.Error(err))
+		}
+	}
 }
 
 // gatewayRegister 处理网关注册
 // 提示：主动释放 ws 连接逻辑放在客户端处理，服务端暂时不做处理
-func (wss *websocketService) gatewayRegister(payload dto.WSPayload) error {
+func (wss *websocketService) gatewayRegister(conn *websocket.Conn, payload dto.WSPayload) error {
 	if payload.GatewayKey == "" {
 		return errGatewayKey
 	}
@@ -132,8 +152,9 @@ func (wss *websocketService) gatewayRegister(payload dto.WSPayload) error {
 		return errRegistered
 	}
 
-	// 记录主网关 Key
+	// 记录主网关信息
 	wss.mainGateway = payload.GatewayKey
+	wss.mainGatewayConn = conn
 
 	return nil
 }
@@ -145,7 +166,7 @@ func (wss *websocketService) control(payload dto.WSPayload) error {
 }
 
 // gatewayUnregister 处理网关注销
-func (wss *websocketService) gatewayUnregister(payload dto.WSPayload) error {
+func (wss *websocketService) gatewayUnregister(_ *websocket.Conn, payload dto.WSPayload) error {
 	if payload.GatewayKey == "" {
 		return errGatewayKey
 	}
@@ -156,6 +177,7 @@ func (wss *websocketService) gatewayUnregister(payload dto.WSPayload) error {
 	// 取消注册
 	if wss.mainGateway != "" && wss.mainGateway == payload.GatewayKey {
 		wss.mainGateway = ""
+		wss.mainGatewayConn = nil
 	}
 
 	return nil
