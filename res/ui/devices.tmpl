@@ -17,10 +17,34 @@
             padding: 10px;
             text-align: left;
         }
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background-color: white;
+            z-index: 1000;
+            border-bottom: 1px solid #ccc;
+        }
+        .container {
+            margin-top: 80px; /* Adjust this value to prevent content from being hidden behind the fixed nav */
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <nav class="mb-4">
+            <ul class="nav">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#">设备列表</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">插件列表</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">连接列表</a>
+                </li>
+            </ul>
+        </nav>
         <h1 class="mb-4">Device List</h1>
         <table class="table table-striped">
             <thead>
@@ -29,8 +53,8 @@
                     <th>ID</th>
                     <th>Status</th>
                     <th>ModelID</th>
-                    <th>插件类型</>
-                    <th>连接标识</>
+                    <th>插件类型</th>
+                    <th>连接标识</th>
                     <th>Action</th>
                 </tr>
             </thead>

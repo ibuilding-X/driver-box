@@ -1,9 +1,14 @@
 package ui
 
 import (
+	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/julienschmidt/httprouter"
+	"go.uber.org/zap"
 	"net/http"
+	"sort"
+	"strings"
 	"text/template"
 )
 
@@ -53,39 +58,68 @@ func devices(writer http.ResponseWriter, request *http.Request, _ httprouter.Par
 }
 
 type Point struct {
-	Name        string
-	Description string
-	Value       interface{}
-	Update      string
+	config.Point
+	Value     interface{}
+	Update    string
+	Writeable bool
 }
 type DeviceDetail struct {
 	//Points []Point
 }
 
 func deviceDetail(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	shadowDevice, _ := helper.DeviceShadow.GetDevice(params.ByName("deviceId"))
+	//设备信息
+	device, _ := helper.CoreCache.GetDevice(params.ByName("deviceId"))
 
+	//点位信息
+	shadowDevice, _ := helper.DeviceShadow.GetDevice(params.ByName("deviceId"))
 	points := make([]Point, 0)
-	for _, point := range shadowDevice.Points {
-		p, _ := helper.CoreCache.GetPointByDevice(shadowDevice.ID, point.Name)
+	modelPoints, _ := helper.CoreCache.GetPoints(device.ModelName)
+	for _, point := range modelPoints {
+		p, _ := helper.DeviceShadow.GetDevicePointDetails(shadowDevice.ID, point.Name)
 		points = append(points, Point{
-			Name:        point.Name,
-			Description: p.Description,
-			Value:       point.Value,
-			Update:      point.UpdatedAt.Format("2006-01-02 15:04:05"),
+			Point:     point,
+			Value:     p.Value,
+			Update:    p.UpdatedAt.Format("2006-01-02 15:04:05"),
+			Writeable: point.ReadWrite != config.ReadWrite_R,
 		})
 	}
+	//points按name排序
+	sort.Slice(points, func(i, j int) bool {
+		return points[i].Name < points[j].Name
+	})
+
 	data := struct {
-		Device DeviceDetail
+		Device Device
 		Points []Point
 	}{
-		Device: DeviceDetail{},
+		Device: Device{
+			ID:   device.ID,
+			Name: device.Description,
+		},
 		Points: points,
 	}
 
-	t, err := template.ParseFiles("./res/ui/device_detail.tmpl")
+	vendor("./res/ui/device_detail.tmpl", writer, data)
+}
+
+func vendor(tmpl string, writer http.ResponseWriter, data interface{}) {
+	index := strings.LastIndex(tmpl, "/")
+	t, err := template.New(tmpl[index+1:]).Funcs(template.FuncMap{
+		"contains": func(s interface{}, substr string) bool {
+			return strings.Contains(s.(string), substr)
+		},
+		"eq": func(a, b interface{}) bool {
+			s1, _ := utils.Conv2String(a)
+			s2, _ := utils.Conv2String(b)
+			return s1 == s2
+		},
+	}).ParseFiles(tmpl)
 	if err != nil {
 		return
 	}
-	t.Execute(writer, data)
+	e := t.Execute(writer, data)
+	if e != nil {
+		helper.Logger.Error("vendor", zap.Error(e))
+	}
 }

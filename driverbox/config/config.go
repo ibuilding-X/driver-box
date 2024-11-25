@@ -2,6 +2,7 @@
 package config
 
 import (
+	"encoding/json"
 	"github.com/go-playground/validator/v10"
 	"os"
 )
@@ -101,6 +102,15 @@ func (pm PointMap) ToPoint() Point {
 			default:
 				p.Decimals = v.(int)
 			}
+		case "enums":
+			enums := make([]PointEnum, 0)
+			b, err := json.Marshal(v)
+			if err == nil {
+				json.Unmarshal(b, &enums)
+				p.Enums = enums
+			}
+
+			//p.Enums = v.([]PointEnum)
 		default:
 			p.Extends[key] = v
 		}
@@ -176,8 +186,20 @@ type Point struct {
 
 	//保留小数位数
 	Decimals int `json:"decimals"`
+
+	//点位枚举表
+	Enums []PointEnum `json:"enums"`
+
 	// 扩展参数
 	Extends map[string]interface{} `json:"-" validate:"-"`
+}
+type PointEnum struct {
+	//枚举名称
+	Name string `json:"name"`
+	//枚举值
+	Value interface{} `json:"value"`
+	//枚举图标：用于界面展示
+	Icon string `json:"icon"`
 }
 
 //------------------------------ 设备 ------------------------------
