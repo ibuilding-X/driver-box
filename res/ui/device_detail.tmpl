@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Device Shadow Data</title>
-    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="/ui/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="/ui/js/bootstrap.min.js" ></script>
     <style>
         body {
             padding: 20px;
@@ -23,8 +24,39 @@
 </head>
 <body>
 <div class="container">
-    <h1 class="mb-4">{{.Device.Name}}</h1>
     <a href="/ui/">返回首页</a>
+    <h1 class="mb-4">{{.Device.Name}}</h1>
+    <p>
+        <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
+            设备控制
+        </button>
+    </p>
+    <div class="collapse" id="collapseExample">
+        <div class="card card-body">
+            <form action="/ui/device/{{.Device.ID}}/points/set" method="post">
+                {{range $index,$point:=.Points}}
+                    {{if .Writeable}}
+                        <div class="form-group">
+                            <label for="{{.Name}}">{{.Name}}</label>
+                            {{if .Enums}}
+                                {{range .Enums}}
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="{{.Name}}" id="{{.Value}}"
+                                               value="{{.Value}}" {{if eq $point.Value .Value}}checked{{end}}>
+                                        <label class="form-check-label" for="{{.Value}}">{{.Name}}</label>
+                                    </div>
+                                {{end}}
+                            {{else}}
+                                <input type="text" name="{{.Name}}" class="form-control"
+                                       style="width: 100px; display: inline-block;">
+                            {{end}}
+                        </div>
+                    {{end}}
+                {{end}}
+                <button type="submit" class="btn btn-primary">下发指令</button>
+            </form>
+        </div>
+    </div>
 
     <table class="table table-striped">
         <thead>
@@ -71,7 +103,7 @@
                                        style="width: 100px; display: inline-block;">
                             {{end}}
 
-                            <button type="submit" class="btn btn-primary">提交</button>
+                            <button type="submit" class="btn btn-primary">下发指令</button>
                         </form>
                     {{else}}
                         -

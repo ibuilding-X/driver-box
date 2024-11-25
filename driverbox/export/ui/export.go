@@ -5,6 +5,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/core"
+	"net/http"
 	"os"
 	"sync"
 )
@@ -23,6 +24,9 @@ func (export *Export) Init() error {
 	}
 	core.HttpRouter.GET("/ui/", devices)
 	core.HttpRouter.GET("/ui/device/:deviceId", deviceDetail)
+	//静态资源文件
+	core.HttpRouter.ServeFiles("/ui/css/*filepath", http.Dir("./res/ui/css"))
+	core.HttpRouter.ServeFiles("/ui/js/*filepath", http.Dir("./res/ui/js"))
 	export.ready = true
 	return nil
 }
