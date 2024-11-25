@@ -3,7 +3,6 @@ package gwexport
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"go.uber.org/atomic"
 )
 
 type gatewayExport struct {
@@ -33,8 +32,6 @@ func (g *gatewayExport) IsReady() bool {
 
 func New() export.Export {
 	return &gatewayExport{
-		wss: &websocketService{
-			parentGatewayKey: atomic.NewString(""),
-		},
+		wss: &websocketService{},
 	}
 }

@@ -7,9 +7,9 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/dto"
-	"go.uber.org/atomic"
 	"go.uber.org/zap"
 	"net/http"
+	"sync"
 )
 
 // WebSocketPath websocket 服务路径
@@ -22,8 +22,9 @@ var (
 
 // websocketService websocket 服务（提供 websocket 所需的所有服务功能，并非仅仅启动 websocket 服务端）
 type websocketService struct {
-	upGrader         websocket.Upgrader
-	parentGatewayKey *atomic.String // 主网关 Key
+	upGrader    websocket.Upgrader
+	mainGateway string // 主网关 Key
+	mu          sync.Mutex
 }
 
 // Start 启动 websocket 服务
@@ -55,6 +56,7 @@ func (wss *websocketService) handler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// ws 连接关闭
 	helper.Logger.Warn("gateway export ws close", zap.String("addr", conn.RemoteAddr().String()))
 }
 
@@ -65,33 +67,36 @@ func (wss *websocketService) handleMessage(conn *websocket.Conn, message []byte)
 		return err
 	}
 
+	// 响应结构体
+	var res dto.WSPayload
+
 	switch payload.Type {
 	case dto.WSForRegister: // 网关注册
-		return wss.gatewayRegister(payload)
+		res.Type = dto.WSForRegisterRes
+		if err := wss.gatewayRegister(payload); err != nil {
+			res.Error = err.Error()
+		}
 	case dto.WSForPing: // 心跳
-		_ = conn.WriteJSON(dto.WSPayload{Type: dto.WSForPong})
+		res.Type = dto.WSForPong
 	case dto.WSForControl: // 控制指令
-		errMsg := ""
+		res.Type = dto.WSForControlRes
 		if err := wss.control(payload); err != nil {
-			errMsg = err.Error()
+			res.Error = err.Error()
 		}
-
-		_ = conn.WriteJSON(dto.WSPayload{
-			Type:  dto.WSForControlRes,
-			Error: errMsg,
-		})
 	case dto.WSForUnregister: // 网关注销
-		errMsg := ""
+		res.Type = dto.WSForUnregisterRes
 		if err := wss.gatewayUnregister(payload); err != nil {
-			errMsg = err.Error()
+			res.Error = err.Error()
 		}
-
-		_ = conn.WriteJSON(dto.WSPayload{
-			Type:  dto.WSForUnregisterRes,
-			Error: errMsg,
-		})
 	default:
 		return nil
+	}
+
+	// 发送响应消息
+	if res.Type != 0 {
+		if err := conn.WriteJSON(res); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -113,12 +118,22 @@ func (wss *websocketService) sendDeviceData(data plugin.DeviceData) {
 }
 
 // gatewayRegister 处理网关注册
+// 提示：主动释放 ws 连接逻辑放在客户端处理，服务端暂时不做处理
 func (wss *websocketService) gatewayRegister(payload dto.WSPayload) error {
 	if payload.GatewayKey == "" {
 		return errGatewayKey
 	}
 
-	// todo something
+	wss.mu.Lock()
+	defer wss.mu.Unlock()
+
+	// 已注册
+	if wss.mainGateway != "" && wss.mainGateway != payload.GatewayKey {
+		return errRegistered
+	}
+
+	// 记录主网关 Key
+	wss.mainGateway = payload.GatewayKey
 
 	return nil
 }
