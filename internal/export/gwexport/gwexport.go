@@ -3,31 +3,38 @@ package gwexport
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"go.uber.org/atomic"
 )
 
 type gatewayExport struct {
+	wss *websocketService
 }
 
+// Init 初始化
 func (g *gatewayExport) Init() error {
-	//TODO implement me
-	panic("implement me")
+	g.wss.Start()
+	return nil
 }
 
+// ExportTo 接收驱动数据
 func (g *gatewayExport) ExportTo(deviceData plugin.DeviceData) {
-	//TODO implement me
-	panic("implement me")
+	g.wss.sendDeviceData(deviceData)
 }
 
+// OnEvent 接收事件数据
 func (g *gatewayExport) OnEvent(eventCode string, key string, eventValue interface{}) error {
-	//TODO implement me
-	panic("implement me")
+	// 暂时不处理任何事件
+	return nil
 }
 
 func (g *gatewayExport) IsReady() bool {
-	//TODO implement me
-	panic("implement me")
+	return true
 }
 
 func New() export.Export {
-	return &gatewayExport{}
+	return &gatewayExport{
+		wss: &websocketService{
+			parentGatewayKey: atomic.NewString(""),
+		},
+	}
 }
