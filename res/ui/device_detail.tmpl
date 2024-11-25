@@ -37,11 +37,11 @@
                 {{range $index,$point:=.Points}}
                     {{if .Writeable}}
                         <div class="form-group">
-                            <label for="{{.Name}}">{{.Name}}</label>
+                            <label for="{{.Name}}">{{.Description}}({{.Name}})</label>
                             {{if .Enums}}
                                 {{range .Enums}}
                                     <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="{{.Name}}" id="{{.Value}}"
+                                        <input class="form-check-input" type="radio" name="{{$point.Name}}" id="{{.Value}}"
                                                value="{{.Value}}" {{if eq $point.Value .Value}}checked{{end}}>
                                         <label class="form-check-label" for="{{.Value}}">{{.Name}}</label>
                                     </div>

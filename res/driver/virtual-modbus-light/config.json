@@ -9,18 +9,27 @@
           "bit": 0,
           "bitLen": 0,
           "byteSwap": false,
-          "description": "运行状态",
+          "description": "开关",
           "name": "onOff",
           "primaryTable": "HOLDING_REGISTER",
           "quantity": 1,
           "rawType": "uint16",
-          "readWrite": "R",
+          "readWrite": "RW",
           "realReport": true,
           "reportMode": "change",
-
           "startAddress": "0xB524",
           "valueType": "int",
-          "wordSwap": false
+          "wordSwap": false,
+          "enums": [
+            {
+              "name": "关闭",
+              "value": 0
+            },
+            {
+              "name": "开启",
+              "value": 1
+            }
+          ]
         }
       ],
       "devices": [
