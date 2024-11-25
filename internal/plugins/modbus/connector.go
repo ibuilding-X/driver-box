@@ -43,15 +43,12 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 		Timeout:  time.Duration(cf.Timeout) * time.Millisecond,
 	})
 	conn := &connector{
-		Connection: plugin.Connection{
-			Ls:           p.ls,
-			ScriptEnable: helper.ScriptExists(p.config.Key),
-		},
-		config:  cf,
-		plugin:  p,
-		client:  client,
-		virtual: cf.Virtual || config.IsVirtual(),
-		devices: make(map[uint8]*slaveDevice),
+		Connection: plugin.Connection{},
+		config:     cf,
+		plugin:     p,
+		client:     client,
+		virtual:    cf.Virtual || config.IsVirtual(),
+		devices:    make(map[uint8]*slaveDevice),
 	}
 
 	return conn, err
