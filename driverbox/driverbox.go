@@ -9,6 +9,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/driverbox/restful"
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
 	"github.com/ibuilding-x/driver-box/internal/core"
 	export0 "github.com/ibuilding-x/driver-box/internal/export"
@@ -61,7 +62,7 @@ func Start(exports []export.Export) error {
 	go func() {
 		registerApi()
 		core.RegisterApi()
-		e := http.ListenAndServe(":"+helper.EnvConfig.HttpListen, core.HttpRouter)
+		e := http.ListenAndServe(":"+helper.EnvConfig.HttpListen, restful.HttpRouter)
 		if e != nil {
 			helper.Logger.Error("start rest server error", zap.Error(e))
 		}

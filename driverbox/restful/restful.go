@@ -4,17 +4,20 @@ import (
 	"encoding/json"
 	"github.com/ibuilding-x/driver-box/driverbox/restful/response"
 	"github.com/ibuilding-x/driver-box/internal/logger"
+	"github.com/julienschmidt/httprouter"
 	"go.uber.org/zap"
 	"net/http"
 )
+
+var HttpRouter = httprouter.New()
 
 // Handler 处理函数
 type Handler func(*http.Request) (any, error)
 
 // HandleFunc 注册处理函数
-func HandleFunc(pattern string, handler Handler) {
-	logger.Logger.Info("register api", zap.String("pattern", pattern))
-	http.HandleFunc(pattern, func(writer http.ResponseWriter, request *http.Request) {
+func HandleFunc(method, pattern string, handler Handler) {
+	logger.Logger.Info("register api", zap.String("method", method), zap.String("pattern", pattern))
+	HttpRouter.HandlerFunc(method, pattern, func(writer http.ResponseWriter, request *http.Request) {
 		// 定义响应数据结构
 		var data response.Common
 

@@ -55,7 +55,7 @@ type service struct {
 
 func (s *service) NewService() error {
 	// 创建联动场景
-	restful.HandleFunc(route.LinkEdgeCreate, func(request *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodPost, route.LinkEdgeCreate, func(request *http.Request) (any, error) {
 		data, err := readBody(request)
 		if err != nil {
 			err = fmt.Errorf("incoming reading ignored. Unable to read request body: %s", err.Error())
@@ -72,7 +72,7 @@ func (s *service) NewService() error {
 	})
 
 	// 预览联动场景
-	restful.HandleFunc(route.LinkEdgeTryTrigger, func(request *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodPost, route.LinkEdgeTryTrigger, func(request *http.Request) (any, error) {
 		// 读取请求参数
 		data, err := readBody(request)
 		if err != nil {
@@ -95,32 +95,32 @@ func (s *service) NewService() error {
 	})
 
 	//删除联动场景
-	restful.HandleFunc(route.LinkEdgeDelete, func(request *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodPost, route.LinkEdgeDelete, func(request *http.Request) (any, error) {
 		err := s.Delete(request.FormValue("id"))
 		return err != nil, err
 	})
 
 	//触发联动场景
-	restful.HandleFunc(route.LinkEdgeTrigger, func(request *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodPost, route.LinkEdgeTrigger, func(request *http.Request) (any, error) {
 		helper.Logger.Info(fmt.Sprintf("trigger linkEdge:%s from: %s", request.FormValue("id"), request.FormValue("source")))
 		err := s.TriggerLinkEdge(request.FormValue("id"))
 		return err != nil, err
 	})
 
 	//查看场景联动
-	restful.HandleFunc(route.LinkEdgeGet, func(request *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodPost, route.LinkEdgeGet, func(request *http.Request) (any, error) {
 		helper.Logger.Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
 		return s.getLinkEdge(request.FormValue("id"))
 	})
 
 	// 查看场景联动列表
-	restful.HandleFunc(route.LinkEdgeList, func(request *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodGet, route.LinkEdgeList, func(request *http.Request) (any, error) {
 		// 获取查询参数
 		tag := request.URL.Query().Get("tag")
 		return s.GetList(tag)
 	})
 
-	restful.HandleFunc(route.LinkEdgeUpdate, func(request *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodPost, route.LinkEdgeUpdate, func(request *http.Request) (any, error) {
 		body, err := readBody(request)
 		if err != nil {
 			return false, err
@@ -143,7 +143,7 @@ func (s *service) NewService() error {
 	})
 
 	//更新场景联动状态
-	restful.HandleFunc(route.LinkEdgeStatus, func(request *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodPost, route.LinkEdgeStatus, func(request *http.Request) (any, error) {
 		helper.Logger.Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
 		config, err := s.getLinkEdge(request.FormValue("id"))
 		if err != nil {
@@ -170,7 +170,7 @@ func (s *service) NewService() error {
 	})
 
 	// 获取最后一次执行的场景信息
-	restful.HandleFunc(route.LinkEdgeGetLast, func(r *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodGet, route.LinkEdgeGetLast, func(r *http.Request) (any, error) {
 		return s.GetLast()
 	})
 

@@ -4,7 +4,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/internal/core"
+	"github.com/ibuilding-x/driver-box/driverbox/restful"
 	"net/http"
 	"os"
 	"sync"
@@ -22,11 +22,11 @@ func (export *Export) Init() error {
 		helper.Logger.Warn("driver-box ui is disabled")
 		return nil
 	}
-	core.HttpRouter.GET("/ui/", devices)
-	core.HttpRouter.GET("/ui/device/:deviceId", deviceDetail)
+	restful.HttpRouter.GET("/ui/", devices)
+	restful.HttpRouter.GET("/ui/device/:deviceId", deviceDetail)
 	//静态资源文件
-	core.HttpRouter.ServeFiles("/ui/css/*filepath", http.Dir("./res/ui/css"))
-	core.HttpRouter.ServeFiles("/ui/js/*filepath", http.Dir("./res/ui/js"))
+	restful.HttpRouter.ServeFiles("/ui/css/*filepath", http.Dir("./res/ui/css"))
+	restful.HttpRouter.ServeFiles("/ui/js/*filepath", http.Dir("./res/ui/js"))
 	export.ready = true
 	return nil
 }

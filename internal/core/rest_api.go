@@ -7,19 +7,16 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/restful"
 	"github.com/ibuilding-x/driver-box/driverbox/restful/route"
-	"github.com/julienschmidt/httprouter"
 	"io"
 	"net/http"
 )
 
-var HttpRouter = httprouter.New()
-
 // 注册restapi
 func RegisterApi() {
 	//设备API
-	restful.HandleFunc(route.DevicePointWrite, writePoint)
-	restful.HandleFunc(route.DevicePointsWrite, writePoints)
-	restful.HandleFunc(route.DevicePointRead, readPoint)
+	restful.HandleFunc(http.MethodPost, route.DevicePointWrite, writePoint)
+	restful.HandleFunc(http.MethodPost, route.DevicePointsWrite, writePoints)
+	restful.HandleFunc(http.MethodGet, route.DevicePointRead, readPoint)
 }
 
 // 写入某个设备点位
