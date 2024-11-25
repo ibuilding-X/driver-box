@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device List</title>
+    <title>Device Shadow Data</title>
     <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
         body {
@@ -21,29 +21,23 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="mb-4">Device List</h1>
+        <h1 class="mb-4">Device Shadow Data</h1><a href="/ui/">返回首页</a>
         <table class="table table-striped">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>ID</th>
-                    <th>Status</th>
-                    <th>ModelID</th>
-                    <th>插件类型</>
-                    <th>连接标识</>
-                    <th>Action</th>
+                    <th>点位名</th>
+                    <th>描述</th>
+                    <th>点位值</th>
+                    <th>更新时间</th>
                 </tr>
             </thead>
             <tbody>
-                {{range .Devices}}
+                {{range .Points}}
                 <tr>
-                    <td>{{.Name}}</td>
-                    <td>{{.ID}}</td>
-                    <td>{{.Status}}</td>
-                    <td>{{.ModeId}}</td>
-                    <td>{{.Plugin}}</td>
-                    <td>{{.Connection}}</td>
-                    <td><a href="device/{{.ID}}" class="btn btn-primary">View Details</a></td>
+                    <td> {{.Name}}</td>
+                    <td>{{.Description}}</td>
+                    <td>{{.Value}}</td>
+                    <td>{{.Update}}</td>
                 </tr>
                 {{end}}
             </tbody>

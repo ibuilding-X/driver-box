@@ -61,7 +61,7 @@ func Start(exports []export.Export) error {
 	go func() {
 		registerApi()
 		core.RegisterApi()
-		e := http.ListenAndServe(":"+helper.EnvConfig.HttpListen, nil)
+		e := http.ListenAndServe(":"+helper.EnvConfig.HttpListen, core.HttpRouter)
 		if e != nil {
 			helper.Logger.Error("start rest server error", zap.Error(e))
 		}

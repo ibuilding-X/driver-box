@@ -4,7 +4,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"net/http"
+	"github.com/ibuilding-x/driver-box/internal/core"
 	"os"
 	"sync"
 )
@@ -21,7 +21,8 @@ func (export *Export) Init() error {
 		helper.Logger.Warn("driver-box ui is disabled")
 		return nil
 	}
-	http.HandleFunc("/ui/", devices)
+	core.HttpRouter.GET("/ui/", devices)
+	core.HttpRouter.GET("/ui/device/:deviceId", deviceDetail)
 	export.ready = true
 	return nil
 }

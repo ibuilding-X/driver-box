@@ -7,9 +7,12 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/restful"
 	"github.com/ibuilding-x/driver-box/driverbox/restful/route"
+	"github.com/julienschmidt/httprouter"
 	"io"
 	"net/http"
 )
+
+var HttpRouter = httprouter.New()
 
 // 注册restapi
 func RegisterApi() {
