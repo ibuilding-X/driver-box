@@ -144,8 +144,19 @@ func (wss *websocketService) control(payload dto.WSPayload) error {
 	return nil
 }
 
+// gatewayUnregister 处理网关注销
 func (wss *websocketService) gatewayUnregister(payload dto.WSPayload) error {
-	// todo something
+	if payload.GatewayKey == "" {
+		return errGatewayKey
+	}
+
+	wss.mu.Lock()
+	defer wss.mu.Unlock()
+
+	// 取消注册
+	if wss.mainGateway != "" && wss.mainGateway == payload.GatewayKey {
+		wss.mainGateway = ""
+	}
 
 	return nil
 }
