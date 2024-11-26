@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+const ProtocolName = "modbus"
+
 // Plugin 驱动插件
 type Plugin struct {
 	connPool map[string]*connector // 连接器

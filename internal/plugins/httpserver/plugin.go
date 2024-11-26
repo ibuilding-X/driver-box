@@ -9,6 +9,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const ProtocolName = "http_server"
+
 type Plugin struct {
 	logger *zap.Logger   // 日志记录器
 	config config.Config // 核心配置

@@ -5,7 +5,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/export"
-	"github.com/ibuilding-x/driver-box/driverbox/export/ui"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -13,10 +12,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
 	"github.com/ibuilding-x/driver-box/internal/core"
 	export0 "github.com/ibuilding-x/driver-box/internal/export"
-	"github.com/ibuilding-x/driver-box/internal/export/discover"
-	"github.com/ibuilding-x/driver-box/internal/export/linkedge"
-	"github.com/ibuilding-x/driver-box/internal/export/mirror"
-	"github.com/ibuilding-x/driver-box/internal/plugins"
 	"go.uber.org/zap"
 	"net/http"
 	"os"
@@ -25,10 +20,6 @@ import (
 
 // 网关编号
 var SerialNo = "driver-box"
-
-func RegisterPlugin(name string, plugin plugin.Plugin) error {
-	return plugins.Manager.Register(name, plugin)
-}
 
 func Start(exports []export.Export) error {
 	//第一步：加载配置文件DriverConfig
@@ -49,7 +40,6 @@ func Start(exports []export.Export) error {
 
 	//第四步：启动Export
 
-	export0.Exports = []export.Export{linkedge.NewExport(), mirror.NewExport(), discover.NewExport(), ui.NewExport()}
 	export0.Exports = append(export0.Exports, exports...)
 
 	for _, item := range export0.Exports {
