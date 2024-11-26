@@ -14,6 +14,20 @@ var Exports exports
 type exports struct {
 }
 
+// 加载自定义的Export
+func (exports *exports) LoadExport(export2 export.Export) {
+	if !exports.exists(export2) {
+		export0.Exports = append(export0.Exports, export2)
+	}
+}
+
+// 批量加载Export
+func (exports *exports) LoadExports(export2 []export.Export) {
+	for _, e := range export2 {
+		exports.LoadExport(e)
+	}
+}
+
 // 默认加载driver-box内置的所有Export
 func (exports *exports) LoadAllExports() {
 	exports.LoadLinkEdgeExport()
@@ -24,30 +38,22 @@ func (exports *exports) LoadAllExports() {
 
 // 加载场景联动 Export
 func (exports *exports) LoadLinkEdgeExport() {
-	if exp := linkedge.NewExport(); !exports.exists(exp) {
-		export0.Exports = append(export0.Exports, exp)
-	}
+	exports.LoadExport(linkedge.NewExport())
 }
 
 // 加载镜像设备 Export
 func (exports *exports) LoadMirrorExport() {
-	if exp := mirror.NewExport(); !exports.exists(exp) {
-		export0.Exports = append(export0.Exports, exp)
-	}
+	exports.LoadExport(mirror.NewExport())
 }
 
 // 加载设备自动发现Export
 func (exports *exports) LoadDiscoverExport() {
-	if exp := discover.NewExport(); !exports.exists(exp) {
-		export0.Exports = append(export0.Exports, exp)
-	}
+	exports.LoadExport(discover.NewExport())
 }
 
 // 加载driver-box内置UI Export
 func (exports *exports) LoadUIExport() {
-	if exp := ui.NewExport(); !exports.exists(exp) {
-		export0.Exports = append(export0.Exports, exp)
-	}
+	exports.LoadExport(ui.NewExport())
 }
 func (exports *exports) exists(exp export.Export) bool {
 	for _, e := range export0.Exports {

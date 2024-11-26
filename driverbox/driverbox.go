@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
-	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -21,7 +20,7 @@ import (
 // 网关编号
 var SerialNo = "driver-box"
 
-func Start(exports []export.Export) error {
+func Start() error {
 	//第一步：加载配置文件DriverConfig
 	err := initEnvConfig()
 	if err != nil {
@@ -39,9 +38,6 @@ func Start(exports []export.Export) error {
 	helper.Crontab.Start()
 
 	//第四步：启动Export
-
-	export0.Exports = append(export0.Exports, exports...)
-
 	for _, item := range export0.Exports {
 		if err := item.Init(); err != nil {
 			helper.Logger.Error("init export error", zap.Error(err))
