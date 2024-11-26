@@ -105,12 +105,40 @@ func (wss *websocketService) handleMessage(conn *websocket.Conn, message []byte)
 
 // syncModels 同步设备模型数据
 func (wss *websocketService) syncModels() {
-	// todo something
+	models := helper.CoreCache.Models()
+	if len(models) == 0 {
+		return
+	}
+
+	// 发送模型数据
+	var sendData dto.WSPayload
+	sendData.Type = dto.WSForSyncModels
+	sendData.Models = models
+
+	if wss.mainGateway != "" && wss.mainGatewayConn != nil {
+		if err := wss.mainGatewayConn.WriteJSON(sendData); err != nil {
+			helper.Logger.Error("gateway export sync models error", zap.Error(err))
+		}
+	}
 }
 
 // syncDevices 同步设备数据
 func (wss *websocketService) syncDevices() {
-	// todo something
+	devices := helper.CoreCache.Devices()
+	if len(devices) == 0 {
+		return
+	}
+
+	// 发送设备数据
+	var sendData dto.WSPayload
+	sendData.Type = dto.WSForSyncDevices
+	sendData.Devices = devices
+
+	if wss.mainGateway != "" && wss.mainGatewayConn != nil {
+		if err := wss.mainGatewayConn.WriteJSON(sendData); err != nil {
+			helper.Logger.Error("gateway export sync devices error", zap.Error(err))
+		}
+	}
 }
 
 // sendDeviceData 发送设备数据（包含点位、事件等）
