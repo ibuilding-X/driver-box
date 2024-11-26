@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/core"
 	"github.com/ibuilding-x/driver-box/internal/dto"
 	"go.uber.org/zap"
 	"net/http"
@@ -18,6 +19,7 @@ const WebSocketPath = "/ws/gateway-export"
 var (
 	errRegistered = errors.New("already registered") // 已注册错误
 	errGatewayKey = errors.New("gateway key error")  // 网关 Key 错误
+	errDeviceID   = errors.New("device id error")    // 设备 ID 错误
 )
 
 // websocketService websocket 服务（提供 websocket 所需的所有服务功能，并非仅仅启动 websocket 服务端）
@@ -75,7 +77,12 @@ func (wss *websocketService) handleMessage(conn *websocket.Conn, message []byte)
 	case dto.WSForRegister: // 网关注册
 		res.Type = dto.WSForRegisterRes
 		if err := wss.gatewayRegister(conn, payload); err != nil {
+			// 网关注册失败
 			res.Error = err.Error()
+		} else {
+			// 网关注册成功
+			defer wss.syncDevices()
+			defer wss.syncModels()
 		}
 	case dto.WSForPing: // 心跳
 		res.Type = dto.WSForPong
@@ -187,8 +194,15 @@ func (wss *websocketService) gatewayRegister(conn *websocket.Conn, payload dto.W
 	return nil
 }
 
+// control 处理控制指令
 func (wss *websocketService) control(payload dto.WSPayload) error {
-	// todo something
+	if payload.DeviceID == "" {
+		return errDeviceID
+	}
+
+	if pointNum := len(payload.Points); pointNum > 0 {
+		return core.SendBatchWrite(payload.DeviceID, payload.Points)
+	}
 
 	return nil
 }
