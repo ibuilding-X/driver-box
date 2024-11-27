@@ -438,6 +438,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...linkedge.Config)
 		group, ok := connectGroup[device.ConnectionKey]
 		if !ok {
 			group = make(map[string][]plugin.PointData)
+			connectGroup[device.ConnectionKey] = group
 		}
 		group[deviceId] = points
 	}
