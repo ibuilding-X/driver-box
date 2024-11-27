@@ -432,7 +432,26 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...linkedge.Config)
 			}
 		}
 	}
-	//遍历执行actions
+	//遍历执行actions,按连接分组
+	connectGroup := make(map[string]map[string][]plugin.PointData)
+	for deviceId, points := range actions {
+		// 跳过未知设备
+		if !helper.DeviceShadow.HasDevice(deviceId) {
+			// 事件信息：场景ID、设备ID
+			export.TriggerEvents(event.UnknownDevice, id, deviceId)
+			continue
+		}
+		device, ok := helper.CoreCache.GetDevice(deviceId)
+		if !ok {
+			helper.Logger.Error("get device error", zap.String("deviceId", deviceId))
+			continue
+		}
+		group, ok := connectGroup[device.ConnectionKey]
+		if !ok {
+			group = make(map[string][]plugin.PointData)
+		}
+		group[deviceId] = points
+	}
 	for deviceId, points := range actions {
 		// 跳过未知设备
 		if !helper.DeviceShadow.HasDevice(deviceId) {
