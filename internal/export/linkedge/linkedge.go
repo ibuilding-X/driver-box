@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -404,18 +405,6 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...linkedge.Config)
 					})
 				}
 			}
-
-			//err := core.SendSinglePoint(devicePointAction.DeviceId, plugin.WriteMode, plugin.PointData{
-			//	PointName: devicePointAction.DevicePoint,
-			//	Value:     devicePointAction.Value,
-			//})
-			//if err != nil {
-			//	helper.Logger.Error("execute linkEdge error", zap.String("linkEdge", id),
-			//		zap.String("pointName", devicePointAction.DevicePoint), zap.String("pointValue", devicePointAction.Value), zap.Error(err))
-			//} else {
-			//	sucCount++
-			//	helper.Logger.Info(fmt.Sprintf("execute linkEdge:%s action", id))
-			//}
 		case linkedge.ActionTypeLinkEdge:
 			sucCount++
 			go s.triggerLinkEdge(action.ID, depth+1)
@@ -452,23 +441,24 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...linkedge.Config)
 		}
 		group[deviceId] = points
 	}
-	for deviceId, points := range actions {
-		// 跳过未知设备
-		if !helper.DeviceShadow.HasDevice(deviceId) {
-			// 事件信息：场景ID、设备ID
-			export.TriggerEvents(event.UnknownDevice, id, deviceId)
-			continue
-		}
-
-		err := core.SendBatchWrite(deviceId, points)
-		if err != nil {
-			helper.Logger.Error("execute linkEdge error", zap.String("linkEdge", id),
-				zap.String("deviceId", deviceId), zap.Any("points", points), zap.Error(err))
-		} else {
-			sucCount = sucCount + len(points)
-			helper.Logger.Info(fmt.Sprintf("execute linkEdge:%s action", id))
-		}
+	var wg sync.WaitGroup
+	for _, devices := range connectGroup {
+		wg.Add(1)
+		go func(ds map[string][]plugin.PointData) {
+			defer wg.Done()
+			for deviceId, points := range ds {
+				err := core.SendBatchWrite(deviceId, points)
+				if err != nil {
+					helper.Logger.Error("execute linkEdge error", zap.String("linkEdge", id),
+						zap.String("deviceId", deviceId), zap.Any("points", points), zap.Error(err))
+				} else {
+					sucCount = sucCount + len(points)
+					helper.Logger.Info(fmt.Sprintf("execute linkEdge:%s action", id))
+				}
+			}
+		}(devices)
 	}
+	wg.Wait()
 	//预览情况下未持久化场景联动，id为空
 	if id != "" {
 		// value:全部成功\部分成功\全部失败
