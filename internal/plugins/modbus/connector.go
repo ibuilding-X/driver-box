@@ -81,10 +81,13 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 
 				duration := group.Duration
 				if group.timeOutCount > 0 {
-					duration = duration * time.Duration(group.timeOutCount)
+					duration = duration * time.Duration(1<<group.timeOutCount)
 					//最大不超过一分钟
 					if duration > time.Minute {
 						duration = time.Minute
+					} else if duration < 0 { //溢出，重置
+						group.timeOutCount = 0
+						duration = group.Duration
 					}
 					helper.Logger.Warn("modbus connection has timeout, increase duration", zap.Any("group", group), zap.Any("duration", duration))
 				}
