@@ -84,9 +84,9 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 					continue
 				}
 
-				//写操作优先
-				if c.writeSemaphore.Load() > 0 {
-					helper.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.ConnectionKey), zap.Any("semaphore", c.writeSemaphore))
+				//最近发生过写操作，推测当前时段可能存在其他设备的写入需求，采集任务主动避让
+				if c.latestWriteTime.Add(time.Duration(conf.MinInterval)).After(time.Now()) {
+					helper.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.ConnectionKey), zap.Any("semaphore", c.writeSemaphore.Load()))
 					continue
 				}
 
@@ -414,7 +414,10 @@ func (c *connector) sendWriteCommand(pc *writeValue) error {
 	}
 
 	c.writeSemaphore.Add(1)
-	defer c.writeSemaphore.Add(-1)
+	defer func() {
+		c.latestWriteTime = time.Now()
+		c.writeSemaphore.Add(-1)
+	}()
 	var err error
 	for i := 0; i < c.config.Retry; i++ {
 		if c.virtual {

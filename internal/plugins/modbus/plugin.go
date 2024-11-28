@@ -45,7 +45,8 @@ type connector struct {
 	virtual bool
 
 	//写操作信号量
-	writeSemaphore atomic.Int32
+	writeSemaphore  atomic.Int32
+	latestWriteTime time.Time //最近一次写操作时间
 
 	writeEncodeMu sync.Mutex
 }
