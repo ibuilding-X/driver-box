@@ -85,7 +85,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 				}
 
 				//最近发生过写操作，推测当前时段可能存在其他设备的写入需求，采集任务主动避让
-				if c.latestWriteTime.Add(time.Duration(conf.MinInterval)).After(time.Now()) {
+				if c.writeSemaphore.Load() > 0 || c.latestWriteTime.Add(time.Duration(conf.MinInterval)).After(time.Now()) {
 					helper.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.ConnectionKey), zap.Any("semaphore", c.writeSemaphore.Load()))
 					continue
 				}
