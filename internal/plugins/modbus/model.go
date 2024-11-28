@@ -74,7 +74,7 @@ type pointGroup struct {
 	//上一次采集时间
 	LatestTime time.Time
 	//记录最近连续超时次数
-	timeOutCount int
+	TimeOutCount int
 	//起始地址
 	Address uint16
 	//数量

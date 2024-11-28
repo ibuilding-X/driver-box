@@ -80,13 +80,13 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 				}
 
 				duration := group.Duration
-				if group.timeOutCount > 0 {
-					duration = duration * time.Duration(1<<group.timeOutCount)
+				if group.TimeOutCount > 0 {
+					duration = duration * time.Duration(1<<group.TimeOutCount)
 					//最大不超过一分钟
 					if duration > time.Minute {
 						duration = time.Minute
 					} else if duration < 0 { //溢出，重置
-						group.timeOutCount = 0
+						group.TimeOutCount = 0
 						duration = group.Duration
 					}
 					helper.Logger.Warn("modbus connection has timeout, increase duration", zap.Any("group", group), zap.Any("duration", duration))
@@ -111,7 +111,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 					helper.Logger.Error("read error", zap.Any("connection", conf), zap.Any("group", group), zap.Error(err))
 					//发生读超时，设备可能离线或者当前group点位配置有问题。将当前group的采集时间设置为未来值，跳过数个采集周期
 					if errors.Is(err, modbus.ErrRequestTimedOut) {
-						group.timeOutCount += 1
+						group.TimeOutCount += 1
 					}
 					//通讯失败，触发离线
 					devices := make(map[string]interface{})
@@ -123,7 +123,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 						_ = helper.DeviceShadow.MayBeOffline(point.DeviceId)
 					}
 				} else {
-					group.timeOutCount = 0
+					group.TimeOutCount = 0
 				}
 				group.LatestTime = time.Now()
 			}
