@@ -99,7 +99,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 					helper.Logger.Error("read error", zap.Any("connection", conf), zap.Any("group", group), zap.Error(err))
 					//发生读超时，设备可能离线或者当前group点位配置有问题。将当前group的采集时间设置为未来值，跳过数个采集周期
 					if errors.Is(err, modbus.ErrRequestTimedOut) {
-						group.LatestTime.Add(group.Duration * 3)
+						group.LatestTime.Add(time.Duration(c.config.Timeout) * time.Millisecond * 5)
 					}
 					//通讯失败，触发离线
 					devices := make(map[string]interface{})
