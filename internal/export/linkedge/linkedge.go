@@ -448,6 +448,12 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...linkedge.Config)
 		go func(ds map[string][]plugin.PointData) {
 			defer wg.Done()
 			for deviceId, points := range ds {
+				// 跳过离线设备，避免阻塞场景执行
+				device, ok := helper.DeviceShadow.GetDevice(deviceId)
+				if !ok || !device.Online {
+					helper.Logger.Error("device offline, skip action", zap.String("deviceId", deviceId), zap.String("linkedge", id))
+					continue
+				}
 				err := core.SendBatchWrite(deviceId, points)
 				if err != nil {
 					helper.Logger.Error("execute linkEdge error", zap.String("linkEdge", id),
