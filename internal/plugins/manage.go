@@ -42,3 +42,12 @@ func (m *manager) Get(c config.Config) (p plugin.Plugin, err error) {
 	}
 	return
 }
+
+func (m *manager) GetSupportPlugins() []string {
+	plugins := make([]string, 0)
+	m.plugins.Range(func(key, value interface{}) bool {
+		plugins = append(plugins, key.(string))
+		return true
+	})
+	return plugins
+}
