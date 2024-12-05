@@ -207,10 +207,18 @@ func (s *service) Create(bytes []byte) error {
 	}
 
 	//持久化
+	// fix: 偶现写入的文件内容为空
 	file := path.Join(s.envConfig.ConfigPath, model.ID+".json")
-	e = os.WriteFile(file, bytes, 0666)
-	if e != nil {
-		return e
+	f, err := os.Create(file)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if _, err = f.Write(bytes); err != nil {
+		return err
+	}
+	if err = f.Sync(); err != nil {
+		return err
 	}
 
 	//启动场景联动
