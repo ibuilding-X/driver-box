@@ -4,31 +4,24 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
-	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/driverbox/restful"
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
 	"github.com/ibuilding-x/driver-box/internal/core"
 	export0 "github.com/ibuilding-x/driver-box/internal/export"
-	"github.com/ibuilding-x/driver-box/internal/export/discover"
-	"github.com/ibuilding-x/driver-box/internal/export/linkedge"
-	"github.com/ibuilding-x/driver-box/internal/export/mirror"
-	"github.com/ibuilding-x/driver-box/internal/plugins"
 	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"path"
 )
 
-// 网关编号
+// SerialNo 网关编号
+// Deprecated: 待删除，该变量无法在 export、plugin 中使用，会导致循环依赖
 var SerialNo = "driver-box"
 
-func RegisterPlugin(name string, plugin plugin.Plugin) error {
-	return plugins.Manager.Register(name, plugin)
-}
-
-func Start(exports []export.Export) error {
+func Start() error {
 	//第一步：加载配置文件DriverConfig
 	err := initEnvConfig()
 	if err != nil {
@@ -46,10 +39,6 @@ func Start(exports []export.Export) error {
 	helper.Crontab.Start()
 
 	//第四步：启动Export
-
-	export0.Exports = []export.Export{linkedge.NewExport(), mirror.NewExport(), discover.NewExport()}
-	export0.Exports = append(export0.Exports, exports...)
-
 	for _, item := range export0.Exports {
 		if err := item.Init(); err != nil {
 			helper.Logger.Error("init export error", zap.Error(err))
@@ -60,7 +49,7 @@ func Start(exports []export.Export) error {
 	go func() {
 		registerApi()
 		core.RegisterApi()
-		e := http.ListenAndServe(":"+helper.EnvConfig.HttpListen, nil)
+		e := http.ListenAndServe(":"+helper.EnvConfig.HttpListen, restful.HttpRouter)
 		if e != nil {
 			helper.Logger.Error("start rest server error", zap.Error(e))
 		}
@@ -132,4 +121,17 @@ func WritePoints(deviceId string, pointData []plugin.PointData) error {
 // 触发运行时事件
 func TriggerEvents(eventCode string, key string, value interface{}) {
 	export0.TriggerEvents(eventCode, key, value)
+}
+
+// SetSerialNo 设置网关编号
+// 提示：优先通过函数修改，而不是直接修改 SerialNo 变量值
+func SetSerialNo(sn string) {
+	// 出于兼容性考虑，暂时保留 SerialNo
+	SerialNo = sn
+	core.SetSerialNo(sn)
+}
+
+// GetSerialNo 获取网关编号
+func GetSerialNo() string {
+	return core.GetSerialNo()
 }

@@ -2,19 +2,17 @@ package modbus
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
-	"sort"
-	"strconv"
-	"strings"
-
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
+	"math"
+	"sort"
+	"strconv"
+	"strings"
 )
 
 // Decode 解码数据
@@ -24,21 +22,13 @@ func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error)
 		return nil, fmt.Errorf("unexpected raw: %v", raw)
 	}
 
-	if c.ScriptEnable {
-		resBytes, err := json.Marshal(readValue)
-		if err != nil {
-			return nil, fmt.Errorf("marshal result [%v] error: %v", res, err)
-		}
-		return helper.CallLuaConverter(c.Ls, "decode", string(resBytes))
-	} else {
-		res = append(res, plugin.DeviceData{
-			ID: readValue.ID,
-			Values: []plugin.PointData{{
-				PointName: readValue.PointName,
-				Value:     readValue.Value,
-			}},
-		})
-	}
+	res = append(res, plugin.DeviceData{
+		ID: readValue.ID,
+		Values: []plugin.PointData{{
+			PointName: readValue.PointName,
+			Value:     readValue.Value,
+		}},
+	})
 	return
 }
 
@@ -46,6 +36,9 @@ func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error)
 func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
 	if mode == plugin.WriteMode {
 		writeValues, err := c.batchWriteEncode(deviceId, values)
+		if err != nil {
+			c.writeEncodeMu.Unlock()
+		}
 		return command{
 			Mode:  plugin.WriteMode,
 			Value: writeValues,
@@ -96,6 +89,8 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 }
 
 func (c *connector) batchWriteEncode(deviceId string, points []plugin.PointData) ([]*writeValue, error) {
+	c.writeEncodeMu.Lock()
+
 	values := make([]*writeValue, 0)
 	for _, p := range points {
 		wv, err := c.getWriteValue(deviceId, p, values)

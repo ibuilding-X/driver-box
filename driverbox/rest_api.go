@@ -23,15 +23,15 @@ import (
 
 func registerApi() {
 	// 插件 REST API
-	restful.HandleFunc(route.V1Prefix+"plugin/cache/get", getCache)
-	restful.HandleFunc(route.V1Prefix+"plugin/cache/set", setCache)
+	restful.HandleFunc(http.MethodGet, route.V1Prefix+"plugin/cache/get", getCache)
+	restful.HandleFunc(http.MethodPost, route.V1Prefix+"plugin/cache/set", setCache)
 	// 核心配置 API
-	restful.HandleFunc(route.V1Prefix+"config/update", updateCoreConfig)
+	restful.HandleFunc(http.MethodPost, route.V1Prefix+"config/update", updateCoreConfig)
 
 	// 设备影子 API
-	restful.HandleFunc(route.V1Prefix+"shadow/all", getAllDevices)
-	restful.HandleFunc(route.V1Prefix+"shadow/device", deviceShadow)
-	restful.HandleFunc(route.V1Prefix+"shadow/devicePoint", getDevicePoint)
+	restful.HandleFunc(http.MethodGet, route.V1Prefix+"shadow/all", getAllDevices)
+	restful.HandleFunc(http.MethodGet, route.V1Prefix+"shadow/device", deviceShadow)
+	restful.HandleFunc(http.MethodGet, route.V1Prefix+"shadow/devicePoint", getDevicePoint)
 
 	//sse服务
 	http.HandleFunc("/sse/log", func(w http.ResponseWriter, r *http.Request) {

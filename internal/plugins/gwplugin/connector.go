@@ -1,0 +1,407 @@
+package gwplugin
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/gorilla/websocket"
+	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
+	"github.com/ibuilding-x/driver-box/internal/core"
+	"github.com/ibuilding-x/driver-box/internal/core/shadow"
+	"github.com/ibuilding-x/driver-box/internal/dto"
+	"github.com/ibuilding-x/driver-box/internal/export/gwexport"
+	"go.uber.org/zap"
+	"net"
+	"net/http"
+	"time"
+)
+
+var (
+	ErrIP = errors.New("IP address not valid")
+)
+
+var (
+	defaultTimeout           = 5 * time.Second  // 默认连接超时时间
+	defaultReconnectInterval = 30 * time.Second // 默认重连间隔
+)
+
+// connectorConfig 连接配置
+type connectorConfig struct {
+	IP                string `json:"ip"`                 // 子网关 IP 地址
+	Timeout           string `json:"timeout"`            // 连接超时时间
+	ReconnectInterval string `json:"reconnect_interval"` // 重连间隔
+
+	timeout           time.Duration // 存储连接超时时间
+	reconnectInterval time.Duration // 存储重连间隔
+}
+
+// checkAndRepair 检查并修复配置
+func (c *connectorConfig) checkAndRepair() error {
+	// 检查 IP 地址是否合法
+	if net.ParseIP(c.IP) == nil {
+		return ErrIP
+	}
+	c.timeout = defaultTimeout
+	c.reconnectInterval = defaultReconnectInterval
+	// 检查超时时间
+	if timeout, err := time.ParseDuration(c.Timeout); err == nil {
+		c.timeout = timeout
+	}
+	// 检查重连间隔
+	if reconnectInterval, err := time.ParseDuration(c.ReconnectInterval); err == nil {
+		c.reconnectInterval = reconnectInterval
+	}
+	return nil
+}
+
+type encodeData struct {
+	Mode plugin.EncodeMode
+	plugin.DeviceData
+}
+
+type connector struct {
+	conf connectorConfig
+	conn *websocket.Conn // 存储 websocket 连接
+}
+
+func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
+	return encodeData{
+		Mode: mode,
+		DeviceData: plugin.DeviceData{
+			ID:     deviceId,
+			Values: values,
+		},
+	}, nil
+}
+
+func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
+	payload, ok := raw.(dto.WSPayload)
+	if !ok {
+		return nil, errors.New("invalid payload")
+	}
+
+	res = append(res, payload.DeviceData)
+
+	return
+}
+
+func (c *connector) Send(data interface{}) (err error) {
+	if c.conn == nil {
+		return errors.New("not connected")
+	}
+
+	// 数据解析
+	ed, ok := data.(encodeData)
+	if !ok {
+		return errors.New("data is not encodeData")
+	}
+
+	// 过滤指令，仅处理控制指令
+	if ed.Mode != plugin.WriteMode {
+		return nil
+	}
+
+	// 下发控制
+	c.control(ed.DeviceData)
+	return nil
+}
+
+func (c *connector) Release() (err error) {
+	return nil
+}
+
+// connect 连接到子网关
+// * 会阻塞进程，需携程处理
+// * 需要实现重连机制
+func (c *connector) connect() {
+	url := fmt.Sprintf("ws://%s:%s%s", c.conf.IP, helper.EnvConfig.HttpListen, gwexport.WebSocketPath)
+	dialer := &websocket.Dialer{
+		Proxy:            http.ProxyFromEnvironment,
+		HandshakeTimeout: c.conf.timeout,
+	}
+
+	for {
+		helper.Logger.Info("gateway plugin connect to gateway", zap.String("url", url))
+
+		// 建立连接
+		var conn *websocket.Conn
+		var err error
+
+		if conn, _, err = dialer.Dial(url, nil); err == nil {
+			// 连接成功
+			helper.Logger.Info("gateway plugin connect to gateway success")
+			// 存储连接
+			c.conn = conn
+			// 发送注册消息
+			go c.register()
+			// 接收子网关数据
+			for {
+				var message []byte
+				if _, message, err = conn.ReadMessage(); err != nil {
+					break
+				}
+				// 处理子网关数据
+				if err = c.handleWebSocketMessage(conn, message); err != nil {
+					helper.Logger.Error("gateway plugin handle websocket message failed", zap.Error(err), zap.Any("message", message))
+				}
+			}
+		}
+
+		// 连接失败或断开连接
+		// 关闭连接
+		if conn != nil {
+			if err = conn.Close(); err != nil {
+				helper.Logger.Error("gateway plugin close websocket connection failed", zap.Error(err))
+			}
+		}
+		// 删除存储的 websocket 连接
+		c.conn = nil
+		// 延迟重连
+		helper.Logger.Error("gateway plugin connect to gateway failed, retry after 30 seconds")
+		time.Sleep(c.conf.reconnectInterval)
+	}
+}
+
+// handleWebSocketMessage 处理子网关数据
+func (c *connector) handleWebSocketMessage(conn *websocket.Conn, message []byte) (err error) {
+	var payload dto.WSPayload
+	if err = json.Unmarshal(message, &payload); err != nil {
+		return err
+	}
+
+	// 响应结构体
+	var res dto.WSPayload
+
+	switch payload.Type {
+	case dto.WSForRegisterRes: // 注册响应
+		return c.registerRes(payload)
+	case dto.WSForUnregisterRes: // 注销响应
+		return c.unregisterRes(payload)
+	case dto.WSForPong: // 心跳响应
+		return c.pong(payload)
+	case dto.WSForControlRes: // 控制响应
+		return c.controlRes(payload)
+	case dto.WSForSyncModels: // 接收模型同步数据
+		return c.syncModels(payload)
+	case dto.WSForSyncDevices: // 接收设备同步数据
+		return c.syncDevices(payload)
+	case dto.WSForSyncShadow: // 接收影子同步数据
+		return c.syncShadow(payload)
+	case dto.WSForReport: // 接收上报数据
+		_, err = callback.OnReceiveHandler(c, payload)
+		if err != nil {
+			return err
+		}
+	default:
+		return nil
+	}
+
+	// 发送响应消息
+	if res.Type != 0 {
+		if err := conn.WriteJSON(res); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// sendWebSocketPayload 向子网关发送数据
+func (c *connector) sendWebSocketPayload(payload dto.WSPayload) {
+	if c.conn != nil {
+		if err := c.conn.WriteJSON(payload); err != nil {
+			helper.Logger.Error("gateway plugin register failed", zap.Error(err))
+		}
+	}
+}
+
+// register 向子网关发送注册消息
+func (c *connector) register() {
+	// 延迟发送注册消息，防止无法收到注册响应消息
+	time.Sleep(time.Second)
+
+	c.sendWebSocketPayload(dto.WSPayload{
+		Type:       dto.WSForRegister,
+		GatewayKey: core.GetSerialNo(), // 网关唯一标识
+	})
+}
+
+// registerRes 处理注册响应
+func (c *connector) registerRes(payload dto.WSPayload) error {
+	if payload.Error != "" {
+		helper.Logger.Error("gateway plugin register failed", zap.String("IP", c.conf.IP), zap.String("error", payload.Error))
+		return nil
+	}
+
+	// 注册成功
+	helper.Logger.Info("gateway plugin register success", zap.String("IP", c.conf.IP))
+	// 更新网关设备状态
+	return helper.DeviceShadow.SetDevicePoint(c.conf.IP, "SN", payload.GatewayKey)
+}
+
+// unregister 向子网关发送注销消息
+func (c *connector) unregister() {
+	// todo 暂时未使用
+	c.sendWebSocketPayload(dto.WSPayload{
+		Type:       dto.WSForUnregister,
+		GatewayKey: core.GetSerialNo(), // 网关唯一标识
+	})
+}
+
+// unregisterRes 处理注销响应
+func (c *connector) unregisterRes(payload dto.WSPayload) error {
+	if payload.Error != "" {
+		helper.Logger.Error("gateway plugin unregister failed", zap.String("IP", c.conf.IP), zap.String("error", payload.Error))
+	}
+
+	// 注销成功
+	helper.Logger.Info("gateway plugin unregister success", zap.String("IP", c.conf.IP))
+	// 更新网关设备状态
+	return helper.DeviceShadow.SetOffline(c.conf.IP)
+}
+
+// ping 向子网关发送心跳消息
+func (c *connector) ping() {
+	c.sendWebSocketPayload(dto.WSPayload{
+		Type: dto.WSForPing,
+	})
+}
+
+// pong 处理心跳响应
+func (c *connector) pong(_ dto.WSPayload) error {
+	helper.Logger.Debug("gateway plugin pong", zap.String("IP", c.conf.IP))
+	return nil
+}
+
+func (c *connector) syncModels(payload dto.WSPayload) error {
+	if len(payload.Models) > 0 {
+		var errCounter int
+		for _, model := range payload.Models {
+			points := make([]config.PointMap, 0, len(model.Points))
+			for _, point := range model.Points {
+				bs, _ := json.Marshal(point)
+				var pointMap config.PointMap
+				_ = json.Unmarshal(bs, &pointMap)
+				points = append(points, pointMap)
+			}
+
+			err := helper.CoreCache.AddModel(ProtocolName, config.DeviceModel{
+				ModelBase:    model.ModelBase,
+				DevicePoints: points,
+				Devices:      nil,
+			})
+
+			if err != nil {
+				errCounter++
+				helper.Logger.Error("gateway plugin add model failed", zap.Any("model", model), zap.Error(err))
+			}
+		}
+
+		if errCounter > 0 {
+			c.syncModelsRes(fmt.Errorf("sync models failed: models count: %d, error count: %d", len(payload.Models), errCounter))
+		} else {
+			c.syncModelsRes(nil)
+		}
+	}
+	return nil
+}
+
+// syncModelsRes 发送模型同步响应
+func (c *connector) syncModelsRes(err error) {
+	var errMsg string
+	if err != nil {
+		errMsg = err.Error()
+	}
+
+	c.sendWebSocketPayload(dto.WSPayload{
+		Type:  dto.WSForSyncModelsRes,
+		Error: errMsg,
+	})
+}
+
+func (c *connector) syncDevices(payload dto.WSPayload) error {
+	if len(payload.Devices) > 0 {
+		var errCounter int
+
+		for _, device := range payload.Devices {
+			// 替换连接 key
+			device.ModelName = device.ConnectionKey
+			device.ConnectionKey = c.conf.IP
+
+			err := helper.CoreCache.AddOrUpdateDevice(device)
+
+			if err != nil {
+				errCounter++
+				helper.Logger.Error("gateway plugin add device failed", zap.Any("device", device))
+			}
+		}
+
+		if errCounter > 0 {
+			c.syncDevicesRes(fmt.Errorf("sync devices failed: devices count: %d, error count: %d", len(payload.Devices), errCounter))
+		} else {
+			c.syncDevicesRes(nil)
+		}
+	}
+	return nil
+}
+
+// syncDevicesRes 发送设备同步响应
+func (c *connector) syncDevicesRes(err error) {
+	var errMsg string
+	if err != nil {
+		errMsg = err.Error()
+	}
+
+	c.sendWebSocketPayload(dto.WSPayload{
+		Type:  dto.WSForSyncDevicesRes,
+		Error: errMsg,
+	})
+}
+
+func (c *connector) syncShadow(payload dto.WSPayload) error {
+	if len(payload.Shadow) > 0 {
+		for _, device := range payload.Shadow {
+			// 添加设备
+			shadow.DeviceShadow.AddDevice(device.ID, device.ModelName)
+			// 更新点位数据
+			for _, point := range device.Points {
+				_ = shadow.DeviceShadow.SetDevicePoint(device.ID, point.Name, point.Value)
+			}
+		}
+	}
+
+	c.syncShadowRes(nil)
+	return nil
+}
+
+func (c *connector) syncShadowRes(err error) {
+	var errMsg string
+	if err != nil {
+		errMsg = err.Error()
+	}
+
+	c.sendWebSocketPayload(dto.WSPayload{
+		Type:  dto.WSForSyncShadowRes,
+		Error: errMsg,
+	})
+}
+
+// control 向子网关发送控制消息
+func (c *connector) control(data plugin.DeviceData) {
+	c.sendWebSocketPayload(dto.WSPayload{
+		Type:       dto.WSForControl,
+		DeviceData: data,
+	})
+}
+
+func (c *connector) controlRes(payload dto.WSPayload) error {
+	if payload.Error != "" {
+		helper.Logger.Error("gateway plugin control failed", zap.String("IP", c.conf.IP), zap.String("error", payload.Error))
+	} else {
+		helper.Logger.Info("gateway plugin control success", zap.String("IP", c.conf.IP))
+	}
+	return nil
+}

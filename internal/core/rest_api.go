@@ -14,9 +14,9 @@ import (
 // 注册restapi
 func RegisterApi() {
 	//设备API
-	restful.HandleFunc(route.DevicePointWrite, writePoint)
-	restful.HandleFunc(route.DevicePointsWrite, writePoints)
-	restful.HandleFunc(route.DevicePointRead, readPoint)
+	restful.HandleFunc(http.MethodPost, route.DevicePointWrite, writePoint)
+	restful.HandleFunc(http.MethodPost, route.DevicePointsWrite, writePoints)
+	restful.HandleFunc(http.MethodGet, route.DevicePointRead, readPoint)
 }
 
 // 写入某个设备点位

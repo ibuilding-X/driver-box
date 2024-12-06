@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -55,7 +56,7 @@ type service struct {
 
 func (s *service) NewService() error {
 	// 创建联动场景
-	restful.HandleFunc(route.LinkEdgeCreate, func(request *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodPost, route.LinkEdgeCreate, func(request *http.Request) (any, error) {
 		data, err := readBody(request)
 		if err != nil {
 			err = fmt.Errorf("incoming reading ignored. Unable to read request body: %s", err.Error())
@@ -72,7 +73,7 @@ func (s *service) NewService() error {
 	})
 
 	// 预览联动场景
-	restful.HandleFunc(route.LinkEdgeTryTrigger, func(request *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodPost, route.LinkEdgeTryTrigger, func(request *http.Request) (any, error) {
 		// 读取请求参数
 		data, err := readBody(request)
 		if err != nil {
@@ -95,32 +96,32 @@ func (s *service) NewService() error {
 	})
 
 	//删除联动场景
-	restful.HandleFunc(route.LinkEdgeDelete, func(request *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodPost, route.LinkEdgeDelete, func(request *http.Request) (any, error) {
 		err := s.Delete(request.FormValue("id"))
 		return err != nil, err
 	})
 
 	//触发联动场景
-	restful.HandleFunc(route.LinkEdgeTrigger, func(request *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodPost, route.LinkEdgeTrigger, func(request *http.Request) (any, error) {
 		helper.Logger.Info(fmt.Sprintf("trigger linkEdge:%s from: %s", request.FormValue("id"), request.FormValue("source")))
 		err := s.TriggerLinkEdge(request.FormValue("id"))
 		return err != nil, err
 	})
 
 	//查看场景联动
-	restful.HandleFunc(route.LinkEdgeGet, func(request *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodPost, route.LinkEdgeGet, func(request *http.Request) (any, error) {
 		helper.Logger.Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
 		return s.getLinkEdge(request.FormValue("id"))
 	})
 
 	// 查看场景联动列表
-	restful.HandleFunc(route.LinkEdgeList, func(request *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodGet, route.LinkEdgeList, func(request *http.Request) (any, error) {
 		// 获取查询参数
 		tag := request.URL.Query().Get("tag")
 		return s.GetList(tag)
 	})
 
-	restful.HandleFunc(route.LinkEdgeUpdate, func(request *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodPost, route.LinkEdgeUpdate, func(request *http.Request) (any, error) {
 		body, err := readBody(request)
 		if err != nil {
 			return false, err
@@ -143,7 +144,7 @@ func (s *service) NewService() error {
 	})
 
 	//更新场景联动状态
-	restful.HandleFunc(route.LinkEdgeStatus, func(request *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodPost, route.LinkEdgeStatus, func(request *http.Request) (any, error) {
 		helper.Logger.Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
 		config, err := s.getLinkEdge(request.FormValue("id"))
 		if err != nil {
@@ -170,7 +171,7 @@ func (s *service) NewService() error {
 	})
 
 	// 获取最后一次执行的场景信息
-	restful.HandleFunc(route.LinkEdgeGetLast, func(r *http.Request) (any, error) {
+	restful.HandleFunc(http.MethodGet, route.LinkEdgeGetLast, func(r *http.Request) (any, error) {
 		return s.GetLast()
 	})
 
@@ -206,10 +207,18 @@ func (s *service) Create(bytes []byte) error {
 	}
 
 	//持久化
+	// fix: 偶现写入的文件内容为空
 	file := path.Join(s.envConfig.ConfigPath, model.ID+".json")
-	e = os.WriteFile(file, bytes, 0666)
-	if e != nil {
-		return e
+	f, err := os.Create(file)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if _, err = f.Write(bytes); err != nil {
+		return err
+	}
+	if err = f.Sync(); err != nil {
+		return err
 	}
 
 	//启动场景联动
@@ -404,18 +413,6 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...linkedge.Config)
 					})
 				}
 			}
-
-			//err := core.SendSinglePoint(devicePointAction.DeviceId, plugin.WriteMode, plugin.PointData{
-			//	PointName: devicePointAction.DevicePoint,
-			//	Value:     devicePointAction.Value,
-			//})
-			//if err != nil {
-			//	helper.Logger.Error("execute linkEdge error", zap.String("linkEdge", id),
-			//		zap.String("pointName", devicePointAction.DevicePoint), zap.String("pointValue", devicePointAction.Value), zap.Error(err))
-			//} else {
-			//	sucCount++
-			//	helper.Logger.Info(fmt.Sprintf("execute linkEdge:%s action", id))
-			//}
 		case linkedge.ActionTypeLinkEdge:
 			sucCount++
 			go s.triggerLinkEdge(action.ID, depth+1)
@@ -432,7 +429,8 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...linkedge.Config)
 			}
 		}
 	}
-	//遍历执行actions
+	//遍历执行actions,按连接分组
+	connectGroup := make(map[string]map[string][]plugin.PointData)
 	for deviceId, points := range actions {
 		// 跳过未知设备
 		if !helper.DeviceShadow.HasDevice(deviceId) {
@@ -440,16 +438,42 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...linkedge.Config)
 			export.TriggerEvents(event.UnknownDevice, id, deviceId)
 			continue
 		}
-
-		err := core.SendBatchWrite(deviceId, points)
-		if err != nil {
-			helper.Logger.Error("execute linkEdge error", zap.String("linkEdge", id),
-				zap.String("deviceId", deviceId), zap.Any("points", points), zap.Error(err))
-		} else {
-			sucCount = sucCount + len(points)
-			helper.Logger.Info(fmt.Sprintf("execute linkEdge:%s action", id))
+		device, ok := helper.CoreCache.GetDevice(deviceId)
+		if !ok {
+			helper.Logger.Error("get device error", zap.String("deviceId", deviceId))
+			continue
 		}
+		group, ok := connectGroup[device.ConnectionKey]
+		if !ok {
+			group = make(map[string][]plugin.PointData)
+			connectGroup[device.ConnectionKey] = group
+		}
+		group[deviceId] = points
 	}
+	var wg sync.WaitGroup
+	for _, devices := range connectGroup {
+		wg.Add(1)
+		go func(ds map[string][]plugin.PointData) {
+			defer wg.Done()
+			for deviceId, points := range ds {
+				// 跳过离线设备，避免阻塞场景执行
+				device, ok := helper.DeviceShadow.GetDevice(deviceId)
+				if !ok || !device.Online {
+					helper.Logger.Error("device offline, skip action", zap.String("deviceId", deviceId), zap.String("linkedge", id))
+					continue
+				}
+				err := core.SendBatchWrite(deviceId, points)
+				if err != nil {
+					helper.Logger.Error("execute linkEdge error", zap.String("linkEdge", id),
+						zap.String("deviceId", deviceId), zap.Any("points", points), zap.Error(err))
+				} else {
+					sucCount = sucCount + len(points)
+					helper.Logger.Info(fmt.Sprintf("execute linkEdge:%s action", id))
+				}
+			}
+		}(devices)
+	}
+	wg.Wait()
 	//预览情况下未持久化场景联动，id为空
 	if id != "" {
 		// value:全部成功\部分成功\全部失败

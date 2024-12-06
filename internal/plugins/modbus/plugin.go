@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+const ProtocolName = "modbus"
+
 // Plugin 驱动插件
 type Plugin struct {
 	connPool map[string]*connector // 连接器
@@ -43,7 +45,10 @@ type connector struct {
 	virtual bool
 
 	//写操作信号量
-	writeSemaphore atomic.Int32
+	writeSemaphore  atomic.Int32
+	latestWriteTime time.Time //最近一次写操作时间
+
+	writeEncodeMu sync.Mutex
 }
 
 // Initialize 插件初始化

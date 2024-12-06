@@ -9,6 +9,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const ProtocolName = "bacnet"
+
 type Plugin struct {
 	logger   *zap.Logger
 	config   config.Config

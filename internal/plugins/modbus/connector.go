@@ -43,15 +43,12 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 		Timeout:  time.Duration(cf.Timeout) * time.Millisecond,
 	})
 	conn := &connector{
-		Connection: plugin.Connection{
-			Ls:           p.ls,
-			ScriptEnable: helper.ScriptExists(p.config.Key),
-		},
-		config:  cf,
-		plugin:  p,
-		client:  client,
-		virtual: cf.Virtual || config.IsVirtual(),
-		devices: make(map[uint8]*slaveDevice),
+		Connection: plugin.Connection{},
+		config:     cf,
+		plugin:     p,
+		client:     client,
+		virtual:    cf.Virtual || config.IsVirtual(),
+		devices:    make(map[uint8]*slaveDevice),
 	}
 
 	return conn, err
@@ -82,14 +79,26 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 					break
 				}
 
+				duration := group.Duration
+				if group.TimeOutCount > 0 {
+					duration = duration * time.Duration(1<<group.TimeOutCount)
+					//最大不超过一分钟
+					if duration > time.Minute {
+						duration = time.Minute
+					} else if duration < 0 { //溢出，重置
+						group.TimeOutCount = 0
+						duration = group.Duration
+					}
+					helper.Logger.Warn("modbus connection has timeout, increase duration", zap.Any("group", group), zap.Any("duration", duration))
+				}
 				//采集时间未到
-				if group.LatestTime.Add(group.Duration).After(time.Now()) {
+				if group.LatestTime.Add(duration).After(time.Now()) {
 					continue
 				}
 
-				//写操作优先
-				if c.writeSemaphore.Load() > 0 {
-					helper.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.ConnectionKey), zap.Any("semaphore", c.writeSemaphore))
+				//最近发生过写操作，推测当前时段可能存在其他设备的写入需求，采集任务主动避让
+				if c.writeSemaphore.Load() > 0 || c.latestWriteTime.Add(time.Duration(conf.MinInterval)).After(time.Now()) {
+					helper.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.ConnectionKey), zap.Any("semaphore", c.writeSemaphore.Load()))
 					continue
 				}
 
@@ -100,6 +109,10 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 				}
 				if err := c.Send(bac); err != nil {
 					helper.Logger.Error("read error", zap.Any("connection", conf), zap.Any("group", group), zap.Error(err))
+					//发生读超时，设备可能离线或者当前group点位配置有问题。将当前group的采集时间设置为未来值，跳过数个采集周期
+					if errors.Is(err, modbus.ErrRequestTimedOut) {
+						group.TimeOutCount += 1
+					}
 					//通讯失败，触发离线
 					devices := make(map[string]interface{})
 					for _, point := range group.Points {
@@ -109,6 +122,8 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 						devices[point.DeviceId] = point.Name
 						_ = helper.DeviceShadow.MayBeOffline(point.DeviceId)
 					}
+				} else {
+					group.TimeOutCount = 0
 				}
 				group.LatestTime = time.Now()
 			}
@@ -203,6 +218,7 @@ func (c *connector) Send(data interface{}) (err error) {
 		group := cmd.Value.(*pointGroup)
 		err = c.sendReadCommand(group)
 	case plugin.WriteMode:
+		defer c.writeEncodeMu.Unlock()
 		values := cmd.Value.([]*writeValue)
 		for _, value := range values {
 			// fix: 修复错误信息可能会被覆盖问题，当前版本仅返回最后一次执行错误信息
@@ -416,7 +432,10 @@ func (c *connector) sendWriteCommand(pc *writeValue) error {
 	}
 
 	c.writeSemaphore.Add(1)
-	defer c.writeSemaphore.Add(-1)
+	defer func() {
+		c.latestWriteTime = time.Now()
+		c.writeSemaphore.Add(-1)
+	}()
 	var err error
 	for i := 0; i < c.config.Retry; i++ {
 		if c.virtual {
