@@ -31,6 +31,9 @@ const (
 
 	//driver-box默认UI是否可用
 	ENV_EXPORT_UI_ENABLED = "EXPORT_UI_ENABLED"
+
+	//driver-box llm-agent是否可用
+	ENV_EXPORT_LLM_AGENT_ENABLED = "EXPORT_LLM_AGENT_ENABLED"
 )
 
 // 点位上报模式
