@@ -10,6 +10,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// serialNo 网关序列号
+var serialNo = "driver-box"
+
 // 校验model有效性
 func checkMode(mode plugin.EncodeMode) bool {
 	switch mode {
@@ -69,4 +72,14 @@ func divideStrings(value interface{}, scale float64) (float64, error) {
 	default:
 		return 0, fmt.Errorf("cannot divide %T with float64", value)
 	}
+}
+
+func SetSerialNo(sn string) {
+	if sn != "" {
+		serialNo = sn
+	}
+}
+
+func GetSerialNo() string {
+	return serialNo
 }

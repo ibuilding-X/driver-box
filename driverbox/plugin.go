@@ -7,6 +7,7 @@ import (
 	plugins0 "github.com/ibuilding-x/driver-box/internal/plugins"
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet"
 	"github.com/ibuilding-x/driver-box/internal/plugins/dlt645"
+	"github.com/ibuilding-x/driver-box/internal/plugins/gwplugin"
 	"github.com/ibuilding-x/driver-box/internal/plugins/httpclient"
 	"github.com/ibuilding-x/driver-box/internal/plugins/httpserver"
 	"github.com/ibuilding-x/driver-box/internal/plugins/mirror"
@@ -89,6 +90,9 @@ func (p *plugins) RegisterAllPlugins() error {
 	if err := p.RegisterDlt645Plugin(); err != nil {
 		return err
 	}
+	if err := p.RegisterGatewayPlugin(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -126,4 +130,8 @@ func (p *plugins) RegisterMirrorPlugin() error {
 
 func (p *plugins) RegisterDlt645Plugin() error {
 	return plugins0.Manager.Register(dlt645.ProtocolName, new(dlt645.Plugin))
+}
+
+func (p *plugins) RegisterGatewayPlugin() error {
+	return plugins0.Manager.Register(gwplugin.ProtocolName, gwplugin.New())
 }
