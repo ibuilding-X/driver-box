@@ -304,5 +304,5 @@ func (wss *websocketService) genGatewayDeviceID(id string) string {
 
 // parseGatewayDeviceID 解析网关设备 ID
 func (wss *websocketService) parseGatewayDeviceID(id string) string {
-	return strings.TrimLeft(id, core.GetSerialNo()+"/")
+	return strings.ReplaceAll(id, core.GetSerialNo()+"/", "")
 }
