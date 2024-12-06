@@ -10,7 +10,7 @@ import (
 )
 
 // ProtocolName 插件名称
-const ProtocolName = "gateway"
+const ProtocolName = "driverbox"
 
 type gatewayPlugin struct {
 	l           *zap.Logger
