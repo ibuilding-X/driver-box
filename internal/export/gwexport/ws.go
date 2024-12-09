@@ -21,9 +21,10 @@ import (
 const WebSocketPath = "/ws/gateway-export"
 
 var (
-	errRegistered = errors.New("already registered") // 主网关已注册错误
-	errGatewayKey = errors.New("gateway key error")  // 网关 Key 错误
-	errDeviceID   = errors.New("device id error")    // 设备 ID 错误
+	errRegistered   = errors.New("already registered") // 主网关已注册错误
+	errSelfRegister = errors.New("self register")      // 不能自注册错误
+	errGatewayKey   = errors.New("gateway key error")  // 网关 Key 错误
+	errDeviceID     = errors.New("device id error")    // 设备 ID 错误
 )
 
 // websocketService websocket 服务（提供 websocket 所需的所有服务功能，并非仅仅启动 websocket 服务端）
@@ -251,6 +252,11 @@ func (wss *websocketService) gatewayRegister(conn *websocket.Conn, payload dto.W
 
 	wss.mu.Lock()
 	defer wss.mu.Unlock()
+
+	// 自注册
+	if payload.GatewayKey == core.GetSerialNo() {
+		return errSelfRegister
+	}
 
 	// 已注册
 	if wss.mainGateway != "" && wss.mainGateway != payload.GatewayKey {
