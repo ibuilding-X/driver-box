@@ -1,7 +1,11 @@
 package library
 
 import (
+	"fmt"
+	"github.com/ibuilding-x/driver-box/driverbox/common"
+	"github.com/ibuilding-x/driver-box/driverbox/config"
 	glua "github.com/yuin/gopher-lua"
+	"path"
 	"sync"
 )
 
@@ -66,4 +70,13 @@ func Model() *DeviceModel {
 		model = &DeviceModel{}
 	})
 	return model
+}
+
+func LoadContent(library string, key string) ([]byte, error) {
+	filePath := path.Join(config.ResourcePath, baseDir, library, key+".json")
+	if !common.FileExists(filePath) {
+		return []byte{}, fmt.Errorf("library not found: %s/%s.json", library, key)
+	}
+	//读取filePath中的文件内容
+	return common.ReadFileBytes(filePath)
 }
