@@ -331,8 +331,15 @@ func (c *connector) syncDevices(payload dto.WSPayload) error {
 			device.ModelName = device.ConnectionKey
 			device.ConnectionKey = c.conf.IP
 
-			err := helper.CoreCache.AddOrUpdateDevice(device)
+			// 获取本地设备信息
+			if localDevice, ok := helper.CoreCache.GetDevice(device.ID); ok {
+				// 优先使用本地设备信息
+				device.Description = localDevice.Description
+				device.Tags = localDevice.Tags
+				device.Properties = localDevice.Properties
+			}
 
+			err := helper.CoreCache.AddOrUpdateDevice(device)
 			if err != nil {
 				errCounter++
 				helper.Logger.Error("gateway plugin add device failed", zap.Any("device", device))
