@@ -1,6 +1,7 @@
 package library
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
@@ -72,6 +73,7 @@ func Model() *DeviceModel {
 	return model
 }
 
+// 加载library中的内容
 func LoadContent(library string, key string) ([]byte, error) {
 	filePath := path.Join(config.ResourcePath, baseDir, library, key+".json")
 	if !common.FileExists(filePath) {
@@ -79,4 +81,13 @@ func LoadContent(library string, key string) ([]byte, error) {
 	}
 	//读取filePath中的文件内容
 	return common.ReadFileBytes(filePath)
+}
+
+// 加载library中的内容，并填充至结构体
+func LoadLibrary(library string, key string, v any) error {
+	bytes, err := LoadContent(library, key)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(bytes, v)
 }
