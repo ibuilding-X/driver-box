@@ -225,7 +225,7 @@ func (c *connector) register() {
 
 	c.sendWebSocketPayload(dto.WSPayload{
 		Type:       dto.WSForRegister,
-		GatewayKey: core.GetSerialNo(), // 网关唯一标识
+		GatewayKey: c.conf.IP, // 网关唯一标识
 	})
 }
 
