@@ -62,9 +62,9 @@ func Start() error {
 	}
 
 	if err != nil {
-		TriggerEvents(event.EventCodeServiceStatus, SerialNo, event.ServiceStatusError)
+		TriggerEvents(event.EventCodeServiceStatus, GetSerialNo(), event.ServiceStatusError)
 	} else {
-		TriggerEvents(event.EventCodeServiceStatus, SerialNo, event.ServiceStatusHealthy)
+		TriggerEvents(event.EventCodeServiceStatus, GetSerialNo(), event.ServiceStatusHealthy)
 	}
 
 	helper.Logger.Info("start driver-box success.")
