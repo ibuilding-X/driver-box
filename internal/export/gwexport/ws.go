@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/restful"
 	"github.com/ibuilding-x/driver-box/internal/core"
 	"github.com/ibuilding-x/driver-box/internal/dto"
+	"github.com/ibuilding-x/driver-box/internal/export/discover"
 	"go.uber.org/zap"
 	"net/http"
 	"strings"
@@ -182,6 +185,8 @@ func (wss *websocketService) syncDevices() {
 			ID:            wss.genGatewayDeviceID(device.ID),
 			Description:   device.Description,
 			ConnectionKey: device.ModelName,
+			Tags:          device.Tags,
+			Properties:    device.Properties,
 		}
 	}
 
@@ -229,6 +234,30 @@ func (wss *websocketService) sendDeviceData(data plugin.DeviceData) {
 
 	// 修改设备 ID
 	data.ID = wss.genGatewayDeviceID(data.ID)
+
+	// 修改事件数据
+	if len(data.Events) > 0 {
+		var events []event.Data
+		for _, e := range data.Events {
+			switch e.Code {
+			case event.EventCodeDeviceStatus: // 设备状态
+				// todo 事件定义暂时无法获取设备 ID
+			case event.EventDeviceDiscover: // 设备发现
+				var deviceDiscover discover.DeviceDiscover
+				if err := utils.Conv2Struct(e.Value, &deviceDiscover); err == nil {
+					deviceDiscover.ProtocolName = "driverbox"                                   // 修改协议名称
+					deviceDiscover.ConnectionKey = wss.mainGateway                              // 修改连接 Key
+					deviceDiscover.Device.ID = wss.genGatewayDeviceID(deviceDiscover.Device.ID) // 修改设备 ID
+					deviceDiscover.Device.ConnectionKey = wss.mainGateway                       // 修改设备连接 Key
+					events = append(events, event.Data{
+						Code:  e.Code,
+						Value: deviceDiscover,
+					})
+				}
+			}
+		}
+		data.Events = events
+	}
 
 	// 汇总数据
 	var sendData dto.WSPayload
