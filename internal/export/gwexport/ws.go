@@ -158,6 +158,11 @@ func (wss *websocketService) syncModels() {
 		return
 	}
 
+	// 优化模型数据
+	for i, _ := range models {
+		models[i].Name = wss.genGatewayModelName(models[i].Name)
+	}
+
 	// 发送模型数据
 	var sendData dto.WSPayload
 	sendData.Type = dto.WSForSyncModels
@@ -335,6 +340,11 @@ func (wss *websocketService) gatewayUnregister(_ *websocket.Conn, payload dto.WS
 // genDeviceID 生成网关设备 ID
 func (wss *websocketService) genGatewayDeviceID(id string) string {
 	return fmt.Sprintf("%s/%s", core.GetSerialNo(), id)
+}
+
+// genGatewayModelName 生成网关模型名称（与主网关模型名称不能重复）
+func (wss *websocketService) genGatewayModelName(name string) string {
+	return fmt.Sprintf("%s_%s", core.GetSerialNo(), name)
 }
 
 // parseGatewayDeviceID 解析网关设备 ID
