@@ -66,4 +66,5 @@ type BaseConnection struct {
 	ProtocolKey   string `json:"protocolKey"` //协议驱动库标识
 	Discover      bool   `json:"discover"`    //是否支持设备发现
 	Enable        bool   `json:"enable"`      //是否启用
+	Virtual       bool   `json:"virtual"`     //虚拟设备功能
 }
