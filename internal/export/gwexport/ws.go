@@ -189,7 +189,7 @@ func (wss *websocketService) syncDevices() {
 		devices[i] = config.Device{
 			ID:            wss.genGatewayDeviceID(device.ID),
 			Description:   device.Description,
-			ConnectionKey: device.ModelName,
+			ConnectionKey: wss.genGatewayModelName(device.ModelName),
 			Tags:          device.Tags,
 			Properties:    device.Properties,
 		}
@@ -213,6 +213,7 @@ func (wss *websocketService) syncDevicesPoints() {
 	// 修改设备 ID
 	for i, _ := range devices {
 		devices[i].ID = wss.genGatewayDeviceID(devices[i].ID)
+		devices[i].ModelName = wss.genGatewayModelName(devices[i].ModelName)
 	}
 
 	// 发送设备影子数据
@@ -254,6 +255,7 @@ func (wss *websocketService) sendDeviceData(data plugin.DeviceData) {
 					deviceDiscover.ConnectionKey = wss.mainGateway                              // 修改连接 Key
 					deviceDiscover.Device.ID = wss.genGatewayDeviceID(deviceDiscover.Device.ID) // 修改设备 ID
 					deviceDiscover.Device.ConnectionKey = wss.mainGateway                       // 修改设备连接 Key
+					deviceDiscover.Device.ModelName = wss.genGatewayModelName(deviceDiscover.Device.ModelName)
 					events = append(events, event.Data{
 						Code:  e.Code,
 						Value: deviceDiscover,
