@@ -168,10 +168,8 @@ func (wss *websocketService) syncModels() {
 	sendData.Type = dto.WSForSyncModels
 	sendData.Models = models
 
-	if wss.mainGateway != "" && wss.mainGatewayConn != nil {
-		if err := wss.mainGatewayConn.WriteJSON(sendData); err != nil {
-			helper.Logger.Error("gateway export sync models error", zap.Error(err))
-		}
+	if err := wss.sendJSONToWebSocket(sendData); err != nil {
+		helper.Logger.Error("gateway export sync models error", zap.Error(err))
 	}
 }
 
@@ -200,10 +198,8 @@ func (wss *websocketService) syncDevices() {
 	sendData.Type = dto.WSForSyncDevices
 	sendData.Devices = devices
 
-	if wss.mainGateway != "" && wss.mainGatewayConn != nil {
-		if err := wss.mainGatewayConn.WriteJSON(sendData); err != nil {
-			helper.Logger.Error("gateway export sync devices error", zap.Error(err))
-		}
+	if err := wss.sendJSONToWebSocket(sendData); err != nil {
+		helper.Logger.Error("gateway export sync devices error", zap.Error(err))
 	}
 }
 
@@ -221,10 +217,8 @@ func (wss *websocketService) syncDevicesPoints() {
 	sendData.Type = dto.WSForSyncShadow
 	sendData.Shadow = devices
 
-	if wss.mainGateway != "" && wss.mainGatewayConn != nil {
-		if err := wss.mainGatewayConn.WriteJSON(sendData); err != nil {
-			helper.Logger.Error("gateway export sync shadow error", zap.Error(err))
-		}
+	if err := wss.sendJSONToWebSocket(sendData); err != nil {
+		helper.Logger.Error("gateway export sync shadow error", zap.Error(err))
 	}
 }
 
@@ -271,11 +265,8 @@ func (wss *websocketService) sendDeviceData(data plugin.DeviceData) {
 	sendData.Type = dto.WSForReport
 	sendData.DeviceData = data
 
-	// 发送数据
-	if wss.mainGateway != "" && wss.mainGatewayConn != nil {
-		if err := wss.mainGatewayConn.WriteJSON(sendData); err != nil {
-			helper.Logger.Error("gateway export send device data error", zap.Error(err))
-		}
+	if err := wss.sendJSONToWebSocket(sendData); err != nil {
+		helper.Logger.Error("gateway export send device data error", zap.Error(err))
 	}
 }
 
@@ -352,4 +343,16 @@ func (wss *websocketService) genGatewayModelName(name string) string {
 // parseGatewayDeviceID 解析网关设备 ID
 func (wss *websocketService) parseGatewayDeviceID(id string) string {
 	return strings.ReplaceAll(id, core.GetSerialNo()+"/", "")
+}
+
+// sendJSONToWebSocket 发送 JSON 数据到 websocket
+func (wss *websocketService) sendJSONToWebSocket(v interface{}) error {
+	wss.mu.Lock()
+	defer wss.mu.Unlock()
+
+	if wss.mainGateway != "" && wss.mainGatewayConn != nil {
+		return wss.mainGatewayConn.WriteJSON(v)
+	}
+
+	return nil
 }
