@@ -12,7 +12,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
 	"net/http"
-	"strconv"
 	"sync"
 )
 
@@ -27,7 +26,7 @@ var upgrader = websocket.Upgrader{
 type connectorConfig struct {
 	plugin.BaseConnection
 	Host string `json:"host"`
-	Port int    `json:"port"`
+	Port string `json:"port"`
 	//匹配路径
 	Pattern string `json:"pattern"`
 }
@@ -75,14 +74,14 @@ func (c *connector) startServer() {
 		return
 	}
 	//复用driver-box自身服务
-	if strconv.Itoa(c.config.Port) == helper.EnvConfig.HttpListen {
+	if c.config.Port == helper.EnvConfig.HttpListen {
 		logger.Logger.Error("websocket connector port is same as driver-box http listen port", zap.Any("connector", c.config))
 		return
 	}
 	//启动新的服务
 	serverMux := &http.ServeMux{}
 	c.server = &http.Server{
-		Addr:    ":" + strconv.Itoa(c.config.Port),
+		Addr:    ":" + c.config.Port,
 		Handler: serverMux,
 	}
 	c.handleFunc(serverMux)
