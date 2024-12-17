@@ -1,27 +1,22 @@
 package serial
 
 import (
-	"encoding/hex"
 	"errors"
-	"fmt"
 	"github.com/goburrow/serial"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
-	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 	"github.com/ibuilding-x/driver-box/internal/logger"
-	glua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
-	"io"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
 type TimerGroup struct {
+	//采集组唯一ID
+	UUID       string
 	LatestTime time.Time
 	//记录最近连续超时次数
 	TimeOutCount int
@@ -30,19 +25,45 @@ type TimerGroup struct {
 	//关联设备ID
 	Devices []string
 }
-type TimerTask interface {
-	Init(config.Config) []TimerGroup
-	EncodeToCommand(group *TimerGroup) *Command
+type ProtocolAdapter interface {
+	//初始化采集任务组
+	InitTimerGroup(connector *Connector) []TimerGroup
+	//执行采集任务
+	ExecuteTimerGroup(group *TimerGroup) error
+
+	SendCommand(cmd Command) error
+
+	DriverBoxEncode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res []Command, err error)
+
+	DriverBoxDecode(command Command) (res []plugin.DeviceData, err error)
 }
 
-// connector 连接器
-type connector struct {
+type SerialPort struct {
+	client serial.Port
+}
+
+// 只可在 plugin.Connector#Send方法中调用
+func (s *SerialPort) Write(p []byte) (n int, err error) {
+	return s.client.Write(p)
+}
+
+func (s *SerialPort) Read(p []byte) (n int, err error) {
+	return s.client.Read(p)
+}
+
+func (s *SerialPort) close() {
+	_ = s.client.Close()
+}
+
+// Connector 连接器
+type Connector struct {
 	plugin.Connection
-	config *ConnectionConfig
-	plugin *Plugin
+	Config          *ConnectionConfig
+	Plugin          *Plugin
+	protocolAdapter ProtocolAdapter
 	//当前串口的采集任务组
 	TimerGroup   []TimerGroup
-	client       serial.Port
+	client       SerialPort
 	timeout      time.Duration
 	lastActivity time.Time
 	t35          time.Duration
@@ -98,7 +119,7 @@ type Command struct {
 	inputFrame  []byte            // 输入帧
 }
 
-func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
+func newConnector(p *Plugin, cf *ConnectionConfig) (*Connector, error) {
 	if cf.MinInterval == 0 {
 		cf.MinInterval = 100
 	}
@@ -109,22 +130,22 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 		cf.Timeout = 1000
 	}
 
-	conn := &connector{
+	conn := &Connector{
 		Connection: plugin.Connection{},
-		config:     cf,
-		plugin:     p,
+		Config:     cf,
+		Plugin:     p,
 		virtual:    cf.Virtual || config.IsVirtual(),
 	}
-
+	conn.protocolAdapter = p.adapter
 	return conn, nil
 }
 
-func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, error) {
+func (c *Connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, error) {
 	if !conf.Enable {
 		logger.Logger.Warn("modbus connection is disabled, ignore collect task", zap.String("key", c.ConnectionKey))
 		return nil, nil
 	}
-	c.TimerGroup = c.plugin.timerTask.Init(c.plugin.config)
+	c.TimerGroup = c.Plugin.adapter.InitTimerGroup(c)
 	//注册定时采集任务
 	return helper.Crontab.AddFunc("1s", func() {
 		if len(c.TimerGroup) == 0 {
@@ -161,8 +182,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 
 			helper.Logger.Debug("timer read modbus", zap.Any("group", i), zap.Any("latestTime", group.LatestTime), zap.Any("duration", group.Duration))
 			//遍历所有通讯设备
-			cmd := c.plugin.timerTask.EncodeToCommand(&group)
-			if err := c.Send(cmd); err != nil {
+			if err := c.Plugin.adapter.ExecuteTimerGroup(&group); err != nil {
 				helper.Logger.Error("read error", zap.Any("connection", conf), zap.Any("group", group), zap.Error(err))
 				//发生读超时，设备可能离线或者当前group点位配置有问题。将当前group的采集时间设置为未来值，跳过数个采集周期
 				if errors.Is(err, ErrRequestTimedOut) {
@@ -182,137 +202,89 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 }
 
 // Decode 解码数据
-func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
-	cmd := raw.(*Command)
-	return library.Protocol().DecodeV2(c.config.ProtocolKey, func(L *glua.LState) *glua.LTable {
-		table := L.NewTable()
-		table.RawSetString("inputFrame", glua.LString(cmd.inputFrame))
-		table.RawSetString("messageType", glua.LString(cmd.MessageType))
-		table.RawSetString("outputFrame", glua.LString(cmd.OutputFrame))
-		if cmd.Mode == plugin.WriteMode {
-			table.RawSetString("mode", glua.LString("write"))
-		} else {
-			table.RawSetString("mode", glua.LString("read"))
-		}
-		return table
-	})
+func (c *Connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
+	return c.protocolAdapter.DriverBoxDecode(raw.(Command))
 }
 
 // Encode 编码数据
-func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
-	_, err = library.Protocol().EncodeV2(c.config.ProtocolKey, library.ProtocolEncodeRequest{
-		DeviceId: deviceId,
-		Mode:     mode,
-		Points:   values,
-	})
-
-	return nil, err
+func (c *Connector) Encode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
+	return c.protocolAdapter.DriverBoxEncode(deviceId, mode, values...)
 }
 
 // Send 发送数据
-func (c *connector) Send(data interface{}) error {
-	cmd := data.(*Command)
-
-	output := cmd.OutputFrame
-	//移除空格
-	output = strings.ReplaceAll(output, " ", "")
-
-	bytes, err := hex.DecodeString(output)
+func (c *Connector) Send(data interface{}) error {
+	err := c.openSerialPort()
 	if err != nil {
-		helper.Logger.Error("hex decode error", zap.Error(err))
-		return err
-	}
-	err = c.openSerialPort()
-	if err != nil {
+		helper.Logger.Error("open serial port error", zap.Error(err))
 		return err
 	}
 	defer c.closeSerialPort(err)
-
-	var ts time.Time
-	var t time.Duration
-	var n int
-	t = time.Since(c.lastActivity.Add(c.t35))
-	if t < 0 {
-		time.Sleep(t * (-1))
+	cmd, ok := data.(Command)
+	if ok {
+		return c.protocolAdapter.SendCommand(cmd)
 	}
-
-	ts = time.Now()
-	fmt.Println("write data:" + hex.Dump(bytes))
-	n, err = c.client.Write(bytes)
-	if err != nil {
-		return err
+	cmds, ok := data.([]Command)
+	if ok {
+		for _, cmd = range cmds {
+			err = c.protocolAdapter.SendCommand(cmd)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
 	}
-	c.lastActivity = ts.Add(time.Duration(n) * c.t1)
-
-	// observe inter-frame delays
-	time.Sleep(c.lastActivity.Add(c.t35).Sub(time.Now()))
-	rxbuf := make([]byte, 256)
-	byteCount, err := io.ReadFull(c.client, rxbuf)
-	cmd.inputFrame = rxbuf[:byteCount]
-	fmt.Println("read response:" + hex.EncodeToString(cmd.inputFrame))
-
-	_, err = callback.OnReceiveHandler(c, cmd)
-	return err
+	return errors.New("unsupported data type")
 }
 
 // Release 释放资源
-// 不释放连接资源，经测试该包不支持频繁创建连接
-func (c *connector) Release() (err error) {
-	return
+func (c *Connector) Release() (err error) {
+	return nil
 }
 
-// ensureInterval 确保与前一次IO至少间隔minInterval毫秒
-func (c *connector) ensureInterval() {
-	np := c.latestIoTime.Add(time.Duration(c.config.MinInterval) * time.Millisecond)
-	if time.Now().Before(np) {
-		time.Sleep(time.Until(np))
-	}
-	c.latestIoTime = time.Now()
-}
-
-func (c *connector) openSerialPort() error {
+func (c *Connector) openSerialPort() error {
 	c.mutex.Lock()
 	//modbus连接已打开
 	if c.keepAlive {
 		return nil
 	}
 	var err error
-	c.client, err = serial.Open(&serial.Config{
-		Address:  c.config.Address,
-		BaudRate: int(c.config.BaudRate),
-		DataBits: int(c.config.DataBits),
-		Parity:   c.config.Parity,
-		StopBits: int(c.config.StopBits),
+	serialPort, err := serial.Open(&serial.Config{
+		Address:  c.Config.Address,
+		BaudRate: int(c.Config.BaudRate),
+		DataBits: int(c.Config.DataBits),
+		Parity:   c.Config.Parity,
+		StopBits: int(c.Config.StopBits),
 		Timeout:  10 * time.Millisecond,
 	})
 	if err != nil {
 		c.mutex.Unlock()
-		helper.Logger.Error("open serial port error", zap.Any("serial", c.config), zap.Error(err))
+		helper.Logger.Error("open serial port error", zap.Any("serial", c.Config), zap.Error(err))
 	} else {
+		c.client = SerialPort{client: serialPort}
 		c.keepAlive = true
 	}
 	return err
 }
 
-func (c *connector) closeSerialPort(e error) {
+func (c *Connector) closeSerialPort(e error) {
 	defer func() {
 		c.mutex.Unlock()
 	}()
 	if e != nil {
-		helper.Logger.Error("modbus client error, will close it", zap.Error(e))
+		helper.Logger.Error("serial error, will close it", zap.Error(e))
 	}
 	//RTU 模式下，连接不关闭
 	if e != nil {
 		c.keepAlive = false
-		_ = c.client.Close()
+		c.client.close()
 	}
 }
-func (c *connector) Close() {
+func (c *Connector) Close() {
 	c.close = true
 	if c.collectTask != nil {
 		c.collectTask.Disable()
 	}
 	if c.keepAlive {
-		_ = c.client.Close()
+		c.client.close()
 	}
 }

@@ -13,28 +13,28 @@ const ProtocolName = "serial"
 
 // Plugin 驱动插件
 type Plugin struct {
-	connPool map[string]*connector // 连接器
+	connPool map[string]*Connector // 连接器
 	ls       *lua.LState           // lua 虚拟机
-	config   config.Config
+	Config   config.Config
 	//具体协议的采集任务实现
-	timerTask TimerTask
+	adapter ProtocolAdapter
 }
 
-func NewPlugin(timerTask TimerTask) *Plugin {
-	return &Plugin{timerTask: timerTask}
+func NewPlugin(adapter ProtocolAdapter) *Plugin {
+	return &Plugin{adapter: adapter}
 }
 
 // Initialize 插件初始化
 func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) {
 	p.ls = ls
-	p.config = c
+	p.Config = c
 	//初始化连接池
 	p.initNetworks(c)
 }
 
 // 初始化Modbus连接池
 func (p *Plugin) initNetworks(config config.Config) {
-	p.connPool = make(map[string]*connector)
+	p.connPool = make(map[string]*Connector)
 	//某个连接配置有问题，不影响其他连接的建立
 	for key, connConfig := range config.Connections {
 		connectionConfig := new(ConnectionConfig)
