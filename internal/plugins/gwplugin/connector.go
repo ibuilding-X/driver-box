@@ -16,6 +16,7 @@ import (
 	"go.uber.org/zap"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -65,6 +66,7 @@ type encodeData struct {
 type connector struct {
 	conf connectorConfig
 	conn *websocket.Conn // 存储 websocket 连接
+	mu   sync.Mutex
 }
 
 func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
@@ -210,12 +212,15 @@ func (c *connector) handleWebSocketMessage(conn *websocket.Conn, message []byte)
 }
 
 // sendWebSocketPayload 向子网关发送数据
-func (c *connector) sendWebSocketPayload(payload dto.WSPayload) {
+func (c *connector) sendWebSocketPayload(payload dto.WSPayload) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	if c.conn != nil {
-		if err := c.conn.WriteJSON(payload); err != nil {
-			helper.Logger.Error("gateway plugin register failed", zap.Error(err))
-		}
+		return c.conn.WriteJSON(payload)
 	}
+
+	return nil
 }
 
 // register 向子网关发送注册消息
@@ -223,10 +228,12 @@ func (c *connector) register() {
 	// 延迟发送注册消息，防止无法收到注册响应消息
 	time.Sleep(time.Second)
 
-	c.sendWebSocketPayload(dto.WSPayload{
+	if err := c.sendWebSocketPayload(dto.WSPayload{
 		Type:       dto.WSForRegister,
 		GatewayKey: c.conf.IP, // 网关唯一标识
-	})
+	}); err != nil {
+		helper.Logger.Error("gateway plugin send register payload failed", zap.String("IP", c.conf.IP), zap.Error(err))
+	}
 }
 
 // registerRes 处理注册响应
@@ -245,10 +252,12 @@ func (c *connector) registerRes(payload dto.WSPayload) error {
 // unregister 向子网关发送注销消息
 func (c *connector) unregister() {
 	// todo 暂时未使用
-	c.sendWebSocketPayload(dto.WSPayload{
+	if err := c.sendWebSocketPayload(dto.WSPayload{
 		Type:       dto.WSForUnregister,
 		GatewayKey: core.GetSerialNo(), // 网关唯一标识
-	})
+	}); err != nil {
+		helper.Logger.Error("gateway plugin send unregister payload failed", zap.String("IP", c.conf.IP))
+	}
 }
 
 // unregisterRes 处理注销响应
@@ -265,9 +274,11 @@ func (c *connector) unregisterRes(payload dto.WSPayload) error {
 
 // ping 向子网关发送心跳消息
 func (c *connector) ping() {
-	c.sendWebSocketPayload(dto.WSPayload{
+	if err := c.sendWebSocketPayload(dto.WSPayload{
 		Type: dto.WSForPing,
-	})
+	}); err != nil {
+		helper.Logger.Error("gateway plugin send ping payload failed", zap.String("IP", c.conf.IP))
+	}
 }
 
 // pong 处理心跳响应
@@ -316,10 +327,12 @@ func (c *connector) syncModelsRes(err error) {
 		errMsg = err.Error()
 	}
 
-	c.sendWebSocketPayload(dto.WSPayload{
+	if err = c.sendWebSocketPayload(dto.WSPayload{
 		Type:  dto.WSForSyncModelsRes,
 		Error: errMsg,
-	})
+	}); err != nil {
+		helper.Logger.Error("gateway plugin send sync models res failed", zap.String("IP", c.conf.IP))
+	}
 }
 
 func (c *connector) syncDevices(payload dto.WSPayload) error {
@@ -362,10 +375,12 @@ func (c *connector) syncDevicesRes(err error) {
 		errMsg = err.Error()
 	}
 
-	c.sendWebSocketPayload(dto.WSPayload{
+	if err = c.sendWebSocketPayload(dto.WSPayload{
 		Type:  dto.WSForSyncDevicesRes,
 		Error: errMsg,
-	})
+	}); err != nil {
+		helper.Logger.Error("gateway plugin send sync devices res failed", zap.String("IP", c.conf.IP))
+	}
 }
 
 func (c *connector) syncShadow(payload dto.WSPayload) error {
@@ -390,18 +405,22 @@ func (c *connector) syncShadowRes(err error) {
 		errMsg = err.Error()
 	}
 
-	c.sendWebSocketPayload(dto.WSPayload{
+	if err = c.sendWebSocketPayload(dto.WSPayload{
 		Type:  dto.WSForSyncShadowRes,
 		Error: errMsg,
-	})
+	}); err != nil {
+		helper.Logger.Error("gateway plugin send shadow res failed", zap.String("IP", c.conf.IP))
+	}
 }
 
 // control 向子网关发送控制消息
 func (c *connector) control(data plugin.DeviceData) {
-	c.sendWebSocketPayload(dto.WSPayload{
+	if err := c.sendWebSocketPayload(dto.WSPayload{
 		Type:       dto.WSForControl,
 		DeviceData: data,
-	})
+	}); err != nil {
+		helper.Logger.Error("gateway plugin send control payload failed", zap.String("IP", c.conf.IP))
+	}
 }
 
 func (c *connector) controlRes(payload dto.WSPayload) error {

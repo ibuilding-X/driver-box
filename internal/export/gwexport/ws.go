@@ -158,15 +158,18 @@ func (wss *websocketService) syncModels() {
 		return
 	}
 
+	// 优化模型数据
+	for i, _ := range models {
+		models[i].Name = wss.genGatewayModelName(models[i].Name)
+	}
+
 	// 发送模型数据
 	var sendData dto.WSPayload
 	sendData.Type = dto.WSForSyncModels
 	sendData.Models = models
 
-	if wss.mainGateway != "" && wss.mainGatewayConn != nil {
-		if err := wss.mainGatewayConn.WriteJSON(sendData); err != nil {
-			helper.Logger.Error("gateway export sync models error", zap.Error(err))
-		}
+	if err := wss.sendJSONToWebSocket(sendData); err != nil {
+		helper.Logger.Error("gateway export sync models error", zap.Error(err))
 	}
 }
 
@@ -184,7 +187,7 @@ func (wss *websocketService) syncDevices() {
 		devices[i] = config.Device{
 			ID:            wss.genGatewayDeviceID(device.ID),
 			Description:   device.Description,
-			ConnectionKey: device.ModelName,
+			ConnectionKey: wss.genGatewayModelName(device.ModelName),
 			Tags:          device.Tags,
 			Properties:    device.Properties,
 		}
@@ -195,10 +198,8 @@ func (wss *websocketService) syncDevices() {
 	sendData.Type = dto.WSForSyncDevices
 	sendData.Devices = devices
 
-	if wss.mainGateway != "" && wss.mainGatewayConn != nil {
-		if err := wss.mainGatewayConn.WriteJSON(sendData); err != nil {
-			helper.Logger.Error("gateway export sync devices error", zap.Error(err))
-		}
+	if err := wss.sendJSONToWebSocket(sendData); err != nil {
+		helper.Logger.Error("gateway export sync devices error", zap.Error(err))
 	}
 }
 
@@ -208,6 +209,7 @@ func (wss *websocketService) syncDevicesPoints() {
 	// 修改设备 ID
 	for i, _ := range devices {
 		devices[i].ID = wss.genGatewayDeviceID(devices[i].ID)
+		devices[i].ModelName = wss.genGatewayModelName(devices[i].ModelName)
 	}
 
 	// 发送设备影子数据
@@ -215,10 +217,8 @@ func (wss *websocketService) syncDevicesPoints() {
 	sendData.Type = dto.WSForSyncShadow
 	sendData.Shadow = devices
 
-	if wss.mainGateway != "" && wss.mainGatewayConn != nil {
-		if err := wss.mainGatewayConn.WriteJSON(sendData); err != nil {
-			helper.Logger.Error("gateway export sync shadow error", zap.Error(err))
-		}
+	if err := wss.sendJSONToWebSocket(sendData); err != nil {
+		helper.Logger.Error("gateway export sync shadow error", zap.Error(err))
 	}
 }
 
@@ -249,6 +249,7 @@ func (wss *websocketService) sendDeviceData(data plugin.DeviceData) {
 					deviceDiscover.ConnectionKey = wss.mainGateway                              // 修改连接 Key
 					deviceDiscover.Device.ID = wss.genGatewayDeviceID(deviceDiscover.Device.ID) // 修改设备 ID
 					deviceDiscover.Device.ConnectionKey = wss.mainGateway                       // 修改设备连接 Key
+					deviceDiscover.Device.ModelName = wss.genGatewayModelName(deviceDiscover.Device.ModelName)
 					events = append(events, event.Data{
 						Code:  e.Code,
 						Value: deviceDiscover,
@@ -264,11 +265,8 @@ func (wss *websocketService) sendDeviceData(data plugin.DeviceData) {
 	sendData.Type = dto.WSForReport
 	sendData.DeviceData = data
 
-	// 发送数据
-	if wss.mainGateway != "" && wss.mainGatewayConn != nil {
-		if err := wss.mainGatewayConn.WriteJSON(sendData); err != nil {
-			helper.Logger.Error("gateway export send device data error", zap.Error(err))
-		}
+	if err := wss.sendJSONToWebSocket(sendData); err != nil {
+		helper.Logger.Error("gateway export send device data error", zap.Error(err))
 	}
 }
 
@@ -337,7 +335,24 @@ func (wss *websocketService) genGatewayDeviceID(id string) string {
 	return fmt.Sprintf("%s/%s", core.GetSerialNo(), id)
 }
 
+// genGatewayModelName 生成网关模型名称（与主网关模型名称不能重复）
+func (wss *websocketService) genGatewayModelName(name string) string {
+	return fmt.Sprintf("%s_%s", core.GetSerialNo(), name)
+}
+
 // parseGatewayDeviceID 解析网关设备 ID
 func (wss *websocketService) parseGatewayDeviceID(id string) string {
 	return strings.ReplaceAll(id, core.GetSerialNo()+"/", "")
+}
+
+// sendJSONToWebSocket 发送 JSON 数据到 websocket
+func (wss *websocketService) sendJSONToWebSocket(v interface{}) error {
+	wss.mu.Lock()
+	defer wss.mu.Unlock()
+
+	if wss.mainGateway != "" && wss.mainGatewayConn != nil {
+		return wss.mainGatewayConn.WriteJSON(v)
+	}
+
+	return nil
 }
