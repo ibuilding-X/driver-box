@@ -14,8 +14,6 @@ type Action struct {
 	Type ActionType `json:"type"`
 	// ACondition 执行条件
 	Condition []Condition `json:"condition"`
-	// Attrs 附加属性（例如：供前端存储设备组信息）
-	Attrs map[string]interface{} `json:"attrs"`
 	// Sleep 执行后休眠时长
 	Sleep string `json:"sleep"`
 	DevicePointAction
