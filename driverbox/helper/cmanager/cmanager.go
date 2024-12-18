@@ -288,7 +288,14 @@ func (m *manager) LoadConfig() error {
 	}
 
 	// 优化配置文件
-	m.OptimizeConfig()
+	m.optimizeConfig()
+
+	// 保存
+	for k, _ := range m.configs {
+		if err := m.saveConfig(k); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -326,12 +333,7 @@ func (m *manager) GetConfigKeyByModel(modelName string) string {
 	return ""
 }
 
-// OptimizeConfig 优化所有驱动配置（移除未使用模型、移除未使用连接）
-// 提示：此操作会修改并持久化驱动配置文件
-func (m *manager) OptimizeConfig() {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
+func (m *manager) optimizeConfig() {
 	for key, conf := range m.configs {
 		usefulConnKey := make(map[string]struct{})
 		// 遍历模型
@@ -362,6 +364,15 @@ func (m *manager) OptimizeConfig() {
 			Key:          conf.Key,
 		}
 	}
+}
+
+// OptimizeConfig 优化所有驱动配置（移除未使用模型、移除未使用连接）
+// 提示：此操作会修改并持久化驱动配置文件
+func (m *manager) OptimizeConfig() {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
+	m.optimizeConfig()
 }
 
 // GetModel 获取模型
