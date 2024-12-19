@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 )
 
 const (
@@ -112,6 +113,7 @@ type manager struct {
 	scriptName string
 	configs    map[string]config.Config
 	mux        *sync.RWMutex
+	reload     atomic.Bool
 }
 
 // New 创建配置管理器实例
@@ -247,6 +249,7 @@ func (m *manager) SetScriptFileName(name string) {
 func (m *manager) LoadConfig() error {
 	m.mux.Lock()
 	defer m.mux.Unlock()
+	defer m.reload.Store(true)
 
 	// 自动创建配置目录
 	if err := m.createDir(m.root); err != nil {
@@ -285,6 +288,10 @@ func (m *manager) LoadConfig() error {
 
 		// 保存配置
 		m.configs[dirs[i]] = c.UpdateIndexAndClean()
+	}
+
+	if m.reload.Load() {
+		return nil
 	}
 
 	// 优化配置文件
