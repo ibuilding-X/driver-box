@@ -128,9 +128,9 @@ func (pm PointMap) ToPoint() Point {
 // Config 配置
 type Config struct {
 	// 设备模型
-	DeviceModels []DeviceModel `json:"deviceModels" validate:"required"`
+	DeviceModels []DeviceModel `json:"deviceModels" validate:""`
 	// 连接配置
-	Connections map[string]interface{} `json:"connections" validate:"required"`
+	Connections map[string]interface{} `json:"connections" validate:""`
 	// 协议名称（通过协议名称区分连接模式：客户端、服务端）
 	ProtocolName string `json:"protocolName" validate:"required"`
 	// 配置唯一key，一般对应目录名称
