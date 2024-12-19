@@ -87,13 +87,15 @@ type ConnectionConfig struct {
 }
 type modbusAdapter struct {
 	connector *serial.Connector
-	devices   map[uint8]*slaveDevice
+	groups    map[string]*pointGroup
 }
 
 func (adapter *modbusAdapter) InitTimerGroup(connector *serial.Connector) []serial.TimerGroup {
 	helper.Logger.Info("init modbus adapter")
 	adapter.connector = connector
-	groups := make([]serial.TimerGroup, 0)
+	adapter.groups = make(map[string]*pointGroup)
+
+	devices := make(map[uint8]*slaveDevice)
 
 	connConfig := adapter.connector.Plugin.Config.Connections[connector.ConnectionKey]
 	connectionConfig := new(ConnectionConfig)
@@ -101,25 +103,40 @@ func (adapter *modbusAdapter) InitTimerGroup(connector *serial.Connector) []seri
 		helper.Logger.Error("convert connector config error", zap.Any("connection", connConfig), zap.Error(err))
 		return nil
 	}
+	if connectionConfig.MinInterval == 0 {
+		connectionConfig.MinInterval = 100
+	}
+	if connectionConfig.Retry == 0 {
+		connectionConfig.Retry = 3
+	}
+	if connectionConfig.Timeout <= 0 {
+		connectionConfig.Timeout = 1000
+	}
+	if connectionConfig.BatchReadLen == 0 {
+		connectionConfig.BatchReadLen = 32
+	}
 	//生成点位采集组
 	for _, model := range connector.Plugin.Config.DeviceModels {
 		for _, dev := range model.Devices {
 			if dev.ConnectionKey != adapter.connector.ConnectionKey {
 				continue
 			}
-			adapter.createPointGroup(connectionConfig, model, dev)
+			adapter.createPointGroup(connectionConfig, model, dev, devices)
 		}
 	}
-	for _, device := range adapter.devices {
+
+	groups := make([]serial.TimerGroup, 0)
+	for _, device := range devices {
 		for _, group := range device.pointGroup {
 			groups = append(groups, group.TimerGroup)
+			adapter.groups[group.UUID] = group
 		}
 	}
 	return groups
 }
 
 // 采集任务分组
-func (adapter *modbusAdapter) createPointGroup(conf *ConnectionConfig, model config.DeviceModel, dev config.Device) {
+func (adapter *modbusAdapter) createPointGroup(conf *ConnectionConfig, model config.DeviceModel, dev config.Device, devices map[uint8]*slaveDevice) {
 	for _, point := range model.DevicePoints {
 		p := point.ToPoint()
 		if p.ReadWrite != config.ReadWrite_R && p.ReadWrite != config.ReadWrite_RW {
@@ -138,7 +155,7 @@ func (adapter *modbusAdapter) createPointGroup(conf *ConnectionConfig, model con
 			duration = time.Second
 		}
 
-		device, err := adapter.createDevice(dev.Properties)
+		device, err := adapter.createDevice(dev.Properties, devices)
 		if err != nil {
 			helper.Logger.Error("error modbus device config", zap.String("deviceId", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
 			continue
@@ -194,9 +211,9 @@ func (adapter *modbusAdapter) createPointGroup(conf *ConnectionConfig, model con
 	}
 
 }
-func (adapter *modbusAdapter) createDevice(properties map[string]string) (d *slaveDevice, err error) {
+func (adapter *modbusAdapter) createDevice(properties map[string]string, devices map[uint8]*slaveDevice) (d *slaveDevice, err error) {
 	unitID, err := getUnitId(properties)
-	d, ok := adapter.devices[unitID]
+	d, ok := devices[unitID]
 	if ok {
 		return d, nil
 	}
@@ -206,7 +223,7 @@ func (adapter *modbusAdapter) createDevice(properties map[string]string) (d *sla
 		unitID:     unitID,
 		pointGroup: group,
 	}
-	adapter.devices[unitID] = d
+	devices[unitID] = d
 	return d, nil
 }
 
@@ -269,8 +286,12 @@ func convToPointExtend(extends map[string]interface{}) (*Point, error) {
 }
 
 func (adapter *modbusAdapter) ExecuteTimerGroup(group *serial.TimerGroup) error {
-	helper.Logger.Info("..")
+	helper.Logger.Info("timer group", zap.Any("group", adapter.groups[group.UUID]))
+	g := adapter.groups[group.UUID]
+	switch g.RegisterType {
+	case HoldingRegister:
 
+	}
 	return nil
 	//return &serial.Command{
 	//	Mode:        plugin.ReadMode,
@@ -285,6 +306,7 @@ func (adapter *modbusAdapter) DriverBoxDecode(command serial.Command) (res []plu
 	return nil, nil
 }
 func (adapter *modbusAdapter) SendCommand(cmd serial.Command) error {
+
 	return nil
 }
 func (adapter *modbusAdapter) Release() (err error) {

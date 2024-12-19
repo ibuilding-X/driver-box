@@ -3,7 +3,7 @@
 # 定义需要打包的程序目录
 program_dir="_output"
 app_name="driver-box"
-
+VERSION="v1.0.0"
 # 执行交叉编译
 rm -rf ${program_dir}
 export GOPROXY=https://mirrors.aliyun.com/goproxy/,direct

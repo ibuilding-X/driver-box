@@ -63,7 +63,7 @@ type Connector struct {
 	protocolAdapter ProtocolAdapter
 	//当前串口的采集任务组
 	TimerGroup   []TimerGroup
-	client       SerialPort
+	Client       SerialPort
 	timeout      time.Duration
 	lastActivity time.Time
 	t35          time.Duration
@@ -218,19 +218,22 @@ func (c *Connector) Send(data interface{}) error {
 		helper.Logger.Error("open serial port error", zap.Error(err))
 		return err
 	}
-	defer c.closeSerialPort(err)
 	cmd, ok := data.(Command)
 	if ok {
-		return c.protocolAdapter.SendCommand(cmd)
+		err = c.protocolAdapter.SendCommand(cmd)
+		c.closeSerialPort(err)
+		return err
 	}
 	cmds, ok := data.([]Command)
 	if ok {
 		for _, cmd = range cmds {
 			err = c.protocolAdapter.SendCommand(cmd)
 			if err != nil {
+				c.closeSerialPort(err)
 				return err
 			}
 		}
+		c.closeSerialPort(err)
 		return nil
 	}
 	return errors.New("unsupported data type")
@@ -254,13 +257,13 @@ func (c *Connector) openSerialPort() error {
 		DataBits: int(c.Config.DataBits),
 		Parity:   c.Config.Parity,
 		StopBits: int(c.Config.StopBits),
-		Timeout:  10 * time.Millisecond,
+		Timeout:  time.Duration(c.Config.Timeout) * time.Millisecond,
 	})
 	if err != nil {
 		c.mutex.Unlock()
 		helper.Logger.Error("open serial port error", zap.Any("serial", c.Config), zap.Error(err))
 	} else {
-		c.client = SerialPort{client: serialPort}
+		c.Client = SerialPort{client: serialPort}
 		c.keepAlive = true
 	}
 	return err
@@ -276,7 +279,7 @@ func (c *Connector) closeSerialPort(e error) {
 	//RTU 模式下，连接不关闭
 	if e != nil {
 		c.keepAlive = false
-		c.client.close()
+		c.Client.close()
 	}
 }
 func (c *Connector) Close() {
@@ -285,6 +288,6 @@ func (c *Connector) Close() {
 		c.collectTask.Disable()
 	}
 	if c.keepAlive {
-		c.client.close()
+		c.Client.close()
 	}
 }
