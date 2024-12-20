@@ -36,23 +36,23 @@ type ProtocolAdapter interface {
 	DriverBoxEncode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res []Command, err error)
 }
 
-type SerialPort struct {
+type serialPort struct {
 	client    serial.Port
 	connector *Connector
 }
 
 // 只可在 plugin.Connector#Send方法中调用
-func (s *SerialPort) Write(p []byte) (n int, err error) {
+func (s *serialPort) Write(p []byte) (n int, err error) {
 	s.connector.ensureInterval()
 	return s.client.Write(p)
 }
 
-func (s *SerialPort) Read(p []byte) (n int, err error) {
+func (s *serialPort) Read(p []byte) (n int, err error) {
 	s.connector.ensureInterval()
 	return s.client.Read(p)
 }
 
-func (s *SerialPort) close() {
+func (s *serialPort) close() {
 	_ = s.client.Close()
 }
 func (c *Connector) ensureInterval() {
@@ -70,18 +70,12 @@ type Connector struct {
 	Plugin          *Plugin
 	protocolAdapter ProtocolAdapter
 	//当前串口的采集任务组
-	TimerGroup   []TimerGroup
-	Client       SerialPort
-	timeout      time.Duration
-	lastActivity time.Time
-	t35          time.Duration
-	t1           time.Duration
+	TimerGroup []TimerGroup
+	Client     serialPort
 	//串口保持打开状态
 	keepAlive    bool
 	latestIoTime time.Time // 最近一次执行IO的时间
 	mutex        sync.Mutex
-	//通讯设备集合
-	retry uint8
 
 	//当前连接的定时扫描任务
 	collectTask *crontab.Future
@@ -121,11 +115,10 @@ type ConnectionConfig struct {
 }
 
 type Command struct {
-	Mode        plugin.EncodeMode // 模式
-	MessageType string            //消息类型
-	OutputFrame string            // 输出帧
-	//串口响应回调
-	Callback func(inputFrame []byte) error
+	Mode        plugin.EncodeMode             // (必填)模式
+	UUId        string                        //(必填)指令唯一标识
+	OutputFrame string                        // (必填)输出帧
+	Callback    func(inputFrame []byte) error //(必填)串口响应回调
 }
 
 func newConnector(p *Plugin, cf *ConnectionConfig) (*Connector, error) {
@@ -185,11 +178,11 @@ func (c *Connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 
 			//最近发生过写操作，推测当前时段可能存在其他设备的写入需求，采集任务主动避让
 			if c.writeSemaphore.Load() > 0 || c.latestWriteTime.Add(time.Duration(conf.MinInterval)).After(time.Now()) {
-				helper.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.ConnectionKey), zap.Any("semaphore", c.writeSemaphore.Load()))
+				helper.Logger.Warn("serial is writing, ignore collect task!", zap.String("key", c.ConnectionKey), zap.Any("semaphore", c.writeSemaphore.Load()))
 				continue
 			}
 
-			helper.Logger.Debug("timer read modbus", zap.Any("group", i), zap.Any("latestTime", group.LatestTime), zap.Any("duration", group.Duration))
+			helper.Logger.Debug("timer read serial", zap.Any("group", i), zap.Any("latestTime", group.LatestTime), zap.Any("duration", group.Duration))
 			//遍历所有通讯设备
 			if err := c.Plugin.adapter.ExecuteTimerGroup(&group); err != nil {
 				helper.Logger.Error("read error", zap.Any("connection", conf), zap.Any("group", group), zap.Error(err))
@@ -222,30 +215,58 @@ func (c *Connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 
 // Send 发送数据
 func (c *Connector) Send(data interface{}) error {
+
+	cmd, ok := data.(Command)
+	if ok {
+		return c.sendSerialCommand(cmd)
+	}
+	cmds, ok := data.([]Command)
+	if ok {
+		for _, cmd = range cmds {
+			err := c.sendSerialCommand(cmd)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return errors.New("unsupported data type")
+}
+
+func (c *Connector) sendSerialCommand(cmd Command) error {
+	//读写优先级判断
+	if cmd.Mode == plugin.WriteMode {
+		c.writeSemaphore.Add(1)
+		defer func() {
+			c.latestWriteTime = time.Now()
+			c.writeSemaphore.Add(-1)
+		}()
+	} else {
+		if c.writeSemaphore.Load() > 0 {
+			c.resetCollectTime(cmd.UUId)
+			logger.Logger.Warn("serial is writing, ignore collect task!", zap.String("key", c.ConnectionKey), zap.Any("semaphore", c.writeSemaphore))
+			return nil
+		}
+	}
 	err := c.openSerialPort()
 	if err != nil {
 		helper.Logger.Error("open serial port error", zap.Error(err))
 		return err
 	}
-	cmd, ok := data.(Command)
-	if ok {
-		err = c.protocolAdapter.SendCommand(cmd)
-		c.closeSerialPort(err)
-		return err
+	err = c.protocolAdapter.SendCommand(cmd)
+	c.closeSerialPort(err)
+	return err
+}
+func (c *Connector) resetCollectTime(uuid string) {
+	if len(uuid) == 0 {
+		return
 	}
-	cmds, ok := data.([]Command)
-	if ok {
-		for _, cmd = range cmds {
-			err = c.protocolAdapter.SendCommand(cmd)
-			if err != nil {
-				c.closeSerialPort(err)
-				return err
-			}
+	for _, group := range c.TimerGroup {
+		if group.UUID == uuid {
+			group.LatestTime = time.Now().Add(-group.Duration)
+			break
 		}
-		c.closeSerialPort(err)
-		return nil
 	}
-	return errors.New("unsupported data type")
 }
 
 // Release 释放资源
@@ -260,7 +281,7 @@ func (c *Connector) openSerialPort() error {
 		return nil
 	}
 	var err error
-	serialPort, err := serial.Open(&serial.Config{
+	sp, err := serial.Open(&serial.Config{
 		Address:  c.Config.Address,
 		BaudRate: int(c.Config.BaudRate),
 		DataBits: int(c.Config.DataBits),
@@ -273,7 +294,7 @@ func (c *Connector) openSerialPort() error {
 		c.mutex.Unlock()
 		helper.Logger.Error("open serial port error", zap.Any("serial", c.Config), zap.Error(err))
 	} else {
-		c.Client = SerialPort{client: serialPort, connector: c}
+		c.Client = serialPort{client: sp, connector: c}
 		c.keepAlive = true
 	}
 	return err

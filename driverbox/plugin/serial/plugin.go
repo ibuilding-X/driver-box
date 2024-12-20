@@ -29,14 +29,9 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState)
 	p.ls = ls
 	p.Config = c
 	//初始化连接池
-	p.initNetworks(c)
-}
-
-// 初始化Modbus连接池
-func (p *Plugin) initNetworks(config config.Config) {
 	p.connPool = make(map[string]*Connector)
 	//某个连接配置有问题，不影响其他连接的建立
-	for key, connConfig := range config.Connections {
+	for key, connConfig := range c.Connections {
 		connectionConfig := new(ConnectionConfig)
 		if err := helper.Map2Struct(connConfig, connectionConfig); err != nil {
 			helper.Logger.Error("convert connector config error", zap.Any("connection", connConfig), zap.Error(err))

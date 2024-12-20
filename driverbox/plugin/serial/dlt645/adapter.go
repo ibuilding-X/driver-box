@@ -145,6 +145,7 @@ func (adapter *dlt645Adapter) ExecuteTimerGroup(group *serial.TimerGroup) error 
 	g := adapter.groups[group.UUID]
 	cmd := serial.Command{
 		Mode:        plugin.ReadMode,
+		UUId:        group.UUID,
 		OutputFrame: getOutputFrame(g.UnitID, g.Points[0].DataMaker),
 		Callback: func(inputFrame []byte) error {
 			backData := fmt.Sprintf("[% x]", inputFrame)
