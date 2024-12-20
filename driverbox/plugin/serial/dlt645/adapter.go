@@ -69,7 +69,7 @@ func (adapter *dlt645Adapter) InitTimerGroup(connector *serial.Connector) []seri
 	//生成点位采集组
 	for _, model := range connector.Plugin.Config.DeviceModels {
 		for _, dev := range model.Devices {
-			if dev.ConnectionKey != adapter.connector.ConnectionKey {
+			if dev.ConnectionKey != adapter.connector.Config.ConnectionKey {
 				continue
 			}
 			adapter.createPointGroup(model, dev)

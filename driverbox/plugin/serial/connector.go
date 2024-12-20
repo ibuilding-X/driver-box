@@ -56,7 +56,7 @@ func (s *serialPort) close() {
 	_ = s.client.Close()
 }
 func (c *Connector) ensureInterval() {
-	np := c.latestIoTime.Add(time.Duration(c.config.MinInterval) * time.Millisecond)
+	np := c.latestIoTime.Add(time.Duration(c.Config.MinInterval) * time.Millisecond)
 	if time.Now().Before(np) {
 		time.Sleep(time.Until(np))
 	}
@@ -65,7 +65,7 @@ func (c *Connector) ensureInterval() {
 
 // Connector 连接器
 type Connector struct {
-	config          *ConnectionConfig
+	Config          *ConnectionConfig
 	Plugin          *Plugin
 	protocolAdapter ProtocolAdapter
 	timerGroup      []TimerGroup //当前串口的采集任务组
@@ -131,7 +131,7 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*Connector, error) {
 	}
 
 	conn := &Connector{
-		config:  cf,
+		Config:  cf,
 		Plugin:  p,
 		virtual: cf.Virtual || config.IsVirtual(),
 	}
@@ -141,7 +141,7 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*Connector, error) {
 
 func (c *Connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, error) {
 	if !conf.Enable {
-		logger.Logger.Warn("modbus connection is disabled, ignore collect task", zap.String("key", c.config.ConnectionKey))
+		logger.Logger.Warn("modbus connection is disabled, ignore collect task", zap.String("key", c.Config.ConnectionKey))
 		return nil, nil
 	}
 	c.timerGroup = c.Plugin.adapter.InitTimerGroup(c)
@@ -153,7 +153,7 @@ func (c *Connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 		}
 		for i, group := range c.timerGroup {
 			if c.close {
-				helper.Logger.Warn("connection is closed, ignore collect task!", zap.String("key", c.config.ConnectionKey))
+				helper.Logger.Warn("connection is closed, ignore collect task!", zap.String("key", c.Config.ConnectionKey))
 				break
 			}
 			duration := group.Duration
@@ -175,7 +175,7 @@ func (c *Connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 
 			//最近发生过写操作，推测当前时段可能存在其他设备的写入需求，采集任务主动避让
 			if c.writeSemaphore.Load() > 0 || c.latestWriteTime.Add(time.Duration(conf.MinInterval)).After(time.Now()) {
-				helper.Logger.Warn("serial is writing, ignore collect task!", zap.String("key", c.config.ConnectionKey), zap.Any("semaphore", c.writeSemaphore.Load()))
+				helper.Logger.Warn("serial is writing, ignore collect task!", zap.String("key", c.Config.ConnectionKey), zap.Any("semaphore", c.writeSemaphore.Load()))
 				continue
 			}
 
@@ -241,7 +241,7 @@ func (c *Connector) sendSerialCommand(cmd Command) error {
 	} else {
 		if c.writeSemaphore.Load() > 0 {
 			c.resetCollectTime(cmd.UUId)
-			logger.Logger.Warn("serial is writing, ignore collect task!", zap.String("key", c.config.ConnectionKey), zap.Any("semaphore", c.writeSemaphore))
+			logger.Logger.Warn("serial is writing, ignore collect task!", zap.String("key", c.Config.ConnectionKey), zap.Any("semaphore", c.writeSemaphore))
 			return nil
 		}
 	}
@@ -279,17 +279,17 @@ func (c *Connector) openSerialPort() error {
 	}
 	var err error
 	sp, err := serial.Open(&serial.Config{
-		Address:  c.config.Address,
-		BaudRate: int(c.config.BaudRate),
-		DataBits: int(c.config.DataBits),
-		Parity:   c.config.Parity,
-		StopBits: int(c.config.StopBits),
-		Timeout:  time.Duration(c.config.Timeout) * time.Millisecond,
+		Address:  c.Config.Address,
+		BaudRate: int(c.Config.BaudRate),
+		DataBits: int(c.Config.DataBits),
+		Parity:   c.Config.Parity,
+		StopBits: int(c.Config.StopBits),
+		Timeout:  time.Duration(c.Config.Timeout) * time.Millisecond,
 	})
-	helper.Logger.Info("serial config", zap.Any("serial", c.config))
+	helper.Logger.Info("serial config", zap.Any("serial", c.Config))
 	if err != nil {
 		c.mutex.Unlock()
-		helper.Logger.Error("open serial port error", zap.Any("serial", c.config), zap.Error(err))
+		helper.Logger.Error("open serial port error", zap.Any("serial", c.Config), zap.Error(err))
 	} else {
 		c.Client = serialPort{client: sp, connector: c}
 		c.keepAlive = true

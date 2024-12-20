@@ -97,7 +97,7 @@ func (adapter *modbusAdapter) InitTimerGroup(connector *serial.Connector) []seri
 
 	devices := make(map[uint8]*slaveDevice)
 
-	connConfig := adapter.connector.Plugin.Config.Connections[connector.ConnectionKey]
+	connConfig := adapter.connector.Plugin.Config.Connections[connector.Config.ConnectionKey]
 	connectionConfig := new(ConnectionConfig)
 	if err := helper.Map2Struct(connConfig, connectionConfig); err != nil {
 		helper.Logger.Error("convert connector config error", zap.Any("connection", connConfig), zap.Error(err))
@@ -118,7 +118,7 @@ func (adapter *modbusAdapter) InitTimerGroup(connector *serial.Connector) []seri
 	//生成点位采集组
 	for _, model := range connector.Plugin.Config.DeviceModels {
 		for _, dev := range model.Devices {
-			if dev.ConnectionKey != adapter.connector.ConnectionKey {
+			if dev.ConnectionKey != adapter.connector.Config.ConnectionKey {
 				continue
 			}
 			adapter.createPointGroup(connectionConfig, model, dev, devices)
