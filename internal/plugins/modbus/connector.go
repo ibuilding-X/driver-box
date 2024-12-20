@@ -43,12 +43,11 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 		Timeout:  time.Duration(cf.Timeout) * time.Millisecond,
 	})
 	conn := &connector{
-		Connection: plugin.Connection{},
-		config:     cf,
-		plugin:     p,
-		client:     client,
-		virtual:    cf.Virtual || config.IsVirtual(),
-		devices:    make(map[uint8]*slaveDevice),
+		config:  cf,
+		plugin:  p,
+		client:  client,
+		virtual: cf.Virtual || config.IsVirtual(),
+		devices: make(map[uint8]*slaveDevice),
 	}
 
 	return conn, err
@@ -56,11 +55,11 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 
 func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, error) {
 	if !conf.Enable {
-		logger.Logger.Warn("modbus connection is disabled, ignore collect task", zap.String("key", c.ConnectionKey))
+		logger.Logger.Warn("modbus connection is disabled, ignore collect task", zap.String("key", c.config.ConnectionKey))
 		return nil, nil
 	}
 	if len(c.devices) == 0 {
-		logger.Logger.Warn("modbus connection has no device to collect", zap.String("key", c.ConnectionKey))
+		logger.Logger.Warn("modbus connection has no device to collect", zap.String("key", c.config.ConnectionKey))
 		return nil, nil
 	}
 
@@ -75,7 +74,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 			//批量遍历通讯设备下的点位，并将结果关联至物模型设备
 			for i, group := range device.pointGroup {
 				if c.close {
-					helper.Logger.Warn("modbus connection is closed, ignore collect task!", zap.String("key", c.ConnectionKey))
+					helper.Logger.Warn("modbus connection is closed, ignore collect task!", zap.String("key", c.config.ConnectionKey))
 					break
 				}
 
@@ -98,7 +97,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 
 				//最近发生过写操作，推测当前时段可能存在其他设备的写入需求，采集任务主动避让
 				if c.writeSemaphore.Load() > 0 || c.latestWriteTime.Add(time.Duration(conf.MinInterval)).After(time.Now()) {
-					helper.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.ConnectionKey), zap.Any("semaphore", c.writeSemaphore.Load()))
+					helper.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.config.ConnectionKey), zap.Any("semaphore", c.writeSemaphore.Load()))
 					continue
 				}
 
@@ -275,7 +274,7 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 
 	if c.writeSemaphore.Load() > 0 {
 		c.resetCollectTime(group)
-		logger.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.ConnectionKey), zap.Any("semaphore", c.writeSemaphore))
+		logger.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.config.ConnectionKey), zap.Any("semaphore", c.writeSemaphore))
 		return nil
 	}
 

@@ -25,7 +25,6 @@ type Plugin struct {
 
 // connector 连接器
 type connector struct {
-	plugin.Connection
 	config *ConnectionConfig
 	plugin *Plugin
 	client *modbus.ModbusClient
@@ -73,7 +72,7 @@ func (p *Plugin) initNetworks(config config.Config) {
 			continue
 		}
 		conn, err := newConnector(p, connectionConfig)
-		conn.ConnectionKey = key
+		conn.config.ConnectionKey = key
 		if err != nil {
 			helper.Logger.Error("init connector error", zap.Any("connection", connConfig), zap.Error(err))
 			continue
@@ -82,7 +81,7 @@ func (p *Plugin) initNetworks(config config.Config) {
 		//生成点位采集组
 		for _, model := range config.DeviceModels {
 			for _, dev := range model.Devices {
-				if dev.ConnectionKey != conn.ConnectionKey {
+				if dev.ConnectionKey != conn.config.ConnectionKey {
 					continue
 				}
 				conn.createPointGroup(connectionConfig, model, dev)

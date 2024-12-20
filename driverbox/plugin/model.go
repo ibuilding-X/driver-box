@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/event"
-	lua "github.com/yuin/gopher-lua"
 )
 
 // 触发 ExportTo 的类型
@@ -53,18 +52,14 @@ type PointWriteValue struct {
 	PreOp []PointWriteValue `json:"preOp"`
 }
 
-type Connection struct {
-	ConnectionKey string
-	ScriptEnable  bool //是否存在动态脚本
-	//当前连接的 lua 虚拟机
-	Ls *lua.LState
-}
-
 // 连接配置基础模型
 type BaseConnection struct {
 	ConnectionKey string //连接标识
-	ProtocolKey   string `json:"protocolKey"` //协议驱动库标识
-	Discover      bool   `json:"discover"`    //是否支持设备发现
-	Enable        bool   `json:"enable"`      //是否启用
-	Virtual       bool   `json:"virtual"`     //虚拟设备功能
+	//ScriptEnable  bool   //是否存在动态脚本
+	////当前连接的 lua 虚拟机
+	//Ls          *lua.LState
+	ProtocolKey string `json:"protocolKey"` //协议驱动库标识
+	Discover    bool   `json:"discover"`    //是否支持设备发现
+	Enable      bool   `json:"enable"`      //是否启用
+	Virtual     bool   `json:"virtual"`     //虚拟设备功能
 }

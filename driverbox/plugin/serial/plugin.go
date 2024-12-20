@@ -38,7 +38,7 @@ func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState)
 			continue
 		}
 		conn, err := newConnector(p, connectionConfig)
-		conn.ConnectionKey = key
+		conn.config.ConnectionKey = key
 		if err != nil {
 			helper.Logger.Error("init connector error", zap.Any("connection", connConfig), zap.Error(err))
 			continue
