@@ -1,12 +1,13 @@
 package dlt645
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/serial"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
@@ -37,14 +38,7 @@ const (
 	tcpAduMaxSize     = 260
 )
 
-// 采集组
-type slaveDevice struct {
-	// 通讯设备，采集点位可以对应多个物模型设备
-	unitID string
-	//分组
-	pointGroup []*pointGroup
-}
-
+// 采集点位组
 type pointGroup struct {
 	serial.TimerGroup
 	// 从机地址
@@ -72,30 +66,32 @@ func (adapter *dlt645Adapter) InitTimerGroup(connector *serial.Connector) []seri
 	adapter.connector = connector
 	adapter.groups = make(map[string]*pointGroup)
 
-	devices := make(map[string]*slaveDevice)
-
 	//生成点位采集组
 	for _, model := range connector.Plugin.Config.DeviceModels {
 		for _, dev := range model.Devices {
 			if dev.ConnectionKey != adapter.connector.ConnectionKey {
 				continue
 			}
-			adapter.createPointGroup(model, dev, devices)
+			adapter.createPointGroup(model, dev)
 		}
 	}
 
 	groups := make([]serial.TimerGroup, 0)
-	for _, device := range devices {
-		for _, group := range device.pointGroup {
-			groups = append(groups, group.TimerGroup)
-			adapter.groups[group.UUID] = group
+	for _, group := range adapter.groups {
+		groups = append(groups, group.TimerGroup)
+		devices := make(map[string]string)
+		for _, point := range group.Points {
+			if _, ok := devices[point.DeviceId]; !ok {
+				group.Devices = append(group.Devices, point.DeviceId)
+				devices[point.DeviceId] = point.DeviceId
+			}
 		}
 	}
 	return groups
 }
 
 // 采集任务分组
-func (adapter *dlt645Adapter) createPointGroup(model config.DeviceModel, dev config.Device, devices map[string]*slaveDevice) {
+func (adapter *dlt645Adapter) createPointGroup(model config.DeviceModel, dev config.Device) {
 	for _, point := range model.DevicePoints {
 		p := point.ToPoint()
 		if p.ReadWrite != config.ReadWrite_R && p.ReadWrite != config.ReadWrite_RW {
@@ -117,57 +113,31 @@ func (adapter *dlt645Adapter) createPointGroup(model config.DeviceModel, dev con
 			helper.Logger.Error("error modbus duration config", zap.String("deviceId", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
 			duration = time.Second
 		}
-
-		device, err := adapter.createDevice(dev.Properties, devices)
-		if err != nil {
-			helper.Logger.Error("error modbus device config", zap.String("deviceId", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
+		unitID := dev.Properties["slaveId"]
+		if len(unitID) == 0 {
+			helper.Logger.Error("unitID not found", zap.String("deviceId", dev.ID))
 			continue
 		}
-		ok := false
-		for _, group := range device.pointGroup {
-			//相同采集频率为同一组
-			if group.Duration != duration {
-				continue
-			}
-			if group.DataMaker == ext.DataMaker {
-				ok = true
-				break
-			}
-		}
-		//新增一个点位组
-		if !ok {
-			ext.DeviceId = dev.ID
-			ext.Name = p.Name
-			device.pointGroup = append(device.pointGroup, &pointGroup{
-				TimerGroup: serial.TimerGroup{
-					UUID:     uuid.New().String(),
-					Duration: duration,
-				},
-				UnitID: device.unitID,
-				Points: []*Point{
-					ext,
-				},
-			})
-		}
-	}
-}
-func (adapter *dlt645Adapter) createDevice(properties map[string]string, devices map[string]*slaveDevice) (d *slaveDevice, err error) {
-	unitID, ok := properties["slaveId"]
-	if !ok {
-		return nil, errors.New("unitID not found")
-	}
-	d, ok = devices[unitID]
-	if ok {
-		return d, nil
-	}
+		key := unitID + "/" + ext.DataMaker
+		group := adapter.groups[key]
 
-	var group []*pointGroup
-	d = &slaveDevice{
-		unitID:     unitID,
-		pointGroup: group,
+		if group == nil {
+			group = &pointGroup{
+				TimerGroup: serial.TimerGroup{
+					UUID:     key,
+					Duration: duration,
+					Devices:  make([]string, 0),
+				},
+				UnitID:    unitID,
+				DataMaker: ext.DataMaker,
+				Points:    make([]*Point, 0),
+			}
+			adapter.groups[key] = group
+		} else if group.TimerGroup.Duration > duration {
+			group.TimerGroup.Duration = duration
+		}
+		group.Points = append(group.Points, ext)
 	}
-	devices[unitID] = d
-	return d, nil
 }
 
 func (adapter *dlt645Adapter) ExecuteTimerGroup(group *serial.TimerGroup) error {
@@ -176,20 +146,31 @@ func (adapter *dlt645Adapter) ExecuteTimerGroup(group *serial.TimerGroup) error 
 	cmd := serial.Command{
 		Mode:        plugin.ReadMode,
 		OutputFrame: getOutputFrame(g.UnitID, g.Points[0].DataMaker),
+		Callback: func(inputFrame []byte) error {
+			backData := fmt.Sprintf("[% x]", inputFrame)
+			value, _ := analysis(backData)
+			helper.Logger.Info("decode", zap.Any("frame", backData), zap.Any("data", value))
+			deviceData := make([]plugin.DeviceData, 0)
+			for _, point := range g.Points {
+				deviceData = append(deviceData, plugin.DeviceData{
+					ID:     point.DeviceId,
+					Values: []plugin.PointData{{PointName: point.Name, Value: value}},
+				})
+			}
+			callback.ExportTo(deviceData)
+			return nil
+		},
 	}
 	helper.Logger.Info("outputFrame", zap.Any("outputFrame", cmd.OutputFrame))
-	time.Sleep(time.Second)
 	return adapter.connector.Send(cmd)
 }
 func (adapter *dlt645Adapter) DriverBoxEncode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res []serial.Command, err error) {
-	return nil, nil
+	return nil, errors.New("not support")
 }
-func (adapter *dlt645Adapter) DriverBoxDecode(command serial.Command) (res []plugin.DeviceData, err error) {
-	return nil, nil
-}
+
 func (adapter *dlt645Adapter) SendCommand(cmd serial.Command) error {
 	request := strings.Replace(cmd.OutputFrame, " ", "", -1)
-	serialMessage := HexStringToBytes(request)
+	serialMessage, _ := hex.DecodeString(request)
 	helper.Logger.Info("sending ", zap.String("frame", fmt.Sprintf("[% x]", serialMessage)))
 	_, err := adapter.connector.Client.Write(serialMessage)
 	if err != nil {
@@ -201,10 +182,7 @@ func (adapter *dlt645Adapter) SendCommand(cmd serial.Command) error {
 	if sum < 0 {
 		return nil
 	}
-	backData := fmt.Sprintf("[% x]", data[0:sum])
-	value, err := analysis(backData)
-	helper.Logger.Info("decode", zap.Any("frame", backData), zap.Any("data", value))
-	return nil
+	return cmd.Callback(data[0:sum])
 }
 func analysis(command string) (float64, error) {
 	command = strings.Replace(command, "[", "", -1)
@@ -286,7 +264,7 @@ func (adapter *dlt645Adapter) Release() (err error) {
 
 func getOutputFrame(MeterNumber string, DataMarker string) string {
 	//表号
-	meterNumberHandle := HexStringToBytes(MeterNumber)
+	meterNumberHandle, _ := hex.DecodeString(MeterNumber)
 	meterNumberHandleX := fmt.Sprintf("% x", meterNumberHandle)
 	meterNumberHandleReverse := strings.Split(meterNumberHandleX, " ")
 	for i := 0; i < len(meterNumberHandleReverse)/2; i++ {
@@ -298,7 +276,7 @@ func getOutputFrame(MeterNumber string, DataMarker string) string {
 	meterNumberHandleReverseFinished := strings.Replace(midMeterNumberHandle, "[", "", -1)
 	meterNumberHandleReverseFinished = strings.Replace(meterNumberHandleReverseFinished, "]", "", -1)
 	//数据标识
-	DataMarkerHandle := HexStringToBytes(DataMarker)
+	DataMarkerHandle, _ := hex.DecodeString(DataMarker)
 	DataMarkerHandleX := fmt.Sprintf("% x", DataMarkerHandle)
 	DataMarkerHandleReverse := strings.Split(DataMarkerHandleX, " ")
 
@@ -319,8 +297,8 @@ func getOutputFrame(MeterNumber string, DataMarker string) string {
 	DataMarkerHandleReverseFinished := strings.Replace(midDataMarkerHandle, "[", "", -1)
 	DataMarkerHandleReverseFinished = strings.Replace(DataMarkerHandleReverseFinished, "]", "", -1)
 
-	messageFinshed := "68 " + meterNumberHandleReverseFinished + " 68" + " 11 " + "04 " + DataMarkerHandleReverseFinished
-	return CheckCode(messageFinshed)
+	messageFinished := "68 " + meterNumberHandleReverseFinished + " 68" + " 11 " + "04 " + DataMarkerHandleReverseFinished
+	return CheckCode(messageFinished)
 }
 
 // 计算出校验码
@@ -340,9 +318,8 @@ func CheckCode(data string) string {
 	//将校验码前面的所有数通过16进制加起来转换成10进制，然后除256区余数，然后余数转换成16进制，得到的就是校验码
 	mod := total % 256
 	hex, _ := DecConvertToX(mod, 16)
-	len := len(hex)
 	//如果校验位长度不够，就补0，因为校验位必须是要2位
-	if len < 2 {
+	if len(hex) < 2 {
 		hex = "0" + hex
 	}
 	return midData + " " + strings.ToUpper(hex) + " 16"
@@ -378,22 +355,4 @@ func DecConvertToX(n, num int) (string, error) {
 		result = lsb + result
 	}
 	return result, nil
-}
-func HexStringToBytes(data string) []byte {
-	if "" == data {
-		return nil
-	}
-	data = strings.ToUpper(data)
-	length := len(data) / 2
-	dataChars := []byte(data)
-	var byteData []byte = make([]byte, length)
-	for i := 0; i < length; i++ {
-		pos := i * 2
-		byteData[i] = byte(charToByte(dataChars[pos])<<4 | charToByte(dataChars[pos+1]))
-	}
-	return byteData
-
-}
-func charToByte(c byte) byte {
-	return (byte)(strings.Index("0123456789ABCDEF", string(c)))
 }

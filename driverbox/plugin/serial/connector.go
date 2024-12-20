@@ -34,8 +34,6 @@ type ProtocolAdapter interface {
 	SendCommand(cmd Command) error
 
 	DriverBoxEncode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res []Command, err error)
-
-	DriverBoxDecode(command Command) (res []plugin.DeviceData, err error)
 }
 
 type SerialPort struct {
@@ -60,7 +58,6 @@ func (s *SerialPort) close() {
 func (c *Connector) ensureInterval() {
 	np := c.latestIoTime.Add(time.Duration(c.Config.MinInterval) * time.Millisecond)
 	if time.Now().Before(np) {
-		logger.Logger.Warn("serial connection is busy, ignore write", zap.String("key", c.ConnectionKey))
 		time.Sleep(time.Until(np))
 	}
 	c.latestIoTime = time.Now()
@@ -127,7 +124,8 @@ type Command struct {
 	Mode        plugin.EncodeMode // 模式
 	MessageType string            //消息类型
 	OutputFrame string            // 输出帧
-	inputFrame  []byte            // 输入帧
+	//串口响应回调
+	Callback func(inputFrame []byte) error
 }
 
 func newConnector(p *Plugin, cf *ConnectionConfig) (*Connector, error) {
@@ -214,7 +212,7 @@ func (c *Connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 
 // Decode 解码数据
 func (c *Connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
-	return c.protocolAdapter.DriverBoxDecode(raw.(Command))
+	return nil, errors.New("请在 Command.CallBack 中调用 callback.ExportTo 以替换 callback.OnReceiveHandler 接口")
 }
 
 // Encode 编码数据
