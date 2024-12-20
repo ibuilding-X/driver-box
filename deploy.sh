@@ -29,8 +29,8 @@ build(){
 }
 #make build VERSION=${VERSION} BuildTime=$(date +%Y%m%d%H%M%S)
 build linux arm64
-build linux amd64
-build linux arm
+#build linux amd64
+#build linux arm
 
 #build windows amd64
 #build windows arm64

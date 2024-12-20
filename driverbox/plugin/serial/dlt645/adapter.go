@@ -178,6 +178,7 @@ func (adapter *dlt645Adapter) ExecuteTimerGroup(group *serial.TimerGroup) error 
 		OutputFrame: getOutputFrame(g.UnitID, g.Points[0].DataMaker),
 	}
 	helper.Logger.Info("outputFrame", zap.Any("outputFrame", cmd.OutputFrame))
+	time.Sleep(time.Second)
 	return adapter.connector.Send(cmd)
 }
 func (adapter *dlt645Adapter) DriverBoxEncode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res []serial.Command, err error) {
@@ -197,9 +198,8 @@ func (adapter *dlt645Adapter) SendCommand(cmd serial.Command) error {
 	var data [rtuAduMaxSize]byte
 
 	sum, err := io.ReadFull(&adapter.connector.Client, data[:])
-	if err != nil {
-		helper.Logger.Error("read failed", zap.Error(err))
-		return err
+	if sum < 0 {
+		return nil
 	}
 	backData := fmt.Sprintf("[% x]", data[0:sum])
 	value, err := analysis(backData)

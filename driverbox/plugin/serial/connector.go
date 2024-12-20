@@ -39,20 +39,31 @@ type ProtocolAdapter interface {
 }
 
 type SerialPort struct {
-	client serial.Port
+	client    serial.Port
+	connector *Connector
 }
 
 // 只可在 plugin.Connector#Send方法中调用
 func (s *SerialPort) Write(p []byte) (n int, err error) {
+	s.connector.ensureInterval()
 	return s.client.Write(p)
 }
 
 func (s *SerialPort) Read(p []byte) (n int, err error) {
+	s.connector.ensureInterval()
 	return s.client.Read(p)
 }
 
 func (s *SerialPort) close() {
 	_ = s.client.Close()
+}
+func (c *Connector) ensureInterval() {
+	np := c.latestIoTime.Add(time.Duration(c.Config.MinInterval) * time.Millisecond)
+	if time.Now().Before(np) {
+		logger.Logger.Warn("serial connection is busy, ignore write", zap.String("key", c.ConnectionKey))
+		time.Sleep(time.Until(np))
+	}
+	c.latestIoTime = time.Now()
 }
 
 // Connector 连接器
@@ -259,11 +270,12 @@ func (c *Connector) openSerialPort() error {
 		StopBits: int(c.Config.StopBits),
 		Timeout:  time.Duration(c.Config.Timeout) * time.Millisecond,
 	})
+	helper.Logger.Info("serial config", zap.Any("serial", c.Config))
 	if err != nil {
 		c.mutex.Unlock()
 		helper.Logger.Error("open serial port error", zap.Any("serial", c.Config), zap.Error(err))
 	} else {
-		c.Client = SerialPort{client: serialPort}
+		c.Client = SerialPort{client: serialPort, connector: c}
 		c.keepAlive = true
 	}
 	return err
