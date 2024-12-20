@@ -1,6 +1,6 @@
 module github.com/ibuilding-x/driver-box
 
-go 1.18
+go 1.22.0
 
 require (
 	github.com/cjoudrey/gluahttp v0.0.0-20201111170219-25003d9adfa9
