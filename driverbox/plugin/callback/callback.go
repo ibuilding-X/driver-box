@@ -14,13 +14,14 @@ import (
 	"strings"
 )
 
+// Deprecated:建议直接调用ExportTo
 // 插件收到通讯消息后，触发该回调方法进行消息解码和设备数据解析
-func OnReceiveHandler(connector plugin.Connector, raw interface{}) (result interface{}, err error) {
+func OnReceiveHandler(connector plugin.Connector, raw interface{}) (err error) {
 	helper.Logger.Debug("raw data", zap.Any("data", raw))
 	// 协议适配器
 	deviceData, err := connector.Decode(raw)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	ExportTo(deviceData)
 	return

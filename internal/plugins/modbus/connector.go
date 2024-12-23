@@ -351,7 +351,7 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 			PointName: point.Name,
 			Value:     value,
 		}
-		_, err = callback.OnReceiveHandler(c, pointReadValue)
+		err = callback.OnReceiveHandler(c, pointReadValue)
 		if err != nil {
 			helper.Logger.Error("error modbus callback", zap.Any("data", pointReadValue), zap.Error(err))
 		}

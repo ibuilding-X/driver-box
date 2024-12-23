@@ -80,7 +80,7 @@ func (c *connector) handelConn(conn net.Conn) {
 		}
 		data := protoData{Raw: string(buf[:n])}
 		// 接收数据，调用回调函数
-		if _, err = callback.OnReceiveHandler(c, data.ToJSON()); err != nil {
+		if err = callback.OnReceiveHandler(c, data.ToJSON()); err != nil {
 			c.plugin.logger.Error("tcp_server callback error", zap.Error(err))
 		}
 	}
