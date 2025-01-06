@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 )
 
 const (
@@ -33,6 +34,8 @@ var (
 	ErrConfigNotExist = errors.New("config not exist")
 	// ErrConfigEmpty is the error returned when the config file is empty.
 	ErrConfigEmpty = errors.New("config is empty")
+	// ErrUnknownPlugin is the error returned when the plugin is unknown.
+	ErrUnknownPlugin = errors.New("unknown plugin")
 )
 
 // instance 全局配置管理器实例
@@ -58,6 +61,9 @@ type Manager interface {
 	GetConfig(key string) (config.Config, bool)
 	// GetConfigKeyByModel 根据模型名获取配置 key
 	GetConfigKeyByModel(modelName string) string
+	// OptimizeConfig 优化所有驱动配置（移除未使用模型、移除未使用连接）
+	// 提示：此操作会修改并持久化驱动配置文件
+	OptimizeConfig()
 
 	// -------------------- 模型相关 --------------------
 
@@ -84,9 +90,13 @@ type Manager interface {
 	// AddConnection 新增连接
 	AddConnection(plugin string, key string, conn any) error
 	// GetConnection 获取连接信息
+	// Deprecated: 当不同协议的连接 Key 相同时，可能会导致获取的连接信息不准确
 	GetConnection(key string) (any, error)
 	// RemoveConnection 删除连接
+	// Deprecated: 当不同协议的连接 Key 相同时，可能会导致误删除
 	RemoveConnection(key string) error
+	// GetConnections 获取指定插件下所有连接配置
+	GetConnections(plugin string) (map[string]interface{}, error)
 
 	// -------------------- 插件相关 --------------------
 
@@ -103,6 +113,7 @@ type manager struct {
 	scriptName string
 	configs    map[string]config.Config
 	mux        *sync.RWMutex
+	reload     atomic.Bool
 }
 
 // New 创建配置管理器实例
@@ -148,6 +159,10 @@ func GetConfigKeyByModel(modelName string) string {
 	return instance.GetConfigKeyByModel(modelName)
 }
 
+func OptimizeConfig() {
+	instance.OptimizeConfig()
+}
+
 func GetModel(modelName string) (config.DeviceModel, bool) {
 	return instance.GetModel(modelName)
 }
@@ -186,6 +201,10 @@ func GetConnection(key string) (any, error) {
 
 func RemoveConnection(key string) error {
 	return instance.RemoveConnection(key)
+}
+
+func GetConnections(plugin string) (map[string]interface{}, error) {
+	return instance.GetConnections(plugin)
 }
 
 func GetPluginNameByModel(modelName string) string {
@@ -230,6 +249,7 @@ func (m *manager) SetScriptFileName(name string) {
 func (m *manager) LoadConfig() error {
 	m.mux.Lock()
 	defer m.mux.Unlock()
+	defer m.reload.Store(true)
 
 	// 自动创建配置目录
 	if err := m.createDir(m.root); err != nil {
@@ -270,6 +290,20 @@ func (m *manager) LoadConfig() error {
 		m.configs[dirs[i]] = c.UpdateIndexAndClean()
 	}
 
+	if m.reload.Load() {
+		return nil
+	}
+
+	// 优化配置文件
+	m.optimizeConfig()
+
+	// 保存
+	for k, _ := range m.configs {
+		if err := m.saveConfig(k); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -304,6 +338,48 @@ func (m *manager) GetConfigKeyByModel(modelName string) string {
 	}
 
 	return ""
+}
+
+func (m *manager) optimizeConfig() {
+	for key, conf := range m.configs {
+		usefulConnKey := make(map[string]struct{})
+		// 遍历模型
+		var usefulModels []config.DeviceModel
+		for _, model := range conf.DeviceModels {
+			if len(model.Devices) > 0 {
+				usefulModels = append(usefulModels, model)
+				// 遍历设备列表
+				for _, device := range model.Devices {
+					usefulConnKey[device.ConnectionKey] = struct{}{}
+				}
+			}
+		}
+
+		// 遍历连接
+		usefulConnections := make(map[string]interface{})
+		for k, conn := range conf.Connections {
+			if _, ok := usefulConnKey[k]; ok {
+				usefulConnections[k] = conn
+			}
+		}
+
+		// 更新配置
+		m.configs[key] = config.Config{
+			DeviceModels: usefulModels,
+			Connections:  usefulConnections,
+			ProtocolName: conf.ProtocolName,
+			Key:          conf.Key,
+		}
+	}
+}
+
+// OptimizeConfig 优化所有驱动配置（移除未使用模型、移除未使用连接）
+// 提示：此操作会修改并持久化驱动配置文件
+func (m *manager) OptimizeConfig() {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
+	m.optimizeConfig()
 }
 
 // GetModel 获取模型
@@ -541,6 +617,24 @@ func (m *manager) RemoveConnection(key string) error {
 	}
 
 	return nil
+}
+
+// GetConnections 获取指定插件下所有连接配置
+func (m *manager) GetConnections(plugin string) (map[string]interface{}, error) {
+	m.mux.RLock()
+	defer m.mux.RUnlock()
+
+	for _, conf := range m.configs {
+		if conf.ProtocolName == plugin {
+			result := make(map[string]interface{}, len(conf.Connections))
+			for k, v := range conf.Connections {
+				result[k] = v
+			}
+			return result, nil
+		}
+	}
+
+	return nil, ErrUnknownPlugin
 }
 
 // addConfig 新增配置

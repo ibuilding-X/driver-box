@@ -1,7 +1,6 @@
 package dlt645
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -14,21 +13,13 @@ func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error)
 		return nil, fmt.Errorf("unexpected raw: %v", raw)
 	}
 
-	if c.ScriptEnable {
-		resBytes, err := json.Marshal(readValue)
-		if err != nil {
-			return nil, fmt.Errorf("marshal result [%v] error: %v", res, err)
-		}
-		return helper.CallLuaConverter(c.Ls, "decode", string(resBytes))
-	} else {
-		res = append(res, plugin.DeviceData{
-			ID: readValue.ID,
-			Values: []plugin.PointData{{
-				PointName: readValue.PointName,
-				Value:     readValue.Value,
-			}},
-		})
-	}
+	res = append(res, plugin.DeviceData{
+		ID: readValue.ID,
+		Values: []plugin.PointData{{
+			PointName: readValue.PointName,
+			Value:     readValue.Value,
+		}},
+	})
 	return
 }
 

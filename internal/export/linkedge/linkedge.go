@@ -528,21 +528,28 @@ func (s *service) checkConditions(conditions []linkedge.Condition) error {
 			if condition.BeginDate == "" || condition.EndDate == "" {
 				return nil
 			}
-			yearDay := time.Now().YearDay()
+
 			begin, err := s.parseDate(condition.BeginDate)
 			if err != nil {
 				return errors.New("execution begin date parse error")
-			}
-			if yearDay < begin.YearDay() {
-				return errors.New("execution time has not started")
 			}
 			end, err := s.parseDate(condition.EndDate)
 			if err != nil {
 				return errors.New("execution end date parse error")
 			}
-			if yearDay > end.YearDay() {
-				return errors.New("execution time has expired")
+
+			yearDay := time.Now().YearDay()
+			if end.After(begin) {
+				if yearDay >= begin.YearDay() && yearDay <= end.YearDay() {
+					return nil
+				}
+			} else {
+				if (yearDay >= 1 && yearDay <= end.YearDay()) || (yearDay >= begin.YearDay() && yearDay <= 366) {
+					return nil
+				}
 			}
+
+			return errors.New("execution time is not yet available")
 		case linkedge.ConditionTypeYears:
 			if !condition.YearsCondition.Verify(time.Now().Year()) {
 				return errors.New("mismatch years condition")

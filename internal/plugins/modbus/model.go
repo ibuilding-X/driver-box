@@ -18,7 +18,7 @@ const (
 
 // ConnectionConfig 连接器配置
 type ConnectionConfig struct {
-	Enable        bool   `json:"enable"`        //当前连接是否可用
+	plugin.BaseConnection
 	Address       string `json:"address"`       // 地址：例如：127.0.0.1:502
 	Mode          string `json:"mode"`          // 连接模式：rtuovertcp、rtu
 	BaudRate      uint   `json:"baudRate"`      // 波特率（仅串口模式）
@@ -30,7 +30,6 @@ type ConnectionConfig struct {
 	MinInterval   uint16 `json:"minInterval"`   // 最小读取间隔
 	Timeout       uint16 `json:"timeout"`       // 请求超时
 	Retry         int    `json:"retry"`         // 重试次数
-	Virtual       bool   `json:"virtual"`       //虚拟设备功能
 }
 
 // Point modbus点位

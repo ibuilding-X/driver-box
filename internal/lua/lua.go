@@ -42,7 +42,6 @@ func InitLuaVM(filePath string) (*lua.LState, error) {
 	return ls, nil
 }
 
-// CallLuaConverter 调用 Lua 脚本转换器
 func CallLuaConverter(L *lua.LState, method string, raw interface{}) ([]plugin.DeviceData, error) {
 	data, ok := raw.(string)
 	if !ok {
@@ -110,7 +109,11 @@ func CallLuaMethodV2(L *lua.LState, method string, args ...lua.LValue) (*lua.LTa
 	if err != nil {
 		return nil, err
 	}
-	return L.Get(-1).(*lua.LTable), nil
+	r := L.Get(-1)
+	if r.Type() != lua.LTTable {
+		return nil, errors.New("return type is not table")
+	}
+	return r.(*lua.LTable), nil
 }
 
 // CallLuaEncodeConverter 调用 Lua 脚本编码转换器

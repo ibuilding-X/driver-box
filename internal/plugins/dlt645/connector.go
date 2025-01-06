@@ -41,12 +41,9 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 	} else {
 		client.SetAutoReconnect(0)
 	}
-
+	//cf.Ls = p.ls
+	//cf.ScriptEnable = helper.ScriptExists(p.config.Key)
 	conn := &connector{
-		Connection: plugin.Connection{
-			Ls:           p.ls,
-			ScriptEnable: helper.ScriptExists(p.config.Key),
-		},
 		config:  cf,
 		plugin:  p,
 		client:  client,
@@ -61,11 +58,11 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 
 func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, error) {
 	if !conf.Enable {
-		logger.Logger.Warn("dlt645 connection is disabled, ignore collect task", zap.String("key", c.ConnectionKey))
+		logger.Logger.Warn("dlt645 connection is disabled, ignore collect task", zap.String("key", c.config.ConnectionKey))
 		return nil, nil
 	}
 	if len(c.devices) == 0 {
-		logger.Logger.Warn("dlt645 connection has no device to collect", zap.String("key", c.ConnectionKey))
+		logger.Logger.Warn("dlt645 connection has no device to collect", zap.String("key", c.config.ConnectionKey))
 		return nil, nil
 	}
 
@@ -80,7 +77,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 			//批量遍历通讯设备下的点位，并将结果关联至物模型设备
 			for i, group := range device.pointGroup {
 				if c.close {
-					helper.Logger.Warn("dlt645 connection is closed, ignore collect task!", zap.String("key", c.ConnectionKey))
+					helper.Logger.Warn("dlt645 connection is closed, ignore collect task!", zap.String("key", c.config.ConnectionKey))
 					break
 				}
 
@@ -215,7 +212,7 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 			PointName: point.Name,
 			Value:     value,
 		}
-		_, err = callback.OnReceiveHandler(c, pointReadValue)
+		err = callback.OnReceiveHandler(c, pointReadValue)
 		if err != nil {
 			helper.Logger.Error("error dlt645 callback", zap.Any("data", pointReadValue), zap.Error(err))
 		}
