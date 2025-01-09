@@ -148,9 +148,10 @@ func (device *DeviceDriver) DeviceDecode(driverKey string, req DeviceDecodeReque
 		//事件解析
 		eventLValue := unit.RawGetString("event")
 		if eventLValue != glua.LNil {
+			valueMap := convertLuaValue(unit.RawGetString("value"))
 			events = append(events, event.Data{
 				Code:  glua.LVAsString(eventLValue),
-				Value: glua.LVAsString(unit.RawGetString("value")),
+				Value: valueMap,
 			})
 		}
 	})
@@ -159,6 +160,30 @@ func (device *DeviceDriver) DeviceDecode(driverKey string, req DeviceDecodeReque
 		Events: events,
 		Error:  e,
 	}
+}
+
+func convertLuaValue(lv glua.LValue) any {
+	if lv.Type() == glua.LTNumber {
+		return glua.LVAsNumber(lv)
+	}
+	if lv.Type() == glua.LTString {
+		return glua.LVAsString(lv)
+	}
+	if lv.Type() == glua.LTTable {
+		m := make(map[string]interface{})
+		t := lv.(*glua.LTable)
+		t.ForEach(func(key, value glua.LValue) {
+			if value.Type() == glua.LTTable {
+				m[key.String()] = convertLuaValue(value)
+			} else if value.Type() == glua.LTNumber {
+				m[key.String()] = glua.LVAsNumber(value)
+			} else {
+				m[key.String()] = glua.LVAsString(value)
+			}
+		})
+		return m
+	}
+	return nil
 }
 
 // 卸载驱动
