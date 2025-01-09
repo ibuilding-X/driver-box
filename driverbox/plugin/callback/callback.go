@@ -114,6 +114,12 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 			return result.Error
 		} else {
 			deviceData.Values = result.Points
+			//驱动产生的事件
+			if len(result.Events) > 0 {
+				for _, e := range result.Events {
+					export.TriggerEvents(e.Code, deviceData.ID, e.Value)
+				}
+			}
 		}
 	}
 	for i, p := range deviceData.Values {
