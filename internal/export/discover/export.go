@@ -68,7 +68,11 @@ func (export *Export) deviceAutoDiscover(deviceId string, value interface{}) err
 		return err
 	}
 	//通过 modelKey 添加的统一模型 Name
-	model.Name = deviceDiscover.ProtocolName + "_" + deviceDiscover.ModelKey
+	if len(deviceDiscover.ModelName) > 0 {
+		model.Name = deviceDiscover.ModelName
+	} else {
+		model.Name = deviceDiscover.ProtocolName + "_" + deviceDiscover.ModelKey
+	}
 
 	//覆盖模型点位属性
 	if len(deviceDiscover.Model) > 0 {
