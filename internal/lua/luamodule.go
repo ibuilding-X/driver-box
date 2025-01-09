@@ -23,7 +23,7 @@ func (lm *LuaModule) Loader(L *lua.LState) int {
 		//"cache_get": lm.GetCache,
 		"shadow": lm.getDeviceShadow,
 		//"device_list": lm.getDeviceShadow,
-		//"device_get":  lm.getDeviceShadow,
+		"getDevice": lm.getDevice,
 		//"writeToMsgBus": lm.WriteToMsgBus,
 	})
 	L.Push(mod)
@@ -77,6 +77,27 @@ func (lm *LuaModule) getDeviceShadow(L *lua.LState) int {
 			}
 		}
 	}
+	return 1
+}
+
+// getDevice  获取指定ID的影子信息
+func (lm *LuaModule) getDevice(L *lua.LState) int {
+	deviceId := L.ToString(1)
+	device, ok := cache.Instance.GetDevice(deviceId)
+	deviceTable := L.NewTable()
+	if !ok {
+		return 0
+	}
+	defer L.Push(deviceTable)
+	deviceTable.RawSetString("id", lua.LString(device.ID))
+	deviceTable.RawSetString("modelName", lua.LString(device.ModelName))
+	deviceTable.RawSetString("driverKey", lua.LString(device.DriverKey))
+	deviceTable.RawSetString("connectionKey", lua.LString(device.ConnectionKey))
+	properties := L.NewTable()
+	for k, v := range device.Properties {
+		properties.RawSetString(k, lua.LString(v))
+	}
+	deviceTable.RawSetString("properties", properties)
 	return 1
 }
 
