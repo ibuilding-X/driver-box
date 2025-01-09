@@ -69,6 +69,24 @@ func (export *Export) deviceAutoDiscover(deviceId string, value interface{}) err
 	}
 	//通过 modelKey 添加的统一模型 Name
 	model.Name = deviceDiscover.ProtocolName + "_" + deviceDiscover.ModelKey
+
+	//覆盖模型点位属性
+	if len(deviceDiscover.Model) > 0 {
+		points := make([]config.PointMap, 0)
+		for pointName, pointProperties := range deviceDiscover.Model {
+			for _, point := range model.DevicePoints {
+				points = append(points, point)
+				if point["name"] != pointName {
+					continue
+				}
+				for k, v := range pointProperties {
+					point[k] = v
+				}
+			}
+		}
+		model.DevicePoints = points
+	}
+
 	err = helper.CoreCache.AddModel(deviceDiscover.ProtocolName, model)
 	if err != nil {
 		logger.Logger.Error("device auto discover add model error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
