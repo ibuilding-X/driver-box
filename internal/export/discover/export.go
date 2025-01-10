@@ -77,16 +77,25 @@ func (export *Export) deviceAutoDiscover(deviceId string, value interface{}) err
 	//覆盖模型点位属性
 	if len(deviceDiscover.Model) > 0 {
 		points := make([]config.PointMap, 0)
-		for pointName, pointProperties := range deviceDiscover.Model {
-			for _, point := range model.DevicePoints {
-				points = append(points, point)
-				if point["name"] != pointName {
-					continue
-				}
-				for k, v := range pointProperties {
+		for _, point := range model.DevicePoints {
+			pointName := point["name"].(string)
+			luaPoint, ok := deviceDiscover.Model[pointName]
+			if ok {
+				for k, v := range luaPoint {
 					point[k] = v
 				}
 			}
+			points = append(points, point)
+			delete(deviceDiscover.Model, pointName)
+		}
+		//取并集
+		for pointName, prop := range deviceDiscover.Model {
+			point := make(config.PointMap)
+			point["name"] = pointName
+			for k, v := range prop {
+				point[k] = v
+			}
+			points = append(points, point)
 		}
 		model.DevicePoints = points
 	}
