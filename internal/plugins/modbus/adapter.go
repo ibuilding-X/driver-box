@@ -185,7 +185,14 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 				} else if v < 0 {
 					return writeValue{}, fmt.Errorf("negative value %v not allowed to set in bits", v)
 				}
-				uint16s, err := c.read(unitId, string(ext.RegisterType), ext.Address, ext.Quantity)
+				var uint16s []uint16
+				var err error
+				if c.virtual {
+					uint16s, err = c.mockRead(unitId, string(ext.RegisterType), ext.Address, ext.Quantity)
+				} else {
+					uint16s, err = c.read(unitId, string(ext.RegisterType), ext.Address, ext.Quantity)
+				}
+
 				if err != nil {
 					return writeValue{}, fmt.Errorf("read original register error: %v", err)
 				}
