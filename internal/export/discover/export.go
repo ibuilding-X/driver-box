@@ -68,7 +68,38 @@ func (export *Export) deviceAutoDiscover(deviceId string, value interface{}) err
 		return err
 	}
 	//通过 modelKey 添加的统一模型 Name
-	model.Name = deviceDiscover.ProtocolName + "_" + deviceDiscover.ModelKey
+	if len(deviceDiscover.ModelName) > 0 {
+		model.Name = deviceDiscover.ModelName
+	} else {
+		model.Name = deviceDiscover.ProtocolName + "_" + deviceDiscover.ModelKey
+	}
+
+	//覆盖模型点位属性
+	if len(deviceDiscover.Model) > 0 {
+		points := make([]config.PointMap, 0)
+		for _, point := range model.DevicePoints {
+			pointName := point["name"].(string)
+			luaPoint, ok := deviceDiscover.Model[pointName]
+			if ok {
+				for k, v := range luaPoint {
+					point[k] = v
+				}
+			}
+			points = append(points, point)
+			delete(deviceDiscover.Model, pointName)
+		}
+		//取并集
+		for pointName, prop := range deviceDiscover.Model {
+			point := make(config.PointMap)
+			point["name"] = pointName
+			for k, v := range prop {
+				point[k] = v
+			}
+			points = append(points, point)
+		}
+		model.DevicePoints = points
+	}
+
 	err = helper.CoreCache.AddModel(deviceDiscover.ProtocolName, model)
 	if err != nil {
 		logger.Logger.Error("device auto discover add model error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))

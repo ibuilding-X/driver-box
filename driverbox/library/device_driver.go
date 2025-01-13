@@ -3,6 +3,7 @@ package library
 import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/lua"
@@ -132,17 +133,57 @@ func (device *DeviceDriver) DeviceDecode(driverKey string, req DeviceDecodeReque
 		return &DeviceDecodeResult{Error: e}
 	}
 	res := make([]plugin.PointData, 0)
+	events := make([]event.Data, 0)
 	result.ForEach(func(key, value glua.LValue) {
-		point := value.(*glua.LTable)
-		res = append(res, plugin.PointData{
-			PointName: glua.LVAsString(point.RawGetString("name")),
-			Value:     glua.LVAsString(point.RawGetString("value")),
-		})
+		unit := value.(*glua.LTable)
+		//点位解析
+		pointLValue := unit.RawGetString("name")
+		if pointLValue != glua.LNil {
+			res = append(res, plugin.PointData{
+				PointName: glua.LVAsString(pointLValue),
+				Value:     glua.LVAsString(unit.RawGetString("value")),
+			})
+			return
+		}
+		//事件解析
+		eventLValue := unit.RawGetString("event")
+		if eventLValue != glua.LNil {
+			valueMap := convertLuaValue(unit.RawGetString("value"))
+			events = append(events, event.Data{
+				Code:  glua.LVAsString(eventLValue),
+				Value: valueMap,
+			})
+		}
 	})
 	return &DeviceDecodeResult{
 		Points: res,
+		Events: events,
 		Error:  e,
 	}
+}
+
+func convertLuaValue(lv glua.LValue) any {
+	if lv.Type() == glua.LTNumber {
+		return glua.LVAsNumber(lv)
+	}
+	if lv.Type() == glua.LTString {
+		return glua.LVAsString(lv)
+	}
+	if lv.Type() == glua.LTTable {
+		m := make(map[string]interface{})
+		t := lv.(*glua.LTable)
+		t.ForEach(func(key, value glua.LValue) {
+			if value.Type() == glua.LTTable {
+				m[key.String()] = convertLuaValue(value)
+			} else if value.Type() == glua.LTNumber {
+				m[key.String()] = glua.LVAsNumber(value)
+			} else {
+				m[key.String()] = glua.LVAsString(value)
+			}
+		})
+		return m
+	}
+	return nil
 }
 
 // 卸载驱动
@@ -178,6 +219,8 @@ type DeviceDecodeRequest struct {
 type DeviceDecodeResult struct {
 	//解码结果
 	Points []plugin.PointData `json:"points"`
+	//解码产生的事件
+	Events []event.Data `json:"events"`
 	//解码错误信息
 	Error error `json:"error"`
 }
