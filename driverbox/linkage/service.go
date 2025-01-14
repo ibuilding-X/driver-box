@@ -4,11 +4,26 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/robfig/cron/v3"
+	"go.uber.org/zap"
 	"strconv"
 	"sync"
 	"time"
 )
+
+type Callback func(result ExecutionResult)
+
+type ExecutionResult struct {
+	ID      string                `json:"id"`
+	Success bool                  `json:"success"`
+	Details ExecutionResultDetail `json:"details"`
+}
+
+type ExecutionResultDetail struct {
+	Device
+	ErrorMessage string `json:"error_message"`
+}
 
 type service struct {
 	// configs 配置列表
@@ -18,10 +33,16 @@ type service struct {
 	// triggerConditions点位触发器
 	triggerConditions map[string][]DevicePointCondition
 	// deviceReadWriter 设备读写器
-	deviceReadWriter *deviceReadWriter
+	deviceReadWriter deviceReadWriter
+	// execResultCallback 执行结果回调函数
+	execResultCallback Callback
 }
 
 func (s *service) Add(config Config) error {
+	if err := config.Validate(); err != nil {
+		return fmt.Errorf("invalid config: %w", err)
+	}
+
 	if _, ok := s.configs.Load(config.ID); ok {
 		return ErrAlreadyExist
 	}
@@ -120,7 +141,24 @@ func (s *service) QueryByLastTrigger() (Config, error) {
 }
 
 func (s *service) DevicePointsBus(device Device) {
-	// todo something
+	for _, p := range device.Points {
+		for id, conditions := range s.triggerConditions {
+			for _, condition := range conditions {
+				if condition.DeviceID != device.DeviceID || condition.DevicePoint != p.Point {
+					continue
+				}
+
+				// 同一个场景联动任意触发条件符合即可
+				if s.checkConditionValue(condition, p.Value) == nil {
+					go func(linkEdgeId string) {
+						_ = s.Trigger(linkEdgeId)
+					}(id)
+					break
+				}
+			}
+
+		}
+	}
 }
 
 func (s *service) add(config Config) error {
@@ -199,6 +237,92 @@ func (s *service) trigger(id string, depth int) error {
 	if err := s.checkConditions(config.Conditions); err != nil {
 		return err
 	}
+
+	// 组合相同设备的点位 action
+	actions := make(map[string][]DevicePoint)
+	sucCount := 0
+	// 执行动作
+	for _, action := range config.Actions {
+		//判断执行动作是否匹配条件
+		e := s.checkConditions(action.Condition)
+		if e != nil {
+			sucCount++
+			continue
+		}
+
+		switch action.Type {
+		// 设置设备点位
+		case ActionTypeDevicePoint:
+			deviceID := action.DeviceID
+			if _, ok := actions[deviceID]; !ok {
+				actions[deviceID] = make([]DevicePoint, 0)
+			}
+
+			// 多点位设置
+			if len(action.Points) != 0 {
+				for _, point := range action.Points {
+					actions[deviceID] = append(actions[deviceID], DevicePoint{
+						Point: point.Point,
+						Value: point.Value,
+					})
+				}
+			}
+		case ActionTypeLinkage:
+			sucCount++
+			go s.trigger(action.ID, depth+1)
+		default:
+			bytes, _ := json.Marshal(action)
+			return fmt.Errorf("invalid action: %s", bytes)
+		}
+
+		// 场景执行后休眠指定时长
+		if len(action.Sleep) > 0 {
+			d, err := time.ParseDuration(action.Sleep)
+			if err == nil {
+				time.Sleep(d)
+			}
+		}
+	}
+	// 遍历执行 actions，按连接分组
+	connectGroup := make(map[string]map[string][]DevicePoint)
+	for deviceId, points := range actions {
+		device, ok := helper.CoreCache.GetDevice(deviceId)
+		if !ok {
+			helper.Logger.Error("get device error", zap.String("deviceId", deviceId))
+			continue
+		}
+		group, ok := connectGroup[device.ConnectionKey]
+		if !ok {
+			group = make(map[string][]DevicePoint)
+			connectGroup[device.ConnectionKey] = group
+		}
+		group[deviceId] = points
+	}
+	var wg sync.WaitGroup
+	for _, devices := range connectGroup {
+		wg.Add(1)
+		go func(ds map[string][]DevicePoint) {
+			defer wg.Done()
+			for deviceId, points := range ds {
+				err := s.deviceReadWriter.Write(deviceId, points)
+				if err != nil {
+					//helper.Logger.Error("execute linkEdge error", zap.String("linkEdge", id),
+					//	zap.String("deviceId", deviceId), zap.Any("points", points), zap.Error(err))
+				} else {
+					sucCount = sucCount + len(points)
+					//helper.Logger.Info(fmt.Sprintf("execute linkEdge:%s action", id))
+				}
+			}
+		}(devices)
+	}
+	wg.Wait()
+
+	var result ExecutionResult
+	result.ID = id
+	if sucCount == len(config.Actions) {
+		result.Success = true
+	}
+	s.execResultCallback(result)
 
 	return nil
 }

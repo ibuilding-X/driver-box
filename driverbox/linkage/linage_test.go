@@ -6,15 +6,40 @@ import (
 )
 
 var defaultConfig = Config{
-	ID:              "ce96ca8e24955c9d16b4e3a8f571f9fa",
-	Enable:          true,
-	Name:            "default",
-	Tags:            []string{"default"},
-	Description:     "default linkage description",
-	SilentPeriod:    0,
-	Triggers:        []Trigger{},
-	Conditions:      []Condition{},
-	Actions:         []Action{},
+	ID:           "386de0e478445af87507657674203bab",
+	Enable:       true,
+	Name:         "default",
+	Tags:         []string{"default"},
+	Description:  "default linkage description",
+	SilentPeriod: 0,
+	Triggers: []Trigger{
+		{
+			Type: TriggerTypeDevicePoint,
+			DevicePointTrigger: DevicePointTrigger{
+				DeviceID:    "test_device_1",
+				DevicePoint: "onOff",
+				Condition:   ConditionSymbolEq,
+				Value:       "1",
+			},
+		},
+	},
+	Conditions: []Condition{},
+	Actions: []Action{
+		{
+			Type:      ActionTypeDevicePoint,
+			Condition: nil,
+			Sleep:     "",
+			DevicePointAction: DevicePointAction{
+				DeviceID: "test_device_2",
+				Points: []DevicePoint{
+					{
+						Point: "onOff",
+						Value: "1",
+					},
+				},
+			},
+		},
+	},
 	LastExecuteTime: time.Time{},
 }
 
@@ -31,6 +56,9 @@ func TestLinkage(t *testing.T) {
 		options.SetDeviceWriter(func(deviceID string, points []DevicePoint) (err error) {
 			// todo something
 			return nil
+		})
+		options.SetCallback(func(result ExecutionResult) {
+			// todo something
 		})
 
 		// 实例化

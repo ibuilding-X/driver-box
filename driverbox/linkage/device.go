@@ -7,19 +7,27 @@ type (
 	DeviceWriter func(deviceID string, points []DevicePoint) (err error)
 )
 
-type deviceReadWriter struct {
-	reader DeviceReader
-	writer DeviceWriter
+type deviceReadWriter interface {
+	Read(deviceID string, point string) (interface{}, error)
+	Write(deviceID string, points []DevicePoint) (err error)
 }
 
-func newDeviceReadWriter(reader DeviceReader, writer DeviceWriter) *deviceReadWriter {
-	return &deviceReadWriter{reader: reader, writer: writer}
+type Device struct {
+	// ID 设备ID
+	DeviceID string
+	// Points 设备点位
+	Points []DevicePoint
 }
 
-func (d *deviceReadWriter) Read(deviceID string, point string) (interface{}, error) {
-	return d.reader(deviceID, point)
+type deviceManager struct {
+	readHandler  DeviceReader
+	writeHandler DeviceWriter
 }
 
-func (d *deviceReadWriter) Write(deviceID string, points []DevicePoint) (err error) {
-	return d.writer(deviceID, points)
+func (d *deviceManager) Read(deviceID string, point string) (interface{}, error) {
+	return d.readHandler(deviceID, point)
+}
+
+func (d *deviceManager) Write(deviceID string, points []DevicePoint) (err error) {
+	return d.writeHandler(deviceID, points)
 }

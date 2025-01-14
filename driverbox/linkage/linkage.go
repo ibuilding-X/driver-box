@@ -21,25 +21,6 @@ var (
 	ErrUnknownConditionType = errors.New("linkage unknown condition type")
 )
 
-type Device struct {
-	// ID 设备ID
-	DeviceID string
-	// Points 设备点位
-	Points []DevicePoint
-}
-
-type Options struct {
-	rw *deviceReadWriter
-}
-
-func (o *Options) SetDeviceReader(reader DeviceReader) {
-	o.rw.reader = reader
-}
-
-func (o *Options) SetDeviceWriter(writer DeviceWriter) {
-	o.rw.writer = writer
-}
-
 // Linkage 场景联动
 type Linkage interface {
 	// Add 添加场景
@@ -62,10 +43,30 @@ type Linkage interface {
 
 func New(options *Options) Linkage {
 	return &service{
-		deviceReadWriter: options.rw,
+		deviceReadWriter:   options.deviceManager,
+		execResultCallback: options.callback,
 	}
 }
 
 func NewOptions() *Options {
-	return &Options{}
+	return &Options{
+		deviceManager: &deviceManager{},
+	}
+}
+
+type Options struct {
+	deviceManager *deviceManager
+	callback      Callback
+}
+
+func (o *Options) SetDeviceReader(reader DeviceReader) {
+	o.deviceManager.readHandler = reader
+}
+
+func (o *Options) SetDeviceWriter(writer DeviceWriter) {
+	o.deviceManager.writeHandler = writer
+}
+
+func (o *Options) SetCallback(callback Callback) {
+	o.callback = callback
 }

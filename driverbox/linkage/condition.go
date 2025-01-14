@@ -38,7 +38,7 @@ const (
 
 // Condition 条件
 type Condition struct {
-	Type ConditionType `json:"type"`
+	Type ConditionType `json:"type" validate:"required,oneof=devicePoint executeTime lastTime dateInterval years months days weeks timeInterval"`
 	DevicePointCondition
 	ExecuteTimeCondition
 	LastTimeCondition
@@ -53,19 +53,19 @@ type Condition struct {
 // DevicePointCondition 设备点位条件
 type DevicePointCondition struct {
 	// DeviceID 设备 ID
-	DeviceID string `json:"devSn"`
+	DeviceID string `json:"devSn" validate:"omitempty"`
 	// DevicePoint 点位名称
-	DevicePoint string `json:"point"`
+	DevicePoint string `json:"point" validate:"omitempty"`
 	// Condition 条件模式：== != > < 等
-	Condition ConditionSymbol `json:"condition"`
+	Condition ConditionSymbol `json:"condition" validate:"omitempty,oneof='=' '!=' '>' '>=' '<' '<='"`
 	// Value 条件值
-	Value string `json:"value"`
+	Value string `json:"value" validate:"omitempty"`
 }
 
 // ExecuteTimeCondition 有效执行时间段
 type ExecuteTimeCondition struct {
-	Begin int64 `json:"begin"`
-	End   int64 `json:"end"`
+	Begin int64 `json:"begin" validate:"omitempty"`
+	End   int64 `json:"end" validate:"omitempty"`
 }
 
 // LastTimeCondition 持续时间条件
@@ -76,37 +76,37 @@ type LastTimeCondition struct {
 // DateIntervalCondition 日期间隔
 // 日期格式：01-02
 type DateIntervalCondition struct {
-	BeginDate string `json:"begin_date"`
-	EndDate   string `json:"end_date"`
+	BeginDate string `json:"begin_date" validate:"omitempty,datetime=01-02"`
+	EndDate   string `json:"end_date" validate:"omitempty,datetime=01-02"`
 }
 
 // YearsCondition 年份
 // demo: 2021-2025 表示2021年到2025年
 type YearsCondition struct {
-	Years []int `json:"years"`
+	Years []int `json:"years" validate:"omitempty"`
 }
 
 // MonthsCondition 月份
 // demo: 1-12 表示1月到12月
 type MonthsCondition struct {
-	Months []int `json:"months"`
+	Months []int `json:"months" validate:"omitempty"`
 }
 
 // DaysCondition 日期
 // demo: 1-31 表示1号到31号
 type DaysCondition struct {
-	Days []int `json:"days"`
+	Days []int `json:"days" validate:"omitempty"`
 }
 
 // WeeksCondition 星期
 // demo: 1-7 表示星期一到星期日
 type WeeksCondition struct {
-	Weeks []int `json:"weeks"`
+	Weeks []int `json:"weeks" validate:"omitempty"`
 }
 
 // TimeIntervalCondition 时间段
 // 示例：begin_time: "08:00", end_time: "18:00"
 type TimeIntervalCondition struct {
-	BeginTime string `json:"begin_time"`
-	EndTime   string `json:"end_time"`
+	BeginTime string `json:"begin_time" validate:"omitempty,datetime=15:04"`
+	EndTime   string `json:"end_time" validate:"omitempty,datetime=15:04"`
 }
