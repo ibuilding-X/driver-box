@@ -4,7 +4,7 @@ on:
   # Trigger the workflow every time you push to the `main` branch
   # Using a different branch name? Replace `main` with your branch’s name
   push:
-#    branches:
+    branches: [feature/20250210_lh_config]
     paths:
       - 'pages/**'
   # Allows you to run this workflow manually from the Actions tab on GitHub.
