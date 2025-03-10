@@ -391,28 +391,7 @@ func (c *cache) GetConnectionPluginName(key string) string {
 }
 
 // AddModel 新增模型
-func (c *cache) AddModel(plugin string, model config.DeviceModel) error {
-	err := cmanager.AddModel(plugin, model)
-	if err == nil {
-		points := make(map[string]config.Point)
-		for _, p := range model.DevicePoints {
-			point := p.ToPoint()
-			points[point.Name] = point
-		}
-		devices := make(map[string]config.Device)
-		for _, d := range model.Devices {
-			devices[d.ID] = d
-		}
-		c.models.Store(model.Name, config.Model{
-			ModelBase: model.ModelBase,
-			Points:    points,
-			Devices:   devices,
-		})
-	}
-	return err
-}
-
-func (c *cache) AddModelV2(plugin string, model config.Model) error {
+func (c *cache) AddModel(plugin string, model config.Model) error {
 	// 模型内容转换
 	var m config.DeviceModel
 	m.ModelBase = model.ModelBase
@@ -445,7 +424,12 @@ func (c *cache) AddModelV2(plugin string, model config.Model) error {
 	}
 	m.Devices = devices
 
-	return c.AddModel(plugin, m)
+	err := cmanager.AddModel(plugin, m)
+	if err == nil {
+		c.models.Store(model.Name, model)
+	}
+
+	return err
 }
 
 // RemoveDevice 根据 ID 删除设备
