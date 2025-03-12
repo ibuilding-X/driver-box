@@ -1,5 +1,8 @@
 package event
 
+// todo 后续定义事件code采用 EventCode 类型
+type EventCode string
+
 const (
 	//设备在离线状态事件
 	EventCodeDeviceStatus = "deviceStatus"
@@ -7,6 +10,8 @@ const (
 	EventCodeServiceStatus = "serviceStatus"
 	//添加设备
 	EventCodeAddDevice = "addDevice"
+	//即将删除设备,在该事件中依旧可以查询设备信息
+	EventCodeWillDeleteDevice = "willDeleteDevice"
 	//即将执行ExportTo
 	EventCodeWillExportTo = "willExportTo"
 	//设备自动发现事件

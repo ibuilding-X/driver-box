@@ -58,10 +58,6 @@ type configManager interface {
 	AddModel(plugin string, model config.DeviceModel) error
 	// AddOrUpdateDevice 新增或更新设备
 	AddOrUpdateDevice(device config.Device) error
-	// RemoveDevice 删除设备
-	RemoveDevice(modelName string, deviceID string) error
-	// RemoveDeviceByID 根据 ID 删除设备
-	RemoveDeviceByID(id string) error
 	// BatchRemoveDevice 批量删除设备
 	BatchRemoveDevice(ids []string) error
 }
