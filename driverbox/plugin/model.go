@@ -63,3 +63,13 @@ type BaseConnection struct {
 	Enable      bool   `json:"enable"`      //是否启用
 	Virtual     bool   `json:"virtual"`     //虚拟设备功能
 }
+
+// 简单的编码结构体,对于无Encode实现的插件，可以使用该结构体
+type SimpleEncodeStruct struct {
+	// 设备 ID
+	ID string `json:"id"`
+	// 点位名称
+	Mode EncodeMode `json:"mode"`
+	// 点位值
+	Values []PointData `json:"values"`
+}
