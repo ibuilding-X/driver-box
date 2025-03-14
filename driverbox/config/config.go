@@ -320,3 +320,24 @@ func connIsSupportDiscover(conn any) bool {
 	}
 	return false
 }
+
+func (dm DeviceModel) ToModel() Model {
+	points := make(map[string]Point)
+	for _, pointMap := range dm.DevicePoints {
+		point := pointMap.ToPoint()
+		if point.Name != "" {
+			points[point.Name] = point
+		}
+	}
+
+	devices := make(map[string]Device)
+	for i, _ := range dm.Devices {
+		devices[dm.Devices[i].ID] = dm.Devices[i]
+	}
+
+	return Model{
+		ModelBase: dm.ModelBase,
+		Points:    points,
+		Devices:   devices,
+	}
+}

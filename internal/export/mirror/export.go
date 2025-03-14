@@ -171,7 +171,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	mirrorModel.DevicePoints = points
 
 	//第三步：配置持久化
-	e := helper.CoreCache.AddModel(mirror.ProtocolName, mirrorModel)
+	e := helper.CoreCache.AddModel(mirror.ProtocolName, mirrorModel.ToModel())
 	if e != nil {
 		helper.Logger.Error("add mirror model error", zap.Error(e))
 		return e

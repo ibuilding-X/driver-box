@@ -364,12 +364,12 @@ func (m *manager) optimizeConfig() {
 		}
 
 		// 更新配置
-		m.configs[key] = config.Config{
-			DeviceModels: usefulModels,
-			Connections:  usefulConnections,
-			ProtocolName: conf.ProtocolName,
-			Key:          conf.Key,
-		}
+		c := m.configs[key]
+		c.DeviceModels = usefulModels
+		c.Connections = usefulConnections
+		c.ProtocolName = conf.ProtocolName
+		c.Key = conf.Key
+		m.configs[key] = c
 	}
 }
 

@@ -389,24 +389,44 @@ func (c *cache) GetConnectionPluginName(key string) string {
 }
 
 // AddModel 新增模型
-func (c *cache) AddModel(plugin string, model config.DeviceModel) error {
-	err := cmanager.AddModel(plugin, model)
-	if err == nil {
-		points := make(map[string]config.Point)
-		for _, p := range model.DevicePoints {
-			point := p.ToPoint()
-			points[point.Name] = point
+func (c *cache) AddModel(plugin string, model config.Model) error {
+	// 模型内容转换
+	var m config.DeviceModel
+	m.ModelBase = model.ModelBase
+
+	// 点位列表
+	var points []config.PointMap
+	for _, point := range model.Points {
+		pointMap := config.PointMap{
+			"name":       point.Name,
+			"desc":       point.Description,
+			"valueType":  point.ValueType,
+			"readWrite":  point.ReadWrite,
+			"units":      point.Units,
+			"reportMode": point.ReportMode,
+			"scale":      point.Scale,
+			"decimals":   point.Decimals,
+			"enums":      point.Enums,
 		}
-		devices := make(map[string]config.Device)
-		for _, d := range model.Devices {
-			devices[d.ID] = d
+		for k, v := range point.Extends {
+			pointMap[k] = v
 		}
-		c.models.Store(model.Name, config.Model{
-			ModelBase: model.ModelBase,
-			Points:    points,
-			Devices:   devices,
-		})
+		points = append(points, pointMap)
 	}
+	m.DevicePoints = points
+
+	// 设备列表
+	var devices []config.Device
+	for _, device := range model.Devices {
+		devices = append(devices, device)
+	}
+	m.Devices = devices
+
+	err := cmanager.AddModel(plugin, m)
+	if err == nil {
+		c.models.Store(model.Name, model)
+	}
+
 	return err
 }
 

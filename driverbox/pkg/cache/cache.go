@@ -55,7 +55,7 @@ type configManager interface {
 	// GetConnectionPluginName 获取连接所属的插件名称
 	GetConnectionPluginName(key string) string
 	// AddModel 新增模型
-	AddModel(plugin string, model config.DeviceModel) error
+	AddModel(plugin string, model config.Model) error
 	// AddOrUpdateDevice 新增或更新设备
 	AddOrUpdateDevice(device config.Device) error
 	// BatchRemoveDevice 批量删除设备
