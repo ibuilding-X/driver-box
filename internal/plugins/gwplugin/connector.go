@@ -291,20 +291,10 @@ func (c *connector) syncModels(payload dto.WSPayload) error {
 	if len(payload.Models) > 0 {
 		var errCounter int
 		for _, model := range payload.Models {
-			points := make([]config.PointMap, 0, len(model.Points))
-			for _, point := range model.Points {
-				bs, _ := json.Marshal(point)
-				var pointMap config.PointMap
-				_ = json.Unmarshal(bs, &pointMap)
-				points = append(points, pointMap)
-			}
-
-			err := helper.CoreCache.AddModel(ProtocolName, config.DeviceModel{
-				ModelBase:    model.ModelBase,
-				DevicePoints: points,
-				Devices:      nil,
+			err := helper.CoreCache.AddModel(ProtocolName, config.Model{
+				ModelBase: model.ModelBase,
+				Points:    model.Points,
 			})
-
 			if err != nil {
 				errCounter++
 				helper.Logger.Error("gateway plugin add model failed", zap.Any("model", model), zap.Error(err))
