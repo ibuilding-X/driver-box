@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
 	"io/fs"
@@ -434,10 +433,6 @@ func (m *manager) AddModel(plugin string, model config.DeviceModel) error {
 func (m *manager) AddOrUpdateDevice(device config.Device) error {
 	m.mux.Lock()
 	defer m.mux.Unlock()
-
-	if helper.Logger != nil {
-		helper.Logger.Debug("cmanager add device", zap.Any("device", device), zap.String("model", device.ModelName))
-	}
 
 	// 模型校验
 	if device.ModelName == "" {
