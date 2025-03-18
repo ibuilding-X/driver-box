@@ -22,6 +22,8 @@ const (
 
 var Instance cache2.CoreCache
 
+var mu sync.Mutex
+
 type cache struct {
 	models         *sync.Map // name => config.Model
 	devices        *sync.Map // deviceSn => config.Device
@@ -285,6 +287,9 @@ func (c *cache) Reset() {
 // * 设备影子
 // * 持久化文件
 func (c *cache) AddOrUpdateDevice(device config.Device) error {
+	mu.Lock()
+	defer mu.Unlock()
+
 	if logger.Logger != nil {
 		logger.Logger.Info("core cache add device", zap.Any("device", device))
 	}
