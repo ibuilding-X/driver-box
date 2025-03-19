@@ -286,7 +286,7 @@ func (c *cache) Reset() {
 // * 持久化文件
 func (c *cache) AddOrUpdateDevice(device config.Device) error {
 	if logger.Logger != nil {
-		logger.Logger.Info("core cache add device", zap.Any("device", device))
+		logger.Logger.Info("core cache add device", zap.Any("device", device), zap.Any("model", device.ModelName))
 	}
 	// 查找模型信息
 	model, ok := cmanager.GetModel(device.ModelName)
