@@ -369,7 +369,7 @@ func (m *manager) optimizeConfig() {
 		c.Connections = usefulConnections
 		c.ProtocolName = conf.ProtocolName
 		c.Key = conf.Key
-		m.configs[key] = c
+		m.configs[key] = c.UpdateIndexAndClean()
 	}
 }
 

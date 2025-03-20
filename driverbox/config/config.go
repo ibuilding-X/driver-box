@@ -3,6 +3,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/go-playground/validator/v10"
 	"os"
 )
@@ -85,17 +86,17 @@ func (pm PointMap) ToPoint() Point {
 	for key, v := range pm {
 		switch key {
 		case "name":
-			p.Name = v.(string)
+			p.Name = fmt.Sprintf("%s", v)
 		case "description":
-			p.Description = v.(string)
+			p.Description = fmt.Sprintf("%s", v)
 		case "valueType":
-			p.ValueType = ValueType(v.(string))
+			p.ValueType = ValueType(fmt.Sprintf("%s", v))
 		case "readWrite":
-			p.ReadWrite = ReadWrite(v.(string))
+			p.ReadWrite = ReadWrite(fmt.Sprintf("%s", v))
 		case "units":
-			p.Units = v.(string)
+			p.Units = fmt.Sprintf("%s", v)
 		case "reportMode":
-			p.ReportMode = ReportMode(v.(string))
+			p.ReportMode = ReportMode(fmt.Sprintf("%s", v))
 		case "scale":
 			p.Scale = v.(float64)
 		case "decimals":
