@@ -244,12 +244,10 @@ func (c *cache) UpdateDeviceProperty(id string, key string, value string) {
 
 // DeleteDevice 删除设备
 func (c *cache) DeleteDevice(id string) {
-	c.devices.Delete(id)
-	// 删除设备影子
-	if shadow.DeviceShadow != nil {
-		_ = shadow.DeviceShadow.DeleteDevice(id)
+	e := c.BatchRemoveDevice([]string{id})
+	if e != nil {
+		logger.Logger.Error("remove device error", zap.String("id", id))
 	}
-	_ = cmanager.RemoveDeviceByID(id)
 }
 
 // UpdateDeviceDesc 更新设备描述
@@ -432,29 +430,10 @@ func (c *cache) AddModel(plugin string, model config.Model) error {
 	return err
 }
 
-// RemoveDevice 根据 ID 删除设备
-func (c *cache) RemoveDevice(modelName string, deviceID string) error {
-	c.devices.Delete(deviceID)
-	// 删除设备影子
-	if shadow.DeviceShadow != nil {
-		_ = shadow.DeviceShadow.DeleteDevice(deviceID)
-	}
-	return cmanager.RemoveDevice(modelName, deviceID)
-}
-
-// RemoveDeviceByID 根据 ID 删除设备
-func (c *cache) RemoveDeviceByID(id string) error {
-	c.devices.Delete(id)
-	// 删除设备影子
-	if shadow.DeviceShadow != nil {
-		_ = shadow.DeviceShadow.DeleteDevice(id)
-	}
-	return cmanager.RemoveDeviceByID(id)
-}
-
 // BatchRemoveDevice 批量删除设备
 func (c *cache) BatchRemoveDevice(ids []string) error {
 	for _, id := range ids {
+		export.TriggerEvents(event.EventCodeWillDeleteDevice, id, nil)
 		c.devices.Delete(id)
 	}
 	// 删除设备影子
