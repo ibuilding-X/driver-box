@@ -7,6 +7,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/models"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/shadow"
 	"github.com/ibuilding-x/driver-box/driverbox/restful"
 	"github.com/ibuilding-x/driver-box/driverbox/restful/request"
 	"github.com/ibuilding-x/driver-box/driverbox/restful/route"
@@ -19,6 +20,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"time"
 )
 
 func registerApi() {
@@ -206,7 +208,20 @@ func getAllDevices(_ *http.Request) (any, error) {
 	sort.Slice(devices, func(i, j int) bool {
 		return devices[i].ID < devices[j].ID
 	})
-	return devices, nil
+
+	//定义个结构体，改变UpdatedAt的格式
+	type Device struct {
+		shadow.Device
+		UpdatedAt string `json:"updatedAt"`
+	}
+	list := make([]Device, len(devices))
+	for i, device := range devices {
+		list[i] = Device{
+			Device:    device,
+			UpdatedAt: device.UpdatedAt.Format(time.DateTime),
+		}
+	}
+	return list, nil
 }
 
 // Device 设备相关操作
