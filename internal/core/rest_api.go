@@ -17,6 +17,8 @@ func RegisterApi() {
 	restful.HandleFunc(http.MethodPost, route.DevicePointWrite, writePoint)
 	restful.HandleFunc(http.MethodPost, route.DevicePointsWrite, writePoints)
 	restful.HandleFunc(http.MethodGet, route.DevicePointRead, readPoint)
+	restful.HandleFunc(http.MethodGet, route.DeviceList, deviceList)
+	restful.HandleFunc(http.MethodGet, route.DeviceGet, deviceGet)
 }
 
 // 写入某个设备点位
@@ -62,4 +64,19 @@ func readPoint(r *http.Request) (any, error) {
 		return nil, e
 	}
 	return helper.DeviceShadow.GetDevicePoint(sn, point)
+}
+
+// 获取设备列表
+func deviceList(r *http.Request) (any, error) {
+	return helper.CoreCache.Devices(), nil
+}
+
+// 获取设备信息
+func deviceGet(r *http.Request) (any, error) {
+	sn := r.URL.Query().Get("id")
+	device, ok := helper.CoreCache.GetDevice(sn)
+	if !ok {
+		return nil, errors.New("device not found")
+	}
+	return device, nil
 }

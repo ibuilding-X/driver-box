@@ -10,6 +10,12 @@ const DevicePointsWrite = V1Prefix + "device/writePoints"
 
 const DevicePointRead = V1Prefix + "device/readPoint"
 
+// 查询设备列表
+const DeviceList = V1Prefix + "device/list"
+
+// 获取设备信息
+const DeviceGet = V1Prefix + "device/get"
+
 // 创建场景联动
 const LinkEdgeCreate = V1Prefix + "linkedge/create"
 
