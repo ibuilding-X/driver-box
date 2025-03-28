@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"errors"
+	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/restful"
@@ -68,7 +69,19 @@ func readPoint(r *http.Request) (any, error) {
 
 // 获取设备列表
 func deviceList(r *http.Request) (any, error) {
-	return helper.CoreCache.Devices(), nil
+	type Device struct {
+		config.Device
+		Points []config.Point `json:"points"`
+	}
+	devices := make([]Device, 0)
+	for _, device := range helper.CoreCache.Devices() {
+		points, _ := helper.CoreCache.GetPoints(device.ModelName)
+		devices = append(devices, Device{
+			Device: device,
+			Points: points,
+		})
+	}
+	return devices, nil
 }
 
 // 获取设备信息
