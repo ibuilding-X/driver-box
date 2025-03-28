@@ -47,8 +47,6 @@ func Start() error {
 
 	// 第五步：启动 REST 服务
 	go func() {
-		registerApi()
-		core.RegisterApi()
 		e := http.ListenAndServe(":"+helper.EnvConfig.HttpListen, restful.HttpRouter)
 		if e != nil {
 			helper.Logger.Error("start rest server error", zap.Error(e))

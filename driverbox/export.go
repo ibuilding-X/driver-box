@@ -6,6 +6,7 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/export/discover"
 	"github.com/ibuilding-x/driver-box/internal/export/gwexport"
 	"github.com/ibuilding-x/driver-box/internal/export/linkedge"
+	"github.com/ibuilding-x/driver-box/internal/export/manager"
 	"github.com/ibuilding-x/driver-box/internal/export/mirror"
 	"github.com/ibuilding-x/driver-box/internal/export/ui"
 )
@@ -31,6 +32,7 @@ func (exports *exports) LoadExports(export2 []export.Export) {
 
 // 默认加载driver-box内置的所有Export
 func (exports *exports) LoadAllExports() {
+	exports.LoadManagerExport()
 	exports.LoadLinkEdgeExport()
 	exports.LoadMirrorExport()
 	exports.LoadUIExport()
@@ -60,6 +62,10 @@ func (exports *exports) LoadUIExport() {
 
 func (exports *exports) LoadGatewayExport() {
 	exports.LoadExport(gwexport.New())
+}
+
+func (exports *exports) LoadManagerExport() {
+	exports.LoadExport(manager.NewExport())
 }
 
 func (exports *exports) exists(exp export.Export) bool {
