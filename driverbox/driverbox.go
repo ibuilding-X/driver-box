@@ -17,10 +17,6 @@ import (
 	"path"
 )
 
-// SerialNo 网关编号
-// Deprecated: 待删除，该变量无法在 export、plugin 中使用，会导致循环依赖
-var SerialNo = "driver-box"
-
 func Start() error {
 	//第一步：加载配置文件DriverConfig
 	err := initEnvConfig()
@@ -60,9 +56,9 @@ func Start() error {
 	}
 
 	if err != nil {
-		TriggerEvents(event.EventCodeServiceStatus, GetSerialNo(), event.ServiceStatusError)
+		TriggerEvents(event.EventCodeServiceStatus, GetMetadata().SerialNo, event.ServiceStatusError)
 	} else {
-		TriggerEvents(event.EventCodeServiceStatus, GetSerialNo(), event.ServiceStatusHealthy)
+		TriggerEvents(event.EventCodeServiceStatus, GetMetadata().SerialNo, event.ServiceStatusHealthy)
 	}
 
 	helper.Logger.Info("start driver-box success.")
@@ -121,15 +117,10 @@ func TriggerEvents(eventCode string, key string, value interface{}) {
 	export0.TriggerEvents(eventCode, key, value)
 }
 
-// SetSerialNo 设置网关编号
-// 提示：优先通过函数修改，而不是直接修改 SerialNo 变量值
-func SetSerialNo(sn string) {
-	// 出于兼容性考虑，暂时保留 SerialNo
-	SerialNo = sn
-	core.SetSerialNo(sn)
+func UpdateMetadata(f func(*config.Metadata)) {
+	f(&core.Metadata)
 }
 
-// GetSerialNo 获取网关编号
-func GetSerialNo() string {
-	return core.GetSerialNo()
+func GetMetadata() config.Metadata {
+	return core.Metadata
 }

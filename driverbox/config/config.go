@@ -4,8 +4,9 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/go-playground/validator/v10"
 	"os"
+
+	"github.com/go-playground/validator/v10"
 )
 
 // 环境变量配置项
@@ -14,6 +15,9 @@ const (
 	ENV_RESOURCE_PATH = "DRIVERBOX_RESOURCE_PATH"
 	//http服务监听端口号
 	ENV_HTTP_LISTEN = "DRIVERBOX_HTTP_LISTEN"
+
+	//UDP discover服务监听端口号
+	ENV_UDP_DISCOVER_LISTEN = "DRIVERBOX_UDP_DISCOVER_LISTEN"
 
 	//日志文件存放路径
 	ENV_LOG_PATH = "DRIVERBOX_LOG_PATH"
@@ -341,4 +345,31 @@ func (dm DeviceModel) ToModel() Model {
 		Points:    points,
 		Devices:   devices,
 	}
+}
+
+// 网关元数据
+type Metadata struct {
+	//网关序列号，用于唯一标识网关设备，通常由厂商提供
+	//示例值: "GW2023123456789"
+	//注意:
+	// 1. 序列号应与设备实物标签一致
+	// 2. 序列号格式通常为: 厂商代码(2字母) + 年份(4数字) + 序列号(6数字)
+	// 3. 序列号在系统内必须唯一，不可重复
+	SerialNo string `json:"serialNo"`
+
+	//产品型号，标识网关的硬件型号和规格
+	//示例值:
+	// - "GW1000": 基础型号，支持基础协议和功能
+	// - "GW2000": 高级型号，支持所有协议和扩展功能
+	//注意:
+	// 1. 型号决定了网关支持的功能和性能参数
+	// 2. 不同型号可能有不同的固件版本要求
+	Model string `json:"model"`
+
+	//厂商名称，标识网关的生产厂商
+	//示例值: "Huawei", "ZTE", "Cisco"
+	//注意:
+	// 1. 厂商名称应与官方注册名称一致
+	// 2. 用于区分不同厂商的设备兼容性和支持服务
+	Vendor string `json:"vendor"`
 }

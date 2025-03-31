@@ -1,4 +1,4 @@
-package manager
+package basic
 
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -16,7 +16,7 @@ type Export struct {
 func (export *Export) Init() error {
 	export.ready = true
 	registerApi()
-	udpDiscover()
+	go udpDiscover()
 	return nil
 }
 func NewExport() *Export {

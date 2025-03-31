@@ -254,7 +254,7 @@ func (c *connector) unregister() {
 	// todo 暂时未使用
 	if err := c.sendWebSocketPayload(dto.WSPayload{
 		Type:       dto.WSForUnregister,
-		GatewayKey: core.GetSerialNo(), // 网关唯一标识
+		GatewayKey: core.Metadata.SerialNo, // 网关唯一标识
 	}); err != nil {
 		helper.Logger.Error("gateway plugin send unregister payload failed", zap.String("IP", c.conf.IP))
 	}

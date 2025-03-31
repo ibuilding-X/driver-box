@@ -91,7 +91,7 @@ func (wss *websocketService) handleMessage(conn *websocket.Conn, message []byte)
 			res.Error = err.Error()
 		} else {
 			// 返回子网关唯一标识
-			res.GatewayKey = core.GetSerialNo()
+			res.GatewayKey = core.Metadata.SerialNo
 			defer wss.sync()
 		}
 	case dto.WSForPing: // 心跳
@@ -281,7 +281,7 @@ func (wss *websocketService) gatewayRegister(conn *websocket.Conn, payload dto.W
 	defer wss.mu.Unlock()
 
 	// 自注册
-	if payload.GatewayKey == core.GetSerialNo() {
+	if payload.GatewayKey == core.Metadata.SerialNo {
 		return errSelfRegister
 	}
 
@@ -332,17 +332,17 @@ func (wss *websocketService) gatewayUnregister(_ *websocket.Conn, payload dto.WS
 
 // genDeviceID 生成网关设备 ID
 func (wss *websocketService) genGatewayDeviceID(id string) string {
-	return fmt.Sprintf("%s/%s", core.GetSerialNo(), id)
+	return fmt.Sprintf("%s/%s", core.Metadata.SerialNo, id)
 }
 
 // genGatewayModelName 生成网关模型名称（与主网关模型名称不能重复）
 func (wss *websocketService) genGatewayModelName(name string) string {
-	return fmt.Sprintf("%s_%s", core.GetSerialNo(), name)
+	return fmt.Sprintf("%s_%s", core.Metadata.SerialNo, name)
 }
 
 // parseGatewayDeviceID 解析网关设备 ID
 func (wss *websocketService) parseGatewayDeviceID(id string) string {
-	return strings.ReplaceAll(id, core.GetSerialNo()+"/", "")
+	return strings.ReplaceAll(id, core.Metadata.SerialNo+"/", "")
 }
 
 // sendJSONToWebSocket 发送 JSON 数据到 websocket
