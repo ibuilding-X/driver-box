@@ -56,8 +56,16 @@ func udpDiscover() {
 			continue
 		}
 
+		type Resp struct {
+			config.Metadata
+			Port string `json:"port"`
+		}
+		resp := Resp{
+			Metadata: core.Metadata,
+			Port:     helper.EnvConfig.HttpListen,
+		}
 		// 获取网关Metadata信息
-		response, err := json.Marshal(core.Metadata)
+		response, err := json.Marshal(resp)
 		if err != nil {
 			log.Printf("JSON编码失败: %v", err)
 			continue

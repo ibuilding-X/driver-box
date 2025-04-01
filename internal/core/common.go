@@ -12,10 +12,10 @@ import (
 )
 
 // serialNo 网关序列号
-var serialNo = "driver-box"
 var Metadata = config.Metadata{
 	SerialNo: "driver-box",
 	Model:    "driver-box",
+	Vendor:   "iBUILDING",
 }
 
 // 校验model有效性
@@ -77,14 +77,4 @@ func divideStrings(value interface{}, scale float64) (float64, error) {
 	default:
 		return 0, fmt.Errorf("cannot divide %T with float64", value)
 	}
-}
-
-func SetSerialNo(sn string) {
-	if sn != "" {
-		serialNo = sn
-	}
-}
-
-func GetSerialNo() string {
-	return Metadata.SerialNo
 }
