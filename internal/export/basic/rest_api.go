@@ -7,6 +7,8 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
+	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/models"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/shadow"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -44,6 +46,10 @@ func registerApi() {
 	restful.HandleFunc(http.MethodGet, route.DevicePointRead, readPoint)
 	restful.HandleFunc(http.MethodGet, route.DeviceList, deviceList)
 	restful.HandleFunc(http.MethodGet, route.DeviceGet, deviceGet)
+	restful.HandleFunc(http.MethodPost, route.DeviceAdd, deviceAdd)
+
+	//资源库服务
+	restful.HandleFunc(http.MethodGet, route.V1Prefix+"library/model/get", libraryModelGet)
 
 	//sse服务
 	http.HandleFunc("/sse/log", func(w http.ResponseWriter, r *http.Request) {
@@ -389,4 +395,30 @@ func deviceGet(r *http.Request) (any, error) {
 		return nil, errors.New("device not found")
 	}
 	return device, nil
+}
+
+// 获取设备信息
+func deviceAdd(r *http.Request) (any, error) {
+	//读取body中的json内容
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return false, err
+	}
+	defer r.Body.Close()
+	//解析body
+	var cfg config.Config
+	err = json.Unmarshal(body, &cfg)
+	if err != nil {
+		return false, err
+	}
+	err = cmanager.AddConfig(cfg)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func libraryModelGet(r *http.Request) (any, error) {
+	key := r.URL.Query().Get("key")
+	return library.Model().LoadLibrary(key)
 }
