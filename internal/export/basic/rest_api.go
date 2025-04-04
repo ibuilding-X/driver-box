@@ -29,6 +29,9 @@ import (
 )
 
 func registerApi() {
+	restful.HandleFunc(http.MethodGet, route.V1Prefix+"ok", func(h *http.Request) (any, error) {
+		return true, nil
+	})
 	// 插件 REST API
 	restful.HandleFunc(http.MethodGet, route.V1Prefix+"plugin/cache/get", getCache)
 	restful.HandleFunc(http.MethodPost, route.V1Prefix+"plugin/cache/set", setCache)
@@ -47,6 +50,7 @@ func registerApi() {
 	restful.HandleFunc(http.MethodGet, route.DeviceList, deviceList)
 	restful.HandleFunc(http.MethodGet, route.DeviceGet, deviceGet)
 	restful.HandleFunc(http.MethodPost, route.DeviceAdd, deviceAdd)
+	restful.HandleFunc(http.MethodPost, route.DeviceDelete, deviceDelete)
 
 	//资源库服务
 	restful.HandleFunc(http.MethodGet, route.V1Prefix+"library/model/get", libraryModelGet)
@@ -406,16 +410,44 @@ func deviceAdd(r *http.Request) (any, error) {
 	}
 	defer r.Body.Close()
 	//解析body
-	var cfg config.Config
+	type AddDevice struct {
+		config.Config
+		DriverContent string `json:"driverContent"`
+		DriverKey     string `json:"driverKey"`
+	}
+	var cfg AddDevice
 	err = json.Unmarshal(body, &cfg)
 	if err != nil {
 		return false, err
 	}
-	err = cmanager.AddConfig(cfg)
+	
+	if cfg.DriverContent != "" {
+		library.SaveContent("driver", cfg.DriverKey+".lua", cfg.DriverContent)
+	}
+	err = cmanager.AddConfig(cfg.Config)
 	if err != nil {
 		return false, err
 	}
 	return true, nil
+}
+
+// 删除设备
+func deviceDelete(r *http.Request) (any, error) {
+	type Body struct {
+		DeviceIds []string `json:"deviceIds"`
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return false, err
+	}
+	defer r.Body.Close()
+	//解析body
+	var cfg Body
+	err = json.Unmarshal(body, &cfg)
+	if err != nil {
+		return false, err
+	}
+	return nil, helper.CoreCache.BatchRemoveDevice(cfg.DeviceIds)
 }
 
 func libraryModelGet(r *http.Request) (any, error) {

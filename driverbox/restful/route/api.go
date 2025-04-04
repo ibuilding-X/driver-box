@@ -19,6 +19,9 @@ const DeviceGet = V1Prefix + "device/get"
 // 添加设备
 const DeviceAdd = V1Prefix + "device/add"
 
+// 删除设备
+const DeviceDelete = V1Prefix + "device/delete"
+
 // 创建场景联动
 const LinkEdgeCreate = V1Prefix + "linkedge/create"
 

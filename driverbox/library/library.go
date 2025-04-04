@@ -6,6 +6,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	glua "github.com/yuin/gopher-lua"
+	"os"
 	"path"
 	"sync"
 )
@@ -74,10 +75,10 @@ func Model() *DeviceModel {
 }
 
 // 加载library中的内容
-func LoadContent(library string, key string) ([]byte, error) {
-	filePath := path.Join(config.ResourcePath, baseDir, library, key+".json")
+func LoadContent(library string, fileName string) ([]byte, error) {
+	filePath := path.Join(config.ResourcePath, baseDir, library, fileName)
 	if !common.FileExists(filePath) {
-		return []byte{}, fmt.Errorf("library not found: %s/%s.json", library, key)
+		return []byte{}, fmt.Errorf("library not found: %s/%s", library, fileName)
 	}
 	//读取filePath中的文件内容
 	return common.ReadFileBytes(filePath)
@@ -90,4 +91,21 @@ func LoadLibrary(library string, key string, v any) error {
 		return err
 	}
 	return json.Unmarshal(bytes, v)
+}
+
+// 保存library中的内容
+func SaveContent(library string, fileName string, data string) error {
+	libraryPath := path.Join(config.ResourcePath, baseDir, library)
+	if !common.FileExists(libraryPath) {
+		err := os.MkdirAll(libraryPath, 0755)
+		if err != nil {
+			return err
+		}
+	}
+	filePath := path.Join(libraryPath, fileName)
+	if common.FileExists(filePath) {
+		return fmt.Errorf("library is exists: %s/%s", library, fileName)
+	}
+	//将data写入filePath中
+	return os.WriteFile(filePath, []byte(data), 0644)
 }
