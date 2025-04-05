@@ -18,6 +18,7 @@ import (
 	glua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 	"path/filepath"
+	"sync"
 )
 
 // LoadPlugins 加载插件并运行
@@ -182,4 +183,36 @@ func initDeviceShadow(configMap map[string]config.Config) {
 			}
 		}
 	}
+}
+
+var reloadLock sync.Mutex
+
+func ReloadPlugins() error {
+	reloadLock.Lock()
+	defer reloadLock.Unlock()
+
+	helper.Logger.Info("reload all plugins")
+
+	// 1. 停止所有 timerTask 任务
+	helper.Crontab.Stop()
+	// 2. 停止运行中的 plugin
+	pluginKeys := helper.CoreCache.GetAllRunningPluginKey()
+	if len(pluginKeys) > 0 {
+		for i, _ := range pluginKeys {
+			if plugin, ok := helper.CoreCache.GetRunningPluginByKey(pluginKeys[i]); ok {
+				err := plugin.Destroy()
+				if err != nil {
+					helper.Logger.Error("stop plugin error", zap.String("plugin", pluginKeys[i]), zap.Error(err))
+				} else {
+					helper.Logger.Info("stop plugin success", zap.String("plugin", pluginKeys[i]))
+				}
+			}
+		}
+	}
+	// 3. 停止影子服务设备状态监听、删除影子服务
+	helper.DeviceShadow.StopStatusListener()
+	// 4. 清除核心缓存数据
+	helper.CoreCache.Reset()
+	// 5. 加载 plugins
+	return LoadPlugins()
 }

@@ -1,6 +1,8 @@
 package basic
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -412,22 +414,41 @@ func deviceAdd(r *http.Request) (any, error) {
 	//解析body
 	type AddDevice struct {
 		config.Config
-		DriverContent string `json:"driverContent"`
-		DriverKey     string `json:"driverKey"`
+		Drivers map[string]string `json:"drivers" validate:""`
 	}
 	var cfg AddDevice
 	err = json.Unmarshal(body, &cfg)
 	if err != nil {
 		return false, err
 	}
-	
-	if cfg.DriverContent != "" {
-		library.SaveContent("driver", cfg.DriverKey+".lua", cfg.DriverContent)
+
+	driverMap := make(map[string]string)
+	for key, content := range cfg.Drivers {
+		// 计算 DriverContent 的 MD5 哈希值
+		hash := md5.Sum([]byte(content))
+		// 将 MD5 哈希值转换为十六进制字符串
+		md5Str := hex.EncodeToString(hash[:])
+		driverMap[key] = key + md5Str
+		library.SaveContent("driver", key+md5Str+".lua", content)
 	}
+
+	models := make([]config.DeviceModel, 0)
+	for _, model := range cfg.DeviceModels {
+		devices := make([]config.Device, 0)
+		for _, device := range model.Devices {
+			device.DriverKey = driverMap[device.DriverKey]
+			devices = append(devices, device)
+		}
+		model.Devices = devices
+		models = append(models, model)
+	}
+
+	cfg.DeviceModels = models
 	err = cmanager.AddConfig(cfg.Config)
 	if err != nil {
 		return false, err
 	}
+	bootstrap.ReloadPlugins()
 	return true, nil
 }
 
@@ -447,6 +468,9 @@ func deviceDelete(r *http.Request) (any, error) {
 	if err != nil {
 		return false, err
 	}
+	defer func() {
+		bootstrap.ReloadPlugins()
+	}()
 	return nil, helper.CoreCache.BatchRemoveDevice(cfg.DeviceIds)
 }
 
