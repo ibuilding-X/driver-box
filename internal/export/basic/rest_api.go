@@ -438,6 +438,10 @@ func deviceAdd(r *http.Request) (any, error) {
 		for _, device := range model.Devices {
 			device.DriverKey = driverMap[device.DriverKey]
 			devices = append(devices, device)
+			d, ok := helper.CoreCache.GetDevice(device.ID)
+			if ok && d.ModelName != model.Name {
+				return false, errors.New("device id: " + d.ID + " already exist in other model")
+			}
 		}
 		model.Devices = devices
 		models = append(models, model)
