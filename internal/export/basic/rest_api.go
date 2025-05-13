@@ -232,14 +232,31 @@ func getAllDevices(_ *http.Request) (any, error) {
 	})
 
 	//定义个结构体，改变UpdatedAt的格式
+	type Point struct {
+		shadow.DevicePoint
+		UpdatedAt string `json:"updatedAt"`
+		WriteAt   string `json:"writeAt"`
+	}
 	type Device struct {
 		shadow.Device
-		UpdatedAt string `json:"updatedAt"`
+		Points    map[string]Point `json:"points"`
+		UpdatedAt string           `json:"updatedAt"`
 	}
 	list := make([]Device, len(devices))
 	for i, device := range devices {
+		//获取设备所有点位
+		points := make(map[string]Point)
+		for k, v := range device.Points {
+			points[k] = Point{
+				DevicePoint: v,
+				UpdatedAt:   v.UpdatedAt.Format(time.DateTime),
+				WriteAt:     v.WriteAt.Format(time.DateTime),
+			}
+		}
+
 		list[i] = Device{
 			Device:    device,
+			Points:    points,
 			UpdatedAt: device.UpdatedAt.Format(time.DateTime),
 		}
 	}
