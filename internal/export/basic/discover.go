@@ -15,7 +15,7 @@ import (
 
 func udpDiscover() {
 	// 监听UDP端口
-	port := 8888
+	port := 9090
 	httpListen := os.Getenv(config.ENV_UDP_DISCOVER_LISTEN)
 	if httpListen != "" {
 		p, e := utils.Conv2Int64(httpListen)
