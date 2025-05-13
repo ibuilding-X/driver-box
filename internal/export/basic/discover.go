@@ -7,7 +7,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/internal/core"
 	"go.uber.org/zap"
-	"log"
 	"net"
 	"os"
 	"strings"
@@ -32,27 +31,27 @@ func udpDiscover() {
 
 	conn, err := net.ListenUDP("udp", &addr)
 	if err != nil {
-		log.Printf("UDP监听失败: %v", err)
+		helper.Logger.Error("UDP监听失败", zap.Error(err))
 		return
 	}
 	defer conn.Close()
 
-	log.Printf("UDP服务已启动，监听端口: 8888")
+	helper.Logger.Info("UDP服务已启动.", zap.Int("port", port))
 
 	buffer := make([]byte, 1024)
 	for {
 		n, remoteAddr, err := conn.ReadFromUDP(buffer)
 		if err != nil {
-			log.Printf("读取UDP数据失败: %v", err)
+			helper.Logger.Error("读取UDP数据失败", zap.Error(err))
 			continue
 		}
 
 		data := string(buffer[:n])
-		log.Printf("收到来自 %v 的数据: %s", remoteAddr, data)
+		helper.Logger.Info("收到UDP数据", zap.String("data", data), zap.String("remoteAddr", remoteAddr.String()))
 
 		// 基础验证
 		if !validateRequest(data) {
-			log.Printf("验证失败: %s", data)
+			helper.Logger.Error("验证失败", zap.String("data", data))
 			continue
 		}
 
@@ -67,14 +66,14 @@ func udpDiscover() {
 		// 获取网关Metadata信息
 		response, err := json.Marshal(resp)
 		if err != nil {
-			log.Printf("JSON编码失败: %v", err)
+			helper.Logger.Error("JSON编码失败", zap.Error(err))
 			continue
 		}
 
 		// 返回响应
 		_, err = conn.WriteToUDP(response, remoteAddr)
 		if err != nil {
-			log.Printf("发送响应失败: %v", err)
+			helper.Logger.Error("发送响应失败", zap.Error(err))
 		}
 	}
 }
