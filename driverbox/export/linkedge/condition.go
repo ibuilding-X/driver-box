@@ -1,5 +1,7 @@
 package linkedge
 
+import "time"
+
 // ConditionSymbol 条件符号
 type ConditionSymbol string
 
@@ -61,6 +63,10 @@ type DevicePointCondition struct {
 	Condition ConditionSymbol `json:"condition"`
 	// Value 条件值
 	Value string `json:"value"`
+	// Duration 持续时间，单位：秒（当为0时，立即触发，当 >0 时，判断条件持续时长）
+	Duration int64 `json:"duration"`
+	// 首次满足条件时间（仅内部持续时长判断使用）
+	FirstTime time.Time
 }
 
 // ExecuteTimeCondition 有效执行时间段
