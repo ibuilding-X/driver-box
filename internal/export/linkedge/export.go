@@ -92,6 +92,8 @@ func (export *Export) ExportTo(deviceData plugin.DeviceData) {
 					if int64(duration.Seconds()) < condition.Duration {
 						break
 					}
+					// 重置时间
+					export.linkEdge.triggerConditions[id][i].FirstTime = time.Now()
 				}
 
 				go func(linkEdgeId string) {
