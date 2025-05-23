@@ -65,8 +65,8 @@ type DevicePointCondition struct {
 	Value string `json:"value"`
 	// Duration 持续时间，单位：秒（当为0时，立即触发，当 >0 时，判断条件持续时长）
 	Duration int64 `json:"duration"`
-	// 首次满足条件时间（仅内部持续时长判断使用）
-	FirstTime time.Time `json:"-"`
+	// 满足持续条件的开始时间（仅内部持续时长判断使用）
+	DurationStartTime time.Time `json:"-"`
 }
 
 // ExecuteTimeCondition 有效执行时间段

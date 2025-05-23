@@ -11,7 +11,6 @@ import (
 	"go.uber.org/zap"
 	"os"
 	"sync"
-	"time"
 )
 
 var driverInstance *Export
@@ -63,57 +62,23 @@ func NewExport() *Export {
 
 // 点位变化触发场景联动
 func (export *Export) ExportTo(deviceData plugin.DeviceData) {
-	for _, p := range deviceData.Values {
-		for id, conditions := range export.linkEdge.triggerConditions {
-			helper.Logger.Debug("check linkedge condition ", zap.String("id", id))
-			for i, condition := range conditions {
-				if condition.DeviceID != deviceData.ID || condition.DevicePoint != p.PointName {
-					continue
-				}
-
-				// 条件验证
-				checkResult := export.linkEdge.checkConditionValue(condition, p.Value)
-				if checkResult != nil {
-					// 未通过验证
-					if condition.Duration > 0 { // 当条件为持续条件时，移除时间记录
-						export.linkEdge.triggerConditions[id][i].FirstTime = time.Time{}
-					}
-					break
-				}
-
-				// 通过验证
-				if condition.Duration > 0 { // 当条件为持续条件时，进行持续时间校验
-					if export.linkEdge.triggerConditions[id][i].FirstTime.IsZero() {
-						export.linkEdge.triggerConditions[id][i].FirstTime = time.Now()
-						break
-					}
-					// 持续时长校验
-					duration := time.Now().Sub(export.linkEdge.triggerConditions[id][i].FirstTime)
-					if int64(duration.Seconds()) < condition.Duration {
-						break
-					}
-					// 重置时间
-					export.linkEdge.triggerConditions[id][i].FirstTime = time.Now()
-				}
-
-				go func(linkEdgeId string) {
-					helper.Logger.Info("trigger linkEdge", zap.String("id", linkEdgeId))
-					e := export.linkEdge.TriggerLinkEdge(linkEdgeId)
-					if e != nil {
-						helper.Logger.Error("trigger linkEdge error", zap.String("id", linkEdgeId), zap.Error(e))
-					}
-				}(id)
-				helper.Logger.Debug("check linkEdge condition success,break", zap.String("id", id))
-			}
-
-		}
-	}
+	export.linkEdge.devicePointTriggerHandler(deviceData, false)
 }
 
 // 继承Export OnEvent接口
 func (export *Export) OnEvent(eventCode string, key string, eventValue interface{}) error {
-	if eventCode == event.EventCodeLinkEdgeTrigger {
+	switch eventCode {
+	case event.EventCodeLinkEdgeTrigger:
 		helper.Logger.Info("trigger linkEdge", zap.String("id", key), zap.Any("result", eventValue))
+	case event.EventCodePluginCallback:
+		data, ok := eventValue.([]plugin.DeviceData)
+		if !ok {
+			helper.Logger.Error("plugin callback data error", zap.Any("eventValue", eventValue))
+			return nil
+		}
+		for _, datum := range data {
+			export.linkEdge.devicePointTriggerHandler(datum, true)
+		}
 	}
 	return nil
 }

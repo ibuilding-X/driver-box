@@ -21,6 +21,9 @@ const (
 
 	// EventCodeOnOff 设备开关事件（空调的开关机、灯的开关……）
 	EventCodeOnOff = "onOff"
+
+	// EventCodePluginCallback 插件回调事件
+	EventCodePluginCallback = "pluginCallback"
 )
 
 // 场景相关事件
