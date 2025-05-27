@@ -24,6 +24,9 @@ const (
 
 	// EventCodePluginCallback 插件回调事件
 	EventCodePluginCallback = "pluginCallback"
+
+	// EventCodeDeviceExtensionAttribute 设备扩展属性事件（用于设备扩展属性上报）
+	EventCodeDeviceExtensionAttribute = "deviceExtensionAttribute"
 )
 
 // 场景相关事件
