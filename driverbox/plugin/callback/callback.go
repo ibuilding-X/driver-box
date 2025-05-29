@@ -30,9 +30,7 @@ func OnReceiveHandler(connector plugin.Connector, raw interface{}) (err error) {
 func ExportTo(deviceData []plugin.DeviceData) {
 	helper.Logger.Debug("export data", zap.Any("data", deviceData))
 	// 产生插件回调事件
-	go func() {
-		export.TriggerEvents(event.EventCodePluginCallback, "", deviceData)
-	}()
+	export.TriggerEvents(event.EventCodePluginCallback, "", deviceData)
 	// 写入消息总线
 	for _, data := range deviceData {
 		//触发事件通知
