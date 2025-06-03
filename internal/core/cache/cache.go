@@ -398,15 +398,15 @@ func (c *cache) AddModel(plugin string, model config.Model) error {
 	var points []config.PointMap
 	for _, point := range model.Points {
 		pointMap := config.PointMap{
-			"name":       point.Name,
-			"desc":       point.Description,
-			"valueType":  point.ValueType,
-			"readWrite":  point.ReadWrite,
-			"units":      point.Units,
-			"reportMode": point.ReportMode,
-			"scale":      point.Scale,
-			"decimals":   point.Decimals,
-			"enums":      point.Enums,
+			"name":        point.Name,
+			"description": point.Description,
+			"valueType":   point.ValueType,
+			"readWrite":   point.ReadWrite,
+			"units":       point.Units,
+			"reportMode":  point.ReportMode,
+			"scale":       point.Scale,
+			"decimals":    point.Decimals,
+			"enums":       point.Enums,
 		}
 		for k, v := range point.Extends {
 			pointMap[k] = v
