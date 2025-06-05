@@ -372,4 +372,10 @@ type Metadata struct {
 	// 1. 厂商名称应与官方注册名称一致
 	// 2. 用于区分不同厂商的设备兼容性和支持服务
 	Vendor string `json:"vendor"`
+
+	// 网关硬件唯一编号
+	HardwareSN string `json:"hardwareSn"`
+
+	// 集成电路卡识别码，即 SIM 卡卡号
+	ICCID string `json:"iccid"`
 }
