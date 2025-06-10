@@ -1,16 +1,24 @@
-package driverbox
+package basic
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
+	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
+	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/models"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/shadow"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/restful"
 	"github.com/ibuilding-x/driver-box/driverbox/restful/request"
 	"github.com/ibuilding-x/driver-box/driverbox/restful/route"
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
+	"github.com/ibuilding-x/driver-box/internal/core"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
 	"io"
@@ -19,9 +27,13 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"time"
 )
 
 func registerApi() {
+	restful.HandleFunc(http.MethodGet, route.V1Prefix+"ok", func(h *http.Request) (any, error) {
+		return true, nil
+	})
 	// 插件 REST API
 	restful.HandleFunc(http.MethodGet, route.V1Prefix+"plugin/cache/get", getCache)
 	restful.HandleFunc(http.MethodPost, route.V1Prefix+"plugin/cache/set", setCache)
@@ -32,6 +44,18 @@ func registerApi() {
 	restful.HandleFunc(http.MethodGet, route.V1Prefix+"shadow/all", getAllDevices)
 	restful.HandleFunc(http.MethodGet, route.V1Prefix+"shadow/device", deviceShadow)
 	restful.HandleFunc(http.MethodGet, route.V1Prefix+"shadow/devicePoint", getDevicePoint)
+
+	//设备API
+	restful.HandleFunc(http.MethodPost, route.DevicePointWrite, writePoint)
+	restful.HandleFunc(http.MethodPost, route.DevicePointsWrite, writePoints)
+	restful.HandleFunc(http.MethodGet, route.DevicePointRead, readPoint)
+	restful.HandleFunc(http.MethodGet, route.DeviceList, deviceList)
+	restful.HandleFunc(http.MethodGet, route.DeviceGet, deviceGet)
+	restful.HandleFunc(http.MethodPost, route.DeviceAdd, deviceAdd)
+	restful.HandleFunc(http.MethodPost, route.DeviceDelete, deviceDelete)
+
+	//资源库服务
+	restful.HandleFunc(http.MethodGet, route.V1Prefix+"library/model/get", libraryModelGet)
 
 	//sse服务
 	http.HandleFunc("/sse/log", func(w http.ResponseWriter, r *http.Request) {
@@ -206,7 +230,37 @@ func getAllDevices(_ *http.Request) (any, error) {
 	sort.Slice(devices, func(i, j int) bool {
 		return devices[i].ID < devices[j].ID
 	})
-	return devices, nil
+
+	//定义个结构体，改变UpdatedAt的格式
+	type Point struct {
+		shadow.DevicePoint
+		UpdatedAt string `json:"updatedAt"`
+		WriteAt   string `json:"writeAt"`
+	}
+	type Device struct {
+		shadow.Device
+		Points    map[string]Point `json:"points"`
+		UpdatedAt string           `json:"updatedAt"`
+	}
+	list := make([]Device, len(devices))
+	for i, device := range devices {
+		//获取设备所有点位
+		points := make(map[string]Point)
+		for k, v := range device.Points {
+			points[k] = Point{
+				DevicePoint: v,
+				UpdatedAt:   v.UpdatedAt.Format(time.DateTime),
+				WriteAt:     v.WriteAt.Format(time.DateTime),
+			}
+		}
+
+		list[i] = Device{
+			Device:    device,
+			Points:    points,
+			UpdatedAt: device.UpdatedAt.Format(time.DateTime),
+		}
+	}
+	return list, nil
 }
 
 // Device 设备相关操作
@@ -292,4 +346,156 @@ func updateDevice(data request.UpdateDeviceReq) error {
 		}
 	}
 	return nil
+}
+
+// 写入某个设备点位
+func writePoint(r *http.Request) (any, error) {
+	sn := r.URL.Query().Get("id")
+	point := r.URL.Query().Get("point")
+	value := r.URL.Query().Get("value")
+	return nil, core.SendSinglePoint(sn, plugin.WriteMode, plugin.PointData{
+		PointName: point,
+		Value:     value,
+	})
+}
+
+// 批量写入某个设备的多个点位
+// curl -X POST -H "Content-Type: application/json" -d '{"id":"deviceId","values":[{"name":"pointName","value":"1"}]}' http://127.0.0.1:8081/api/v1/device/writePoints
+func writePoints(r *http.Request) (any, error) {
+	if r.Method != http.MethodPost {
+		return nil, errors.New(http.StatusText(http.StatusMethodNotAllowed))
+	}
+	// 读取 body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Body.Close()
+	// 解析 body
+	var data plugin.DeviceData
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		return nil, err
+	}
+	return nil, core.SendBatchWrite(data.ID, data.Values)
+}
+
+// 读取某个设备点位
+func readPoint(r *http.Request) (any, error) {
+	sn := r.URL.Query().Get("id")
+	point := r.URL.Query().Get("point")
+	e := core.SendSinglePoint(sn, plugin.ReadMode, plugin.PointData{
+		PointName: point,
+	})
+	if e != nil {
+		return nil, e
+	}
+	return helper.DeviceShadow.GetDevicePoint(sn, point)
+}
+
+// 获取设备列表
+func deviceList(r *http.Request) (any, error) {
+	type Device struct {
+		config.Device
+		Points []config.Point `json:"points"`
+	}
+	devices := make([]Device, 0)
+	for _, device := range helper.CoreCache.Devices() {
+		points, _ := helper.CoreCache.GetPoints(device.ModelName)
+		devices = append(devices, Device{
+			Device: device,
+			Points: points,
+		})
+	}
+	return devices, nil
+}
+
+// 获取设备信息
+func deviceGet(r *http.Request) (any, error) {
+	sn := r.URL.Query().Get("id")
+	device, ok := helper.CoreCache.GetDevice(sn)
+	if !ok {
+		return nil, errors.New("device not found")
+	}
+	return device, nil
+}
+
+// 获取设备信息
+func deviceAdd(r *http.Request) (any, error) {
+	//读取body中的json内容
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return false, err
+	}
+	defer r.Body.Close()
+	//解析body
+	type AddDevice struct {
+		config.Config
+		Drivers map[string]string `json:"drivers" validate:""`
+	}
+	var cfg AddDevice
+	err = json.Unmarshal(body, &cfg)
+	if err != nil {
+		return false, err
+	}
+
+	driverMap := make(map[string]string)
+	for key, content := range cfg.Drivers {
+		// 计算 DriverContent 的 MD5 哈希值
+		hash := md5.Sum([]byte(content))
+		// 将 MD5 哈希值转换为十六进制字符串
+		md5Str := hex.EncodeToString(hash[:])
+		driverMap[key] = key + md5Str
+		library.SaveContent("driver", key+md5Str+".lua", content)
+	}
+
+	models := make([]config.DeviceModel, 0)
+	for _, model := range cfg.DeviceModels {
+		devices := make([]config.Device, 0)
+		for _, device := range model.Devices {
+			device.DriverKey = driverMap[device.DriverKey]
+			devices = append(devices, device)
+			d, ok := helper.CoreCache.GetDevice(device.ID)
+			if ok && d.ModelName != model.Name {
+				return false, errors.New("device id: " + d.ID + " already exist in other model")
+			}
+		}
+		model.Devices = devices
+		models = append(models, model)
+	}
+
+	cfg.DeviceModels = models
+	err = cmanager.AddConfig(cfg.Config)
+	if err != nil {
+		return false, err
+	}
+	bootstrap.ReloadPlugins()
+	return true, nil
+}
+
+// 删除设备
+func deviceDelete(r *http.Request) (any, error) {
+	type Body struct {
+		DeviceIds []string `json:"deviceIds"`
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return false, err
+	}
+	defer r.Body.Close()
+	//解析body
+	var cfg Body
+	err = json.Unmarshal(body, &cfg)
+	if err != nil {
+		return false, err
+	}
+	defer func() {
+		bootstrap.ReloadPlugins()
+	}()
+	return nil, helper.CoreCache.BatchRemoveDevice(cfg.DeviceIds)
+}
+
+func libraryModelGet(r *http.Request) (any, error) {
+	key := r.URL.Query().Get("key")
+	return library.Model().LoadLibrary(key)
 }

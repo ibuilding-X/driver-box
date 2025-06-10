@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/lua"
 	glua "github.com/yuin/gopher-lua"
@@ -116,6 +117,7 @@ func (device *ProtocolDriver) DecodeV2(protocolKey string, param func(L *glua.LS
 		deviceData := plugin.DeviceData{
 			ID:     glua.LVAsString(table.RawGetString("id")),
 			Values: []plugin.PointData{},
+			Events: []event.Data{},
 		}
 		values := table.RawGet(glua.LString("values"))
 		if values.Type() == glua.LTTable {
@@ -130,7 +132,14 @@ func (device *ProtocolDriver) DecodeV2(protocolKey string, param func(L *glua.LS
 		}
 		events := table.RawGet(glua.LString("events"))
 		if events.Type() == glua.LTTable {
-
+			//事件解析
+			events.(*glua.LTable).ForEach(func(key, value glua.LValue) {
+				devEvent := value.(*glua.LTable)
+				deviceData.Events = append(deviceData.Events, event.Data{
+					Code:  glua.LVAsString(devEvent.RawGetString("event")),
+					Value: convertLuaValue(devEvent.RawGetString("value")),
+				})
+			})
 		}
 		res = append(res, deviceData)
 	})

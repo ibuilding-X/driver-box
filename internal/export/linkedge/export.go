@@ -62,36 +62,23 @@ func NewExport() *Export {
 
 // 点位变化触发场景联动
 func (export *Export) ExportTo(deviceData plugin.DeviceData) {
-	for _, p := range deviceData.Values {
-		for id, conditions := range export.linkEdge.triggerConditions {
-			helper.Logger.Debug("check linkedge condition ", zap.String("id", id))
-			for _, condition := range conditions {
-				if condition.DeviceID != deviceData.ID || condition.DevicePoint != p.PointName {
-					continue
-				}
-
-				//同一个场景联动任意触发条件符合即可
-				if export.linkEdge.checkConditionValue(condition, p.Value) == nil {
-					go func(linkEdgeId string) {
-						helper.Logger.Info("trigger linkEdge", zap.String("id", linkEdgeId))
-						e := export.linkEdge.TriggerLinkEdge(linkEdgeId)
-						if e != nil {
-							helper.Logger.Error("trigger linkEdge error", zap.String("id", linkEdgeId), zap.Error(e))
-						}
-					}(id)
-					helper.Logger.Debug("check linkEdge condition success,break", zap.String("id", id))
-					break
-				}
-			}
-
-		}
-	}
+	export.linkEdge.devicePointTriggerHandler(deviceData, false)
 }
 
 // 继承Export OnEvent接口
 func (export *Export) OnEvent(eventCode string, key string, eventValue interface{}) error {
-	if eventCode == event.EventCodeLinkEdgeTrigger {
+	switch eventCode {
+	case event.EventCodeLinkEdgeTrigger:
 		helper.Logger.Info("trigger linkEdge", zap.String("id", key), zap.Any("result", eventValue))
+	case event.EventCodePluginCallback:
+		data, ok := eventValue.([]plugin.DeviceData)
+		if !ok {
+			helper.Logger.Error("plugin callback data error", zap.Any("eventValue", eventValue))
+			return nil
+		}
+		for _, datum := range data {
+			export.linkEdge.devicePointTriggerHandler(datum, true)
+		}
 	}
 	return nil
 }

@@ -380,6 +380,10 @@ func (m *manager) OptimizeConfig() {
 	defer m.mux.Unlock()
 
 	m.optimizeConfig()
+	// 保存
+	for k, _ := range m.configs {
+		_ = m.saveConfig(k)
+	}
 }
 
 // GetModel 获取模型

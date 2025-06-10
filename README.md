@@ -1,4 +1,5 @@
 # DriverBox
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ibuilding-X/driver-box)
 
 ## 文档
 

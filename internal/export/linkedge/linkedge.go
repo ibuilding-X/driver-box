@@ -762,3 +762,70 @@ func (s *service) Preview(config linkedge.Config) error {
 	// 记录场景执行记录
 	return s.triggerLinkEdge("", 0, config)
 }
+
+func (s *service) devicePointTriggerHandler(deviceData plugin.DeviceData, handleDuration bool) {
+	// 循环点位
+	for _, pointData := range deviceData.Values {
+		// 循环场景
+		for sceneID, conditions := range s.triggerConditions {
+			helper.Logger.Debug("check linkedge condition ", zap.String("id", sceneID))
+			// 循环条件
+			for i, condition := range conditions {
+				if condition.DeviceID != deviceData.ID || condition.DevicePoint != pointData.PointName {
+					continue
+				}
+
+				switch handleDuration {
+				case true: // 处理持续时间条件
+					// 仅处理持续条件的触发条件（即 DevicePointCondition.Duration > 0）
+					if condition.Duration <= 0 {
+						continue
+					}
+
+					// 条件验证
+					checkResult := s.checkConditionValue(condition, pointData.Value)
+					if checkResult != nil { // 不满足条件
+						s.triggerConditions[sceneID][i].DurationStartTime = time.Time{}
+						continue
+					}
+
+					// 满足条件
+					startTime := s.triggerConditions[sceneID][i].DurationStartTime
+					if startTime.IsZero() {
+						s.triggerConditions[sceneID][i].DurationStartTime = time.Now()
+						continue
+					}
+
+					// 持续时长校验
+					duration := time.Now().Sub(startTime)
+					if int64(duration.Seconds()) < condition.Duration {
+						continue
+					}
+
+					// 重置时间
+					s.triggerConditions[sceneID][i].DurationStartTime = time.Now()
+				case false: // 不处理持续条件时间
+					if condition.Duration > 0 {
+						continue
+					}
+
+					// 条件验证
+					checkResult := s.checkConditionValue(condition, pointData.Value)
+					if checkResult != nil { // 不满足条件
+						continue
+					}
+				}
+
+				// 触发场景
+				go func(linkEdgeId string) {
+					helper.Logger.Info("trigger linkEdge", zap.String("id", linkEdgeId))
+					e := s.TriggerLinkEdge(linkEdgeId)
+					if e != nil {
+						helper.Logger.Error("trigger linkEdge error", zap.String("id", linkEdgeId), zap.Error(e))
+					}
+				}(sceneID)
+				helper.Logger.Debug("check linkEdge condition success,break", zap.String("id", sceneID))
+			}
+		}
+	}
+}

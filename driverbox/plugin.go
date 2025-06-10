@@ -1,7 +1,6 @@
 package driverbox
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
 	plugins0 "github.com/ibuilding-x/driver-box/internal/plugins"
@@ -15,7 +14,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins/mqtt"
 	"github.com/ibuilding-x/driver-box/internal/plugins/tcpserver"
 	"github.com/ibuilding-x/driver-box/internal/plugins/websocket"
-	"go.uber.org/zap"
 	"sync"
 )
 
@@ -29,33 +27,7 @@ var reloadLock sync.Mutex
 
 // ReloadPlugins 重载所有插件
 func (p *plugins) ReloadPlugins() error {
-	reloadLock.Lock()
-	defer reloadLock.Unlock()
-
-	helper.Logger.Info("reload all plugins")
-
-	// 1. 停止所有 timerTask 任务
-	helper.Crontab.Stop()
-	// 2. 停止运行中的 plugin
-	pluginKeys := helper.CoreCache.GetAllRunningPluginKey()
-	if len(pluginKeys) > 0 {
-		for i, _ := range pluginKeys {
-			if plugin, ok := helper.CoreCache.GetRunningPluginByKey(pluginKeys[i]); ok {
-				err := plugin.Destroy()
-				if err != nil {
-					helper.Logger.Error("stop plugin error", zap.String("plugin", pluginKeys[i]), zap.Error(err))
-				} else {
-					helper.Logger.Info("stop plugin success", zap.String("plugin", pluginKeys[i]))
-				}
-			}
-		}
-	}
-	// 3. 停止影子服务设备状态监听、删除影子服务
-	helper.DeviceShadow.StopStatusListener()
-	// 4. 清除核心缓存数据
-	helper.CoreCache.Reset()
-	// 5. 加载 plugins
-	return bootstrap.LoadPlugins()
+	return bootstrap.ReloadPlugins()
 }
 
 func (p *plugins) RegisterPlugin(name string, plugin plugin.Plugin) error {
