@@ -29,9 +29,11 @@ func mockRead(plugin *connector, L *lua.LState, data btypes.MultiplePropertyData
 				"value":     v,
 			}
 			respJson, err := json.Marshal(resp)
-			err = callback.OnReceiveHandler(plugin, string(respJson))
+			res, err := plugin.Decode(respJson)
 			if err != nil {
 				helper.Logger.Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
+			} else {
+				callback.ExportTo(res)
 			}
 		}
 	}

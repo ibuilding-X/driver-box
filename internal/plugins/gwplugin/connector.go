@@ -193,10 +193,11 @@ func (c *connector) handleWebSocketMessage(conn *websocket.Conn, message []byte)
 	case dto.WSForSyncShadow: // 接收影子同步数据
 		return c.syncShadow(payload)
 	case dto.WSForReport: // 接收上报数据
-		err = callback.OnReceiveHandler(c, payload)
+		result, err := c.Decode(payload)
 		if err != nil {
 			return err
 		}
+		callback.ExportTo(result)
 	default:
 		return nil
 	}

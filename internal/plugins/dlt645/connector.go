@@ -212,9 +212,11 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 			PointName: point.Name,
 			Value:     value,
 		}
-		err = callback.OnReceiveHandler(c, pointReadValue)
+		res, err := c.Decode(pointReadValue)
 		if err != nil {
 			helper.Logger.Error("error dlt645 callback", zap.Any("data", pointReadValue), zap.Error(err))
+		} else {
+			callback.ExportTo(res)
 		}
 	}
 	return nil
