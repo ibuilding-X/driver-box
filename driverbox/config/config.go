@@ -39,6 +39,9 @@ const (
 
 	//driver-box llm-agent是否可用
 	ENV_EXPORT_LLM_AGENT_ENABLED = "EXPORT_LLM_AGENT_ENABLED"
+
+	//MCP功能是否可用
+	ENV_EXPORT_MCP_ENABLED = "EXPORT_MCP_ENABLED"
 )
 
 // 点位上报模式
