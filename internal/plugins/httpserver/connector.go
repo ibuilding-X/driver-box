@@ -62,13 +62,15 @@ func (c *connector) startServer(opts connectorConfig) {
 			Body:   string(body),
 		}
 		// 调用回调函数
-		if err = callback.OnReceiveHandler(c, data.ToJSON()); err != nil {
+		if res, err := c.Decode(data.ToJSON()); err != nil {
 			c.plugin.logger.Error("http_server callback error", zap.Error(err))
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":    -1,
 				"message": err.Error(),
 			})
 			return
+		} else {
+			callback.ExportTo(res)
 		}
 		ctx.JSON(http.StatusOK, gin.H{
 			"code":    0,

@@ -136,3 +136,8 @@ func (p *Plugin) Destroy() error {
 	p.ready = false
 	return nil
 }
+
+// Decode Connector.Decode 迁移至 Plugin.Decode
+func (p *Plugin) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
+	return p.connector.Decode(raw)
+}
