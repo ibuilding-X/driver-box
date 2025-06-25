@@ -8,6 +8,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/internal/plugins/mirror"
 	"go.uber.org/zap"
@@ -62,11 +63,11 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 		return export.autoCreateMirrorDevice(key)
 	case event.EventCodeWillExportTo:
 		deviceData := eventValue.(plugin.DeviceData)
-		//镜像设备仅存在一个虚拟连接
-		virtualConnector, _ := export.plugin.Connector("")
-		if virtualConnector != nil {
-			virtualConnector.Send(deviceData)
+		res, err := export.plugin.Decode(deviceData)
+		if err != nil {
+			return err
 		}
+		callback.ExportTo(res)
 	case event.EventCodeDeviceStatus:
 		// 设备状态变更事件
 		mirrorDeviceID := "mirror_" + key

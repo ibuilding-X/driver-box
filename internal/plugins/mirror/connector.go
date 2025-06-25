@@ -3,7 +3,6 @@ package mirror
 import (
 	"errors"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 	"github.com/ibuilding-x/driver-box/internal/core"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
@@ -27,17 +26,6 @@ func (c *connector) Release() (err error) {
 
 // Send 发送请求
 func (c *connector) Send(raw interface{}) (err error) {
-	// Decode 解码数据迁移至 Send 方法
-	oldDecodeData, ok := raw.(plugin.DeviceData)
-	if ok {
-		res, err := c.Decode(oldDecodeData)
-		if err != nil {
-			return err
-		}
-		callback.ExportTo(res)
-		return nil
-	}
-
 	var e error
 	models := raw.([]EncodeModel)
 	for _, encodeModel := range models {
