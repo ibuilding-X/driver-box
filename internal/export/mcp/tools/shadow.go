@@ -7,16 +7,6 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-var CoreCacheDevicesTool = mcp.NewTool("device_list",
-	mcp.WithDescription("获取网关中的设备列表"),
-)
-
-var CoreCacheDevicesHandler = func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	devices := helper.CoreCache.Devices()
-	jsonData, _ := json.Marshal(devices)
-	return mcp.NewToolResultText(string(jsonData)), nil
-}
-
 var ShadowDeviceListTool = mcp.NewTool("device_shadow_list",
 	mcp.WithDescription("获取网关中的所有设备影子数据"),
 )
