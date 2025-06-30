@@ -16,3 +16,8 @@ var CoreCacheDevicesHandler = func(ctx context.Context, request mcp.CallToolRequ
 	jsonData, _ := json.Marshal(devices)
 	return mcp.NewToolResultText(string(jsonData)), nil
 }
+
+var CoreCacheGetDeviceModelTool = mcp.NewTool("get_device_model",
+	mcp.WithDescription("获取指定设备的物模型定义"),
+	mcp.WithString("id", mcp.Required(), mcp.Description("设备ID")),
+)

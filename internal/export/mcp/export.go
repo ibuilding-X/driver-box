@@ -13,13 +13,16 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 )
 
 var driverInstance *Export
 var once = &sync.Once{}
 
 type Export struct {
-	ready bool
+	ready      bool
+	mcpServers []*server.MCPServer
+	ctx        context.Context
 }
 
 func (export *Export) Init() error {
@@ -28,10 +31,15 @@ func (export *Export) Init() error {
 		return nil
 	}
 	go func() {
-		e := export.run("sse", ":8999")
+		e := export.run("http", ":8999")
 		if e != nil {
 			export.ready = false
 		}
+	}()
+
+	go func() {
+		time.Sleep(1 * time.Second)
+		export.startAgent()
 	}()
 
 	export.ready = true
@@ -39,7 +47,9 @@ func (export *Export) Init() error {
 }
 func NewExport() *Export {
 	once.Do(func() {
-		driverInstance = &Export{}
+		driverInstance = &Export{
+			ctx: context.Background(),
+		}
 	})
 	return driverInstance
 }
