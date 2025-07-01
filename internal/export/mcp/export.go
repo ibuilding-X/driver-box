@@ -20,6 +20,8 @@ var driverInstance *Export
 var once = &sync.Once{}
 
 type Export struct {
+	baseUrl    string
+	model      string
 	ready      bool
 	mcpServers []*server.MCPServer
 	ctx        context.Context
@@ -31,7 +33,7 @@ func (export *Export) Init() error {
 		return nil
 	}
 	go func() {
-		e := export.run("http", ":8999")
+		e := export.run("sse", ":8999")
 		if e != nil {
 			export.ready = false
 		}
@@ -48,7 +50,9 @@ func (export *Export) Init() error {
 func NewExport() *Export {
 	once.Do(func() {
 		driverInstance = &Export{
-			ctx: context.Background(),
+			ctx:     context.Background(),
+			model:   "qwen3:8b",
+			baseUrl: "http://192.168.16.94:11434",
 		}
 	})
 	return driverInstance
