@@ -25,5 +25,6 @@ var (
 )
 
 var (
-	ErrModelNotFound = errors.New("model not found")
+	ErrModelNotFound       = errors.New("model not found")
+	ErrSlaveDeviceNotFound = errors.New("slave device not found")
 )

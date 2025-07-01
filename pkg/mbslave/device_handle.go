@@ -54,7 +54,7 @@ func (d *deviceHandlerImpl) SetProperty(unitID uint8, value PropertyValue) error
 	_, _ = modelAny.(*Model)
 
 	// 查询 slave
-	d.handler.InitSlave(unitID)
+	d.handler.InitSlaveDevice(unitID)
 
 	// todo something
 
