@@ -80,7 +80,7 @@ var CoreCacheGetDeviceModelHandler = func(ctx context.Context, request mcp.CallT
 		"success": true,
 		"data": map[string]interface{}{
 			"device": device,
-			"model":  model,
+			"model":  model.ModelBase,
 			"points": points,
 		},
 		"metadata": map[string]interface{}{

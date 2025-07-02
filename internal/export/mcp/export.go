@@ -78,6 +78,7 @@ func (export *Export) addTools(s *server.MCPServer) {
 	s.AddTool(tools.CoreCacheGetDeviceModelTool, tools.CoreCacheGetDeviceModelHandler)
 	s.AddTool(tools.ShadowDeviceListTool, tools.ShadowDeviceListHandler)
 	s.AddTool(tools.ShadowDeviceTool, tools.ShadowDeviceHandler)
+	s.AddTool(tools.WritePointsTool, tools.WritePointsHandler)
 }
 
 func (export *Export) newMCPServer() *server.MCPServer {
