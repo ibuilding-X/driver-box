@@ -26,5 +26,9 @@ var (
 
 var (
 	ErrModelNotFound       = errors.New("model not found")
+	ErrDeviceNotFound      = errors.New("device not found")
+	ErrPropertyNotFound    = errors.New("property not found")
+	ErrSetProperty         = errors.New("set property error")
+	ErrUnsupportedType     = errors.New("unsupported type")
 	ErrSlaveDeviceNotFound = errors.New("slave device not found")
 )

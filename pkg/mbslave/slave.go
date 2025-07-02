@@ -3,17 +3,18 @@ package mbslave
 import "sync"
 
 const (
-	MaxAddress        uint16 = 65535
-	MaxLengthRegister uint16 = MaxAddress + 1
+	MaxAddress        int = 65535
+	MaxLengthRegister int = MaxAddress + 1
 )
 
 // slaveDevice 从站设备
 type slaveDevice struct {
-	mu               *sync.Mutex
+	unitID           uint8                     // 从站ID
 	coils            interface{}               // 线圈（待实现）
 	discreteInputs   interface{}               // 离散输入（待实现）
 	inputRegisters   interface{}               // 输入寄存器（待实现）
 	holdingRegisters [MaxLengthRegister]uint16 // 保持寄存器
+	mu               *sync.Mutex
 }
 
 // ReadHoldingRegisters 读取保持寄存器
@@ -22,12 +23,12 @@ func (s *slaveDevice) ReadHoldingRegisters(address, quantity uint16) (results []
 	defer s.mu.Unlock()
 
 	// 校验地址
-	if address > MaxAddress {
+	if int(address) > MaxAddress {
 		return nil, ErrIllegalDataAddress
 	}
 
 	// 校验数量
-	if address+quantity > MaxLengthRegister {
+	if int(address+quantity) > MaxLengthRegister {
 		return nil, ErrIllegalDataAddress
 	}
 
@@ -40,7 +41,7 @@ func (s *slaveDevice) WriteSingleRegister(address, value uint16) error {
 	defer s.mu.Unlock()
 
 	// 校验地址
-	if address > MaxAddress {
+	if int(address) > MaxAddress {
 		return ErrIllegalDataAddress
 	}
 
@@ -55,12 +56,12 @@ func (s *slaveDevice) WriteMultipleRegisters(address, quantity uint16, value []u
 	defer s.mu.Unlock()
 
 	// 校验地址
-	if address > MaxAddress {
+	if int(address) > MaxAddress {
 		return ErrIllegalDataAddress
 	}
 
 	// 校验数量
-	if address+quantity > MaxLengthRegister {
+	if int(address+quantity) > MaxLengthRegister {
 		return ErrIllegalDataAddress
 	}
 
@@ -76,12 +77,13 @@ func (s *slaveDevice) WriteMultipleRegisters(address, quantity uint16, value []u
 	return nil
 }
 
-func newSlaveDevice() *slaveDevice {
+func newSlaveDevice(unitID uint8) *slaveDevice {
 	return &slaveDevice{
-		mu:               &sync.Mutex{},
+		unitID:           unitID,
 		coils:            nil,
 		discreteInputs:   nil,
 		inputRegisters:   nil,
 		holdingRegisters: [MaxLengthRegister]uint16{},
+		mu:               &sync.Mutex{},
 	}
 }

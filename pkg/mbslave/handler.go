@@ -16,41 +16,32 @@ type handlerImpl struct {
 }
 
 func (h *handlerImpl) ReadHoldingRegisters(unitID uint8, address, quantity uint16) (results []uint16, err error) {
-	slave, err := h.GetSlaveDevice(unitID)
-	if err != nil {
-		return nil, err
-	}
-
+	slave := h.InitSlaveDevice(unitID)
 	return slave.ReadHoldingRegisters(address, quantity)
 }
 
 func (h *handlerImpl) WriteSingleRegister(unitID uint8, address, value uint16) error {
-	slave, err := h.GetSlaveDevice(unitID)
-	if err != nil {
-		return err
-	}
-
+	slave := h.InitSlaveDevice(unitID)
 	return slave.WriteSingleRegister(address, value)
 }
 
 func (h *handlerImpl) WriteMultipleRegisters(unitID uint8, address, quantity uint16, value []uint16) error {
-	slave, err := h.GetSlaveDevice(unitID)
-	if err != nil {
-		return err
-	}
-
+	slave := h.InitSlaveDevice(unitID)
 	return slave.WriteMultipleRegisters(address, quantity, value)
 }
 
 // InitSlaveDevice 初始化从站设备
-func (h *handlerImpl) InitSlaveDevice(unitID uint8) {
-	if _, ok := h.slaves.Load(unitID); ok {
-		return
+func (h *handlerImpl) InitSlaveDevice(unitID uint8) *slaveDevice {
+	if slaveAny, ok := h.slaves.Load(unitID); ok {
+		return slaveAny.(*slaveDevice)
 	}
 
-	h.slaves.Store(unitID, newSlaveDevice())
+	slave := newSlaveDevice(unitID)
+	h.slaves.Store(unitID, slave)
+	return slave
 }
 
+// GetSlaveDevice 获取从站设备
 func (h *handlerImpl) GetSlaveDevice(unitID uint8) (slave *slaveDevice, err error) {
 	slaveAny, ok := h.slaves.Load(unitID)
 	if !ok {
