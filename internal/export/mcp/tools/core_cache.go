@@ -6,50 +6,66 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/mark3labs/mcp-go/mcp"
+	"strings"
 )
 
 var CoreCacheDevicesTool = mcp.NewTool("device_list",
-	mcp.WithDescription("获取网关中的设备列表，返回结构化JSON数据，包含设备的唯一标识(id)、描述信息(description)、标签(tags)、属性(properties)、连接密钥(connectionKey)、驱动引用(driverKey)等完整设备信息。响应格式为Markdown，便于大模型处理和展示。"),
+	mcp.WithDescription("获取网关中的设备列表，以表格形式展示设备的基本信息，包括设备ID、描述、驱动、标签和离线阈值等关键信息。同时提供完整的JSON数据（折叠显示），包含设备的唯一标识(id)、描述信息(description)、标签(tags)、属性(properties)、连接密钥(connectionKey)、驱动引用(driverKey)等详细信息。响应格式为Markdown，便于直观阅读和理解。"),
 )
 
 var CoreCacheDevicesHandler = func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	devices := helper.CoreCache.Devices()
 
-	// 构建更适合大模型处理的结构化响应
-	response := map[string]interface{}{
-		"success": true,
-		"data":    devices,
-		"metadata": map[string]interface{}{
-			"count": len(devices),
-			"schema": map[string]interface{}{
-				"device": map[string]string{
-					"id":            "设备唯一标识符",
-					"description":   "设备描述信息",
-					"ttl":           "设备离线阈值",
-					"tags":          "设备标签列表",
-					"connectionKey": "连接密钥",
-					"properties":    "设备属性映射",
-					"driverKey":     "设备驱动引用",
-				},
-			},
-			"format": "json",
-		},
-	}
+	// 构建表格形式的Markdown响应
+	markdown := fmt.Sprintf("## 设备列表（共 %d 个设备）\n\n", len(devices))
 
-	jsonData, err := json.Marshal(response)
-	if err != nil {
-		return mcp.NewToolResultError("序列化设备数据失败: " + err.Error()), err
-	}
+	// 添加表格头部
+	markdown += "| 设备ID | 描述 | 模型名称 | 标签 | 离线阈值 | 属性 |\n"
+	markdown += "|---------|---------|---------|---------|---------|---------|\n"
 
-	// 转换为Markdown格式，更适合大模型处理
-	markdown := "```json\n" + string(jsonData) + "\n```\n\n"
-	markdown += fmt.Sprintf("共找到 %d 个设备\n", len(devices))
+	// 添加表格内容
+	for _, device := range devices {
+		// 处理标签，将数组转换为逗号分隔的字符串
+		tags := ""
+		if len(device.Tags) > 0 {
+			tagsBytes, err := json.Marshal(device.Tags)
+			if err == nil {
+				tags = string(tagsBytes)
+				// 移除数组的方括号
+				if len(tags) >= 2 {
+					tags = tags[1 : len(tags)-1]
+				}
+				// 替换引号和逗号，使其更易读
+				tags = strings.ReplaceAll(tags, "\"", "")
+			}
+		}
+
+		properties := ""
+		if len(device.Properties) > 0 {
+			for k, v := range device.Properties {
+				properties += fmt.Sprintf("%s: %s ,", k, v)
+			}
+		}
+		properties = strings.ReplaceAll(properties, "|", "\\|")
+
+		// 处理描述中可能存在的特殊字符，避免破坏Markdown表格结构
+		description := strings.ReplaceAll(device.Description, "|", "\\|")
+		description = strings.ReplaceAll(description, "\n", " ")
+
+		// 添加设备行
+		markdown += fmt.Sprintf("| %s | %s | %s | %s | %s | %s |\n",
+			device.ID,
+			description,
+			device.ModelName,
+			tags,
+			device.Ttl, properties)
+	}
 
 	return mcp.NewToolResultText(markdown), nil
 }
 
 var CoreCacheGetDeviceModelTool = mcp.NewTool("get_device_model",
-	mcp.WithDescription("获取指定设备的物模型定义，返回结构化JSON数据，包含设备基本信息、模型信息及点位列表。点位信息包含点位ID、名称、类型、读写权限等完整定义。响应格式为Markdown，便于大模型理解和分析设备物模型结构。"),
+	mcp.WithDescription("获取指定设备的物模型定义，以表格形式展示设备基本信息和点位列表。设备基本信息包括设备ID、描述、模型名称、驱动和离线阈值；点位列表包含点位名称、描述、数据类型、读写类型和上报模式。同时提供完整的JSON数据（折叠显示），包含设备详细信息、模型信息及点位完整定义。响应格式为Markdown，便于直观阅读和理解设备物模型结构。"),
 	mcp.WithString("id", mcp.Required(), mcp.Description("设备唯一标识符，用于查询特定设备的物模型信息")),
 )
 
@@ -66,46 +82,54 @@ var CoreCacheGetDeviceModelHandler = func(ctx context.Context, request mcp.CallT
 		return mcp.NewToolResultError(fmt.Sprintf("设备 %s 不存在", deviceID)), fmt.Errorf("设备不存在")
 	}
 
-	// 获取设备模型
-	model, ok := helper.CoreCache.GetModel(device.ModelName)
-	if !ok {
-		return mcp.NewToolResultError(fmt.Sprintf("设备模型 %s 不存在", device.ModelName)), fmt.Errorf("设备模型不存在")
-	}
-
 	// 获取模型点位
 	points, _ := helper.CoreCache.GetPoints(device.ModelName)
 
-	// 构建更适合大模型处理的结构化响应
-	response := map[string]interface{}{
-		"success": true,
-		"data": map[string]interface{}{
-			"device": device,
-			"model":  model.ModelBase,
-			"points": points,
-		},
-		"metadata": map[string]interface{}{
-			"pointCount": len(points),
-			"schema": map[string]interface{}{
-				"point": map[string]string{
-					"name":        "点位名称",
-					"description": "点位描述",
-					"valueType":   "数据类型(int/float/string)",
-					"readWrite":   "读写类型(R/W/RW)",
-					"reportMode":  "上报模式(realTime/change)",
-				},
-			},
-			"format": "json",
-		},
-	}
+	// 构建表格形式的Markdown响应
+	markdown := fmt.Sprintf("## 设备 `%s` 的物模型\n\n", deviceID)
 
-	jsonData, err := json.Marshal(response)
-	if err != nil {
-		return mcp.NewToolResultError("序列化设备模型数据失败: " + err.Error()), err
-	}
+	// 添加设备基本信息
+	markdown += "### 设备基本信息\n\n"
+	markdown += "| 属性 | 值 |\n"
+	markdown += "|---------|---------|\n"
 
-	// 转换为Markdown格式，更适合大模型处理
-	markdown := "```json\n" + string(jsonData) + "\n```\n\n"
-	markdown += fmt.Sprintf("设备 %s 的物模型定义，包含 %d 个点位\n", deviceID, len(points))
+	// 处理描述中可能存在的特殊字符，避免破坏Markdown表格结构
+	description := strings.ReplaceAll(device.Description, "|", "\\|")
+	description = strings.ReplaceAll(description, "\n", " ")
+
+	// 处理其他字段中可能存在的特殊字符
+	modelName := strings.ReplaceAll(device.ModelName, "|", "\\|")
+	driverKey := strings.ReplaceAll(device.DriverKey, "|", "\\|")
+
+	markdown += fmt.Sprintf("| 设备ID | %s |\n", device.ID)
+	markdown += fmt.Sprintf("| 设备描述 | %s |\n", description)
+	markdown += fmt.Sprintf("| 模型名称 | %s |\n", modelName)
+	markdown += fmt.Sprintf("| 驱动 | %s |\n", driverKey)
+	markdown += fmt.Sprintf("| 离线阈值 | %s |\n", device.Ttl)
+
+	// 添加点位列表
+	markdown += fmt.Sprintf("\n### 点位列表（共 %d 个点位）\n\n", len(points))
+	markdown += "| 点位名称 | 描述 | 数据类型 | 读写类型 | 上报模式 |\n"
+	markdown += "|---------|---------|---------|---------|---------|\n"
+
+	// 添加点位表格内容
+	for _, point := range points {
+		// 处理描述中可能存在的特殊字符，避免破坏Markdown表格结构
+		description := strings.ReplaceAll(point.Description, "|", "\\|")
+		description = strings.ReplaceAll(description, "\n", " ")
+
+		// 处理其他字段中可能存在的特殊字符
+		valueType := strings.ReplaceAll(string(point.ValueType), "|", "\\|")
+		readWrite := strings.ReplaceAll(string(point.ReadWrite), "|", "\\|")
+		reportMode := strings.ReplaceAll(string(point.ReportMode), "|", "\\|")
+
+		markdown += fmt.Sprintf("| `%s` | %s | %s | %s | %s |\n",
+			point.Name,
+			description,
+			valueType,
+			readWrite,
+			reportMode)
+	}
 
 	return mcp.NewToolResultText(markdown), nil
 }

@@ -11,7 +11,7 @@ import (
 var WritePointsTool = mcp.NewTool("write_points",
 	mcp.WithDescription("针对指定设备下发控制指令，用于修改设备点位的值。通过提供设备ID和需要修改的点位列表，可以实现对设备的远程控制。"),
 	mcp.WithString("device_id", mcp.Required(), mcp.Description("设备唯一标识符，用于指定要控制的目标设备")),
-	mcp.WithObject("points",
+	mcp.WithArray("points",
 		mcp.Required(),
 		mcp.Description("设备点位信息结构，定义了点位的名称和要设置的值"),
 		mcp.Properties(map[string]any{
@@ -29,14 +29,18 @@ var WritePointsHandler = func(ctx context.Context, request mcp.CallToolRequest) 
 	}
 
 	// 获取点位列表
-	args := request.GetArguments()
+	if request.GetArguments() == nil {
+		return mcp.NewToolResultError("点位列表参数错误"), nil
+	}
+	args := request.GetArguments()["points"]
 
 	// 转换为PointData结构
 	points := make([]plugin.PointData, 0)
-	for k, v := range args {
+	for _, v := range args.([]any) {
+		v := v.(map[string]any)
 		points = append(points, plugin.PointData{
-			PointName: k,
-			Value:     v,
+			PointName: v["name"].(string),
+			Value:     v["value"],
 		})
 	}
 
