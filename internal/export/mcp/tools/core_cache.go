@@ -10,7 +10,7 @@ import (
 )
 
 var CoreCacheDevicesTool = mcp.NewTool("device_list",
-	mcp.WithDescription("获取网关中的设备列表，以表格形式展示设备的基本信息，包括设备ID、描述、驱动、标签和离线阈值等关键信息。同时提供完整的JSON数据（折叠显示），包含设备的唯一标识(id)、描述信息(description)、标签(tags)、属性(properties)、连接密钥(connectionKey)、驱动引用(driverKey)等详细信息。响应格式为Markdown，便于直观阅读和理解。"),
+	mcp.WithDescription("获取网关中的设备列表，以表格形式展示设备的基本信息，包括设备ID、描述、模型名称、标签等关键信息。响应格式为Markdown，便于直观阅读和理解。"),
 )
 
 var CoreCacheDevicesHandler = func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -20,8 +20,8 @@ var CoreCacheDevicesHandler = func(ctx context.Context, request mcp.CallToolRequ
 	markdown := fmt.Sprintf("## 设备列表（共 %d 个设备）\n\n", len(devices))
 
 	// 添加表格头部
-	markdown += "| 设备ID | 描述 | 模型名称 | 标签 | 离线阈值 | 属性 |\n"
-	markdown += "|---------|---------|---------|---------|---------|---------|\n"
+	markdown += "| 设备ID | 描述 | 模型名称 | 标签 |  属性 |\n"
+	markdown += "|---------|---------|---------|---------|---------|\n"
 
 	// 添加表格内容
 	for _, device := range devices {
@@ -43,7 +43,7 @@ var CoreCacheDevicesHandler = func(ctx context.Context, request mcp.CallToolRequ
 		properties := ""
 		if len(device.Properties) > 0 {
 			for k, v := range device.Properties {
-				properties += fmt.Sprintf("%s: %s ,", k, v)
+				properties += fmt.Sprintf("%s : %s , ", k, v)
 			}
 		}
 		properties = strings.ReplaceAll(properties, "|", "\\|")
@@ -53,19 +53,19 @@ var CoreCacheDevicesHandler = func(ctx context.Context, request mcp.CallToolRequ
 		description = strings.ReplaceAll(description, "\n", " ")
 
 		// 添加设备行
-		markdown += fmt.Sprintf("| %s | %s | %s | %s | %s | %s |\n",
+		markdown += fmt.Sprintf("| %s | %s | %s | %s | %s |\n",
 			device.ID,
 			description,
 			device.ModelName,
 			tags,
-			device.Ttl, properties)
+			properties)
 	}
 
 	return mcp.NewToolResultText(markdown), nil
 }
 
 var CoreCacheGetDeviceModelTool = mcp.NewTool("get_device_model",
-	mcp.WithDescription("获取指定设备的物模型定义，以表格形式展示设备基本信息和点位列表。设备基本信息包括设备ID、描述、模型名称、驱动和离线阈值；点位列表包含点位名称、描述、数据类型、读写类型和上报模式。同时提供完整的JSON数据（折叠显示），包含设备详细信息、模型信息及点位完整定义。响应格式为Markdown，便于直观阅读和理解设备物模型结构。"),
+	mcp.WithDescription("获取指定设备的物模型定义，以表格形式展示设备基本信息和点位列表。设备基本信息包括设备ID、描述、模型名称、驱动和离线阈值；点位列表包含点位名称、描述、数据类型、读写类型和上报模式。"),
 	mcp.WithString("id", mcp.Required(), mcp.Description("设备唯一标识符，用于查询特定设备的物模型信息")),
 )
 
