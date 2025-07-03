@@ -79,6 +79,7 @@ func (export *Export) addTools(s *server.MCPServer) {
 	s.AddTool(tools.ShadowDeviceListTool, tools.ShadowDeviceListHandler)
 	s.AddTool(tools.ShadowDeviceTool, tools.ShadowDeviceHandler)
 	s.AddTool(tools.WritePointsTool, tools.WritePointsHandler)
+	s.AddTool(tools.HistoryTableSchemaTool, tools.HistoryTableSchemaHandler)
 }
 
 func (export *Export) newMCPServer() *server.MCPServer {

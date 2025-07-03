@@ -10,7 +10,7 @@ import (
 )
 
 var CoreCacheDevicesTool = mcp.NewTool("device_list",
-	mcp.WithDescription("获取网关中的设备列表，以表格形式展示设备的基本信息，包括设备ID、描述、模型名称、标签等关键信息。响应格式为Markdown，便于直观阅读和理解。"),
+	mcp.WithDescription("获取网关中的设备列表，以表格形式展示设备的基本信息，包括设备ID、描述、模型名称、标签、属性等关键信息。响应格式为Markdown，便于直观阅读和理解。"),
 )
 
 var CoreCacheDevicesHandler = func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {

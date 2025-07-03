@@ -19,6 +19,32 @@ var instance *Export
 const (
 	TableNameSnapshotData string = "snapshot_data"
 	TableNameRealTimeData string = "real_time_data"
+
+	SchemaSQL = `
+CREATE TABLE IF NOT EXISTS snapshot_data( -- 设备影子快照数据，周期性生成
+    id INTEGER PRIMARY KEY NOT NULL, -- 自增主键ID
+    device_id varchar(255) NOT null, -- 设备ID
+    mo_id varchar(255) ,  -- 模型ID
+    point_data TEXT NOT null, -- 设备影子数据，即物模型点位定义的数据，json格式,例如：{"pointName1":"pointValue2","pointName2":"pointValue2"}
+    meta TEXT DEFAULT '{}', -- 设备扩展信息
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP --创建时间
+    );
+CREATE INDEX IF NOT EXISTS idx_devId_ts ON snapshot_data(device_id,create_time);
+
+CREATE INDEX IF NOT EXISTS idx_moId_ts ON snapshot_data(mo_id,create_time);
+
+CREATE TABLE IF NOT EXISTS real_time_data( -- 设备影子实时数据，实时记录设备点位变化值
+    id INTEGER PRIMARY KEY NOT NULL, -- 自增主键ID
+    device_id varchar(255) NOT null, -- 设备ID
+    mo_id varchar(255) ,-- 模型ID
+    point_data TEXT NOT null, -- 设备影子数据，即物模型点位定义的数据，json格式,例如：{"pointName1":"pointValue2","pointName2":"pointValue2"}
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP --创建时间
+    ); 
+
+CREATE INDEX IF NOT EXISTS idx_devId_time ON real_time_data(device_id,create_time);
+
+CREATE INDEX IF NOT EXISTS idx_moId_time ON real_time_data(mo_id,create_time);
+`
 )
 
 type Export struct {
@@ -148,49 +174,14 @@ func (export0 *Export) initHistoryDataDB() error {
 	export0.db.SetMaxIdleConns(5)
 	export0.db.SetConnMaxLifetime(time.Hour)
 
-	return export0.initHistorySchema()
-}
-
-func (export0 *Export) initHistorySchema() error {
-	historyDataTable := "CREATE TABLE IF NOT EXISTS snapshot_data(id INTEGER PRIMARY KEY NOT NULL,device_id varchar(255) NOT null,mo_id varchar(255) ,point_data TEXT NOT null,meta TEXT DEFAULT '{}',create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP);"
-	_, err := export0.db.Exec(historyDataTable)
+	_, err = export0.db.Exec(SchemaSQL)
 	if err != nil {
 		helper.Logger.Error(err.Error())
 		return err
 	}
-	historyIdxSql := "CREATE INDEX IF NOT EXISTS idx_devId_ts ON snapshot_data(device_id,create_time);"
-	_, err = export0.db.Exec(historyIdxSql)
-	if err != nil {
-		helper.Logger.Warn(err.Error())
-		return err
-	}
-	historyMoIdxSql := "CREATE INDEX IF NOT EXISTS idx_moId_ts ON snapshot_data(mo_id,create_time);"
-	_, err = export0.db.Exec(historyMoIdxSql)
-	if err != nil {
-		helper.Logger.Warn(err.Error())
-		return err
-	}
-
-	realTimeDataTable := "CREATE TABLE IF NOT EXISTS real_time_data(id INTEGER PRIMARY KEY NOT NULL,device_id varchar(255) NOT null,mo_id varchar(255) ,point_data TEXT NOT null,create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP);"
-	_, er := export0.db.Exec(realTimeDataTable)
-	if er != nil {
-		helper.Logger.Error(er.Error())
-		return err
-	}
-	realTimeIdxSql := "CREATE INDEX IF NOT EXISTS idx_devId_time ON real_time_data(device_id,create_time);"
-	_, err = export0.db.Exec(realTimeIdxSql)
-	if err != nil {
-		helper.Logger.Warn(err.Error())
-		return err
-	}
-	realTImeMoIdxSql := "CREATE INDEX IF NOT EXISTS idx_moId_time ON real_time_data(mo_id,create_time);"
-	_, err = export0.db.Exec(realTImeMoIdxSql)
-	if err != nil {
-		helper.Logger.Warn(err.Error())
-		return err
-	}
 	return nil
 }
+
 func (export0 *Export) clearExpiredData(day int) {
 	historyDataSql := "DELETE FROM snapshot_data where create_time < ?"
 	realTimeDataSql := "DELETE FROM real_time_data where create_time < ?"
