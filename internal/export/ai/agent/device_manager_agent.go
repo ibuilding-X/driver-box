@@ -23,7 +23,7 @@ func (t *DeviceManagerAgent) Name() string {
 
 // Description returns the description of the tool along with its input schema.
 func (t *DeviceManagerAgent) Description() string {
-	return "Be responsible for the operation and monitoring of devices in the gateway. The input schema is a text content,: {\"input\":{\"description\":\" representing the execution requirements planned by the coordinator based on the user's intent.\n\",\"type\":\"string\"}}"
+	return "Manages IoT devices including status queries, configurations, and control commands\nargs: {\"input\": \"string\"}"
 }
 
 // Call invokes the MCP tool with the given input and returns the result.
@@ -82,6 +82,6 @@ Final Answer: the final answer to the original input question`),
 	if err != nil {
 		return "", err
 	}
-	
+
 	return t.Name() + " operations completed, Answer: \n" + result, nil
 }

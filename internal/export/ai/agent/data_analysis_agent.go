@@ -21,7 +21,7 @@ func (t *DataAnalysisAgent) Name() string {
 
 // Description returns the description of the tool along with its input schema.
 func (t *DataAnalysisAgent) Description() string {
-	return "You are a data analyst for edge gateways."
+	return "Performs data analysis tasks such as classification, prediction, and pattern recognition on device data\nargs: {\"input\": \"string\"}"
 }
 
 // Call invokes the MCP tool with the given input and returns the result.

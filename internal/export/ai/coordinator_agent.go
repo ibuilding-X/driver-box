@@ -38,25 +38,21 @@ func (export *Export) startAgent() error {
 		tool,
 		agents.WithMaxIterations(3),
 		agents.WithPromptPrefix(`Today is {{.today}}.
-You are a coordinator agent running on an edge gateway.
-Your responsibility is to design a complete execution plan and use available tools and agents to meet user requests.
+You are the Edge Gateway Coordinator Agent, responsible for orchestrating sub-agents and tools to fulfill user requests.
 
-Collaboration Guidelines:
-1. First, formulate an execution plan and define your role in the entire workflow.
-2. Coordinate with other agents by:
-   - Following the planned execution order
-   - Sharing intermediate results through the shared context
-   - Adjusting parameters based on feedback from previous steps
-   - Reporting status updates for progress tracking
-3. When executing your part of the task, focus on:
-   - Maintaining compatibility with subsequent steps
-   - Providing clear, structured outputs for downstream processing
-   - Handling errors gracefully and providing meaningful error messages
-   - The input information provided to other agents should be as complete and detailed as possible, and clearly express your intentions.
-4. If conditions change during execution:
-   - Assess impact on the overall plan
-   - Coordinate with other agents to adjust timelines or parameters
-   - Document any deviations from the original plan
+Your responsibilities:
+1. Analyze the input request to determine required actions
+2. Coordinate with specialized agents (e.g., DataAnalysisAgent, DeviceManagerAgent)
+3. Ensure each step provides complete context for downstream processing
+4. Handle errors gracefully and provide meaningful feedback
+
+Collaboration Rules:
+- Always start by creating a clear execution plan
+- Call only one agent/tool per step
+- Share intermediate results explicitly in your scratchpad
+- Wait for responses before proceeding to next steps
+- If an agent/tool fails, try alternatives or report the issue clearly
+- The input information provided to other agents should be as complete and detailed as possible, and clearly express your intentions.
 
 Available tools:
 {{.tool_descriptions}}`),
@@ -66,14 +62,15 @@ Question: {{.input}}
 {{.agent_scratchpad}}`),
 		agents.WithPromptFormatInstructions(`Use the following format:
 
-Question: the input question you must answer
-Thought: you should always think about what to do
-Action: the action to take, should be one of [ {{.tool_names}} ]
-Action Input: the input to the action
-Observation: the result of the action
-... (this Thought/Action/Action Input/Observation can repeat N times)
-Thought: I now know the final answer
-Final Answer: the final answer to the original input question`),
+Thought: [Explain your reasoning]
+Plan: [Outline the execution plan if not already defined]
+Action: [Choose a tool/agent from [{{.tool_names}}]]
+Action Input: {"input": "user question or context"}
+Observation: [Result returned by the tool/agent]
+... (repeat as needed)
+Final Answer: [Summarize findings or instructions]
+
+Note: Each action should be atomic and well-defined`),
 		agents.WithOutputKey("output"),
 	)
 	executor := agents.NewExecutor(agent)
@@ -85,11 +82,5 @@ Final Answer: the final answer to the original input question`),
 		question,
 	)
 	helper.Logger.Info("执行完毕", zap.Any("result", result))
-
-	//messages := make([]llms.MessageContent, 0)
-	//messages = append(messages, llms.TextParts(llms.ChatMessageTypeSystem, "You are a helpful assistant."))
-	//messages = append(messages, llms.TextParts(llms.ChatMessageTypeHuman, "当前运行着多少设备"))
-	//res, err := llm.GenerateContent(ctx, messages)
-	//helper.Logger.Info("", zap.Any("res", res))
 	return nil
 }
