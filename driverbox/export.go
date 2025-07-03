@@ -3,11 +3,11 @@ package driverbox
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	export0 "github.com/ibuilding-x/driver-box/internal/export"
+	"github.com/ibuilding-x/driver-box/internal/export/ai"
 	"github.com/ibuilding-x/driver-box/internal/export/basic"
 	"github.com/ibuilding-x/driver-box/internal/export/discover"
 	"github.com/ibuilding-x/driver-box/internal/export/gwexport"
 	"github.com/ibuilding-x/driver-box/internal/export/linkedge"
-	"github.com/ibuilding-x/driver-box/internal/export/mcp"
 	"github.com/ibuilding-x/driver-box/internal/export/mirror"
 	"github.com/ibuilding-x/driver-box/internal/export/ui"
 )
@@ -109,7 +109,7 @@ func (exports *exports) LoadBasicExport() {
 }
 
 func (exports *exports) LoadMcpExport() {
-	exports.LoadExport(mcp.NewExport())
+	exports.LoadExport(ai.NewExport())
 }
 
 // exists 检查指定的Export是否已经加载

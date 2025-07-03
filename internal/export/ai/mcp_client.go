@@ -1,4 +1,4 @@
-package mcp
+package ai
 
 import (
 	langchaingo_mcp_adapter "github.com/i2y/langchaingo-mcp-adapter"

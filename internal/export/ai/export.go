@@ -1,4 +1,4 @@
-package mcp
+package ai
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/internal/export/mcp/tools"
+	tools2 "github.com/ibuilding-x/driver-box/internal/export/ai/mcp/tools"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"go.uber.org/zap"
@@ -74,14 +74,14 @@ func (export *Export) IsReady() bool {
 
 func (export *Export) addTools(s *server.MCPServer) {
 	// Repository Tools
-	s.AddTool(tools.CoreCacheDevicesTool, tools.CoreCacheDevicesHandler)
-	s.AddTool(tools.CoreCacheGetModelByDeviceTool, tools.CoreCacheGetModelByDeviceHandler)
-	s.AddTool(tools.CoreCacheGetModelByNameTool, tools.CoreCacheGetModelByNameHandler)
-	s.AddTool(tools.ShadowDeviceListTool, tools.ShadowDeviceListHandler)
-	s.AddTool(tools.ShadowDeviceTool, tools.ShadowDeviceHandler)
-	s.AddTool(tools.WritePointsTool, tools.WritePointsHandler)
-	s.AddTool(tools.HistoryTableSchemaTool, tools.HistoryTableSchemaHandler)
-	s.AddTool(tools.HistoryDataAnalysisTool, tools.HistoryDataAnalysisHandler)
+	s.AddTool(tools2.CoreCacheDevicesTool, tools2.CoreCacheDevicesHandler)
+	s.AddTool(tools2.CoreCacheGetModelByDeviceTool, tools2.CoreCacheGetModelByDeviceHandler)
+	s.AddTool(tools2.CoreCacheGetModelByNameTool, tools2.CoreCacheGetModelByNameHandler)
+	s.AddTool(tools2.ShadowDeviceListTool, tools2.ShadowDeviceListHandler)
+	s.AddTool(tools2.ShadowDeviceTool, tools2.ShadowDeviceHandler)
+	s.AddTool(tools2.WritePointsTool, tools2.WritePointsHandler)
+	s.AddTool(tools2.HistoryTableSchemaTool, tools2.HistoryTableSchemaHandler)
+	s.AddTool(tools2.HistoryDataAnalysisTool, tools2.HistoryDataAnalysisHandler)
 }
 
 func (export *Export) newMCPServer() *server.MCPServer {

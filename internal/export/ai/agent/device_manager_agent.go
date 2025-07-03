@@ -1,29 +1,35 @@
-package mcp
+package agent
 
 import (
 	"context"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/tmc/langchaingo/agents"
 	"github.com/tmc/langchaingo/chains"
-	"github.com/tmc/langchaingo/llms/ollama"
+	"github.com/tmc/langchaingo/llms"
+	"github.com/tmc/langchaingo/tools"
 	"go.uber.org/zap"
 )
 
-func (export *Export) startAgent() error {
-	tools, e := export.getLangChainTools()
+type DeviceManagerAgent struct {
+	LLM   llms.Model
+	Tools []tools.Tool
+}
 
-	if e != nil {
-		return e
-	}
-	llm, err := ollama.New(ollama.WithModel(export.model), ollama.WithServerURL(export.baseUrl))
-	if err != nil {
-		return err
-	}
-	ctx := context.Background()
+func (t *DeviceManagerAgent) Name() string {
+	return "device_manager_agent"
+}
+
+// Description returns the description of the tool along with its input schema.
+func (t *DeviceManagerAgent) Description() string {
+	return "Be responsible for the operation and monitoring of devices in the gateway."
+}
+
+// Call invokes the MCP tool with the given input and returns the result.
+func (t *DeviceManagerAgent) Call(ctx context.Context, input string) (string, error) {
 
 	agent := agents.NewOneShotAgent(
-		llm,
-		tools,
+		t.LLM,
+		t.Tools,
 		agents.WithMaxIterations(3),
 		agents.WithPromptPrefix(`Today is {{.today}}.
 You are an intelligent agent running on an edge gateway.
@@ -50,7 +56,7 @@ Final Answer: the final answer to the original input question`),
 	)
 	executor := agents.NewExecutor(agent)
 	// Use the agent
-	question := "打开1楼的所有空调，温度调到22"
+	question := input
 	result, err := chains.Run(
 		ctx,
 		executor,
@@ -63,6 +69,5 @@ Final Answer: the final answer to the original input question`),
 	//messages = append(messages, llms.TextParts(llms.ChatMessageTypeHuman, "当前运行着多少设备"))
 	//res, err := llm.GenerateContent(ctx, messages)
 	//helper.Logger.Info("", zap.Any("res", res))
-	return nil
-
+	return result, err
 }
