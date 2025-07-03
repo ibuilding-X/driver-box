@@ -75,7 +75,8 @@ func (export *Export) IsReady() bool {
 func (export *Export) addTools(s *server.MCPServer) {
 	// Repository Tools
 	s.AddTool(tools.CoreCacheDevicesTool, tools.CoreCacheDevicesHandler)
-	s.AddTool(tools.CoreCacheGetDeviceModelTool, tools.CoreCacheGetDeviceModelHandler)
+	s.AddTool(tools.CoreCacheGetModelByDeviceTool, tools.CoreCacheGetModelByDeviceHandler)
+	s.AddTool(tools.CoreCacheGetModelByNameTool, tools.CoreCacheGetModelByNameHandler)
 	s.AddTool(tools.ShadowDeviceListTool, tools.ShadowDeviceListHandler)
 	s.AddTool(tools.ShadowDeviceTool, tools.ShadowDeviceHandler)
 	s.AddTool(tools.WritePointsTool, tools.WritePointsHandler)

@@ -10,7 +10,7 @@ import (
 )
 
 var HistoryTableSchemaTool = mcp.NewTool("history_table_schema",
-	mcp.WithDescription("查询当前网关数据库的表结构定义,有助于大模型开展数据分析"),
+	mcp.WithDescription("查询当前网关数据库的表结构定义,有助于大模型编写正确的SQL语句开展数据分析"),
 )
 
 var HistoryTableSchemaHandler = func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -27,7 +27,7 @@ var HistoryTableSchemaHandler = func(ctx context.Context, request mcp.CallToolRe
 }
 
 var HistoryDataAnalysisTool = mcp.NewTool("history_data_analysis",
-	mcp.WithDescription("执行大模型生成的SQL查询语句。要求查询SQL必须是网关中存在的表和字段，且符合 sqlite 语法。当查询设备数据时，需确保查询条件中的点位名同物模型定义保持一致。"),
+	mcp.WithDescription("执行大模型生成的SQL查询语句。要求：查询SQL必须是网关中存在的表和字段，且符合 sqlite 语法；涉及设备相关数据查询前，确保已通过其他Tool [ `"+CoreCacheGetModelByNameTool.Name+"` 或 `"+CoreCacheGetModelByDeviceTool.Name+"` ]明确知晓设备和物模型的相关字段名定义；优先使用统计类函数，避免出现大量数据扫描。"),
 	mcp.WithString("sql", mcp.Required(), mcp.Description("要执行的SQL查询语句")),
 )
 
@@ -58,7 +58,11 @@ var HistoryDataAnalysisHandler = func(ctx context.Context, request mcp.CallToolR
 	for _, v := range r {
 		markdown += "|"
 		for k, _ := range v {
-			markdown += fmt.Sprintf("%s |", v[k])
+			if v[k] == nil {
+				markdown += " |"
+			} else {
+				markdown += fmt.Sprintf("%s |", v[k])
+			}
 		}
 		markdown += "\n"
 	}

@@ -21,7 +21,7 @@ const (
 	TableNameRealTimeData string = "real_time_data"
 
 	SchemaSQL = `
-CREATE TABLE IF NOT EXISTS snapshot_data( -- 设备影子快照数据，周期性生成
+CREATE TABLE IF NOT EXISTS snapshot_data( -- 设备影子快照数据。周期性生成，因此point_data包含当前设备完整的点位数据
     id INTEGER PRIMARY KEY NOT NULL, -- 自增主键ID
     device_id varchar(255) NOT null, -- 设备ID
     mo_id varchar(255) ,  -- 模型ID
@@ -33,7 +33,7 @@ CREATE INDEX IF NOT EXISTS idx_devId_ts ON snapshot_data(device_id,create_time);
 
 CREATE INDEX IF NOT EXISTS idx_moId_ts ON snapshot_data(mo_id,create_time);
 
-CREATE TABLE IF NOT EXISTS real_time_data( -- 设备影子实时数据，实时记录设备点位变化值
+CREATE TABLE IF NOT EXISTS real_time_data( -- 设备影子实时数据，实时记录设备点位变化值。因此point_data仅包含本次发生变更的内容，若需完整信息可从snapshot_data获取
     id INTEGER PRIMARY KEY NOT NULL, -- 自增主键ID
     device_id varchar(255) NOT null, -- 设备ID
     mo_id varchar(255) ,-- 模型ID
