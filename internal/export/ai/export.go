@@ -9,6 +9,8 @@ import (
 	tools2 "github.com/ibuilding-x/driver-box/internal/export/ai/mcp/tools"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/tmc/langchaingo/llms"
+	"github.com/tmc/langchaingo/llms/ollama"
 	"go.uber.org/zap"
 	"net/http"
 	"os"
@@ -25,6 +27,7 @@ type Export struct {
 	ready      bool
 	mcpServers []*server.MCPServer
 	ctx        context.Context
+	llm        llms.Model
 }
 
 func (export *Export) Init() error {
@@ -39,6 +42,11 @@ func (export *Export) Init() error {
 		}
 	}()
 
+	llm, err := ollama.New(ollama.WithModel(export.model), ollama.WithServerURL(export.baseUrl))
+	if err != nil {
+		return err
+	}
+	export.llm = llm
 	go func() {
 		time.Sleep(1 * time.Second)
 		export.startAgent()

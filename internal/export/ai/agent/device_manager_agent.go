@@ -2,6 +2,8 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/tmc/langchaingo/agents"
 	"github.com/tmc/langchaingo/chains"
@@ -21,20 +23,34 @@ func (t *DeviceManagerAgent) Name() string {
 
 // Description returns the description of the tool along with its input schema.
 func (t *DeviceManagerAgent) Description() string {
-	return "Be responsible for the operation and monitoring of devices in the gateway."
+	return "Be responsible for the operation and monitoring of devices in the gateway. The input schema is a text content,: {\"input\":{\"description\":\" representing the execution requirements planned by the coordinator based on the user's intent.\n\",\"type\":\"string\"}}"
 }
 
 // Call invokes the MCP tool with the given input and returns the result.
 func (t *DeviceManagerAgent) Call(ctx context.Context, input string) (string, error) {
-
+	c := make(map[string]string)
+	e := json.Unmarshal([]byte(input), &c)
+	if e != nil {
+		return "", e
+	}
+	content, ok := c["input"]
+	if !ok || content == "" {
+		return "", errors.New("input is empty")
+	}
 	agent := agents.NewOneShotAgent(
 		t.LLM,
 		t.Tools,
 		agents.WithMaxIterations(3),
 		agents.WithPromptPrefix(`Today is {{.today}}.
-You are an intelligent agent running on an edge gateway.
-Your role is to assist with device control, monitoring, and basic decision-making using the tools available.
-You need to accurately and completely identify the set of devices pointed to by the user.
+You are a device management agent running on an edge gateway.
+Your role is to provide accurate device-related information and execute device operations as requested by the coordinator agent.
+
+Key responsibilities:
+1. Accurately identify devices based on natural language descriptions
+2. Retrieve real-time device status and metrics
+3. Execute control commands on devices
+4. Monitor device health and report anomalies
+5. Provide device-specific knowledge for decision-making
 
 Available tools:
 {{.tool_descriptions}}`),
@@ -56,18 +72,16 @@ Final Answer: the final answer to the original input question`),
 	)
 	executor := agents.NewExecutor(agent)
 	// Use the agent
-	question := input
+	question := content
 	result, err := chains.Run(
 		ctx,
 		executor,
 		question,
 	)
-	helper.Logger.Info("执行完毕", zap.Any("result", result))
-
-	//messages := make([]llms.MessageContent, 0)
-	//messages = append(messages, llms.TextParts(llms.ChatMessageTypeSystem, "You are a helpful assistant."))
-	//messages = append(messages, llms.TextParts(llms.ChatMessageTypeHuman, "当前运行着多少设备"))
-	//res, err := llm.GenerateContent(ctx, messages)
-	//helper.Logger.Info("", zap.Any("res", res))
-	return result, err
+	helper.Logger.Info("执行完毕", zap.Any("result", result), zap.Error(err))
+	if err != nil {
+		return "", err
+	}
+	
+	return t.Name() + " operations completed, Answer: \n" + result, nil
 }
