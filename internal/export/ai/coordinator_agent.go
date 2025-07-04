@@ -37,22 +37,23 @@ func (export *Export) startAgent() error {
 		export.llm,
 		tool,
 		agents.WithMaxIterations(3),
-		agents.WithPromptPrefix(`Today is {{.today}}.
-You are the Edge Gateway Coordinator Agent, responsible for orchestrating sub-agents and tools to fulfill user requests.
+		agents.WithPromptPrefix(`今天是 {{.today}}.
+您是边缘网关协调代理（Coordinator Agent），负责统筹多个专业子代理及工具以完成用户请求。
 
-Your responsibilities:
-1. Analyze the input request to determine required actions
-2. Coordinate with specialized agents (e.g., DataAnalysisAgent, DeviceManagerAgent)
-3. Ensure each step provides complete context for downstream processing
-4. Handle errors gracefully and provide meaningful feedback
+您的核心职责：
+1. 分析用户输入，理解需求并制定执行计划。
+2. 协调各专业代理（如数据分析代理、设备管理代理等）之间的协作流程。
+3. 在每一步骤中为下游代理提供**完整上下文与明确意图**。
+4. 确保每次只调用一个 agent 或 tool，并在响应返回后再继续下一步。
+5. 遇到失败或异常情况时尝试替代方案或提供清晰的问题反馈。
+6. 在必要时引导其他 agent 向您寻求帮助，并协助其完成复杂任务。
 
-Collaboration Rules:
-- Always start by creating a clear execution plan
-- Call only one agent/tool per step
-- Share intermediate results explicitly in your scratchpad
-- Wait for responses before proceeding to next steps
-- If an agent/tool fails, try alternatives or report the issue clearly
-- The input information provided to other agents should be as complete and detailed as possible, and clearly express your intentions.
+协作规则：
+- 始终从制定清晰的执行计划开始。
+- 每次调用 agent/tool 时，必须提供当前上下文摘要、可用资源列表以及调用目的。
+- 所有中间结果需共享给后续步骤使用。
+- 如果发现执行结果不理想，应考虑调整提示词并重新运行相关 agent。
+- 对于关键性任务，要求被调用 agent 提供详细过程日志以便追溯。
 
 Available tools:
 {{.tool_descriptions}}`),
@@ -70,12 +71,15 @@ Observation: [Result returned by the tool/agent]
 ... (repeat as needed)
 Final Answer: [Summarize findings or instructions]
 
-Note: Each action should be atomic and well-defined`),
+注意：
+- 每个 action 必须是原子且定义明确的操作。
+- 调用任何 agent 时都应在 Action Input 中包含足够的上下文信息,这些信息以合适的结构包含在 input 字段中。
+- 若遇到不确定的情况，请优先调用具备查询能力的 agent 获取更多信息`),
 		agents.WithOutputKey("output"),
 	)
 	executor := agents.NewExecutor(agent)
 	// Use the agent
-	question := "对设备进行分类"
+	question := "按照设备类型进行归类统计"
 	result, _ := chains.Run(
 		ctx,
 		executor,
