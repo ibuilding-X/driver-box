@@ -1,4 +1,4 @@
-package mbslave
+package modbus
 
 import (
 	"fmt"
@@ -7,17 +7,27 @@ import (
 	"strconv"
 )
 
-// convUint16s 转换数据为 []uint16
-// dstType 目前支持的类型有：uint16、float32
-func convUint16s(dstType string, v interface{}) ([]uint16, error) {
-	switch dstType {
-	case "uint16":
+// calcValueTypeLength 计算值类型长度
+func calcValueTypeLength(valueType ValueType) uint8 {
+	switch valueType {
+	case ValueTypeFloat32:
+		return 2
+	default:
+		return 1
+	}
+}
+
+// convAnyToUint16s 转换数据为 []uint16
+// valueType 目前支持的类型有：uint16、float32
+func convAnyToUint16s(valueType ValueType, v interface{}) ([]uint16, error) {
+	switch valueType {
+	case ValueTypeUint16:
 		if u16, err := convUint16(v); err != nil {
 			return nil, err
 		} else {
 			return []uint16{u16}, nil
 		}
-	case "float32":
+	case ValueTypeFloat32:
 		if f32, err := convFloat32(v); err != nil {
 			return nil, err
 		} else {
@@ -25,7 +35,7 @@ func convUint16s(dstType string, v interface{}) ([]uint16, error) {
 			return []uint16{uint16(u32 >> 16), uint16(u32 & 0xFFFF)}, nil
 		}
 	default:
-		return nil, fmt.Errorf("unsupported type %s", dstType)
+		return nil, fmt.Errorf("unsupported type %s", valueType)
 	}
 }
 
@@ -80,5 +90,24 @@ func convFloat32(v interface{}) (float32, error) {
 		return float32(rv.Float()), nil
 	default:
 		return 0, fmt.Errorf("converting %s to float32 is not supported", rv.Kind())
+	}
+}
+
+func convUint16sToAny(valueType ValueType, v []uint16) (interface{}, error) {
+	switch valueType {
+	case ValueTypeUint16:
+		if len(v) != 1 {
+			return nil, fmt.Errorf("invalid length of uint16 slice")
+		}
+		return v[0], nil
+	case ValueTypeFloat32:
+		if len(v) != 2 {
+			return nil, fmt.Errorf("invalid length of uint16 slice")
+		}
+		u32 := uint32(v[0])<<16 | uint32(v[1])
+		f32 := math.Float32frombits(u32)
+		return f32, nil
+	default:
+		return nil, fmt.Errorf("unsupported type %s", valueType)
 	}
 }
