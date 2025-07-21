@@ -1,4 +1,4 @@
-package modbus
+package mbserver
 
 import (
 	"fmt"
@@ -102,13 +102,19 @@ func (r *registerNode) Search(address uint16) (*registerNode, error) {
 	if address >= r.address && address < r.address+uint16(len(r.value)) {
 		return r, nil
 	}
-	if r.left != nil {
-		return r.left.Search(address)
+	if address < r.address {
+		if r.left == nil {
+			return nil, fmt.Errorf("address [%d] not found", address)
+		} else {
+			return r.left.Search(address)
+		}
+	} else {
+		if r.right == nil {
+			return nil, fmt.Errorf("address [%d] not found", address)
+		} else {
+			return r.right.Search(address)
+		}
 	}
-	if r.right != nil {
-		return r.right.Search(address)
-	}
-	return nil, fmt.Errorf("address [%d] not found", address)
 }
 
 // Get 获取寄存器值
@@ -138,14 +144,28 @@ func (r *registerNode) Get(address, quantity uint16) (results []uint16, err erro
 	return values[:quantity], nil
 }
 
-// ParseAddress 解析地址
-func (r *registerNode) ParseAddress(address uint16) (did string, property string, err error) {
+// Set 设置寄存器值
+func (r *registerNode) Set(address, value uint16) error {
+	// 检索节点
 	node, err := r.Search(address)
 	if err != nil {
-		return "", "", err
+		return err
 	}
 
-	return *node.did, *node.property, nil
+	node.mu.Lock()
+	defer node.mu.Unlock()
+	node.value[node.address-address] = value
+	return nil
+}
+
+// ParseAddress 解析地址
+func (r *registerNode) ParseAddress(address uint16) (did string, property string, valueType ValueType, err error) {
+	node, err := r.Search(address)
+	if err != nil {
+		return "", "", 0, err
+	}
+
+	return *node.did, *node.property, node.valueType, nil
 }
 
 // createRegisterNode 创建寄存器节点
@@ -187,9 +207,8 @@ func newRegisterNode(models []Model, devices []Device) (*registerNode, error) {
 		return nil, fmt.Errorf("storage length exceeds 65536")
 	}
 
-	// 创建根节点
-	root := &registerNode{
-		index: uint16(properties / 2),
+	node := &registerNode{
+		index: 0,
 	}
 
 	// 插入节点
@@ -197,11 +216,11 @@ func newRegisterNode(models []Model, devices []Device) (*registerNode, error) {
 	for _, device := range devices {
 		model, _ := modelMap[device.Mid]
 		for _, property := range model.Properties {
-			root.Insert(index, address, &device.Id, &property.Name, property.ValueType, property.Access)
+			node.Insert(index, address, &device.Id, &property.Name, property.ValueType, property.Access)
 			index++
 			address += uint16(calcValueTypeLength(property.ValueType))
 		}
 	}
 
-	return root, nil
+	return node, nil
 }

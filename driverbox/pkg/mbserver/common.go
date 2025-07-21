@@ -1,4 +1,4 @@
-package modbus
+package mbserver
 
 type ValueType uint8 // 值类型
 
