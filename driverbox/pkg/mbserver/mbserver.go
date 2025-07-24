@@ -2,19 +2,23 @@ package mbserver
 
 import (
 	"errors"
-	"fmt"
 	"github.com/goburrow/serial"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/mbserver/modbus"
 	"sync"
 )
 
-type HandlerFunc func(id string, property string, value interface{}) error
+type PropertyValue struct {
+	Name  string
+	Value interface{}
+}
+
+type HandlerFunc func(id string, propertyValues []PropertyValue)
 
 type Server interface {
-	Start() error                                                          // 启动服务监听
-	Stop() error                                                           // 停止
-	SetProperty(id string, property string, value interface{}) error       // 设置设备属性
-	SetOnWriteHandler(func(id string, property string, value interface{})) // 寄存器写入回调函数
+	Start() error                                                      // 启动服务监听
+	Stop() error                                                       // 停止
+	SetProperty(id string, property string, value interface{}) error   // 设置设备属性
+	SetOnWriteHandler(func(id string, propertyValues []PropertyValue)) // 寄存器写入回调函数
 }
 
 type ServerConfig struct {
@@ -27,8 +31,8 @@ type ServerConfig struct {
 
 type serverImpl struct {
 	config       *ServerConfig
-	register     Register
-	writeHandler func(id string, property string, value interface{})
+	register     *Storage
+	writeHandler func(id string, propertyValues []PropertyValue)
 	slave        *modbus.Slave
 	mu           sync.Mutex
 }
@@ -56,7 +60,7 @@ func (s *serverImpl) SetProperty(id string, property string, value interface{}) 
 	return s.register.SetProperty(id, property, value)
 }
 
-func (s *serverImpl) SetOnWriteHandler(f func(id string, property string, value interface{})) {
+func (s *serverImpl) SetOnWriteHandler(f func(id string, propertyValues []PropertyValue)) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -69,7 +73,6 @@ func (s *serverImpl) SetOnWriteHandler(f func(id string, property string, value 
 	// function code handlers
 	s.slave.HandleFuncCode(modbus.FuncCodeReadHoldingRegisters, func(c *modbus.Context) {
 		values, err := s.register.Read(c.ProtocolMessage.Address, c.ProtocolMessage.Quantity)
-		fmt.Println(values, err)
 		_ = c.Response(values, err)
 	})
 	s.slave.HandleFuncCode(modbus.FuncCodeWriteMultipleRegisters, func(c *modbus.Context) {
@@ -81,21 +84,40 @@ func (s *serverImpl) SetOnWriteHandler(f func(id string, property string, value 
 			return
 		}
 
+		// 写入寄存器
+		if err := s.register.Write(address, values); err != nil {
+			_ = c.Response(nil, err)
+			return
+		}
+
+		// 地址解析，获取对应设备及属性
+		groups := make(map[string]map[string]struct{}) // device => properties
 		for i := uint16(0); i < quantity; i++ {
-			_ = s.register.Write(address, values[i])
-
-			id, property, _, err := s.register.ParseAddress(address + i)
+			id, property, err := s.register.RegisterInfo(address + i)
 			if err != nil {
 				continue
 			}
 
-			// get property value
-			value, err := s.register.GetProperty(id, property)
-			if err != nil {
-				continue
+			if _, ok := groups[id]; !ok {
+				groups[id] = make(map[string]struct{})
 			}
 
-			s.writeHandler(id, property, value)
+			groups[id][property] = struct{}{}
+		}
+
+		for id, properties := range groups {
+			var pvs []PropertyValue
+			for property, _ := range properties {
+				// 获取属性值
+				v, _ := s.register.GetProperty(id, property)
+				pvs = append(pvs, PropertyValue{
+					Name:  property,
+					Value: v,
+				})
+			}
+
+			// 执行回调
+			go s.writeHandler(id, pvs)
 		}
 	})
 }
@@ -105,7 +127,7 @@ func NewServer(conf *ServerConfig) Server {
 	handler := modbus.NewRTUServerHandler(&conf.Config)
 
 	// Register
-	register := NewRegister()
+	register := &Storage{}
 
 	return &serverImpl{
 		config:   conf,

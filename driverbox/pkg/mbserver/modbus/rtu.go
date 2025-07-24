@@ -181,8 +181,8 @@ func NewRTUServerHandler(config *serial.Config) *RTUServerHandler {
 	return handler
 }
 
-func DefaultSerialConfig() *serial.Config {
-	return &serial.Config{
+func DefaultSerialConfig() serial.Config {
+	return serial.Config{
 		BaudRate: BaudRate9600,
 		DataBits: DataBits8,
 		StopBits: StopBits1,
