@@ -7,6 +7,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/mbserver"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/mbserver/modbus"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/core"
 	"go.uber.org/zap"
 )
 
@@ -15,13 +16,20 @@ type Export struct {
 }
 
 func (e *Export) Init() error {
+	// 配置
 	conf := &mbserver.ServerConfig{
 		Config:  modbus.DefaultSerialConfig(),
 		Models:  e.getConvertedModels(),
 		Devices: e.getConvertedDevices(),
 	}
 
+	// 实例化
 	ser := mbserver.NewServer(conf)
+
+	// 设置寄存器控制回调
+	ser.SetOnWriteHandler(e.writeHandler)
+
+	// 启动
 	if err := ser.Start(); err != nil {
 		helper.Logger.Error("start modbus server error", zap.Error(err))
 	}
@@ -30,8 +38,12 @@ func (e *Export) Init() error {
 }
 
 func (e *Export) ExportTo(deviceData plugin.DeviceData) {
-	//TODO implement me
-	panic("implement me")
+	for _, point := range deviceData.Values {
+		err := e.server.SetProperty(deviceData.ID, point.PointName, point.Value)
+		if err != nil {
+			helper.Logger.Error("modbus server set property error", zap.Error(err))
+		}
+	}
 }
 
 func (e *Export) OnEvent(eventCode string, key string, eventValue interface{}) error {
@@ -41,6 +53,23 @@ func (e *Export) OnEvent(eventCode string, key string, eventValue interface{}) e
 func (e *Export) IsReady() bool {
 	//TODO implement me
 	panic("implement me")
+}
+
+func (e *Export) writeHandler(id string, propertyValues []mbserver.PropertyValue) {
+	// 属性转换
+	var points []plugin.PointData
+	for _, value := range propertyValues {
+		points = append(points, plugin.PointData{
+			PointName: value.Name,
+			Value:     value.Value,
+		})
+	}
+
+	// 下发控制
+	err := core.SendBatchWrite(id, points)
+	if err != nil {
+		helper.Logger.Error("modbus server send batch write error", zap.Error(err))
+	}
 }
 
 func (e *Export) convertValueType(valueType config.ValueType) (int, error) {
