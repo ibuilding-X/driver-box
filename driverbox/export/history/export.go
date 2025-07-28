@@ -5,6 +5,7 @@ import (
 	_ "github.com/glebarez/sqlite"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 	"os"
@@ -53,6 +54,9 @@ type Export struct {
 	ready    bool
 	//实时数据缓存
 	realTimeDataQueue []deviceQueueData
+	realTask          *crontab.Future
+	snapshotTask      *crontab.Future
+	clearTask         *crontab.Future
 }
 
 func NewExport() *Export {
@@ -78,7 +82,7 @@ func (export0 *Export) Init() error {
 	if realTimeCycle == "" {
 		realTimeCycle = "5s"
 	}
-	_, e = helper.Crontab.AddFunc(realTimeCycle, func() {
+	export0.realTask, e = helper.Crontab.AddFunc(realTimeCycle, func() {
 		if len(export0.realTimeDataQueue) == 0 {
 			return
 		}
@@ -96,7 +100,7 @@ func (export0 *Export) Init() error {
 	if snapshotDataCycle == "" {
 		snapshotDataCycle = "60s"
 	}
-	_, e = helper.Crontab.AddFunc(snapshotDataCycle, func() {
+	export0.snapshotTask, e = helper.Crontab.AddFunc(snapshotDataCycle, func() {
 		export0.writeDeviceSnapshotData()
 	})
 	if e != nil {
@@ -111,7 +115,7 @@ func (export0 *Export) Init() error {
 		value, _ := strconv.ParseInt(duration, 10, 64)
 		defaultDuration = int(value)
 	}
-	_, e = helper.Crontab.AddFunc("1h", func() {
+	export0.clearTask, e = helper.Crontab.AddFunc("1h", func() {
 		export0.clearExpiredData(defaultDuration)
 	})
 	if e != nil {
@@ -120,6 +124,15 @@ func (export0 *Export) Init() error {
 	}
 	export0.ready = true
 	return nil
+}
+
+func (export0 *Export) Destroy() error {
+	export0.ready = false
+	export0.realTask.Disable()
+	export0.snapshotTask.Disable()
+	export0.clearTask.Disable()
+	export0.realTimeDataQueue = make([]deviceQueueData, 0)
+	return export0.db.Close()
 }
 
 // ExportTo 接收驱动数据

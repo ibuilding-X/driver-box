@@ -49,6 +49,14 @@ func (export *Export) Init() error {
 	export.ready = true
 	return nil
 }
+func (export *Export) Destroy() error {
+	export.ready = false
+	for key, c := range export.linkEdge.schedules {
+		helper.Logger.Info("stop linkEdge cron", zap.String("id", key))
+		c.Stop()
+	}
+	return nil
+}
 func NewExport() *Export {
 	once.Do(func() {
 		driverInstance = &Export{

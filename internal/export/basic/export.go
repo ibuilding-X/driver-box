@@ -43,6 +43,11 @@ func (export *Export) Init() error {
 	go udpDiscover()
 	return nil
 }
+
+func (export *Export) Destroy() error {
+	export.ready = false
+	return nil
+}
 func NewExport() *Export {
 	once.Do(func() {
 		driverInstance = &Export{}

@@ -40,6 +40,10 @@ func (export *Export) Init() error {
 	export.ready = true
 	return nil
 }
+func (export *Export) Destroy() error {
+	export.ready = false
+	return nil
+}
 func NewExport() *Export {
 	once.Do(func() {
 		driverInstance = &Export{}

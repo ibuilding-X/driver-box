@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
@@ -22,12 +23,13 @@ var driverInstance *Export
 var once = &sync.Once{}
 
 type Export struct {
-	baseUrl    string
-	model      string
-	ready      bool
-	mcpServers []*server.MCPServer
-	ctx        context.Context
-	llm        llms.Model
+	baseUrl      string
+	model        string
+	ready        bool
+	sseServer    *server.SSEServer
+	streamServer *server.StreamableHTTPServer
+	ctx          context.Context
+	llm          llms.Model
 }
 
 func (export *Export) Init() error {
@@ -53,6 +55,18 @@ func (export *Export) Init() error {
 	}()
 
 	export.ready = true
+	return nil
+}
+func (export *Export) Destroy() error {
+	export.ready = false
+	if export.sseServer != nil {
+		_ = export.sseServer.Shutdown(export.ctx)
+		export.sseServer = nil
+	}
+	if export.streamServer != nil {
+		_ = export.streamServer.Shutdown(export.ctx)
+		export.streamServer = nil
+	}
 	return nil
 }
 func NewExport() *Export {
@@ -121,22 +135,22 @@ func (export *Export) run(transport, addr string) error {
 	switch transport {
 	case "stdio":
 		if err := server.ServeStdio(s); err != nil {
-			if err == context.Canceled {
+			if errors.Is(err, context.Canceled) {
 				return nil
 			}
 			return err
 		}
 	case "sse":
-		srv := server.NewSSEServer(s, server.WithBaseURL(addr))
-		if err := srv.Start(addr); err != nil {
+		export.sseServer = server.NewSSEServer(s, server.WithBaseURL(addr))
+		if err := export.sseServer.Start(addr); err != nil {
 			helper.Logger.Error("start sse server error", zap.Error(err))
-			if err == context.Canceled {
+			if errors.Is(err, context.Canceled) {
 				return nil
 			}
 			return fmt.Errorf("server error: %v", err)
 		}
 	case "http":
-		httpServer := server.NewStreamableHTTPServer(s,
+		export.streamServer = server.NewStreamableHTTPServer(s,
 			server.WithStateLess(true),
 			server.WithHTTPContextFunc(func(ctx context.Context, r *http.Request) context.Context {
 				auth := r.Header.Get("Authorization")
@@ -147,8 +161,8 @@ func (export *Export) run(transport, addr string) error {
 				return ctx
 			}),
 		)
-		if err := httpServer.Start(addr); err != nil {
-			if err == context.Canceled {
+		if err := export.streamServer.Start(addr); err != nil {
+			if errors.Is(err, context.Canceled) {
 				return nil
 			}
 			return fmt.Errorf("server error: %v", err)

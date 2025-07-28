@@ -15,6 +15,10 @@ func (g *gatewayExport) Init() error {
 	return nil
 }
 
+func (g *gatewayExport) Destroy() error {
+	return nil
+}
+
 // ExportTo 接收驱动数据
 func (g *gatewayExport) ExportTo(deviceData plugin.DeviceData) {
 	g.wss.sendDeviceData(deviceData)

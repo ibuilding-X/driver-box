@@ -36,6 +36,11 @@ func NewExport() *Export {
 	return driverInstance
 }
 
+func (export *Export) Destroy() error {
+	export.ready = false
+	return nil
+}
+
 // 点位变化触发场景联动
 func (export *Export) ExportTo(deviceData plugin.DeviceData) {
 	//设备点位已通过

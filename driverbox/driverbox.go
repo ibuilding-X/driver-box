@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
+	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -11,6 +12,7 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
 	"github.com/ibuilding-x/driver-box/internal/core"
 	export0 "github.com/ibuilding-x/driver-box/internal/export"
+	plugins0 "github.com/ibuilding-x/driver-box/internal/plugins"
 	"go.uber.org/zap"
 	"net/http"
 	"os"
@@ -63,6 +65,21 @@ func Start() error {
 
 	helper.Logger.Info("start driver-box success.")
 	return err
+}
+
+func Stop() error {
+	var e error
+	helper.Crontab.Stop()
+	helper.Crontab = nil
+	for _, item := range export0.Exports {
+		e = item.Destroy()
+		if e != nil {
+			helper.Logger.Error("destroy export error", zap.Error(e))
+		}
+	}
+	export0.Exports = make([]export.Export, 0)
+	plugins0.Manager.Destroy()
+	return nil
 }
 
 func initEnvConfig() error {
