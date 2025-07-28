@@ -1,6 +1,7 @@
 package driverbox
 
 import (
+	"context"
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
@@ -13,11 +14,14 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/core"
 	export0 "github.com/ibuilding-x/driver-box/internal/export"
 	plugins0 "github.com/ibuilding-x/driver-box/internal/plugins"
+	"github.com/julienschmidt/httprouter"
 	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"path"
 )
+
+var srv *http.Server
 
 func Start() error {
 	//第一步：加载配置文件DriverConfig
@@ -34,7 +38,6 @@ func Start() error {
 	}
 	//第三步：启动定时器
 	helper.Crontab = crontab.NewCrontab()
-	helper.Crontab.Start()
 
 	//第四步：启动Export
 	for _, item := range export0.Exports {
@@ -45,7 +48,8 @@ func Start() error {
 
 	// 第五步：启动 REST 服务
 	go func() {
-		e := http.ListenAndServe(":"+helper.EnvConfig.HttpListen, restful.HttpRouter)
+		srv = &http.Server{Addr: ":" + helper.EnvConfig.HttpListen, Handler: restful.HttpRouter}
+		e := srv.ListenAndServe()
 		if e != nil {
 			helper.Logger.Error("start rest server error", zap.Error(e))
 		}
@@ -69,8 +73,17 @@ func Start() error {
 
 func Stop() error {
 	var e error
-	helper.Crontab.Stop()
-	helper.Crontab = nil
+	//停止定时器
+	if helper.Crontab != nil {
+		crontab.NewCrontab().Clear()
+		helper.Crontab = nil
+	}
+	if srv != nil {
+		e = srv.Shutdown(context.Background())
+		srv = nil
+		restful.HttpRouter = httprouter.New()
+		http.DefaultServeMux = http.NewServeMux()
+	}
 	for _, item := range export0.Exports {
 		e = item.Destroy()
 		if e != nil {
@@ -79,6 +92,10 @@ func Stop() error {
 	}
 	export0.Exports = make([]export.Export, 0)
 	plugins0.Manager.Destroy()
+	// 3. 停止影子服务设备状态监听、删除影子服务
+	helper.DeviceShadow.StopStatusListener()
+	// 4. 清除核心缓存数据
+	helper.CoreCache.Reset()
 	return nil
 }
 

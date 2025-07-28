@@ -2,6 +2,7 @@ package shadow
 
 import (
 	"errors"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	shadow2 "github.com/ibuilding-x/driver-box/driverbox/pkg/shadow"
 	"sync"
 	"time"
@@ -11,7 +12,7 @@ var ErrUnknownDevice = errors.New("unknown device")
 var DeviceShadow shadow2.DeviceShadow // 本地设备影子
 type deviceShadow struct {
 	devices     map[string]*device
-	ticker      *time.Ticker
+	ticker      *crontab.Future
 	handlerFunc shadow2.OnlineChangeCallback
 	mutex       *sync.RWMutex
 }
@@ -19,10 +20,11 @@ type deviceShadow struct {
 func NewDeviceShadow() shadow2.DeviceShadow {
 	ds := &deviceShadow{
 		devices: make(map[string]*device),
-		ticker:  time.NewTicker(5 * time.Second),
 		mutex:   &sync.RWMutex{},
 	}
-	go ds.startCheckOfflineTask()
+	ds.ticker, _ = crontab.NewCrontab().AddFunc("5s", func() {
+		ds.checkOffline()
+	})
 	DeviceShadow = ds
 	return ds
 }
@@ -210,7 +212,8 @@ func (d *deviceShadow) SetOnlineChangeCallback(handlerFunc shadow2.OnlineChangeC
 
 func (d *deviceShadow) StopStatusListener() {
 	if d.ticker != nil {
-		d.ticker.Stop()
+		d.ticker.Disable()
+		d.ticker = nil
 	}
 }
 
@@ -256,12 +259,6 @@ func (d *deviceShadow) GetWritePointValue(id string, pointName string) (value in
 func (d *deviceShadow) handlerCallback(id string, online bool) {
 	if d.handlerFunc != nil {
 		go d.handlerFunc(id, online)
-	}
-}
-
-func (d *deviceShadow) startCheckOfflineTask() {
-	for range d.ticker.C {
-		d.checkOffline()
 	}
 }
 

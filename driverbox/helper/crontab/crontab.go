@@ -1,23 +1,24 @@
 package crontab
 
 import (
-	"context"
+	"sync"
 	"time"
 )
 
+var instance *crontab
+var once = &sync.Once{}
+
 type Crontab interface {
-	Start()
-	Stop()
+	Clear()
 	// AddFunc s please refer to time.ParseDuration
 	AddFunc(s string, f func()) (*Future, error)
 }
 
 func NewCrontab() Crontab {
-	ctx, cancel := context.WithCancel(context.Background())
-	return &crontab{
-		signal: cancel,
-		ctx:    ctx,
-	}
+	once.Do(func() {
+		instance = &crontab{}
+	})
+	return instance
 }
 
 type Future struct {
@@ -27,23 +28,17 @@ type Future struct {
 	ticker *time.Ticker
 	//是否启用
 	enable bool
-	ctx    context.Context
 }
 type crontab struct {
-	signal      context.CancelFunc
-	ctx         context.Context
 	tickerArray []*time.Ticker
 }
 
-func (c *crontab) Start() {
-	c.signal()
-}
-
-func (c *crontab) Stop() {
+func (c *crontab) Clear() {
 	if len(c.tickerArray) > 0 {
 		for i, _ := range c.tickerArray {
 			c.tickerArray[i].Stop()
 		}
+		c.tickerArray = make([]*time.Ticker, 0)
 	}
 }
 
@@ -56,24 +51,19 @@ func (c *crontab) AddFunc(s string, f func()) (*Future, error) {
 		function: f,
 		ticker:   time.NewTicker(d),
 		enable:   true,
-		ctx:      c.ctx,
 	}
 	go function.run()
 	return function, nil
 }
 
 func (f *Future) run() {
-	select {
-	case <-f.ctx.Done():
-		for range f.ticker.C {
-			if !f.enable {
-				f.ticker.Stop()
-				break
-			}
-			f.function()
+	for range f.ticker.C {
+		if !f.enable {
+			f.ticker.Stop()
+			break
 		}
+		f.function()
 	}
-	//fmt.Println("stop run")
 }
 func (f *Future) Disable() {
 	f.enable = false

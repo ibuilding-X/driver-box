@@ -11,7 +11,6 @@ func TestCrontab_AddFunc(t *testing.T) {
 	future, err := cron.AddFunc("3s", func() {
 		fmt.Println("3s")
 	})
-	cron.Start()
 
 	cron.AddFunc("2s", func() {
 		fmt.Println("2s")

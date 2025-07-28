@@ -36,6 +36,9 @@ func (e *Export) Init() error {
 
 	return nil
 }
+func (e *Export) Destroy() error {
+	return e.server.Stop()
+}
 
 func (e *Export) ExportTo(deviceData plugin.DeviceData) {
 	for _, point := range deviceData.Values {

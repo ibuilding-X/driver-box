@@ -12,7 +12,18 @@ import (
 	"strings"
 )
 
-func udpDiscover() {
+type Discover struct {
+	conn   *net.UDPConn
+	enable bool
+}
+
+func NewDiscover() *Discover {
+	return &Discover{
+		enable: true,
+	}
+}
+
+func (discover *Discover) udpDiscover() {
 	// 监听UDP端口
 	port := 9090
 	httpListen := os.Getenv(config.ENV_UDP_DISCOVER_LISTEN)
@@ -28,19 +39,18 @@ func udpDiscover() {
 		Port: port,
 		IP:   net.IPv4(0, 0, 0, 0),
 	}
-
-	conn, err := net.ListenUDP("udp", &addr)
+	var err error
+	discover.conn, err = net.ListenUDP("udp", &addr)
 	if err != nil {
 		helper.Logger.Error("UDP监听失败", zap.Error(err))
 		return
 	}
-	defer conn.Close()
 
 	helper.Logger.Info("UDP服务已启动.", zap.Int("port", port))
 
 	buffer := make([]byte, 1024)
-	for {
-		n, remoteAddr, err := conn.ReadFromUDP(buffer)
+	for discover.enable {
+		n, remoteAddr, err := discover.conn.ReadFromUDP(buffer)
 		if err != nil {
 			helper.Logger.Error("读取UDP数据失败", zap.Error(err))
 			continue
@@ -71,11 +81,17 @@ func udpDiscover() {
 		}
 
 		// 返回响应
-		_, err = conn.WriteToUDP(response, remoteAddr)
+		_, err = discover.conn.WriteToUDP(response, remoteAddr)
 		if err != nil {
 			helper.Logger.Error("发送响应失败", zap.Error(err))
 		}
 	}
+}
+
+func (discover *Discover) stopDiscover() {
+	discover.enable = false
+	discover.conn.Close()
+	helper.Logger.Info("UDP服务已停止.")
 }
 
 // 验证请求数据
