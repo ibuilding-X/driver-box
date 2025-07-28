@@ -91,7 +91,8 @@ func Stop() error {
 		}
 	}
 	export0.Exports = make([]export.Export, 0)
-	plugins0.Manager.Destroy()
+	bootstrap.DestroyPlugins()
+	plugins0.Manager.Clear()
 	// 3. 停止影子服务设备状态监听、删除影子服务
 	helper.DeviceShadow.StopStatusListener()
 	helper.DeviceShadow = nil

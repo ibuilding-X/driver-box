@@ -187,13 +187,7 @@ func initDeviceShadow(configMap map[string]config.Config) {
 
 var reloadLock sync.Mutex
 
-func ReloadPlugins() error {
-	reloadLock.Lock()
-	defer reloadLock.Unlock()
-
-	helper.Logger.Info("reload all plugins")
-
-	// 2. 停止运行中的 plugin
+func DestroyPlugins() {
 	pluginKeys := helper.CoreCache.GetAllRunningPluginKey()
 	if len(pluginKeys) > 0 {
 		for i, _ := range pluginKeys {
@@ -207,6 +201,16 @@ func ReloadPlugins() error {
 			}
 		}
 	}
+}
+
+func ReloadPlugins() error {
+	reloadLock.Lock()
+	defer reloadLock.Unlock()
+
+	helper.Logger.Info("reload all plugins")
+
+	// 2. 停止运行中的 plugin
+	DestroyPlugins()
 	// 3. 停止影子服务设备状态监听、删除影子服务
 	helper.DeviceShadow.StopStatusListener()
 	// 4. 清除核心缓存数据

@@ -5,9 +5,7 @@ package plugins
 import (
 	"fmt"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"go.uber.org/zap"
 	"sync"
 )
 
@@ -54,15 +52,6 @@ func (m *manager) GetSupportPlugins() []string {
 	return plugins
 }
 
-func (m *manager) Destroy() {
-	m.plugins.Range(func(key, value interface{}) bool {
-		err := value.(plugin.Plugin).Destroy()
-		if err != nil {
-			helper.Logger.Error("destroy plugin error", zap.Any("plugin", key), zap.Error(err))
-		} else {
-			helper.Logger.Info("destroy plugin success", zap.Any("plugin", key))
-		}
-		return true
-	})
+func (m *manager) Clear() {
 	m.plugins = &sync.Map{}
 }
