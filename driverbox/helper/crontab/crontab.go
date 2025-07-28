@@ -14,7 +14,7 @@ type Crontab interface {
 	AddFunc(s string, f func()) (*Future, error)
 }
 
-func NewCrontab() Crontab {
+func Instance() Crontab {
 	once.Do(func() {
 		instance = &crontab{}
 	})

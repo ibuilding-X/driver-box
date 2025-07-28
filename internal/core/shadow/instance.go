@@ -22,7 +22,7 @@ func NewDeviceShadow() shadow2.DeviceShadow {
 		devices: make(map[string]*device),
 		mutex:   &sync.RWMutex{},
 	}
-	ds.ticker, _ = crontab.NewCrontab().AddFunc("5s", func() {
+	ds.ticker, _ = crontab.Instance().AddFunc("5s", func() {
 		ds.checkOffline()
 	})
 	DeviceShadow = ds

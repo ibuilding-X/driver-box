@@ -37,7 +37,7 @@ func Start() error {
 		return err
 	}
 	//第三步：启动定时器
-	helper.Crontab = crontab.NewCrontab()
+	helper.Crontab = crontab.Instance()
 
 	//第四步：启动Export
 	for _, item := range export0.Exports {
@@ -73,9 +73,9 @@ func Start() error {
 
 func Stop() error {
 	var e error
-	//停止定时器
+	//清理存量定时器
 	if helper.Crontab != nil {
-		crontab.NewCrontab().Clear()
+		crontab.Instance().Clear()
 		helper.Crontab = nil
 	}
 	if srv != nil {
@@ -94,8 +94,10 @@ func Stop() error {
 	plugins0.Manager.Destroy()
 	// 3. 停止影子服务设备状态监听、删除影子服务
 	helper.DeviceShadow.StopStatusListener()
+	helper.DeviceShadow = nil
 	// 4. 清除核心缓存数据
 	helper.CoreCache.Reset()
+	helper.CoreCache = nil
 	return nil
 }
 
