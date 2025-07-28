@@ -30,15 +30,15 @@ type Future struct {
 	enable bool
 }
 type crontab struct {
-	tickerArray []*time.Ticker
+	futures []*Future
 }
 
 func (c *crontab) Clear() {
-	if len(c.tickerArray) > 0 {
-		for i, _ := range c.tickerArray {
-			c.tickerArray[i].Stop()
+	if len(c.futures) > 0 {
+		for i, _ := range c.futures {
+			c.futures[i].Disable()
 		}
-		c.tickerArray = make([]*time.Ticker, 0)
+		c.futures = make([]*Future, 0)
 	}
 }
 
@@ -52,6 +52,7 @@ func (c *crontab) AddFunc(s string, f func()) (*Future, error) {
 		ticker:   time.NewTicker(d),
 		enable:   true,
 	}
+	c.futures = append(c.futures, function)
 	go function.run()
 	return function, nil
 }
@@ -67,4 +68,5 @@ func (f *Future) run() {
 }
 func (f *Future) Disable() {
 	f.enable = false
+	f.ticker.Stop()
 }
