@@ -126,6 +126,6 @@ func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error)
 	for _, data := range group {
 		res = append(res, data)
 	}
-	logger.Logger.Info("mirror decode result", zap.Any("raw", rawDeviceData), zap.Any("mirror", res))
+	logger.Logger.Debug("mirror decode result", zap.Any("raw", rawDeviceData), zap.Any("mirror", res))
 	return res, err
 }
