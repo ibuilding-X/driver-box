@@ -25,7 +25,8 @@ func InitLuaVM(filePath string) (*lua.LState, error) {
 		return nil, errors.New("lua script not found")
 	}
 	ls := lua.NewState(lua.Options{
-		RegistryMaxSize: 128,
+		RegistrySize:    128,
+		RegistryMaxSize: 1024 * 8,
 	})
 	// 预加载模块（json、http、storage）
 	ls.PreloadModule("http", gluahttp.NewHttpModule(&http.Client{}).Loader)
