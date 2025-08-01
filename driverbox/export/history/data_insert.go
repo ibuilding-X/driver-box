@@ -25,7 +25,7 @@ func (export0 *Export) writeRealTimeData(queue []deviceQueueData) {
 
 	for _, deviceData := range queue {
 		deviceId := deviceData.deviceData.ID
-		device, res := helper.DeviceShadow.GetDevice(deviceId)
+		device, res := helper.CoreCache.GetDevice(deviceId)
 		pointData := map[string]interface{}{
 			"device_id":   deviceId,
 			"create_time": deviceData.addTime,
