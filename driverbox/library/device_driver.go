@@ -104,9 +104,9 @@ func (device *DeviceDriver) DeviceDecode(driverKey string, req DeviceDecodeReque
 	} else {
 		L = cache.(*glua.LState)
 	}
-	points := L.NewTable()
+	points := L.CreateTable(len(req.Points), 0) // 预分配数组大小
 	for _, point := range req.Points {
-		pointData := L.NewTable()
+		pointData := L.CreateTable(0, 2) // 预分配name和value两个字段
 		pointData.RawSetString("name", glua.LString(point.PointName))
 		switch v := point.Value.(type) {
 		case string:
