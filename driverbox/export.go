@@ -3,13 +3,6 @@ package driverbox
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	export0 "github.com/ibuilding-x/driver-box/internal/export"
-	"github.com/ibuilding-x/driver-box/internal/export/ai"
-	"github.com/ibuilding-x/driver-box/internal/export/basic"
-	"github.com/ibuilding-x/driver-box/internal/export/discover"
-	"github.com/ibuilding-x/driver-box/internal/export/gwexport"
-	"github.com/ibuilding-x/driver-box/internal/export/linkedge"
-	"github.com/ibuilding-x/driver-box/internal/export/mirror"
-	"github.com/ibuilding-x/driver-box/internal/export/ui"
 )
 
 var Exports exports
@@ -45,71 +38,6 @@ func (exports *exports) LoadExports(export2 []export.Export) {
 	for _, e := range export2 {
 		exports.LoadExport(e)
 	}
-}
-
-// LoadAllExports 加载driver-box框架内置的所有Export插件
-// 功能:
-//
-//	依次调用各个内置Export的加载方法，包括基础Export、场景联动Export等
-func (exports *exports) LoadAllExports() {
-	exports.LoadBasicExport()
-	exports.LoadLinkEdgeExport()
-	exports.LoadMirrorExport()
-	exports.LoadUIExport()
-	exports.LoadDiscoverExport()
-	exports.LoadGatewayExport()
-}
-
-// LoadLinkEdgeExport 加载场景联动Export插件
-// 功能:
-//
-//	创建并加载linkedge.NewExport()实例
-func (exports *exports) LoadLinkEdgeExport() {
-	exports.LoadExport(linkedge.NewExport())
-}
-
-// LoadMirrorExport 加载镜像设备Export插件
-// 功能:
-//
-//	创建并加载mirror.NewExport()实例
-func (exports *exports) LoadMirrorExport() {
-	exports.LoadExport(mirror.NewExport())
-}
-
-// LoadDiscoverExport 加载设备自动发现Export插件
-// 功能:
-//
-//	创建并加载discover.NewExport()实例
-func (exports *exports) LoadDiscoverExport() {
-	exports.LoadExport(discover.NewExport())
-}
-
-// LoadUIExport 加载driver-box内置UI Export插件
-// 功能:
-//
-//	创建并加载ui.NewExport()实例
-func (exports *exports) LoadUIExport() {
-	exports.LoadExport(ui.NewExport())
-}
-
-// LoadGatewayExport 加载网关Export插件
-// 功能:
-//
-//	创建并加载gwexport.New()实例
-func (exports *exports) LoadGatewayExport() {
-	exports.LoadExport(gwexport.New())
-}
-
-// LoadBasicExport 加载基础Export插件
-// 功能:
-//
-//	创建并加载basic.NewExport()实例
-func (exports *exports) LoadBasicExport() {
-	exports.LoadExport(basic.NewExport())
-}
-
-func (exports *exports) LoadMcpExport() {
-	exports.LoadExport(ai.NewExport())
 }
 
 // exists 检查指定的Export是否已经加载
