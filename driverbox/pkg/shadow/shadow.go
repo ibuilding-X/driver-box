@@ -30,7 +30,8 @@ type DevicePoint struct {
 type DeviceShadow interface {
 	// AddDevice 新增设备
 	AddDevice(id string, modelName string, ttl ...time.Duration)
-	// GetDevice 获取设备
+	// GetDevice 获取设备,
+	//如果出于获取 ModelName 为目的，建议采用 CoreCache 接口，该方面内部的toPublic在大量调用的情况下资源开销相对较高
 	GetDevice(id string) (device Device, ok bool)
 	// HasDevice 是否存在设备
 	HasDevice(id string) bool
