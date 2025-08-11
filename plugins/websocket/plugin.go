@@ -5,6 +5,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins/websocket"
 )
 
-func RegisterWebsocketPlugin() error {
+func RegisterPlugin() error {
 	return plugins.Manager.Register(websocket.ProtocolName, new(websocket.Plugin))
 }

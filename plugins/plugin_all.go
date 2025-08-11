@@ -26,7 +26,7 @@ func RegisterAllPlugins() error {
 	if err := httpclient.RegisterPlugin(); err != nil {
 		return err
 	}
-	if err := websocket.RegisterWebsocketPlugin(); err != nil {
+	if err := websocket.RegisterPlugin(); err != nil {
 		return err
 	}
 	if err := tcpserver.RegisterPlugin(); err != nil {
