@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
+	"sync"
+
 	"github.com/gorilla/websocket"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
@@ -15,9 +19,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/dto"
 	"github.com/ibuilding-x/driver-box/internal/export/discover"
 	"go.uber.org/zap"
-	"net/http"
-	"strings"
-	"sync"
 )
 
 // WebSocketPath websocket 服务路径
@@ -68,7 +69,8 @@ func (wss *websocketService) handler(w http.ResponseWriter, r *http.Request) {
 			helper.Logger.Error("gateway export handle ws message error", zap.Error(err))
 		}
 	}
-
+	wss.mainGatewayConn = nil
+	wss.mainGateway = ""
 	// ws 连接关闭
 	helper.Logger.Warn("gateway export ws close", zap.String("remoteAddress", conn.RemoteAddr().String()))
 }
@@ -347,12 +349,10 @@ func (wss *websocketService) parseGatewayDeviceID(id string) string {
 
 // sendJSONToWebSocket 发送 JSON 数据到 websocket
 func (wss *websocketService) sendJSONToWebSocket(v interface{}) error {
+	if wss.mainGateway == "" || wss.mainGatewayConn == nil {
+		return nil
+	}
 	wss.mu.Lock()
 	defer wss.mu.Unlock()
-
-	if wss.mainGateway != "" && wss.mainGatewayConn != nil {
-		return wss.mainGatewayConn.WriteJSON(v)
-	}
-
-	return nil
+	return wss.mainGatewayConn.WriteJSON(v)
 }
