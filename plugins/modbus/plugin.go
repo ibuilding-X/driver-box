@@ -5,6 +5,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins/modbus"
 )
 
-func RegisterPlugin() error {
-	return plugins0.Manager.Register(modbus.ProtocolName, new(modbus.Plugin))
+func RegisterPlugin() {
+	plugins0.Manager.Register(modbus.ProtocolName, new(modbus.Plugin))
 }

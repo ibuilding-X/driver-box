@@ -11,6 +11,6 @@ func ReloadPlugins() error {
 	return bootstrap.ReloadPlugins()
 }
 
-func RegisterPlugin(name string, plugin plugin.Plugin) error {
-	return plugins0.Manager.Register(name, plugin)
+func RegisterPlugin(name string, plugin plugin.Plugin) {
+	plugins0.Manager.Register(name, plugin)
 }

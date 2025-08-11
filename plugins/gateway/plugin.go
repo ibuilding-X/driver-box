@@ -5,6 +5,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins/gwplugin"
 )
 
-func RegisterPlugin() error {
-	return plugins.Manager.Register(gwplugin.ProtocolName, gwplugin.New())
+func RegisterPlugin() {
+	plugins.Manager.Register(gwplugin.ProtocolName, gwplugin.New())
 }

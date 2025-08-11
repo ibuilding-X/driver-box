@@ -5,6 +5,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins/mqtt"
 )
 
-func RegisterPlugin() error {
-	return plugins0.Manager.Register(mqtt.ProtocolName, new(mqtt.Plugin))
+func RegisterPlugin() {
+	plugins0.Manager.Register(mqtt.ProtocolName, new(mqtt.Plugin))
 }

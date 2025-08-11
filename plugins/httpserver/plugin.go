@@ -5,6 +5,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins/httpserver"
 )
 
-func RegisterPlugin() error {
-	return plugins.Manager.Register(httpserver.ProtocolName, new(httpserver.Plugin))
+func RegisterPlugin() {
+	plugins.Manager.Register(httpserver.ProtocolName, new(httpserver.Plugin))
 }

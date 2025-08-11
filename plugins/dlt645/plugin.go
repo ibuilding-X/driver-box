@@ -5,6 +5,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins/dlt645"
 )
 
-func RegisterPlugin() error {
-	return plugins.Manager.Register(dlt645.ProtocolName, new(dlt645.Plugin))
+func RegisterPlugin() {
+	plugins.Manager.Register(dlt645.ProtocolName, new(dlt645.Plugin))
 }

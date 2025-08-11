@@ -13,36 +13,15 @@ import (
 	"github.com/ibuilding-x/driver-box/plugins/websocket"
 )
 
-func RegisterAllPlugins() error {
-	if err := modbus.RegisterPlugin(); err != nil {
-		return err
-	}
-	if err := bacnet.RegisterPlugin(); err != nil {
-		return err
-	}
-	if err := httpserver.RegisterPlugin(); err != nil {
-		return err
-	}
-	if err := httpclient.RegisterPlugin(); err != nil {
-		return err
-	}
-	if err := websocket.RegisterPlugin(); err != nil {
-		return err
-	}
-	if err := tcpserver.RegisterPlugin(); err != nil {
-		return err
-	}
-	if err := mqtt.RegisterPlugin(); err != nil {
-		return err
-	}
-	if err := mirror.RegisterPlugin(); err != nil {
-		return err
-	}
-	if err := dlt645.RegisterPlugin(); err != nil {
-		return err
-	}
-	if err := gateway.RegisterPlugin(); err != nil {
-		return err
-	}
-	return nil
+func RegisterAllPlugins() {
+	modbus.RegisterPlugin()
+	bacnet.RegisterPlugin()
+	httpserver.RegisterPlugin()
+	httpclient.RegisterPlugin()
+	websocket.RegisterPlugin()
+	tcpserver.RegisterPlugin()
+	mqtt.RegisterPlugin()
+	mirror.RegisterPlugin()
+	dlt645.RegisterPlugin()
+	gateway.RegisterPlugin()
 }
