@@ -142,10 +142,7 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 
 		//浮点类型,且readValue包含小数时作小数保留位数加工
 		if point.ValueType == config.ValueType_Float && value != 0 {
-			multiplier := 1.0
-			for i := 0; i < point.Decimals; i++ {
-				multiplier *= 10
-			}
+			multiplier := math.Pow(10, float64(point.Decimals))
 			// 先转成整数，再通过除法实现小数位数保留
 			value = math.Trunc(value.(float64)*multiplier) / multiplier
 		}
