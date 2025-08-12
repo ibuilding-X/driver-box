@@ -25,6 +25,9 @@ const (
 	//是否虚拟设备模式: true:是,false:否
 	ENV_VIRTUAL = "DRIVERBOX_VIRTUAL"
 
+	//是否虚拟设备模式: true:是,false:否
+	ENV_LUA_PRINT_ENABLED = "DRIVERBOX_LUA_PRINT_ENABLE"
+
 	//场景联动配置存放目录
 	ENV_LINKEDGE_CONFIG_PATH = "EXPORT_LINKEDGE_CONFIG_PATH"
 
