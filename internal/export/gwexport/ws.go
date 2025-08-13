@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"net/http"
 	"strings"
 	"sync"
@@ -155,20 +156,28 @@ func (wss *websocketService) sync() {
 
 // syncModels 同步设备模型数据
 func (wss *websocketService) syncModels() {
+	// 获取所有模型名称
 	models := helper.CoreCache.Models()
 	if len(models) == 0 {
 		return
 	}
 
-	// 优化模型数据
-	for i, _ := range models {
-		models[i].Name = wss.genGatewayModelName(models[i].Name)
+	// 获取设备模型
+	var deviceModels []config.DeviceModel
+	for _, model := range models {
+		deviceModel, ok := cmanager.GetModel(model.Name)
+		if !ok {
+			continue
+		}
+
+		// 修改模型名称，防止与主网关模型名称重复
+		deviceModel.Name = wss.genGatewayModelName(deviceModel.Name)
 	}
 
 	// 发送模型数据
 	var sendData dto.WSPayload
 	sendData.Type = dto.WSForSyncModels
-	sendData.Models = models
+	sendData.Models = deviceModels
 
 	if err := wss.sendJSONToWebSocket(sendData); err != nil {
 		helper.Logger.Error("gateway export sync models error", zap.Error(err))

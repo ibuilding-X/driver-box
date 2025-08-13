@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/websocket"
-	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
@@ -292,10 +291,7 @@ func (c *connector) syncModels(payload dto.WSPayload) error {
 	if len(payload.Models) > 0 {
 		var errCounter int
 		for _, model := range payload.Models {
-			err := helper.CoreCache.AddModel(ProtocolName, config.Model{
-				ModelBase: model.ModelBase,
-				Points:    model.Points,
-			})
+			err := helper.CoreCache.AddModel(ProtocolName, model)
 			if err != nil {
 				errCounter++
 				helper.Logger.Error("gateway plugin add model failed", zap.Any("model", model), zap.Error(err))

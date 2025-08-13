@@ -389,44 +389,11 @@ func (c *cache) GetConnectionPluginName(key string) string {
 }
 
 // AddModel 新增模型
-func (c *cache) AddModel(plugin string, model config.Model) error {
-	// 模型内容转换
-	var m config.DeviceModel
-	m.ModelBase = model.ModelBase
-
-	// 点位列表
-	var points []config.PointMap
-	for _, point := range model.Points {
-		pointMap := config.PointMap{
-			"name":        point.Name,
-			"description": point.Description,
-			"valueType":   point.ValueType,
-			"readWrite":   point.ReadWrite,
-			"units":       point.Units,
-			"reportMode":  point.ReportMode,
-			"scale":       point.Scale,
-			"decimals":    point.Decimals,
-			"enums":       point.Enums,
-		}
-		for k, v := range point.Extends {
-			pointMap[k] = v
-		}
-		points = append(points, pointMap)
-	}
-	m.DevicePoints = points
-
-	// 设备列表
-	var devices []config.Device
-	for _, device := range model.Devices {
-		devices = append(devices, device)
-	}
-	m.Devices = devices
-
-	err := cmanager.AddModel(plugin, m)
+func (c *cache) AddModel(plugin string, model config.DeviceModel) error {
+	err := cmanager.AddModel(plugin, model)
 	if err == nil {
-		c.models.Store(model.Name, model)
+		c.models.Store(model.Name, model.ToModel())
 	}
-
 	return err
 }
 
