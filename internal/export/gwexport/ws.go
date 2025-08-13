@@ -172,6 +172,7 @@ func (wss *websocketService) syncModels() {
 
 		// 修改模型名称，防止与主网关模型名称重复
 		deviceModel.Name = wss.genGatewayModelName(deviceModel.Name)
+		deviceModels = append(deviceModels, deviceModel)
 	}
 
 	// 发送模型数据
