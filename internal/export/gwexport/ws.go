@@ -170,6 +170,9 @@ func (wss *websocketService) syncModels() {
 			continue
 		}
 
+		// fix：同步模型时，应去除模型下设备
+		deviceModel.Devices = nil
+
 		// 修改模型名称，防止与主网关模型名称重复
 		deviceModel.Name = wss.genGatewayModelName(deviceModel.Name)
 		deviceModels = append(deviceModels, deviceModel)
