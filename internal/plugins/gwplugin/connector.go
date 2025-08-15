@@ -8,6 +8,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
+	"github.com/ibuilding-x/driver-box/internal/bootstrap"
 	"github.com/ibuilding-x/driver-box/internal/core"
 	"github.com/ibuilding-x/driver-box/internal/core/shadow"
 	"github.com/ibuilding-x/driver-box/internal/dto"
@@ -350,6 +351,11 @@ func (c *connector) syncDevices(payload dto.WSPayload) error {
 			c.syncDevicesRes(fmt.Errorf("sync devices failed: devices count: %d, error count: %d", len(payload.Devices), errCounter))
 		} else {
 			c.syncDevicesRes(nil)
+		}
+
+		// todo 重载 coreCache（临时通过重载 plugin 实现）
+		if err := bootstrap.ReloadPlugins(); err != nil {
+			helper.Logger.Error("gateway plugin reload plugins after sync devices failed", zap.Error(err))
 		}
 	}
 	return nil
