@@ -392,6 +392,11 @@ func (c *cache) GetConnectionPluginName(key string) string {
 func (c *cache) AddModel(plugin string, model config.DeviceModel) error {
 	err := cmanager.AddModel(plugin, model)
 	if err == nil {
+		// 判断模型是否存在
+		if _, ok := c.models.Load(model.Name); ok {
+			return nil
+		}
+		// 添加模型
 		c.models.Store(model.Name, model.ToModel())
 	}
 	return err
