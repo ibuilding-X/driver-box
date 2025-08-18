@@ -63,9 +63,10 @@ type encodeData struct {
 }
 
 type connector struct {
-	conf connectorConfig
-	conn *websocket.Conn // 存储 websocket 连接
-	mu   sync.Mutex
+	conf      connectorConfig
+	conn      *websocket.Conn // 存储 websocket 连接
+	mu        sync.Mutex
+	destroyed bool
 }
 
 func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
@@ -160,6 +161,11 @@ func (c *connector) connect() {
 		}
 		// 删除存储的 websocket 连接
 		c.conn = nil
+		// 已销毁连接不再重连
+		if c.destroyed {
+			helper.Logger.Info("gateway plugin destroyed, stop reconnect")
+			break
+		}
 		// 延迟重连
 		helper.Logger.Error("gateway plugin connect to gateway failed, retry after 30 seconds")
 		time.Sleep(c.conf.reconnectInterval)
@@ -291,6 +297,9 @@ func (c *connector) syncModels(payload dto.WSPayload) error {
 	if len(payload.Models) > 0 {
 		var errCounter int
 		for _, model := range payload.Models {
+			// fix: 同步模型时，移除模型下所有设备
+			model.Devices = nil
+
 			err := helper.CoreCache.AddModel(ProtocolName, model)
 			if err != nil {
 				errCounter++
