@@ -96,6 +96,20 @@ type EnvConfig struct {
 
 type PointMap map[string]interface{} // 点位 Map，可转换为标准点位数据
 
+// Name 获取点位名称
+func (pm PointMap) Name() string {
+	return pm["name"].(string)
+}
+
+// ReadWrite 获取点位读写模式
+func (pm PointMap) ReadWrite() ReadWrite {
+	return ReadWrite(fmt.Sprintf("%s", pm["readWrite"]))
+}
+
+func (pm PointMap) FieldValue(key string) interface{} {
+	return pm[key]
+}
+
 // ToPoint 转换为标准点位数据
 func (pm PointMap) ToPoint() Point {
 	p := Point{
