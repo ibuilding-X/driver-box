@@ -137,11 +137,16 @@ func (c *cache) AddTag(tag string) (e error) {
 	panic("implement me")
 }
 func (c *cache) GetModel(modelName string) (model config.Model, ok bool) {
-	if raw, exist := c.models.Load(modelName); exist {
-		m, _ := raw.(config.Model)
-		return m, true
+	if deviceModel, exist := cmanager.GetModel(modelName); exist {
+		return deviceModel.ToModel(), true
 	}
 	return config.Model{}, false
+
+	//if raw, exist := c.models.Load(modelName); exist {
+	//	m, _ := raw.(config.Model)
+	//	return m, true
+	//}
+	//return config.Model{}, false
 }
 
 func (c *cache) GetPoints(modelName string) ([]config.Point, bool) {
@@ -211,12 +216,22 @@ func (c *cache) AddRunningPlugin(key string, plugin plugin.Plugin) {
 }
 
 func (c *cache) Models() (models []config.Model) {
-	c.models.Range(func(key, value any) bool {
-		model, _ := value.(config.Model)
-		models = append(models, model)
-		return true
-	})
-	return
+	configs := cmanager.GetConfigs()
+	var results []config.Model
+	for _, conf := range configs {
+		for _, model := range conf.DeviceModels {
+			results = append(results, model.ToModel())
+		}
+
+	}
+	return results
+
+	//c.models.Range(func(key, value any) bool {
+	//	model, _ := value.(config.Model)
+	//	models = append(models, model)
+	//	return true
+	//})
+	//return
 }
 
 func (c *cache) Devices() (devices []config.Device) {
