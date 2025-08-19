@@ -2,6 +2,7 @@ package modbusserver
 
 import (
 	"fmt"
+
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/mbserver"
@@ -132,7 +133,7 @@ func (e *Export) getConvertedModels() []mbserver.Model {
 		result = append(result, mbserver.Model{
 			Id:         model.Name,
 			Name:       model.Description,
-			Properties: e.convertPoints(model.Points),
+			Properties: e.convertPoints(model.ToModel().Points),
 		})
 	}
 

@@ -2,6 +2,9 @@ package mirror
 
 import (
 	"errors"
+	"os"
+	"sync"
+
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
@@ -12,8 +15,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/internal/plugins/mirror"
 	"go.uber.org/zap"
-	"os"
-	"sync"
 )
 
 var driverInstance *Export
@@ -208,7 +209,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 }
 
 // 获取模型中关联的镜像配置
-func (export *Export) getMirrorConfig(rawModel config.Model) (interface{}, error) {
+func (export *Export) getMirrorConfig(rawModel config.DeviceModel) (interface{}, error) {
 	c := rawModel.Attributes[MirrorTemplateName]
 	if c != nil {
 		return c, nil

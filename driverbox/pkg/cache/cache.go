@@ -11,7 +11,7 @@ type DeviceProperties map[string]string
 
 // coreCache 核心缓存
 type CoreCache interface {
-	GetModel(modelName string) (model config.Model, ok bool) // model info
+	GetModel(modelName string) (model config.DeviceModel, ok bool) // model info
 	// 查询指定模型的所有点，并保持该点位在配置文件中的有序性
 	GetPoints(modelName string) ([]config.Point, bool)
 	GetDevice(id string) (device config.Device, ok bool)
@@ -23,7 +23,7 @@ type CoreCache interface {
 	GetRunningPluginByDevice(deviceId string) (plugin plugin.Plugin, ok bool)         // search plugin by device and point
 	GetRunningPluginByKey(key string) (plugin plugin.Plugin, ok bool)                 // search plugin by directory name
 	AddRunningPlugin(key string, plugin plugin.Plugin)                                // add running plugin
-	Models() (models []config.Model)                                                  // all model
+	Models() (models []config.DeviceModel)                                            // all model
 	Devices() (devices []config.Device)
 	GetAllRunningPluginKey() (keys []string)                  // get running plugin keys
 	UpdateDeviceProperty(id string, key string, value string) // 更新设备属性

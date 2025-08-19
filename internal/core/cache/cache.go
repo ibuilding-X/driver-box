@@ -2,6 +2,8 @@ package cache
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
@@ -11,7 +13,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
-	"sync"
 )
 
 const (
@@ -136,11 +137,8 @@ func (c *cache) AddTag(tag string) (e error) {
 	//TODO implement me
 	panic("implement me")
 }
-func (c *cache) GetModel(modelName string) (model config.Model, ok bool) {
-	if deviceModel, exist := cmanager.GetModel(modelName); exist {
-		return deviceModel.ToModel(), true
-	}
-	return config.Model{}, false
+func (c *cache) GetModel(modelName string) (model config.DeviceModel, ok bool) {
+	return cmanager.GetModel(modelName)
 
 	//if raw, exist := c.models.Load(modelName); exist {
 	//	m, _ := raw.(config.Model)
@@ -215,12 +213,12 @@ func (c *cache) AddRunningPlugin(key string, plugin plugin.Plugin) {
 	c.runningPlugins.Store(key, plugin)
 }
 
-func (c *cache) Models() (models []config.Model) {
+func (c *cache) Models() (models []config.DeviceModel) {
 	configs := cmanager.GetConfigs()
-	var results []config.Model
+	var results []config.DeviceModel
 	for _, conf := range configs {
 		for _, model := range conf.DeviceModels {
-			results = append(results, model.ToModel())
+			results = append(results, model)
 		}
 
 	}
