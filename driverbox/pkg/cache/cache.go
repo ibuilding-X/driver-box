@@ -8,6 +8,9 @@ import (
 	"time"
 )
 
+var defaultCache *ExpiringCache
+var once = &sync.Once{}
+
 // 缓存项结构体，包含值和过期时间
 type cacheItem struct {
 	key        string
@@ -26,6 +29,13 @@ type ExpiringCache struct {
 	lruList          *list.List                          // LRU列表
 	maxSize          int                                 // 最大缓存大小，0表示无限制
 	evictionCallback func(key string, value interface{}) // 淘汰回调函数
+}
+
+func DefaultCache() *ExpiringCache {
+	once.Do(func() {
+		defaultCache = NewExpiringCache()
+	})
+	return defaultCache
 }
 
 // 选项函数，用于配置缓存
