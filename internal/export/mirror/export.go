@@ -2,6 +2,9 @@ package mirror
 
 import (
 	"errors"
+	"os"
+	"sync"
+
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
@@ -12,8 +15,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/internal/plugins/mirror"
 	"go.uber.org/zap"
-	"os"
-	"sync"
 )
 
 var driverInstance *Export
@@ -40,6 +41,10 @@ func (export *Export) Init() error {
 	export.ready = true
 	return nil
 }
+func (export *Export) Destroy() error {
+	export.ready = false
+	return nil
+}
 func NewExport() *Export {
 	once.Do(func() {
 		driverInstance = &Export{}
@@ -63,11 +68,11 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 		return export.autoCreateMirrorDevice(key)
 	case event.EventCodeWillExportTo:
 		deviceData := eventValue.(plugin.DeviceData)
-		//镜像设备仅存在一个虚拟连接
-		virtualConnector, _ := export.plugin.Connector("")
-		if virtualConnector != nil {
-			callback.OnReceiveHandler(virtualConnector, deviceData)
+		res, err := export.plugin.Decode(deviceData)
+		if err != nil {
+			return err
 		}
+		callback.ExportTo(res)
 	case event.EventCodeDeviceStatus:
 		// 设备状态变更事件
 		mirrorDeviceID := "mirror_" + key
@@ -171,7 +176,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	mirrorModel.DevicePoints = points
 
 	//第三步：配置持久化
-	e := helper.CoreCache.AddModel(mirror.ProtocolName, mirrorModel.ToModel())
+	e := helper.CoreCache.AddModel(mirror.ProtocolName, mirrorModel)
 	if e != nil {
 		helper.Logger.Error("add mirror model error", zap.Error(e))
 		return e
@@ -204,7 +209,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 }
 
 // 获取模型中关联的镜像配置
-func (export *Export) getMirrorConfig(rawModel config.Model) (interface{}, error) {
+func (export *Export) getMirrorConfig(rawModel config.DeviceModel) (interface{}, error) {
 	c := rawModel.Attributes[MirrorTemplateName]
 	if c != nil {
 		return c, nil

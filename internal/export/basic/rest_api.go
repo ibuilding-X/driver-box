@@ -188,8 +188,6 @@ func updateCoreConfig(r *http.Request) (any, error) {
 	// ------------------------------------------------------------
 	// plugins 重载
 	// ------------------------------------------------------------
-	// 1. 停止所有 timerTask 任务
-	helper.Crontab.Stop()
 
 	// 2. 停止运行中的 plugin
 	pluginKeys := helper.CoreCache.GetAllRunningPluginKey()

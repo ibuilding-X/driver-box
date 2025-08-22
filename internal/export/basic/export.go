@@ -16,7 +16,8 @@ var once = &sync.Once{}
 
 // 设备自动发现插件
 type Export struct {
-	ready bool
+	discover *Discover
+	ready    bool
 }
 
 func (export *Export) Init() error {
@@ -39,8 +40,15 @@ func (export *Export) Init() error {
 	}
 
 	export.ready = true
+	export.discover = NewDiscover()
 	registerApi()
-	go udpDiscover()
+	go export.discover.udpDiscover()
+	return nil
+}
+
+func (export *Export) Destroy() error {
+	export.ready = false
+	export.discover.stopDiscover()
 	return nil
 }
 func NewExport() *Export {

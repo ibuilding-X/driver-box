@@ -1,23 +1,28 @@
 package crontab
 
 import (
-	"context"
+	"github.com/robfig/cron/v3"
+	"sync"
 	"time"
 )
 
+var instance *crontab
+var once = &sync.Once{}
+
 type Crontab interface {
-	Start()
-	Stop()
+	Clear()
 	// AddFunc s please refer to time.ParseDuration
 	AddFunc(s string, f func()) (*Future, error)
 }
 
-func NewCrontab() Crontab {
-	ctx, cancel := context.WithCancel(context.Background())
-	return &crontab{
-		signal: cancel,
-		ctx:    ctx,
-	}
+func Instance() Crontab {
+	once.Do(func() {
+		instance = &crontab{
+			c: cron.New(cron.WithSeconds()),
+		}
+		instance.c.Start()
+	})
+	return instance
 }
 
 type Future struct {
@@ -25,56 +30,65 @@ type Future struct {
 	function func()
 	//定时器
 	ticker *time.Ticker
+	cronId cron.EntryID
 	//是否启用
 	enable bool
-	ctx    context.Context
 }
 type crontab struct {
-	signal      context.CancelFunc
-	ctx         context.Context
-	tickerArray []*time.Ticker
+	futures []*Future
+	c       *cron.Cron
 }
 
-func (c *crontab) Start() {
-	c.signal()
-}
-
-func (c *crontab) Stop() {
-	if len(c.tickerArray) > 0 {
-		for i, _ := range c.tickerArray {
-			c.tickerArray[i].Stop()
+func (c *crontab) Clear() {
+	if len(c.futures) > 0 {
+		for i, _ := range c.futures {
+			c.futures[i].Disable()
 		}
+		c.futures = make([]*Future, 0)
 	}
 }
 
 func (c *crontab) AddFunc(s string, f func()) (*Future, error) {
 	d, err := time.ParseDuration(s)
+	if err == nil {
+		function := &Future{
+			function: f,
+			ticker:   time.NewTicker(d),
+			enable:   true,
+		}
+		c.futures = append(c.futures, function)
+		go function.run()
+		return function, nil
+	}
+	//尝试按照crontab格式添加
+	cronId, err := c.c.AddFunc(s, f)
 	if err != nil {
 		return &Future{}, err
 	}
 	function := &Future{
 		function: f,
-		ticker:   time.NewTicker(d),
+		cronId:   cronId,
 		enable:   true,
-		ctx:      c.ctx,
 	}
-	go function.run()
+	c.futures = append(c.futures, function)
 	return function, nil
 }
 
 func (f *Future) run() {
-	select {
-	case <-f.ctx.Done():
-		for range f.ticker.C {
-			if !f.enable {
-				f.ticker.Stop()
-				break
-			}
-			f.function()
+	for range f.ticker.C {
+		if !f.enable {
+			f.ticker.Stop()
+			break
 		}
+		f.function()
 	}
-	//fmt.Println("stop run")
 }
 func (f *Future) Disable() {
 	f.enable = false
+	if f.ticker != nil {
+		f.ticker.Stop()
+	}
+	if f.cronId != 0 {
+		instance.c.Remove(f.cronId)
+	}
 }

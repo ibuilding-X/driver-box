@@ -4,9 +4,10 @@ package plugins
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"sync"
 )
 
 // Manager 插件管理器
@@ -24,13 +25,12 @@ type manager struct {
 }
 
 // 注册自定义插件
-func (m *manager) Register(name string, plugin plugin.Plugin) error {
+func (m *manager) Register(name string, plugin plugin.Plugin) {
 	if _, ok := m.plugins.Load(name); ok {
 		fmt.Printf("plugin %s already exists, replace it", name)
 	}
 	fmt.Printf("register plugin: %s\n", name)
 	m.plugins.Store(name, plugin)
-	return nil
 }
 
 // Get 获取插件实例
@@ -50,4 +50,8 @@ func (m *manager) GetSupportPlugins() []string {
 		return true
 	})
 	return plugins
+}
+
+func (m *manager) Clear() {
+	m.plugins = &sync.Map{}
 }

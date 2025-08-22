@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/websocket"
-	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
@@ -64,9 +63,10 @@ type encodeData struct {
 }
 
 type connector struct {
-	conf connectorConfig
-	conn *websocket.Conn // 存储 websocket 连接
-	mu   sync.Mutex
+	conf      connectorConfig
+	conn      *websocket.Conn // 存储 websocket 连接
+	mu        sync.Mutex
+	destroyed bool
 }
 
 func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
@@ -161,6 +161,11 @@ func (c *connector) connect() {
 		}
 		// 删除存储的 websocket 连接
 		c.conn = nil
+		// 已销毁连接不再重连
+		if c.destroyed {
+			helper.Logger.Info("gateway plugin destroyed, stop reconnect")
+			break
+		}
 		// 延迟重连
 		helper.Logger.Error("gateway plugin connect to gateway failed, retry after 30 seconds")
 		time.Sleep(c.conf.reconnectInterval)
@@ -193,10 +198,11 @@ func (c *connector) handleWebSocketMessage(conn *websocket.Conn, message []byte)
 	case dto.WSForSyncShadow: // 接收影子同步数据
 		return c.syncShadow(payload)
 	case dto.WSForReport: // 接收上报数据
-		err = callback.OnReceiveHandler(c, payload)
+		result, err := c.Decode(payload)
 		if err != nil {
 			return err
 		}
+		callback.ExportTo(result)
 	default:
 		return nil
 	}
@@ -291,10 +297,10 @@ func (c *connector) syncModels(payload dto.WSPayload) error {
 	if len(payload.Models) > 0 {
 		var errCounter int
 		for _, model := range payload.Models {
-			err := helper.CoreCache.AddModel(ProtocolName, config.Model{
-				ModelBase: model.ModelBase,
-				Points:    model.Points,
-			})
+			// fix: 同步模型时，移除模型下所有设备
+			model.Devices = nil
+
+			err := helper.CoreCache.AddModel(ProtocolName, model)
 			if err != nil {
 				errCounter++
 				helper.Logger.Error("gateway plugin add model failed", zap.Any("model", model), zap.Error(err))

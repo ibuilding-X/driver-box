@@ -7,11 +7,10 @@ import (
 )
 
 func TestCrontab_AddFunc(t *testing.T) {
-	cron := NewCrontab()
+	cron := Instance()
 	future, err := cron.AddFunc("3s", func() {
 		fmt.Println("3s")
 	})
-	cron.Start()
 
 	cron.AddFunc("2s", func() {
 		fmt.Println("2s")

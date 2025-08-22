@@ -117,6 +117,8 @@ func (p *Plugin) Destroy() error {
 	for _, conn := range p.connPool {
 		conn.Close()
 	}
+	//延迟关闭lua虚拟机，防止lua虚拟机正在使用
+	time.Sleep(time.Second * 1)
 	if p.ls != nil {
 		helper.Close(p.ls)
 	}

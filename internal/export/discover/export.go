@@ -36,6 +36,11 @@ func NewExport() *Export {
 	return driverInstance
 }
 
+func (export *Export) Destroy() error {
+	export.ready = false
+	return nil
+}
+
 // 点位变化触发场景联动
 func (export *Export) ExportTo(deviceData plugin.DeviceData) {
 	//设备点位已通过
@@ -100,7 +105,7 @@ func (export *Export) deviceAutoDiscover(deviceId string, value interface{}) err
 		model.DevicePoints = points
 	}
 
-	err = helper.CoreCache.AddModel(deviceDiscover.ProtocolName, model.ToModel())
+	err = helper.CoreCache.AddModel(deviceDiscover.ProtocolName, model)
 	if err != nil {
 		logger.Logger.Error("device auto discover add model error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
 		return err

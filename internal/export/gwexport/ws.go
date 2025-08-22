@@ -4,6 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
+	"net/http"
+	"strings"
+	"sync"
+
 	"github.com/gorilla/websocket"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
@@ -15,9 +20,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/dto"
 	"github.com/ibuilding-x/driver-box/internal/export/discover"
 	"go.uber.org/zap"
-	"net/http"
-	"strings"
-	"sync"
 )
 
 // WebSocketPath websocket 服务路径
@@ -68,7 +70,8 @@ func (wss *websocketService) handler(w http.ResponseWriter, r *http.Request) {
 			helper.Logger.Error("gateway export handle ws message error", zap.Error(err))
 		}
 	}
-
+	wss.mainGatewayConn = nil
+	wss.mainGateway = ""
 	// ws 连接关闭
 	helper.Logger.Warn("gateway export ws close", zap.String("remoteAddress", conn.RemoteAddr().String()))
 }
@@ -153,20 +156,32 @@ func (wss *websocketService) sync() {
 
 // syncModels 同步设备模型数据
 func (wss *websocketService) syncModels() {
+	// 获取所有模型名称
 	models := helper.CoreCache.Models()
 	if len(models) == 0 {
 		return
 	}
 
-	// 优化模型数据
-	for i, _ := range models {
-		models[i].Name = wss.genGatewayModelName(models[i].Name)
+	// 获取设备模型
+	var deviceModels []config.DeviceModel
+	for _, model := range models {
+		deviceModel, ok := cmanager.GetModel(model.Name)
+		if !ok {
+			continue
+		}
+
+		// fix：同步模型时，应去除模型下设备
+		deviceModel.Devices = nil
+
+		// 修改模型名称，防止与主网关模型名称重复
+		deviceModel.Name = wss.genGatewayModelName(deviceModel.Name)
+		deviceModels = append(deviceModels, deviceModel)
 	}
 
 	// 发送模型数据
 	var sendData dto.WSPayload
 	sendData.Type = dto.WSForSyncModels
-	sendData.Models = models
+	sendData.Models = deviceModels
 
 	if err := wss.sendJSONToWebSocket(sendData); err != nil {
 		helper.Logger.Error("gateway export sync models error", zap.Error(err))
@@ -347,12 +362,10 @@ func (wss *websocketService) parseGatewayDeviceID(id string) string {
 
 // sendJSONToWebSocket 发送 JSON 数据到 websocket
 func (wss *websocketService) sendJSONToWebSocket(v interface{}) error {
+	if wss.mainGateway == "" || wss.mainGatewayConn == nil {
+		return nil
+	}
 	wss.mu.Lock()
 	defer wss.mu.Unlock()
-
-	if wss.mainGateway != "" && wss.mainGatewayConn != nil {
-		return wss.mainGatewayConn.WriteJSON(v)
-	}
-
-	return nil
+	return wss.mainGatewayConn.WriteJSON(v)
 }

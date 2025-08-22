@@ -2,16 +2,16 @@ package cache
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
-	cache2 "github.com/ibuilding-x/driver-box/driverbox/pkg/cache"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/core/shadow"
 	"github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
-	"sync"
 )
 
 const (
@@ -20,7 +20,60 @@ const (
 	businessPropSystemID string = "_systemID"
 )
 
-var Instance cache2.CoreCache
+// coreCache 核心缓存
+type CoreCache interface {
+	GetModel(modelName string) (model config.DeviceModel, ok bool) // model info
+	// 查询指定模型的所有点，并保持该点位在配置文件中的有序性
+	GetPoints(modelName string) ([]config.Point, bool)
+	GetDevice(id string) (device config.Device, ok bool)
+	//查询指定标签的设备列表
+	GetDevicesByTag(tag string) (devices []config.Device)
+	AddTag(tag string) (e error)                                                      //
+	GetPointByModel(modelName string, pointName string) (point config.Point, ok bool) // search point by model
+	GetPointByDevice(id string, pointName string) (point config.Point, ok bool)       // search point by device
+	GetRunningPluginByDevice(deviceId string) (plugin plugin.Plugin, ok bool)         // search plugin by device and point
+	GetRunningPluginByKey(key string) (plugin plugin.Plugin, ok bool)                 // search plugin by directory name
+	AddRunningPlugin(key string, plugin plugin.Plugin)                                // add running plugin
+	Models() (models []config.DeviceModel)                                            // all model
+	Devices() (devices []config.Device)
+	GetAllRunningPluginKey() (keys []string)                  // get running plugin keys
+	UpdateDeviceProperty(id string, key string, value string) // 更新设备属性
+	DeleteDevice(id string)                                   // 删除设备
+	UpdateDeviceDesc(id string, desc string)                  // 更新设备描述
+	Reset()
+
+	// businessPropCache 业务属性接口
+	businessPropCache
+
+	// configManager 配置管理器接口
+	configManager
+}
+
+// businessPropCache 业务属性缓存
+type businessPropCache interface {
+	GetDeviceBusinessProp(id string) (props config.DeviceBusinessProp, err error) // 获取设备业务属性
+	UpdateDeviceBusinessPropSN(id string, value string) error                     // 更新设备业务属性SN
+	UpdateDeviceBusinessPropParentID(id string, value string) error               // 更新设备业务属性ParentID
+	UpdateDeviceBusinessPropSystemID(sn string, value string) error               // 更新设备业务属性SystemID
+}
+
+// configManager 配置管理器接口
+type configManager interface {
+	// AddConnection 新增连接
+	AddConnection(plugin string, key string, conn any) error
+	// GetConnection 获取连接信息
+	GetConnection(key string) (any, error)
+	// GetConnectionPluginName 获取连接所属的插件名称
+	GetConnectionPluginName(key string) string
+	// AddModel 新增模型
+	AddModel(plugin string, model config.DeviceModel) error
+	// AddOrUpdateDevice 新增或更新设备
+	AddOrUpdateDevice(device config.Device) error
+	// BatchRemoveDevice 批量删除设备
+	BatchRemoveDevice(ids []string) error
+}
+
+var Instance CoreCache
 
 type cache struct {
 	models         *sync.Map // name => config.Model
@@ -32,7 +85,7 @@ type cache struct {
 }
 
 // InitCoreCache 初始化核心缓存
-func InitCoreCache(configMap map[string]config.Config) (obj cache2.CoreCache, err error) {
+func InitCoreCache(configMap map[string]config.Config) (obj CoreCache, err error) {
 	c := &cache{
 		models:         &sync.Map{},
 		devices:        &sync.Map{},
@@ -136,12 +189,14 @@ func (c *cache) AddTag(tag string) (e error) {
 	//TODO implement me
 	panic("implement me")
 }
-func (c *cache) GetModel(modelName string) (model config.Model, ok bool) {
-	if raw, exist := c.models.Load(modelName); exist {
-		m, _ := raw.(config.Model)
-		return m, true
-	}
-	return config.Model{}, false
+func (c *cache) GetModel(modelName string) (model config.DeviceModel, ok bool) {
+	return cmanager.GetModel(modelName)
+
+	//if raw, exist := c.models.Load(modelName); exist {
+	//	m, _ := raw.(config.Model)
+	//	return m, true
+	//}
+	//return config.Model{}, false
 }
 
 func (c *cache) GetPoints(modelName string) ([]config.Point, bool) {
@@ -210,13 +265,23 @@ func (c *cache) AddRunningPlugin(key string, plugin plugin.Plugin) {
 	c.runningPlugins.Store(key, plugin)
 }
 
-func (c *cache) Models() (models []config.Model) {
-	c.models.Range(func(key, value any) bool {
-		model, _ := value.(config.Model)
-		models = append(models, model)
-		return true
-	})
-	return
+func (c *cache) Models() (models []config.DeviceModel) {
+	configs := cmanager.GetConfigs()
+	var results []config.DeviceModel
+	for _, conf := range configs {
+		for _, model := range conf.DeviceModels {
+			results = append(results, model)
+		}
+
+	}
+	return results
+
+	//c.models.Range(func(key, value any) bool {
+	//	model, _ := value.(config.Model)
+	//	models = append(models, model)
+	//	return true
+	//})
+	//return
 }
 
 func (c *cache) Devices() (devices []config.Device) {
@@ -389,44 +454,16 @@ func (c *cache) GetConnectionPluginName(key string) string {
 }
 
 // AddModel 新增模型
-func (c *cache) AddModel(plugin string, model config.Model) error {
-	// 模型内容转换
-	var m config.DeviceModel
-	m.ModelBase = model.ModelBase
-
-	// 点位列表
-	var points []config.PointMap
-	for _, point := range model.Points {
-		pointMap := config.PointMap{
-			"name":        point.Name,
-			"description": point.Description,
-			"valueType":   point.ValueType,
-			"readWrite":   point.ReadWrite,
-			"units":       point.Units,
-			"reportMode":  point.ReportMode,
-			"scale":       point.Scale,
-			"decimals":    point.Decimals,
-			"enums":       point.Enums,
-		}
-		for k, v := range point.Extends {
-			pointMap[k] = v
-		}
-		points = append(points, pointMap)
-	}
-	m.DevicePoints = points
-
-	// 设备列表
-	var devices []config.Device
-	for _, device := range model.Devices {
-		devices = append(devices, device)
-	}
-	m.Devices = devices
-
-	err := cmanager.AddModel(plugin, m)
+func (c *cache) AddModel(plugin string, model config.DeviceModel) error {
+	err := cmanager.AddModel(plugin, model)
 	if err == nil {
-		c.models.Store(model.Name, model)
+		// 判断模型是否存在
+		if _, ok := c.models.Load(model.Name); ok {
+			return nil
+		}
+		// 添加模型
+		c.models.Store(model.Name, model.ToModel())
 	}
-
 	return err
 }
 

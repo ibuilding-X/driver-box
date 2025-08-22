@@ -53,6 +53,7 @@ func (g *gatewayPlugin) Connector(deviceId string) (connector plugin.Connector, 
 func (g *gatewayPlugin) Destroy() error {
 	if len(g.connections) > 0 {
 		for i, _ := range g.connections {
+			g.connections[i].destroyed = true
 			// 关闭 ws 连接
 			if g.connections[i].conn != nil {
 				_ = g.connections[i].conn.Close()

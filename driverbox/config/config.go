@@ -25,6 +25,9 @@ const (
 	//是否虚拟设备模式: true:是,false:否
 	ENV_VIRTUAL = "DRIVERBOX_VIRTUAL"
 
+	//是否虚拟设备模式: true:是,false:否
+	ENV_LUA_PRINT_ENABLED = "DRIVERBOX_LUA_PRINT_ENABLE"
+
 	//场景联动配置存放目录
 	ENV_LINKEDGE_CONFIG_PATH = "EXPORT_LINKEDGE_CONFIG_PATH"
 
@@ -39,6 +42,18 @@ const (
 
 	//driver-box llm-agent是否可用
 	ENV_EXPORT_LLM_AGENT_ENABLED = "EXPORT_LLM_AGENT_ENABLED"
+
+	//MCP功能是否可用
+	ENV_EXPORT_MCP_ENABLED = "EXPORT_MCP_ENABLED"
+
+	//设备历史数据存放路径
+	EXPORT_HISTORY_DATA_PATH = "EXPORT_HISTORY_DATA_PATH"
+	//设备历史数据保存时长，单位（天），默认值：14
+	EXPORT_HISTORY_RESERVED_DAYS = "EXPORT_HISTORY_RESERVED_DAYS"
+	//剖面数据写入频率，默认值：60s
+	EXPORT_HISTORY_SNAPSHOT_FLUSH_INTERVAL = "EXPORT_HISTORY_SNAPSHOT_FLUSH_INTERVAL"
+	//实时数据写入频率，默认值：5s
+	EXPORT_HISTORY_REAL_TIME_FLUSH_INTERVAL = "EXPORT_HISTORY_REAL_TIME_FLUSH_INTERVAL"
 )
 
 // 点位上报模式
@@ -80,6 +95,20 @@ type EnvConfig struct {
 }
 
 type PointMap map[string]interface{} // 点位 Map，可转换为标准点位数据
+
+// Name 获取点位名称
+func (pm PointMap) Name() string {
+	return pm["name"].(string)
+}
+
+// ReadWrite 获取点位读写模式
+func (pm PointMap) ReadWrite() ReadWrite {
+	return ReadWrite(fmt.Sprintf("%s", pm["readWrite"]))
+}
+
+func (pm PointMap) FieldValue(key string) interface{} {
+	return pm[key]
+}
 
 // ToPoint 转换为标准点位数据
 func (pm PointMap) ToPoint() Point {

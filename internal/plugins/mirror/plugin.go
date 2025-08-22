@@ -2,12 +2,13 @@ package mirror
 
 import (
 	"errors"
+	"sync"
+
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
-	"sync"
 )
 
 const ProtocolName = "mirror"
@@ -69,16 +70,15 @@ func (p *Plugin) UpdateMirrorMapping(model config.DeviceModel) error {
 
 	p.connector.mirrors[device.ID] = make(map[string]Device)
 	for _, point := range model.DevicePoints {
-		pointModel := point.ToPoint()
-		if pointModel.Extends["rawDevice"] == nil || pointModel.Extends["rawPoint"] == nil {
+		if point.FieldValue("rawDevice") == nil || point.FieldValue("rawPoint") == nil {
 			return errors.New("mirror point must have rawDevice and rawPoint")
 		}
 		//原始设备
-		rawDevice := pointModel.Extends["rawDevice"].(string)
+		rawDevice := point.FieldValue("rawDevice").(string)
 		//原始设备点位
-		rawPoint := pointModel.Extends["rawPoint"].(string)
+		rawPoint := point.FieldValue("rawPoint").(string)
 		//创建镜像设备与原始设备的映射关系
-		p.connector.mirrors[device.ID][pointModel.Name] = Device{
+		p.connector.mirrors[device.ID][point.Name()] = Device{
 			deviceId:  rawDevice,
 			pointName: rawPoint,
 		}
@@ -99,7 +99,7 @@ func (p *Plugin) UpdateMirrorMapping(model config.DeviceModel) error {
 				continue
 			}
 			deviceData.Values = append(deviceData.Values, plugin.PointData{
-				PointName: pointModel.Name,
+				PointName: point.Name(),
 			})
 			ok = true
 			break
@@ -109,7 +109,7 @@ func (p *Plugin) UpdateMirrorMapping(model config.DeviceModel) error {
 				ID: device.ID,
 				Values: []plugin.PointData{
 					{
-						PointName: pointModel.Name,
+						PointName: point.Name(),
 					},
 				},
 			})
@@ -135,4 +135,9 @@ func (p *Plugin) Destroy() error {
 	p.connector.rawMapping = make(map[string]map[string][]plugin.DeviceData)
 	p.ready = false
 	return nil
+}
+
+// Decode Connector.Decode 迁移至 Plugin.Decode
+func (p *Plugin) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
+	return p.connector.Decode(raw)
 }

@@ -4,15 +4,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"os"
+	"sync"
+
 	"github.com/cjoudrey/gluahttp"
 	"github.com/ibuilding-x/driver-box/driverbox/common"
+	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 	luajson "layeh.com/gopher-json"
-	"net/http"
-	"sync"
 )
 
 // 缓存Lua虚拟机的锁
@@ -25,12 +28,20 @@ func InitLuaVM(filePath string) (*lua.LState, error) {
 		return nil, errors.New("lua script not found")
 	}
 	ls := lua.NewState(lua.Options{
-		RegistryMaxSize: 128,
+		RegistrySize:    128,
+		RegistryMaxSize: 1024 * 8,
 	})
 	// 预加载模块（json、http、storage）
 	ls.PreloadModule("http", gluahttp.NewHttpModule(&http.Client{}).Loader)
 	luajson.Preload(ls)
 	ls.PreloadModule("driver-box", LuaModuleInstance.Loader)
+	// 屏蔽 print，优化CPU开销
+	if os.Getenv(config.ENV_LUA_PRINT_ENABLED) == "false" {
+		ls.Register("print", func(L *lua.LState) int {
+			//fmt.Println(L.ToString(1))
+			return 0
+		})
+	}
 	// 文件路径
 	// 脚本解析
 	err := ls.DoFile(filePath)

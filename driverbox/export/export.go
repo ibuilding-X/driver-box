@@ -54,4 +54,7 @@ type Export interface {
 	// 注意:
 	//   框架会在调用ExportTo和OnEvent前检查此状态
 	IsReady() bool
+
+	// Destroy 退出服务
+	Destroy() error
 }

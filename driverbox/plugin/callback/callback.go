@@ -2,6 +2,9 @@ package callback
 
 import (
 	"fmt"
+	"math"
+	"strings"
+
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
@@ -10,22 +13,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/export"
 	"go.uber.org/zap"
-	"strconv"
-	"strings"
 )
-
-// Deprecated:建议直接调用ExportTo
-// 插件收到通讯消息后，触发该回调方法进行消息解码和设备数据解析
-func OnReceiveHandler(connector plugin.Connector, raw interface{}) (err error) {
-	helper.Logger.Warn("[Deprecated: this function 'callback.OnReceiveHandler' simply calls 'callback.ExportTo'] raw data", zap.Any("data", raw))
-	// 协议适配器
-	deviceData, err := connector.Decode(raw)
-	if err != nil {
-		return err
-	}
-	ExportTo(deviceData)
-	return
-}
 
 func ExportTo(deviceData []plugin.DeviceData) {
 	helper.Logger.Debug("export data", zap.Any("data", deviceData))
@@ -154,8 +142,9 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 
 		//浮点类型,且readValue包含小数时作小数保留位数加工
 		if point.ValueType == config.ValueType_Float && value != 0 {
-			val := fmt.Sprintf("%.*f", point.Decimals, value)
-			value, _ = strconv.ParseFloat(val, 64)
+			multiplier := math.Pow(10, float64(point.Decimals))
+			// 先转成整数，再通过除法实现小数位数保留
+			value = math.Trunc(value.(float64)*multiplier) / multiplier
 		}
 		deviceData.Values[i].Value = value
 	}
