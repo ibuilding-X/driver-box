@@ -407,4 +407,7 @@ type Metadata struct {
 
 	// 集成电路卡识别码，即 SIM 卡卡号
 	ICCID string `json:"iccid"`
+
+	//软件版本号
+	SoftwareVersion string `json:"softwareVersion"`
 }
