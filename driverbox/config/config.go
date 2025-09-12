@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 )
 
 // 环境变量配置项
@@ -97,24 +98,33 @@ type EnvConfig struct {
 type Point map[string]interface{} // 点位 Map，可转换为标准点位数据
 
 // Name 获取点位名称
+// 返回点位的名称，该名称是点位的唯一标识符
 func (pm Point) Name() string {
 	return pm["name"].(string)
 }
 
 // ReadWrite 获取点位读写模式
+// 返回点位的读写权限设置，如只读、只写或读写
 func (pm Point) ReadWrite() ReadWrite {
 	return ReadWrite(fmt.Sprintf("%s", pm["readWrite"]))
 }
 
+// FieldValue 根据键名获取点位字段值
+// 参数 key: 字段键名
+// 返回值 v: 字段值, exists: 字段是否存在
 func (pm Point) FieldValue(key string) (v interface{}, exists bool) {
 	v, exists = pm[key]
 	return
 }
 
+// Description 获取点位描述信息
+// 返回点位的详细描述文本，用于说明点位的用途和含义
 func (pm Point) Description() string {
 	return pm["description"].(string)
 }
 
+// Enums 获取点位枚举值列表
+// 返回点位支持的枚举值数组，如果未设置则返回空数组
 func (p Point) Enums() []PointEnum {
 	enums := make([]PointEnum, 0)
 	v, ok := p.FieldValue("enums")
@@ -128,6 +138,8 @@ func (p Point) Enums() []PointEnum {
 	return enums
 }
 
+// ValueType 获取点位数据类型
+// 返回点位的数据类型，如整型、浮点型、布尔型等
 func (pm Point) ValueType() ValueType {
 	valueType, ok := pm["valueType"]
 	if !ok {
@@ -135,14 +147,21 @@ func (pm Point) ValueType() ValueType {
 	}
 	return ValueType(valueType.(string))
 }
+
+// ReportMode 获取点位上报模式
+// 返回点位的数据上报模式，如实时上报、变化上报等
+// 如果配置中未指定，则默认为实时上报模式
 func (pm Point) ReportMode() ReportMode {
-	reportMode, ok := pm["reportMode"]
+	reportMode, ok := pm.FieldValue("reportMode")
 	if !ok {
-		return ""
+		logger.Logger.Warn("config error , point reportMode is empty, set default to real")
+		return ReportMode_Real
 	}
 	return ReportMode(reportMode.(string))
 }
 
+// Scale 获取点位缩放比例
+// 返回点位数值的缩放系数，用于数值转换，默认为0（无缩放）
 func (pm Point) Scale() float64 {
 	scale, ok := pm["scale"]
 	if !ok {
@@ -151,11 +170,9 @@ func (pm Point) Scale() float64 {
 	return scale.(float64)
 }
 
-func (pm Point) SetReportMode(mode ReportMode) {
-	pm["reportMode"] = string(mode)
-}
-
-// 保留小数位数
+// Decimals 获取点位小数位数
+// 返回点位数值保留的小数位数
+// 对于浮点数类型，默认保留2位小数；对于其他类型，默认为0位小数
 func (pm Point) Decimals() int {
 	decimals, ok := pm["decimals"]
 	if !ok {
@@ -173,6 +190,9 @@ func (pm Point) Decimals() int {
 		return decimals.(int)
 	}
 }
+
+// Units 获取点位单位
+// 返回点位数值的单位标识，如℃、kW、m³等
 func (pm Point) Units() string {
 	defaultValue, ok := pm.FieldValue("units")
 	if !ok {
