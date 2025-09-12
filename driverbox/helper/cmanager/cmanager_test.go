@@ -158,7 +158,7 @@ func BenchmarkAddModel(b *testing.B) {
 			ModelID:     "test_model_001",
 			Description: "测试模型",
 		},
-		DevicePoints: []config.PointMap{
+		DevicePoints: []config.Point{
 			{
 				"name": "onOff",
 				"type": "int",

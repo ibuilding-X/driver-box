@@ -4,6 +4,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
@@ -14,10 +19,6 @@ import (
 	"github.com/simonvetter/modbus"
 	"github.com/spf13/cast"
 	"go.uber.org/zap"
-	"math"
-	"strconv"
-	"strings"
-	"time"
 )
 
 func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
@@ -135,26 +136,24 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 func (c *connector) createPointGroup(conf *ConnectionConfig, model config.DeviceModel, dev config.Device) {
 	groupIndex := 0
 	for _, point := range model.DevicePoints {
-		p := point.ToPoint()
-		if p.ReadWrite != config.ReadWrite_R && p.ReadWrite != config.ReadWrite_RW {
+		if point.ReadWrite() != config.ReadWrite_R && point.ReadWrite() != config.ReadWrite_RW {
 			continue
 		}
-		ext, err := convToPointExtend(p.Extends)
+		ext, err := convToPointExtend(point)
 		if err != nil {
 			helper.Logger.Error("error modbus point config", zap.String("deviceId", dev.ID), zap.Any("point", point), zap.Error(err))
 			continue
 		}
-		ext.Name = p.Name
 		ext.DeviceId = dev.ID
 		duration, err := time.ParseDuration(ext.Duration)
 		if err != nil {
-			helper.Logger.Error("error modbus duration config", zap.String("deviceId", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
+			helper.Logger.Error("error modbus duration config", zap.String("deviceId", dev.ID), zap.Any("config", point), zap.Error(err))
 			duration = time.Second
 		}
 
 		device, err := c.createDevice(dev.Properties)
 		if err != nil {
-			helper.Logger.Error("error modbus device config", zap.String("deviceId", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
+			helper.Logger.Error("error modbus device config", zap.String("deviceId", dev.ID), zap.Any("config", point), zap.Error(err))
 			continue
 		}
 		ok := false
@@ -190,7 +189,6 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 		//新增一个点位组
 		if !ok {
 			ext.DeviceId = dev.ID
-			ext.Name = p.Name
 			device.pointGroup = append(device.pointGroup, &pointGroup{
 				index:        groupIndex,
 				UnitID:       device.unitID,
@@ -348,7 +346,7 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 		}
 		pointReadValue := plugin.PointReadValue{
 			ID:        point.DeviceId,
-			PointName: point.Name,
+			PointName: point.Name(),
 			Value:     value,
 		}
 		res, err := c.Decode(pointReadValue)

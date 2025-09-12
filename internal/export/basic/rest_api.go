@@ -6,6 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path"
+	"sort"
+	"strings"
+	"time"
+
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
@@ -21,13 +29,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/core"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
-	"io"
-	"net/http"
-	"os"
-	"path"
-	"sort"
-	"strings"
-	"time"
 )
 
 func registerApi() {

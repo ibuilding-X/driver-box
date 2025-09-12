@@ -3,12 +3,13 @@ package core
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"go.uber.org/zap"
-	"time"
 )
 
 // SendBatchWrite 发送多个点位写命令
@@ -61,7 +62,7 @@ func SendBatchRead(deviceId string, points []plugin.PointData) (err error) {
 		if !ok {
 			return errors.New("point not found")
 		}
-		if point.ReadWrite != config.ReadWrite_R && point.ReadWrite != config.ReadWrite_RW {
+		if point.ReadWrite() != config.ReadWrite_R && point.ReadWrite() != config.ReadWrite_RW {
 			return errors.New("point is not readable")
 		}
 		readPoints = append(readPoints, p)
@@ -101,7 +102,7 @@ func tryReadNewValues(deviceId string, points []plugin.PointData) {
 		if !ok {
 			return
 		}
-		if point.ReadWrite != config.ReadWrite_R && point.ReadWrite != config.ReadWrite_RW {
+		if point.ReadWrite() != config.ReadWrite_R && point.ReadWrite() != config.ReadWrite_RW {
 			continue
 		}
 		readPoints = append(readPoints, p)

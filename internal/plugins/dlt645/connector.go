@@ -2,6 +2,8 @@ package dlt645
 
 import (
 	"errors"
+	"time"
+
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
@@ -12,7 +14,6 @@ import (
 	dlt "github.com/ibuilding-x/driver-box/internal/plugins/dlt645/core"
 	"github.com/ibuilding-x/driver-box/internal/plugins/dlt645/core/dltcon"
 	"go.uber.org/zap"
-	"time"
 )
 
 func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
@@ -114,31 +115,28 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 func (c *connector) createPointGroup(conf *ConnectionConfig, model config.DeviceModel, dev config.Device) {
 	groupIndex := 0
 	for _, point := range model.DevicePoints {
-		p := point.ToPoint()
-		if p.ReadWrite != config.ReadWrite_R && p.ReadWrite != config.ReadWrite_RW {
+		if point.ReadWrite() != config.ReadWrite_R && point.ReadWrite() != config.ReadWrite_RW {
 			continue
 		}
-		ext, err := convToPointExtend(p.Extends)
+		ext, err := convToPointExtend(point)
 		if err != nil {
 			helper.Logger.Error("error dlt645 point config", zap.String("deviceId", dev.ID), zap.Any("point", point), zap.Error(err))
 			continue
 		}
-		ext.Name = p.Name
 		ext.DeviceId = dev.ID
 		duration, err := time.ParseDuration(ext.Duration)
 		if err != nil {
-			helper.Logger.Error("error dlt645 duration config", zap.String("deviceId", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
+			helper.Logger.Error("error dlt645 duration config", zap.String("deviceId", dev.ID), zap.Any("config", point), zap.Error(err))
 			duration = time.Second
 		}
 
 		device, err := c.createDevice(dev.Properties)
 		if err != nil {
-			helper.Logger.Error("error dlt645 device config", zap.String("deviceId", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
+			helper.Logger.Error("error dlt645 device config", zap.String("deviceId", dev.ID), zap.Any("config", point), zap.Error(err))
 			continue
 		}
 
 		ext.DeviceId = dev.ID
-		ext.Name = p.Name
 		device.pointGroup = append(device.pointGroup, &pointGroup{
 			index:    groupIndex,
 			Duration: duration,
@@ -209,7 +207,7 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 	for _, point := range group.Points {
 		pointReadValue := plugin.PointReadValue{
 			ID:        point.DeviceId,
-			PointName: point.Name,
+			PointName: point.Name(),
 			Value:     value,
 		}
 		res, err := c.Decode(pointReadValue)

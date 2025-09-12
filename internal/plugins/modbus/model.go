@@ -1,9 +1,10 @@
 package modbus
 
 import (
+	"time"
+
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"time"
 )
 
 type primaryTable string

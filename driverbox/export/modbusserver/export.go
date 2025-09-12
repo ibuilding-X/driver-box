@@ -104,19 +104,19 @@ func (e *Export) convertPoints(points map[string]config.Point) []mbserver.Proper
 	var result []mbserver.Property
 
 	for _, point := range points {
-		valueType, err := e.convertValueType(point.ValueType)
+		valueType, err := e.convertValueType(point.ValueType())
 		if err != nil {
 			continue
 		}
 
-		access, err := e.convertReadWrite(point.ReadWrite)
+		access, err := e.convertReadWrite(point.ReadWrite())
 		if err != nil {
 			continue
 		}
 
 		result = append(result, mbserver.Property{
-			Name:        point.Name,
-			Description: point.Description,
+			Name:        point.Name(),
+			Description: point.Description(),
 			ValueType:   valueType,
 			Access:      access,
 		})

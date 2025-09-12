@@ -53,7 +53,7 @@ func (lm *LuaModule) getDeviceShadow(L *lua.LState) int {
 			logger.Logger.Error("could not get point", zap.String("deviceId", deviceId), zap.String("pointName", point.Name))
 			continue
 		}
-		switch p.ValueType {
+		switch p.ValueType() {
 		case config.ValueType_String:
 			v, e := utils.Conv2String(point.Value)
 			if e == nil {

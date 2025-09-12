@@ -4,15 +4,16 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
+	"sort"
+	"strconv"
+	"strings"
+
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
-	"math"
-	"sort"
-	"strconv"
-	"strings"
 )
 
 // Decode 解码数据
@@ -65,7 +66,7 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 		ok = false
 		for _, group := range slave.pointGroup {
 			for _, point := range group.Points {
-				if point.Name == readPoint.PointName {
+				if point.Name() == readPoint.PointName {
 					if _, ok := indexes[group.index]; !ok {
 						indexes[group.index] = group
 						pointGroups = append(pointGroups, group)
@@ -158,7 +159,7 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 		return writeValue{}, errors.New("point not found")
 	}
 
-	ext, err := convToPointExtend(p.Extends)
+	ext, err := convToPointExtend(p)
 	if err != nil {
 		helper.Logger.Error("error modbus point config", zap.String("deviceId", deviceId), zap.Any("point", pointData.PointName), zap.Error(err))
 		return writeValue{}, err

@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
+
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -54,7 +55,7 @@ func singleRead(deviceId string, pointData plugin.PointData) error {
 	}
 
 	//判断点位操作有效性
-	if point.ReadWrite == config.ReadWrite_W {
+	if point.ReadWrite() == config.ReadWrite_W {
 		return errors.New("point is writeOnly, can not read")
 	}
 
@@ -87,7 +88,7 @@ func singleWrite(deviceId string, pointData plugin.PointData) error {
 	}
 
 	//判断点位操作有效性
-	if point.ReadWrite == config.ReadWrite_R {
+	if point.ReadWrite() == config.ReadWrite_R {
 		return errors.New("point is readonly, can not write")
 	}
 

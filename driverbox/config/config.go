@@ -2,7 +2,6 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -94,69 +93,70 @@ type EnvConfig struct {
 	LogPath    string
 }
 
-type PointMap map[string]interface{} // 点位 Map，可转换为标准点位数据
+type Point map[string]interface{} // 点位 Map，可转换为标准点位数据
 
 // Name 获取点位名称
-func (pm PointMap) Name() string {
+func (pm Point) Name() string {
 	return pm["name"].(string)
 }
 
 // ReadWrite 获取点位读写模式
-func (pm PointMap) ReadWrite() ReadWrite {
+func (pm Point) ReadWrite() ReadWrite {
 	return ReadWrite(fmt.Sprintf("%s", pm["readWrite"]))
 }
 
-func (pm PointMap) FieldValue(key string) interface{} {
+func (pm Point) FieldValue(key string) interface{} {
 	return pm[key]
 }
 
-// ToPoint 转换为标准点位数据
-func (pm PointMap) ToPoint() Point {
-	p := Point{
-		Extends: make(map[string]interface{}),
+func (pm Point) Description() string {
+	return pm["description"].(string)
+}
+
+func (pm Point) ValueType() ValueType {
+	valueType, ok := pm["valueType"]
+	if !ok {
+		return ""
 	}
+	return ValueType(valueType.(string))
+}
+func (pm Point) ReportMode() ReportMode {
+	reportMode, ok := pm["reportMode"]
+	if !ok {
+		return ""
+	}
+	return ReportMode(reportMode.(string))
+}
 
-	for key, v := range pm {
-		switch key {
-		case "name":
-			p.Name = fmt.Sprintf("%s", v)
-		case "description":
-			p.Description = fmt.Sprintf("%s", v)
-		case "valueType":
-			p.ValueType = ValueType(fmt.Sprintf("%s", v))
-		case "readWrite":
-			p.ReadWrite = ReadWrite(fmt.Sprintf("%s", v))
-		case "units":
-			p.Units = fmt.Sprintf("%s", v)
-		case "reportMode":
-			p.ReportMode = ReportMode(fmt.Sprintf("%s", v))
-		case "scale":
-			p.Scale = v.(float64)
-		case "decimals":
-			switch v.(type) {
-			case float64:
-				p.Decimals = int(v.(float64))
-			default:
-				p.Decimals = v.(int)
-			}
-		case "enums":
-			enums := make([]PointEnum, 0)
-			b, err := json.Marshal(v)
-			if err == nil {
-				json.Unmarshal(b, &enums)
-				p.Enums = enums
-			}
+func (pm Point) Scale() float64 {
+	scale, ok := pm["scale"]
+	if !ok {
+		return 0
+	}
+	return scale.(float64)
+}
 
-			//p.Enums = v.([]PointEnum)
-		default:
-			p.Extends[key] = v
+func (pm Point) SetReportMode(mode ReportMode) {
+	pm["reportMode"] = mode
+}
+
+// 保留小数位数
+func (pm Point) Decimals() int {
+	decimals, ok := pm["decimals"]
+	if !ok {
+		//浮点数，且未指定decimals，默认未2
+		if pm.ValueType() == ValueType_Float {
+			return 2
+		} else {
+			return 0
 		}
 	}
-	//浮点数，且未指定decimals，默认未2
-	if p.ValueType == ValueType_Float && pm["decimals"] == nil {
-		p.Decimals = 2
+	switch decimals.(type) {
+	case float64:
+		return int(decimals.(float64))
+	default:
+		return decimals.(int)
 	}
-	return p
 }
 
 // Config 配置
@@ -197,39 +197,13 @@ type ModelBase struct {
 type DeviceModel struct {
 	ModelBase
 	// 模型点位列表
-	DevicePoints []PointMap `json:"devicePoints" validate:"required"`
+	DevicePoints []Point `json:"devicePoints" validate:"required"`
 	// 设备列表
 	Devices []Device `json:"devices" validate:"required"`
 	// 设备索引
 	deviceIndexes map[string]int
 }
 
-// Point 点位数据
-type Point struct {
-	// 点位名称
-	Name string `json:"name" validate:"required"`
-	// 点位描述
-	Description string `json:"description" validate:"required"`
-	// 值类型
-	ValueType ValueType `json:"valueType" validate:"required,oneof=int float string"`
-	// 读写模式
-	ReadWrite ReadWrite `json:"readWrite" validate:"required,oneof=R W RW"`
-	// 单位
-	Units string `json:"units" validate:"-"`
-	// 上报模式
-	ReportMode ReportMode `json:"reportMode" validate:"required"`
-	//数值精度
-	Scale float64 `json:"scale"`
-
-	//保留小数位数
-	Decimals int `json:"decimals"`
-
-	//点位枚举表
-	Enums []PointEnum `json:"enums"`
-
-	// 扩展参数
-	Extends map[string]interface{} `json:"-" validate:"-"`
-}
 type PointEnum struct {
 	//枚举名称
 	Name string `json:"name"`
@@ -358,9 +332,8 @@ func connIsSupportDiscover(conn any) bool {
 func (dm DeviceModel) ToModel() Model {
 	points := make(map[string]Point)
 	for _, pointMap := range dm.DevicePoints {
-		point := pointMap.ToPoint()
-		if point.Name != "" {
-			points[point.Name] = point
+		if pointMap.Name() != "" {
+			points[pointMap.Name()] = pointMap
 		}
 	}
 
