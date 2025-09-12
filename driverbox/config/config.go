@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/ibuilding-x/driver-box/internal/logger"
 )
 
 // 环境变量配置项
@@ -154,7 +153,6 @@ func (pm Point) ValueType() ValueType {
 func (pm Point) ReportMode() ReportMode {
 	reportMode, ok := pm.FieldValue("reportMode")
 	if !ok {
-		logger.Logger.Warn("config error , point reportMode is empty, set default to real")
 		return ReportMode_Real
 	}
 	return ReportMode(reportMode.(string))
