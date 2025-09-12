@@ -152,7 +152,7 @@ func (pm Point) Scale() float64 {
 }
 
 func (pm Point) SetReportMode(mode ReportMode) {
-	pm["reportMode"] = mode
+	pm["reportMode"] = string(mode)
 }
 
 // 保留小数位数
