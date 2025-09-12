@@ -105,8 +105,9 @@ func (pm Point) ReadWrite() ReadWrite {
 	return ReadWrite(fmt.Sprintf("%s", pm["readWrite"]))
 }
 
-func (pm Point) FieldValue(key string) interface{} {
-	return pm[key]
+func (pm Point) FieldValue(key string) (v interface{}, exists bool) {
+	v, exists = pm[key]
+	return
 }
 
 func (pm Point) Description() string {
@@ -157,6 +158,13 @@ func (pm Point) Decimals() int {
 	default:
 		return decimals.(int)
 	}
+}
+func (pm Point) Units() string {
+	defaultValue, ok := pm.FieldValue("units")
+	if !ok {
+		return ""
+	}
+	return defaultValue.(string)
 }
 
 // Config 配置
