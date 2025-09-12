@@ -2,6 +2,7 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -112,6 +113,19 @@ func (pm Point) FieldValue(key string) (v interface{}, exists bool) {
 
 func (pm Point) Description() string {
 	return pm["description"].(string)
+}
+
+func (p Point) Enums() []PointEnum {
+	enums := make([]PointEnum, 0)
+	v, ok := p.FieldValue("enums")
+	if !ok {
+		return enums
+	}
+	b, err := json.Marshal(v)
+	if err == nil {
+		json.Unmarshal(b, &enums)
+	}
+	return enums
 }
 
 func (pm Point) ValueType() ValueType {
