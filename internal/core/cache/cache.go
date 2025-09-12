@@ -204,14 +204,10 @@ func (c *cache) GetModel(modelName string) (model config.DeviceModel, ok bool) {
 }
 
 func (c *cache) GetPoints(modelName string) ([]config.Point, bool) {
-	points := make([]config.Point, 0)
 	if model, exist := cmanager.GetModel(modelName); exist {
-		for _, point := range model.DevicePoints {
-			points = append(points, point)
-		}
-		return points, true
+		return model.DevicePoints, true
 	}
-	return points, false
+	return make([]config.Point, 0), false
 }
 func (c *cache) GetDevice(id string) (device config.Device, ok bool) {
 	if raw, exist := c.devices.Load(id); exist {
