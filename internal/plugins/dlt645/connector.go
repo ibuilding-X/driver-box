@@ -251,8 +251,9 @@ func (c *connector) write() (err error) {
 	return
 }
 
-func convToPointExtend(extends map[string]interface{}) (*Point, error) {
+func convToPointExtend(extends config.Point) (*Point, error) {
 	extend := new(Point)
+	extend.Point = extends
 	if err := helper.Map2Struct(extends, extend); err != nil {
 		helper.Logger.Error("error dlt645 config", zap.Any("config", extends), zap.Error(err))
 		return nil, err

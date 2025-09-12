@@ -629,8 +629,9 @@ func (c *connector) write(wv *writeValue) (err error) {
 	}
 }
 
-func convToPointExtend(extends map[string]interface{}) (*Point, error) {
+func convToPointExtend(extends config.Point) (*Point, error) {
 	extend := new(Point)
+	extend.Point = extends
 	if err := helper.Map2Struct(extends, extend); err != nil {
 		helper.Logger.Error("error modbus config", zap.Any("config", extends), zap.Error(err))
 		return nil, err
