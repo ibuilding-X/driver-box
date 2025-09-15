@@ -3,6 +3,9 @@ package bacnet
 import (
 	"encoding/json"
 	"fmt"
+	"net"
+	"time"
+
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
@@ -14,8 +17,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/network"
 	"github.com/spf13/cast"
 	"go.uber.org/zap"
-	"net"
-	"time"
 )
 
 const (
@@ -60,13 +61,12 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 				continue
 			}
 			for _, point := range model.DevicePoints {
-				p := point.ToPoint()
-				if p.ReadWrite != config.ReadWrite_R && p.ReadWrite != config.ReadWrite_RW {
+				if point.ReadWrite() != config.ReadWrite_R && point.ReadWrite() != config.ReadWrite_RW {
 					continue
 				}
 				var ext extends
-				if err = helper.Map2Struct(p.Extends, &ext); err != nil {
-					helper.Logger.Error("error bacnet config", zap.Any("config", p.Extends), zap.Error(err))
+				if err = helper.Map2Struct(point, &ext); err != nil {
+					helper.Logger.Error("error bacnet config", zap.Any("config", point), zap.Error(err))
 					continue
 				}
 				//未设置，则默认每秒采集一次
@@ -75,13 +75,13 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 				}
 				duration, err := time.ParseDuration(ext.Duration)
 				if err != nil {
-					helper.Logger.Error("error bacnet duration config", zap.String("deviceId", dev.ID), zap.Any("config", p.Extends), zap.Error(err))
+					helper.Logger.Error("error bacnet duration config", zap.String("deviceId", dev.ID), zap.Any("config", point), zap.Error(err))
 					duration = time.Second
 				}
 
 				object, err := createObject(ext)
 				if err != nil {
-					helper.Logger.Error("error bacnet config", zap.Any("config", p.Extends), zap.Error(err))
+					helper.Logger.Error("error bacnet config", zap.Any("config", point), zap.Error(err))
 					continue
 
 				}
@@ -99,7 +99,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 							if obj.ID.Type != object.ID.Type {
 								helper.Logger.Error("error bacnet config, the same instance has different type")
 							} else {
-								obj.Points[dev.ID] = p.Name
+								obj.Points[dev.ID] = point.Name()
 							}
 							ok = true
 							break
@@ -112,7 +112,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 					if len(group.multiData.Objects) < 15 {
 						ok = true
 						points := make(map[string]string)
-						points[dev.ID] = p.Name
+						points[dev.ID] = point.Name()
 						object.Points = points
 						group.multiData.Objects = append(group.multiData.Objects, object)
 						break
@@ -121,7 +121,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 				//新增一个点位组
 				if !ok {
 					points := make(map[string]string)
-					points[dev.ID] = p.Name
+					points[dev.ID] = point.Name()
 					object.Points = points
 					device.pointGroup = append(device.pointGroup, &pointGroup{
 						Duration: duration,

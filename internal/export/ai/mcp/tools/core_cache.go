@@ -117,8 +117,8 @@ func getModelInfo(modelName string) (string, error) {
 	markdown += "|---------|---------|---------|---------|---------|---------|\n"
 	for _, point := range model.ToModel().Points {
 		enums := "<unknow>"
-		if len(point.Enums) > 0 {
-			bytes, _ := json.Marshal(point.Enums)
+		if len(point.Enums()) > 0 {
+			bytes, _ := json.Marshal(point.Enums())
 			enums = string(bytes)
 		}
 		markdown += fmt.Sprintf("| %s | %s | %s | %s | %s | %s |\n", point.Name, point.Description, point.ValueType, point.ReadWrite, point.ReportMode, enums)

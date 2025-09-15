@@ -70,13 +70,17 @@ func (p *Plugin) UpdateMirrorMapping(model config.DeviceModel) error {
 
 	p.connector.mirrors[device.ID] = make(map[string]Device)
 	for _, point := range model.DevicePoints {
-		if point.FieldValue("rawDevice") == nil || point.FieldValue("rawPoint") == nil {
+		//原始设备
+		rawD, ok1 := point.FieldValue("rawDevice")
+		//原始设备点位
+		rawP, ok2 := point.FieldValue("rawPoint")
+		if !ok1 || !ok2 {
 			return errors.New("mirror point must have rawDevice and rawPoint")
 		}
-		//原始设备
-		rawDevice := point.FieldValue("rawDevice").(string)
-		//原始设备点位
-		rawPoint := point.FieldValue("rawPoint").(string)
+
+		rawDevice := rawD.(string)
+
+		rawPoint := rawP.(string)
 		//创建镜像设备与原始设备的映射关系
 		p.connector.mirrors[device.ID][point.Name()] = Device{
 			deviceId:  rawDevice,

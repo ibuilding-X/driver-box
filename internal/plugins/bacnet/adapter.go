@@ -3,6 +3,7 @@ package bacnet
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -55,7 +56,7 @@ func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 			return nil, common.PointNotFoundError
 		}
 		var ext extends
-		if err = helper.Map2Struct(point.Extends, &ext); err != nil {
+		if err = helper.Map2Struct(point, &ext); err != nil {
 			return nil, err
 		}
 
@@ -76,7 +77,7 @@ func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 				return nil, common.PointNotFoundError
 			}
 			var ext extends
-			if err = helper.Map2Struct(point.Extends, &ext); err != nil {
+			if err = helper.Map2Struct(point, &ext); err != nil {
 				return nil, err
 			}
 			var bwc bacWriteCmd

@@ -1,15 +1,16 @@
 package ui
 
 import (
+	"net/http"
+	"sort"
+	"strings"
+	"text/template"
+
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/julienschmidt/httprouter"
 	"go.uber.org/zap"
-	"net/http"
-	"sort"
-	"strings"
-	"text/template"
 )
 
 type Device struct {
@@ -76,17 +77,17 @@ func deviceDetail(writer http.ResponseWriter, request *http.Request, params http
 	points := make([]Point, 0)
 	modelPoints, _ := helper.CoreCache.GetPoints(device.ModelName)
 	for _, point := range modelPoints {
-		p, _ := helper.DeviceShadow.GetDevicePointDetails(shadowDevice.ID, point.Name)
+		p, _ := helper.DeviceShadow.GetDevicePointDetails(shadowDevice.ID, point.Name())
 		points = append(points, Point{
 			Point:     point,
 			Value:     p.Value,
 			Update:    p.UpdatedAt.Format("2006-01-02 15:04:05"),
-			Writeable: point.ReadWrite != config.ReadWrite_R,
+			Writeable: point.ReadWrite() != config.ReadWrite_R,
 		})
 	}
 	//points按name排序
 	sort.Slice(points, func(i, j int) bool {
-		return points[i].Name < points[j].Name
+		return points[i].Name() < points[j].Name()
 	})
 
 	data := struct {

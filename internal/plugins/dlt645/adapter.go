@@ -2,6 +2,7 @@ package dlt645
 
 import (
 	"fmt"
+
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 )
@@ -49,7 +50,7 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 		ok = false
 		for _, group := range slave.pointGroup {
 			for _, point := range group.Points {
-				if point.Name == readPoint.PointName {
+				if point.Name() == readPoint.PointName {
 					if _, ok := indexes[group.index]; !ok {
 						indexes[group.index] = group
 						pointGroups = append(pointGroups, group)

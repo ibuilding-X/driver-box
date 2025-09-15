@@ -70,8 +70,8 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 		shadowValue, _ := helper.DeviceShadow.GetDevicePoint(deviceData.ID, point.PointName)
 
 		// 如果是周期上报模式，且缓存中有值，停止触发
-		if p.ReportMode == config.ReportMode_Change && shadowValue == point.Value {
-			helper.Logger.Debug("point report mode is change, stop to trigger ExportTo", zap.String("pointName", p.Name))
+		if p.ReportMode() == config.ReportMode_Change && shadowValue == point.Value {
+			helper.Logger.Debug("point report mode is change, stop to trigger ExportTo", zap.String("pointName", p.Name()))
 		} else {
 			// 点位值类型名称转换
 			points = append(points, point)
@@ -122,7 +122,7 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 			continue
 		}
 		//点位值类型还原
-		value, err := utils.ConvPointType(p.Value, point.ValueType)
+		value, err := utils.ConvPointType(p.Value, point.ValueType())
 		if err != nil {
 			if !strings.HasPrefix(deviceData.ID, "vrf/") {
 				helper.Logger.Error("convert point value error", zap.Error(err), zap.Any("deviceId", deviceData.ID),
@@ -132,8 +132,8 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 		}
 
 		//精度换算
-		if !driverEnable && point.Scale != 0 {
-			value, err = multiplyWithFloat64(value, point.Scale)
+		if !driverEnable && point.Scale() != 0 {
+			value, err = multiplyWithFloat64(value, point.Scale())
 			if err != nil {
 				helper.Logger.Error("multiplyWithFloat64 error", zap.Error(err), zap.Any("deviceId", deviceData.ID))
 				continue
@@ -141,8 +141,8 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 		}
 
 		//浮点类型,且readValue包含小数时作小数保留位数加工
-		if point.ValueType == config.ValueType_Float && value != 0 {
-			multiplier := math.Pow(10, float64(point.Decimals))
+		if point.ValueType() == config.ValueType_Float && value != 0 {
+			multiplier := math.Pow(10, float64(point.Decimals()))
 			// 先转成整数，再通过除法实现小数位数保留
 			value = math.Trunc(value.(float64)*multiplier) / multiplier
 		}

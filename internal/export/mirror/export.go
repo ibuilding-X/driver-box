@@ -152,7 +152,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	mirrorModel.Description = mirrorConfig.Description
 	mirrorModel.Devices = []config.Device{mirrorDevice}
 
-	points := make([]config.PointMap, 0)
+	points := make([]config.Point, 0)
 	for _, point := range mirrorConfig.Points {
 		pointName, ok := point["name"]
 		if !ok || len(pointName) == 0 {
