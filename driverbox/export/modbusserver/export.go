@@ -100,7 +100,7 @@ func (e *Export) convertReadWrite(rw config.ReadWrite) (int, error) {
 	}
 }
 
-func (e *Export) convertPoints(points map[string]config.Point) []mbserver.Property {
+func (e *Export) convertPoints(points []config.Point) []mbserver.Property {
 	var result []mbserver.Property
 
 	for _, point := range points {
@@ -133,7 +133,7 @@ func (e *Export) getConvertedModels() []mbserver.Model {
 		result = append(result, mbserver.Model{
 			Id:         model.Name,
 			Name:       model.Description,
-			Properties: e.convertPoints(model.ToModel().Points),
+			Properties: e.convertPoints(model.DevicePoints),
 		})
 	}
 

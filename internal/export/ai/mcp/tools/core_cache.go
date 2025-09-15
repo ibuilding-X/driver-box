@@ -115,7 +115,7 @@ func getModelInfo(modelName string) (string, error) {
 	markdown += fmt.Sprintf("\n### 点位列表（共 %d 个点位）\n\n", len(model.DevicePoints))
 	markdown += "| 点位名称 | 描述 | 数据类型 | 读写类型 | 上报模式 | 点值枚举表 |\n"
 	markdown += "|---------|---------|---------|---------|---------|---------|\n"
-	for _, point := range model.ToModel().Points {
+	for _, point := range model.DevicePoints {
 		enums := "<unknow>"
 		if len(point.Enums()) > 0 {
 			bytes, _ := json.Marshal(point.Enums())
