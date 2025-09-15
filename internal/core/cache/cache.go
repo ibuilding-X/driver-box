@@ -93,8 +93,21 @@ func InitCoreCache(configMap map[string]config.Config) (obj CoreCache, err error
 	}
 	Instance = c
 
+	modelChecker := make(map[string]config.DeviceModel)
+
 	for key, _ := range configMap {
 		for _, deviceModel := range configMap[key].DeviceModels {
+			//modelName防重校验
+			if preModel, ok := modelChecker[deviceModel.Name]; ok {
+				if preModel.Name != deviceModel.Name ||
+					preModel.ModelID != deviceModel.ModelID {
+					return c, fmt.Errorf("conflict model base information: %v  %v",
+						deviceModel.ModelBase, preModel.ModelBase)
+				}
+			} else {
+				modelChecker[deviceModel.Name] = deviceModel
+			}
+			//点表基础校验
 			for _, devicePoint := range deviceModel.DevicePoints {
 				checkPoint(&deviceModel, &devicePoint)
 			}
