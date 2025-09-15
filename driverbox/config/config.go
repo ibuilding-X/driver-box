@@ -3,7 +3,6 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 
 	"github.com/go-playground/validator/v10"
@@ -105,7 +104,11 @@ func (pm Point) Name() string {
 // ReadWrite 获取点位读写模式
 // 返回点位的读写权限设置，如只读、只写或读写
 func (pm Point) ReadWrite() ReadWrite {
-	return ReadWrite(fmt.Sprintf("%s", pm["readWrite"]))
+	valueType, ok := pm.FieldValue("readWrite")
+	if !ok {
+		return ""
+	}
+	return ReadWrite(valueType.(string))
 }
 
 // FieldValue 根据键名获取点位字段值
@@ -391,12 +394,7 @@ func (dm DeviceModel) ToModel() Model {
 
 // 网关元数据
 type Metadata struct {
-	//网关序列号，用于唯一标识网关设备，通常由厂商提供
-	//示例值: "GW2023123456789"
-	//注意:
-	// 1. 序列号应与设备实物标签一致
-	// 2. 序列号格式通常为: 厂商代码(2字母) + 年份(4数字) + 序列号(6数字)
-	// 3. 序列号在系统内必须唯一，不可重复
+	// SerialNo 网关在云端定义的SN号，用于唯一标识网关设备
 	SerialNo string `json:"serialNo"`
 
 	//产品型号，标识网关的硬件型号和规格
@@ -421,6 +419,6 @@ type Metadata struct {
 	// 集成电路卡识别码，即 SIM 卡卡号
 	ICCID string `json:"iccid"`
 
-	//软件版本号
+	//软件版本号，例如："1.0.0"
 	SoftwareVersion string `json:"softwareVersion"`
 }
