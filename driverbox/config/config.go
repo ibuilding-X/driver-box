@@ -218,12 +218,6 @@ type Config struct {
 
 //------------------------------ 设备模型 ------------------------------
 
-type Model struct {
-	ModelBase
-	Points  map[string]Point  `json:"points"`
-	Devices map[string]Device `json:"devices"`
-}
-
 // ModelBase 模型基础信息
 type ModelBase struct {
 	// 模型名称
@@ -245,6 +239,8 @@ type DeviceModel struct {
 	Devices []Device `json:"devices" validate:"required"`
 	// 设备索引
 	deviceIndexes map[string]int
+	// 设备点位索引
+	devicePoints map[string]int
 }
 
 type PointEnum struct {
@@ -325,13 +321,19 @@ func (c Config) UpdateIndexAndClean() Config {
 
 	usefulConnKeys := make(map[string]struct{})
 	// 遍历模型
-	for i, _ := range c.DeviceModels {
+	for i, model := range c.DeviceModels {
 		c.modelIndexes[c.DeviceModels[i].Name] = i
 		c.DeviceModels[i].deviceIndexes = make(map[string]int)
+		c.DeviceModels[i].devicePoints = make(map[string]int)
 		// 遍历设备
-		for j, _ := range c.DeviceModels[i].Devices {
-			usefulConnKeys[c.DeviceModels[i].Devices[j].ConnectionKey] = struct{}{}
-			c.DeviceModels[i].deviceIndexes[c.DeviceModels[i].Devices[j].ID] = j
+		for j, device := range c.DeviceModels[i].Devices {
+			usefulConnKeys[device.ConnectionKey] = struct{}{}
+			c.DeviceModels[i].deviceIndexes[device.ID] = j
+		}
+
+		// 建立设备点位索引
+		for j, point := range model.DevicePoints {
+			c.DeviceModels[i].devicePoints[point.Name()] = j
 		}
 	}
 
@@ -362,6 +364,15 @@ func (dm DeviceModel) GetDeviceIndexes() map[string]int {
 	return dm.deviceIndexes
 }
 
+// GetPoint 获取点位
+func (dm DeviceModel) GetPoint(pointName string) (Point, bool) {
+	index, ok := dm.devicePoints[pointName]
+	if !ok {
+		return nil, ok
+	}
+	return dm.DevicePoints[index], ok
+}
+
 // connIsSupportDiscover 连接是否支持自动发现设备
 func connIsSupportDiscover(conn any) bool {
 	if m, ok := conn.(map[string]interface{}); ok {
@@ -370,26 +381,6 @@ func connIsSupportDiscover(conn any) bool {
 		}
 	}
 	return false
-}
-
-func (dm DeviceModel) ToModel() Model {
-	points := make(map[string]Point)
-	for _, pointMap := range dm.DevicePoints {
-		if pointMap.Name() != "" {
-			points[pointMap.Name()] = pointMap
-		}
-	}
-
-	devices := make(map[string]Device)
-	for i, _ := range dm.Devices {
-		devices[dm.Devices[i].ID] = dm.Devices[i]
-	}
-
-	return Model{
-		ModelBase: dm.ModelBase,
-		Points:    points,
-		Devices:   devices,
-	}
 }
 
 // 网关元数据

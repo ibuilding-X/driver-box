@@ -76,7 +76,6 @@ type configManager interface {
 var Instance CoreCache
 
 type cache struct {
-	models         *sync.Map // name => config.Model
 	devices        *sync.Map // deviceSn => config.Device
 	devicePlugins  *sync.Map // deviceSn => plugin key
 	runningPlugins *sync.Map // key => plugin.Plugin
@@ -87,7 +86,6 @@ type cache struct {
 // InitCoreCache 初始化核心缓存
 func InitCoreCache(configMap map[string]config.Config) (obj CoreCache, err error) {
 	c := &cache{
-		models:         &sync.Map{},
 		devices:        &sync.Map{},
 		devicePlugins:  &sync.Map{},
 		runningPlugins: &sync.Map{},
@@ -95,31 +93,23 @@ func InitCoreCache(configMap map[string]config.Config) (obj CoreCache, err error
 	}
 	Instance = c
 
+	modelChecker := make(map[string]config.DeviceModel)
+
 	for key, _ := range configMap {
 		for _, deviceModel := range configMap[key].DeviceModels {
-			var model config.Model
-			if raw, ok := c.models.Load(deviceModel.Name); ok {
-				model = raw.(config.Model)
-				if model.ModelBase.Name != deviceModel.ModelBase.Name ||
-					model.ModelBase.ModelID != deviceModel.ModelBase.ModelID {
+			//modelName防重校验
+			if preModel, ok := modelChecker[deviceModel.Name]; ok {
+				if preModel.Name != deviceModel.Name ||
+					preModel.ModelID != deviceModel.ModelID {
 					return c, fmt.Errorf("conflict model base information: %v  %v",
-						deviceModel.ModelBase, model.ModelBase)
+						deviceModel.ModelBase, preModel.ModelBase)
 				}
 			} else {
-				model = config.Model{
-					ModelBase: deviceModel.ModelBase,
-					Points:    map[string]config.Point{},
-					Devices:   map[string]config.Device{},
-				}
+				modelChecker[deviceModel.Name] = deviceModel
 			}
-			pointMap := make(map[string]config.Point)
+			//点表基础校验
 			for _, devicePoint := range deviceModel.DevicePoints {
 				checkPoint(&deviceModel, &devicePoint)
-				pointName := devicePoint.Name()
-				pointMap[pointName] = devicePoint
-				if _, ok := model.Points[pointName]; !ok {
-					model.Points[pointName] = devicePoint
-				}
 			}
 			for _, device := range deviceModel.Devices {
 				if device.ID == "" {
@@ -128,9 +118,6 @@ func InitCoreCache(configMap map[string]config.Config) (obj CoreCache, err error
 				}
 				deviceId := device.ID
 				device.ModelName = deviceModel.Name
-				if _, ok := model.Devices[deviceId]; !ok {
-					model.Devices[deviceId] = device
-				}
 				if deviceRaw, ok := c.devices.Load(deviceId); !ok {
 					c.devices.Store(deviceId, device)
 				} else {
@@ -153,7 +140,6 @@ func InitCoreCache(configMap map[string]config.Config) (obj CoreCache, err error
 					}
 				}
 			}
-			c.models.Store(model.Name, model)
 		}
 	}
 	return c, nil
@@ -213,14 +199,25 @@ func (c *cache) GetDevice(id string) (device config.Device, ok bool) {
 }
 
 func (c *cache) GetPointByModel(modelName string, pointName string) (point config.Point, ok bool) {
-	if raw, ok := c.models.Load(modelName); ok {
-		model := raw.(config.Model)
-		if pointBase, ok := model.Points[pointName]; ok {
-			return pointBase, true
-		}
+	model, ok := cmanager.GetModel(modelName)
+	if !ok {
 		return config.Point{}, false
 	}
-	return config.Point{}, false
+	//添加校验防止程序存在bug
+	if model.Name != modelName {
+		logger.Logger.Error("model name not match", zap.String("modelName", modelName), zap.String("model", model.Name))
+		return config.Point{}, false
+	}
+	pointBase, ok := model.GetPoint(pointName)
+	if !ok {
+		return config.Point{}, false
+	}
+	//添加校验防止程序存在bug
+	if pointBase.Name() != pointName {
+		logger.Logger.Error("point name not match", zap.String("pointName", pointName), zap.Any("point", pointBase))
+		return config.Point{}, false
+	}
+	return pointBase, true
 }
 
 func (c *cache) GetDevicesByTag(tag string) (devices []config.Device) {
@@ -330,7 +327,6 @@ func (c *cache) resetSyncMap(m *sync.Map) {
 
 // Reset 重置数据
 func (c *cache) Reset() {
-	c.resetSyncMap(c.models)
 	c.resetSyncMap(c.devices)
 	c.resetSyncMap(c.devicePlugins)
 	c.resetSyncMap(c.runningPlugins)
@@ -450,16 +446,7 @@ func (c *cache) GetConnectionPluginName(key string) string {
 
 // AddModel 新增模型
 func (c *cache) AddModel(plugin string, model config.DeviceModel) error {
-	err := cmanager.AddModel(plugin, model)
-	if err == nil {
-		// 判断模型是否存在
-		if _, ok := c.models.Load(model.Name); ok {
-			return nil
-		}
-		// 添加模型
-		c.models.Store(model.Name, model.ToModel())
-	}
-	return err
+	return cmanager.AddModel(plugin, model)
 }
 
 // BatchRemoveDevice 批量删除设备
