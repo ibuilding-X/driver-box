@@ -23,7 +23,8 @@ func (lm *LuaModule) Loader(L *lua.LState) int {
 		//"cache_get": lm.GetCache,
 		"shadow": lm.getDeviceShadow,
 		//"device_list": lm.getDeviceShadow,
-		"getDevice": lm.getDevice,
+		"getDevice":      lm.getDevice,
+		"setDeviceProps": lm.setDeviceProps,
 		//"writeToMsgBus": lm.WriteToMsgBus,
 	})
 	L.Push(mod)
@@ -98,6 +99,19 @@ func (lm *LuaModule) getDevice(L *lua.LState) int {
 		properties.RawSetString(k, lua.LString(v))
 	}
 	deviceTable.RawSetString("properties", properties)
+	return 1
+}
+
+/**
+ * setDeviceProps 设置设备属性
+ */
+func (lm *LuaModule) setDeviceProps(L *lua.LState) int {
+	deviceId := L.ToString(1)
+	propName := L.ToString(2)
+	propValue := L.ToString(3)
+	deviceTable := L.NewTable()
+	defer L.Push(deviceTable)
+	cache.Instance.UpdateDeviceProperty(deviceId, propName, propValue)
 	return 1
 }
 
