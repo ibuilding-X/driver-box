@@ -1,9 +1,10 @@
 package crontab
 
 import (
-	"github.com/robfig/cron/v3"
 	"sync"
 	"time"
+
+	"github.com/robfig/cron/v3"
 )
 
 var instance *crontab
@@ -86,7 +87,7 @@ func (f *Future) run() {
 func (f *Future) Disable() {
 	f.enable = false
 	if f.ticker != nil {
-		f.ticker.Stop()
+		f.ticker.Reset(1)
 	}
 	if f.cronId != 0 {
 		instance.c.Remove(f.cronId)
