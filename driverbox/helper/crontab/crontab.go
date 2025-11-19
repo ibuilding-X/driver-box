@@ -85,6 +85,9 @@ func (f *Future) run() {
 	}
 }
 func (f *Future) Disable() {
+	if !f.enable {
+		return
+	}
 	f.enable = false
 	if f.ticker != nil {
 		f.ticker.Reset(1)
