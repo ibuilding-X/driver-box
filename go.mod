@@ -24,6 +24,7 @@ require (
 	github.com/spf13/cast v1.9.2
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
+	github.com/tbrandon/mbserver v0.0.0-20231208015628-36eb59221ac2
 	github.com/themeyic/timing v1.1.2
 	github.com/tmc/langchaingo v0.1.13
 	github.com/yuin/gopher-lua v1.1.1
@@ -52,6 +53,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
+	github.com/goburrow/modbus v0.1.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/goph/emperror v0.17.2 // indirect
 	github.com/huandu/xstrings v1.3.3 // indirect
