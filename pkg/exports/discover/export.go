@@ -4,7 +4,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/event"
@@ -66,15 +65,15 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 
 // 设备自动发现
 func (export *Export) deviceAutoDiscover(deviceId string, value interface{}) error {
-	logger.Logger.Info("device auto discover", zap.Any("deviceId", deviceId), zap.Any("value", value))
+	helper.Logger.Info("device auto discover", zap.Any("deviceId", deviceId), zap.Any("value", value))
 	deviceDiscover := DeviceDiscover{}
 	if err := utils.Conv2Struct(value, &deviceDiscover); err != nil {
-		logger.Logger.Error("device auto discover conv2struct error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
+		helper.Logger.Error("device auto discover conv2struct error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
 		return err
 	}
 	model, err := library.Model().LoadLibrary(deviceDiscover.ModelKey)
 	if err != nil {
-		logger.Logger.Error("device auto discover load model error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
+		helper.Logger.Error("device auto discover load model error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
 		return err
 	}
 	//通过 modelKey 添加的统一模型 Name
@@ -112,7 +111,7 @@ func (export *Export) deviceAutoDiscover(deviceId string, value interface{}) err
 
 	err = helper.CoreCache.AddModel(deviceDiscover.ProtocolName, model)
 	if err != nil {
-		logger.Logger.Error("device auto discover add model error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
+		helper.Logger.Error("device auto discover add model error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
 		return err
 	}
 	//添加设备
@@ -120,7 +119,7 @@ func (export *Export) deviceAutoDiscover(deviceId string, value interface{}) err
 	deviceDiscover.Device.ConnectionKey = deviceDiscover.ConnectionKey
 	err = helper.CoreCache.AddOrUpdateDevice(deviceDiscover.Device)
 	if err != nil {
-		logger.Logger.Error("device auto discover add device error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
+		helper.Logger.Error("device auto discover add device error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
 		return err
 	}
 

@@ -5,16 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/internal/core"
-	"github.com/ibuilding-x/driver-box/internal/export"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/event"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/export/linkedge"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/restful"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/restful/route"
-	"github.com/robfig/cron/v3"
-	"go.uber.org/zap"
 	"io"
 	"io/fs"
 	"net/http"
@@ -25,6 +15,16 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/ibuilding-x/driver-box/pkg/driverbox"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/event"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/export/linkedge"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/restful"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/restful/route"
+	"github.com/robfig/cron/v3"
+	"go.uber.org/zap"
 )
 
 const (
@@ -354,7 +354,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...linkedge.Config)
 		// 核对触发器
 		config, e = s.getLinkEdge(id)
 		if e != nil {
-			export.TriggerEvents(event.UnknownLinkEdge, "id", id)
+			driverbox.TriggerEvents(event.UnknownLinkEdge, "id", id)
 			return errors.New("get linkEdge error: " + e.Error())
 		}
 		//helper.Logger.Info(fmt.Sprintf("linkEdge:%v", config))
@@ -435,7 +435,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...linkedge.Config)
 		// 跳过未知设备
 		if !helper.DeviceShadow.HasDevice(deviceId) {
 			// 事件信息：场景ID、设备ID
-			export.TriggerEvents(event.UnknownDevice, id, deviceId)
+			driverbox.TriggerEvents(event.UnknownDevice, id, deviceId)
 			continue
 		}
 		device, ok := helper.CoreCache.GetDevice(deviceId)
@@ -462,7 +462,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...linkedge.Config)
 					helper.Logger.Error("device offline, skip action", zap.String("deviceId", deviceId), zap.String("linkedge", id))
 					continue
 				}
-				err := core.SendBatchWrite(deviceId, points)
+				err := driverbox.WritePoints(deviceId, points)
 				if err != nil {
 					helper.Logger.Error("execute linkEdge error", zap.String("linkEdge", id),
 						zap.String("deviceId", deviceId), zap.Any("points", points), zap.Error(err))
@@ -478,11 +478,11 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...linkedge.Config)
 	if id != "" {
 		// value:全部成功\部分成功\全部失败
 		if sucCount == len(config.Action) {
-			export.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, ExecuteResultAllSuccess)
+			driverbox.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, ExecuteResultAllSuccess)
 		} else if sucCount == 0 {
-			export.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, ExecuteResultAllFail)
+			driverbox.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, ExecuteResultAllFail)
 		} else {
-			export.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, ExecuteResultPartSuccess)
+			driverbox.TriggerEvents(event.EventCodeLinkEdgeTrigger, id, ExecuteResultPartSuccess)
 		}
 	}
 

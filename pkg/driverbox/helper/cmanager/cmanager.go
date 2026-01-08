@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/internal/logger"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
-	"go.uber.org/zap"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
+
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/internal/logger"
+	"go.uber.org/zap"
 )
 
 const (

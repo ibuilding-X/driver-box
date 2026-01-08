@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ibuilding-x/driver-box/pkg/driverbox"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper/cmanager"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/pkg/shadow"
 	"github.com/ibuilding-x/driver-box/pkg/exports/discover"
 
 	"net/http"
@@ -13,8 +15,6 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
-	"github.com/ibuilding-x/driver-box/internal/core"
-	"github.com/ibuilding-x/driver-box/internal/dto"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/event"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
@@ -80,56 +80,56 @@ func (wss *websocketService) handler(w http.ResponseWriter, r *http.Request) {
 
 // handleMessage 处理消息
 func (wss *websocketService) handleMessage(conn *websocket.Conn, message []byte) error {
-	var payload dto.WSPayload
+	var payload WSPayload
 	if err := json.Unmarshal(message, &payload); err != nil {
 		return err
 	}
 
 	// 响应结构体
-	var res dto.WSPayload
+	var res WSPayload
 
 	switch payload.Type {
-	case dto.WSForRegister: // 网关注册
-		res.Type = dto.WSForRegisterRes
+	case WSForRegister: // 网关注册
+		res.Type = WSForRegisterRes
 		if err := wss.gatewayRegister(conn, payload); err != nil {
 			// 网关注册失败
 			res.Error = err.Error()
 		} else {
 			// 返回子网关唯一标识
-			res.GatewayKey = core.Metadata.SerialNo
+			res.GatewayKey = driverbox.GetMetadata().SerialNo
 			defer wss.sync()
 		}
-	case dto.WSForPing: // 心跳
-		res.Type = dto.WSForPong
-	case dto.WSForControl: // 控制指令
-		res.Type = dto.WSForControlRes
+	case WSForPing: // 心跳
+		res.Type = WSForPong
+	case WSForControl: // 控制指令
+		res.Type = WSForControlRes
 		if err := wss.control(payload); err != nil {
 			res.Error = err.Error()
 		}
-	case dto.WSForUnregister: // 网关注销
-		res.Type = dto.WSForUnregisterRes
+	case WSForUnregister: // 网关注销
+		res.Type = WSForUnregisterRes
 		if err := wss.gatewayUnregister(conn, payload); err != nil {
 			res.Error = err.Error()
 		}
-	case dto.WSForReportRes: // 设备数据上报响应
+	case WSForReportRes: // 设备数据上报响应
 		if payload.Error != "" {
 			helper.Logger.Error("gateway export report error", zap.String("error", payload.Error))
 		} else {
 			helper.Logger.Info("gateway export report success")
 		}
-	case dto.WSForSyncModelsRes: // 模型数据同步响应
+	case WSForSyncModelsRes: // 模型数据同步响应
 		if payload.Error != "" {
 			helper.Logger.Error("gateway export sync models error", zap.String("error", payload.Error))
 		} else {
 			helper.Logger.Info("gateway export sync models success")
 		}
-	case dto.WSForSyncDevicesRes: // 设备数据同步响应
+	case WSForSyncDevicesRes: // 设备数据同步响应
 		if payload.Error != "" {
 			helper.Logger.Error("gateway export sync devices error", zap.String("error", payload.Error))
 		} else {
 			helper.Logger.Info("gateway export sync devices success")
 		}
-	case dto.WSForSyncShadowRes: // 设备影子数据同步响应
+	case WSForSyncShadowRes: // 设备影子数据同步响应
 		if payload.Error != "" {
 			helper.Logger.Error("gateway export sync shadow error", zap.String("error", payload.Error))
 		} else {
@@ -181,8 +181,8 @@ func (wss *websocketService) syncModels() {
 	}
 
 	// 发送模型数据
-	var sendData dto.WSPayload
-	sendData.Type = dto.WSForSyncModels
+	var sendData WSPayload
+	sendData.Type = WSForSyncModels
 	sendData.Models = deviceModels
 
 	if err := wss.sendJSONToWebSocket(sendData); err != nil {
@@ -211,8 +211,8 @@ func (wss *websocketService) syncDevices() {
 	}
 
 	// 发送设备数据
-	var sendData dto.WSPayload
-	sendData.Type = dto.WSForSyncDevices
+	var sendData WSPayload
+	sendData.Type = WSForSyncDevices
 	sendData.Devices = devices
 
 	if err := wss.sendJSONToWebSocket(sendData); err != nil {
@@ -230,8 +230,8 @@ func (wss *websocketService) syncDevicesPoints() {
 	}
 
 	// 发送设备影子数据
-	var sendData dto.WSPayload
-	sendData.Type = dto.WSForSyncShadow
+	var sendData WSPayload
+	sendData.Type = WSForSyncShadow
 	sendData.Shadow = devices
 
 	if err := wss.sendJSONToWebSocket(sendData); err != nil {
@@ -278,8 +278,8 @@ func (wss *websocketService) sendDeviceData(data plugin.DeviceData) {
 	}
 
 	// 汇总数据
-	var sendData dto.WSPayload
-	sendData.Type = dto.WSForReport
+	var sendData WSPayload
+	sendData.Type = WSForReport
 	sendData.DeviceData = data
 
 	if err := wss.sendJSONToWebSocket(sendData); err != nil {
@@ -289,7 +289,7 @@ func (wss *websocketService) sendDeviceData(data plugin.DeviceData) {
 
 // gatewayRegister 处理网关注册
 // 提示：主动释放 ws 连接逻辑放在客户端处理，服务端暂时不做处理
-func (wss *websocketService) gatewayRegister(conn *websocket.Conn, payload dto.WSPayload) error {
+func (wss *websocketService) gatewayRegister(conn *websocket.Conn, payload WSPayload) error {
 	if payload.GatewayKey == "" {
 		return errGatewayKey
 	}
@@ -298,7 +298,7 @@ func (wss *websocketService) gatewayRegister(conn *websocket.Conn, payload dto.W
 	defer wss.mu.Unlock()
 
 	// 自注册
-	if payload.GatewayKey == core.Metadata.SerialNo {
+	if payload.GatewayKey == driverbox.GetMetadata().SerialNo {
 		return errSelfRegister
 	}
 
@@ -315,7 +315,7 @@ func (wss *websocketService) gatewayRegister(conn *websocket.Conn, payload dto.W
 }
 
 // control 处理控制指令
-func (wss *websocketService) control(payload dto.WSPayload) error {
+func (wss *websocketService) control(payload WSPayload) error {
 	if payload.DeviceData.ID == "" {
 		return errDeviceID
 	}
@@ -323,14 +323,14 @@ func (wss *websocketService) control(payload dto.WSPayload) error {
 	if pointNum := len(payload.DeviceData.Values); pointNum > 0 {
 		// 解析设备 ID
 		payload.DeviceData.ID = wss.parseGatewayDeviceID(payload.DeviceData.ID)
-		return core.SendBatchWrite(payload.DeviceData.ID, payload.DeviceData.Values)
+		return driverbox.WritePoints(payload.DeviceData.ID, payload.DeviceData.Values)
 	}
 
 	return nil
 }
 
 // gatewayUnregister 处理网关注销
-func (wss *websocketService) gatewayUnregister(_ *websocket.Conn, payload dto.WSPayload) error {
+func (wss *websocketService) gatewayUnregister(_ *websocket.Conn, payload WSPayload) error {
 	if payload.GatewayKey == "" {
 		return errGatewayKey
 	}
@@ -349,17 +349,17 @@ func (wss *websocketService) gatewayUnregister(_ *websocket.Conn, payload dto.WS
 
 // genDeviceID 生成网关设备 ID
 func (wss *websocketService) genGatewayDeviceID(id string) string {
-	return fmt.Sprintf("%s/%s", core.Metadata.SerialNo, id)
+	return fmt.Sprintf("%s/%s", driverbox.GetMetadata().SerialNo, id)
 }
 
 // genGatewayModelName 生成网关模型名称（与主网关模型名称不能重复）
 func (wss *websocketService) genGatewayModelName(name string) string {
-	return fmt.Sprintf("%s_%s", core.Metadata.SerialNo, name)
+	return fmt.Sprintf("%s_%s", driverbox.GetMetadata().SerialNo, name)
 }
 
 // parseGatewayDeviceID 解析网关设备 ID
 func (wss *websocketService) parseGatewayDeviceID(id string) string {
-	return strings.ReplaceAll(id, core.Metadata.SerialNo+"/", "")
+	return strings.ReplaceAll(id, driverbox.GetMetadata().SerialNo+"/", "")
 }
 
 // sendJSONToWebSocket 发送 JSON 数据到 websocket
@@ -370,4 +370,36 @@ func (wss *websocketService) sendJSONToWebSocket(v interface{}) error {
 	wss.mu.Lock()
 	defer wss.mu.Unlock()
 	return wss.mainGatewayConn.WriteJSON(v)
+}
+
+type WSPayloadType int8
+
+const (
+	WSForRegister       WSPayloadType = iota + 1 // 注册请求
+	WSForRegisterRes                             // 注册响应
+	WSForUnregister                              // 取消注册请求
+	WSForUnregisterRes                           // 取消注册成功响应
+	WSForPing                                    // 心跳
+	WSForPong                                    // 心跳响应
+	WSForReport                                  // 上报请求
+	WSForReportRes                               // 上报响应
+	WSForControl                                 // 控制请求
+	WSForControlRes                              // 控制响应
+	WSForSyncModels                              // 同步模型请求
+	WSForSyncModelsRes                           // 同步模型响应
+	WSForSyncDevices                             // 同步设备请求
+	WSForSyncDevicesRes                          // 同步设备响应
+	WSForSyncShadow                              // 同步设备影子请求
+	WSForSyncShadowRes                           // 同步设备影子响应
+)
+
+// WSPayload websocket 消息体
+type WSPayload struct {
+	Type       WSPayloadType        `json:"type"`        // 消息类型
+	GatewayKey string               `json:"gateway_key"` // 网关唯一标识（当前版本使用主网关的连接 Key），当 type 为 WSForRegister、 WSForUnregister 时，此字段必填
+	DeviceData plugin.DeviceData    `json:"device_data"` // 当 type 为 WSForReport、 WSForControl 时，此字段必填
+	Models     []config.DeviceModel `json:"models"`      // 模型数据，当 type 为 WSForSyncModels 时，此字段必填
+	Devices    []config.Device      `json:"devices"`     // 设备数据，当 type 为 WSForSyncDevices 时，此字段必填
+	Shadow     []shadow.Device      `json:"shadow"`      // 设别影子数据，当 type 为 WSForSyncShadow 时，此字段必填
+	Error      string               `json:"error"`       // 错误信息，当 type 为 WSForRegisterRes、 WSForUnregisterRes、 WSForControlRes 时，此字段必填
 }

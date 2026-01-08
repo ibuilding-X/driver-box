@@ -2,14 +2,15 @@ package library
 
 import (
 	"fmt"
-	"github.com/ibuilding-x/driver-box/internal/lua"
+	"path"
+	"sync"
+
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/event"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper/utils"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/internal/lua"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
 	glua "github.com/yuin/gopher-lua"
-	"path"
-	"sync"
 )
 
 // 同步锁

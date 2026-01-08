@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ibuilding-x/driver-box/internal/core"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/common"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
@@ -104,7 +104,7 @@ func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 			if len(bwc.PreOp) > 0 {
 				for _, op := range bwc.PreOp {
 					helper.Logger.Info("Send preOp", zap.String("deviceId", deviceSn), zap.String("pointName", op.PointName), zap.Any("value", op.Value))
-					err = core.SendSinglePoint(deviceSn, plugin.WriteMode, plugin.PointData{
+					err = driverbox.WritePoint(deviceSn, plugin.PointData{
 						PointName: op.PointName,
 						Value:     op.Value,
 					})

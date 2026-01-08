@@ -5,9 +5,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/ibuilding-x/driver-box/internal/core"
-
 	"github.com/google/uuid"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
 )
 
@@ -29,14 +29,18 @@ func (export *Export) Init() error {
 		if err != nil {
 			return fmt.Errorf("failed to read unique code file: %v", err)
 		}
-		core.Metadata.SerialNo = string(content)
+		driverbox.UpdateMetadata(func(m *config.Metadata) {
+			m.SerialNo = string(content)
+		})
 	} else if os.IsNotExist(err) {
 		// 生成UUID作为唯一码
 		uniqueCode := uuid.New().String()
 		if err := os.WriteFile(uniqueCodeFile, []byte(uniqueCode), 0644); err != nil {
 			return fmt.Errorf("failed to write unique code file: %v", err)
 		}
-		core.Metadata.SerialNo = uniqueCode
+		driverbox.UpdateMetadata(func(m *config.Metadata) {
+			m.SerialNo = uniqueCode
+		})
 	}
 
 	export.ready = true

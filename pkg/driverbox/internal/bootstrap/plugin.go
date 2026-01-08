@@ -3,22 +3,23 @@ package bootstrap
 import (
 	"errors"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/internal/core/cache"
-	"github.com/ibuilding-x/driver-box/internal/core/shadow"
-	"github.com/ibuilding-x/driver-box/internal/export"
-	"github.com/ibuilding-x/driver-box/internal/logger"
-	"github.com/ibuilding-x/driver-box/internal/lua"
-	"github.com/ibuilding-x/driver-box/internal/plugins"
+	"path/filepath"
+	"sync"
+
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/common"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/event"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper/cmanager"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/internal/core/cache"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/internal/core/shadow"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/internal/export"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/internal/logger"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/internal/lua"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/internal/plugins"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/library"
 	glua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
-	"path/filepath"
-	"sync"
 )
 
 // LoadPlugins 加载插件并运行

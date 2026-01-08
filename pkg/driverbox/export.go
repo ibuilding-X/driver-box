@@ -1,8 +1,8 @@
 package driverbox
 
 import (
-	export0 "github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/export"
+	export0 "github.com/ibuilding-x/driver-box/pkg/driverbox/internal/export"
 )
 
 var Exports exports

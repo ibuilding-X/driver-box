@@ -1,8 +1,8 @@
 package driverbox
 
 import (
-	"github.com/ibuilding-x/driver-box/internal/bootstrap"
-	plugins0 "github.com/ibuilding-x/driver-box/internal/plugins"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/internal/bootstrap"
+	plugins0 "github.com/ibuilding-x/driver-box/pkg/driverbox/internal/plugins"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
 )
 

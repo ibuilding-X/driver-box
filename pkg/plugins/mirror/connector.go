@@ -3,8 +3,8 @@ package mirror
 import (
 	"errors"
 
-	"github.com/ibuilding-x/driver-box/internal/core"
-	"github.com/ibuilding-x/driver-box/internal/logger"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
 	"go.uber.org/zap"
 )
@@ -32,9 +32,9 @@ func (c *connector) Send(raw interface{}) (err error) {
 	for _, encodeModel := range models {
 		switch encodeModel.mode {
 		case plugin.WriteMode:
-			e = core.SendBatchWrite(encodeModel.deviceId, encodeModel.points)
+			e = driverbox.WritePoints(encodeModel.deviceId, encodeModel.points)
 		case plugin.ReadMode:
-			e = core.SendBatchRead(encodeModel.deviceId, encodeModel.points)
+			e = driverbox.ReadPoints(encodeModel.deviceId, encodeModel.points)
 		default:
 			return errors.New("unknown mode")
 		}
@@ -127,6 +127,6 @@ func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error)
 	for _, data := range group {
 		res = append(res, data)
 	}
-	logger.Logger.Debug("mirror decode result", zap.Any("raw", rawDeviceData), zap.Any("mirror", res))
+	helper.Logger.Debug("mirror decode result", zap.Any("raw", rawDeviceData), zap.Any("mirror", res))
 	return res, err
 }

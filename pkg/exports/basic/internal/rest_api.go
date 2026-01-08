@@ -9,12 +9,9 @@ import (
 	"io"
 	"net/http"
 	"sort"
-	"strings"
 	"time"
 
-	"github.com/ibuilding-x/driver-box/internal/bootstrap"
-	"github.com/ibuilding-x/driver-box/internal/core"
-	"github.com/ibuilding-x/driver-box/internal/logger"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper/cmanager"
@@ -54,40 +51,40 @@ func registerApi() {
 	restful.HandleFunc(http.MethodGet, route.V1Prefix+"library/model/get", libraryModelGet)
 
 	//sse服务
-	http.HandleFunc("/sse/log", func(w http.ResponseWriter, r *http.Request) {
-		include := r.URL.Query().Get("include")
-		exclude := r.URL.Query().Get("exclude")
-		w.Header().Set("Content-Type", "text/event-stream")
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Connection", "keep-alive")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-
-		//定义一个channel，注册至logger
-		loggerChannel := make(chan []byte, 100)
-		logger.ChanWriter.Add(loggerChannel)
-		defer func() {
-			logger.ChanWriter.Remove(loggerChannel)
-			close(loggerChannel)
-			logger.Logger.Info("sse client disconnected")
-		}()
-		for bytes := range loggerChannel {
-			// 将消息格式化为SSE格式
-			message := string(bytes)
-			if len(include) > 0 && strings.Index(message, include) == -1 {
-				continue
-			}
-			if len(exclude) > 0 && strings.Index(message, exclude) != -1 {
-				continue
-			}
-			// 写入响应体
-			_, e := w.Write(bytes)
-			if e != nil {
-				break
-			}
-			//刷新
-			w.(http.Flusher).Flush()
-		}
-	})
+	//http.HandleFunc("/sse/log", func(w http.ResponseWriter, r *http.Request) {
+	//	include := r.URL.Query().Get("include")
+	//	exclude := r.URL.Query().Get("exclude")
+	//	w.Header().Set("Content-Type", "text/event-stream")
+	//	w.Header().Set("Cache-Control", "no-cache")
+	//	w.Header().Set("Connection", "keep-alive")
+	//	w.Header().Set("Access-Control-Allow-Origin", "*")
+	//
+	//	//定义一个channel，注册至logger
+	//	loggerChannel := make(chan []byte, 100)
+	//	logger.ChanWriter.Add(loggerChannel)
+	//	defer func() {
+	//		logger.ChanWriter.Remove(loggerChannel)
+	//		close(loggerChannel)
+	//		logger.Logger.Info("sse client disconnected")
+	//	}()
+	//	for bytes := range loggerChannel {
+	//		// 将消息格式化为SSE格式
+	//		message := string(bytes)
+	//		if len(include) > 0 && strings.Index(message, include) == -1 {
+	//			continue
+	//		}
+	//		if len(exclude) > 0 && strings.Index(message, exclude) != -1 {
+	//			continue
+	//		}
+	//		// 写入响应体
+	//		_, e := w.Write(bytes)
+	//		if e != nil {
+	//			break
+	//		}
+	//		//刷新
+	//		w.(http.Flusher).Flush()
+	//	}
+	//})
 }
 
 type kv map[string]interface{}
@@ -268,7 +265,7 @@ func writePoint(r *http.Request) (any, error) {
 	sn := r.URL.Query().Get("id")
 	point := r.URL.Query().Get("point")
 	value := r.URL.Query().Get("value")
-	return nil, core.SendSinglePoint(sn, plugin.WriteMode, plugin.PointData{
+	return nil, driverbox.WritePoint(sn, plugin.PointData{
 		PointName: point,
 		Value:     value,
 	})
@@ -292,16 +289,14 @@ func writePoints(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nil, core.SendBatchWrite(data.ID, data.Values)
+	return nil, driverbox.WritePoints(data.ID, data.Values)
 }
 
 // 读取某个设备点位
 func readPoint(r *http.Request) (any, error) {
 	sn := r.URL.Query().Get("id")
 	point := r.URL.Query().Get("point")
-	e := core.SendSinglePoint(sn, plugin.ReadMode, plugin.PointData{
-		PointName: point,
-	})
+	e := driverbox.ReadPoint(sn, point)
 	if e != nil {
 		return nil, e
 	}
@@ -384,7 +379,7 @@ func deviceAdd(r *http.Request) (any, error) {
 	if err != nil {
 		return false, err
 	}
-	bootstrap.ReloadPlugins()
+	driverbox.ReloadPlugins()
 	return true, nil
 }
 
@@ -405,7 +400,7 @@ func deviceDelete(r *http.Request) (any, error) {
 		return false, err
 	}
 	defer func() {
-		bootstrap.ReloadPlugins()
+		driverbox.ReloadPlugins()
 	}()
 	return nil, helper.CoreCache.BatchRemoveDevice(cfg.DeviceIds)
 }

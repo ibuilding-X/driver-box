@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/internal/logger"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
 	"go.uber.org/zap"
 )

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	plugins0 "github.com/ibuilding-x/driver-box/internal/plugins"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
@@ -26,7 +26,7 @@ type Plugin struct {
 }
 
 func RegisterPlugin() {
-	plugins0.Manager.Register(ProtocolName, NewPlugin())
+	driverbox.RegisterPlugin(ProtocolName, NewPlugin())
 }
 
 func NewPlugin() *Plugin {

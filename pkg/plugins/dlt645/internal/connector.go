@@ -4,7 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/common"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
@@ -59,11 +58,11 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 
 func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, error) {
 	if !conf.Enable {
-		logger.Logger.Warn("dlt645 connection is disabled, ignore collect task", zap.String("key", c.config.ConnectionKey))
+		helper.Logger.Warn("dlt645 connection is disabled, ignore collect task", zap.String("key", c.config.ConnectionKey))
 		return nil, nil
 	}
 	if len(c.devices) == 0 {
-		logger.Logger.Warn("dlt645 connection has no device to collect", zap.String("key", c.config.ConnectionKey))
+		helper.Logger.Warn("dlt645 connection has no device to collect", zap.String("key", c.config.ConnectionKey))
 		return nil, nil
 	}
 

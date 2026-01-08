@@ -5,7 +5,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/event"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
@@ -190,16 +189,16 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	if export.plugin.IsReady() {
 		e = export.plugin.UpdateMirrorMapping(mirrorModel)
 	} else {
-		logger.Logger.Info("add mirror model success, but mirror plugin is not ready. will initialize...")
+		helper.Logger.Info("add mirror model success, but mirror plugin is not ready. will initialize...")
 		c, ok := cmanager.GetConfig(mirror.ProtocolName)
 		if !ok {
-			logger.Logger.Info("mirror plugin initialize fail")
+			helper.Logger.Info("mirror plugin initialize fail")
 			return errors.New("mirror config not found")
 		}
 		export.plugin.Initialize(nil, c, nil)
 		// 缓存插件
 		helper.CoreCache.AddRunningPlugin(mirror.ProtocolName, export.plugin)
-		logger.Logger.Info("mirror plugin initialize success")
+		helper.Logger.Info("mirror plugin initialize success")
 	}
 
 	if e == nil {

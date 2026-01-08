@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/common"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
@@ -56,11 +55,11 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 
 func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, error) {
 	if !conf.Enable {
-		logger.Logger.Warn("modbus connection is disabled, ignore collect task", zap.String("key", c.config.ConnectionKey))
+		helper.Logger.Warn("modbus connection is disabled, ignore collect task", zap.String("key", c.config.ConnectionKey))
 		return nil, nil
 	}
 	if len(c.devices) == 0 {
-		logger.Logger.Warn("modbus connection has no device to collect", zap.String("key", c.config.ConnectionKey))
+		helper.Logger.Warn("modbus connection has no device to collect", zap.String("key", c.config.ConnectionKey))
 		return nil, nil
 	}
 
@@ -272,7 +271,7 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 
 	if c.writeSemaphore.Load() > 0 {
 		c.resetCollectTime(group)
-		logger.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.config.ConnectionKey), zap.Any("semaphore", c.writeSemaphore))
+		helper.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.config.ConnectionKey), zap.Any("semaphore", c.writeSemaphore))
 		return nil
 	}
 

@@ -3,9 +3,10 @@ package internal
 import (
 	"encoding/json"
 	"fmt"
+
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/common"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/library"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin/callback"
@@ -102,7 +103,7 @@ func (conn *connector) onReceiveHandler(_ mqtt.Client, message mqtt.Message) {
 	// 执行回调 写入消息总线
 	deviceData, err := library.Protocol().Decode(conn.config.ProtocolKey, msg)
 	if err != nil {
-		logger.Logger.Error("decode error", zap.Error(err))
+		helper.Logger.Error("decode error", zap.Error(err))
 		return
 	}
 	//自动添加设备

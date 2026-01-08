@@ -3,15 +3,15 @@ package driverbox
 import (
 	"context"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/internal/bootstrap"
-	"github.com/ibuilding-x/driver-box/internal/core"
-	export0 "github.com/ibuilding-x/driver-box/internal/export"
-	plugins0 "github.com/ibuilding-x/driver-box/internal/plugins"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/event"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/export"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper/crontab"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/internal/bootstrap"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/internal/core"
+	export0 "github.com/ibuilding-x/driver-box/pkg/driverbox/internal/export"
+	plugins0 "github.com/ibuilding-x/driver-box/pkg/driverbox/internal/plugins"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/restful"
 	"github.com/julienschmidt/httprouter"
@@ -142,6 +142,10 @@ func WritePoint(deviceId string, pointData plugin.PointData) error {
 // 批量写点位
 func WritePoints(deviceId string, pointData []plugin.PointData) error {
 	return core.SendBatchWrite(deviceId, pointData)
+}
+
+func ReadPoints(deviceId string, pointData []plugin.PointData) error {
+	return core.SendBatchRead(deviceId, pointData)
 }
 
 //// 获取当前被注册至 driver-box 的所有export

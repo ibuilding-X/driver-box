@@ -3,12 +3,13 @@ package library
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/internal/lua"
+	"path"
+
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/event"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/internal/lua"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
 	glua "github.com/yuin/gopher-lua"
-	"path"
 )
 
 type ProtocolDriver struct {

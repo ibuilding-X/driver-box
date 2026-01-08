@@ -2,11 +2,12 @@ package restful
 
 import (
 	"encoding/json"
-	"github.com/ibuilding-x/driver-box/internal/logger"
+	"net/http"
+
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/internal/logger"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/restful/response"
 	"github.com/julienschmidt/httprouter"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 var HttpRouter = httprouter.New()

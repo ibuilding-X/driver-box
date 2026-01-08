@@ -2,14 +2,15 @@ package internal
 
 import (
 	"encoding/json"
-	"github.com/ibuilding-x/driver-box/internal/core"
+	"net"
+	"os"
+	"strings"
+
+	"github.com/ibuilding-x/driver-box/pkg/driverbox"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper/utils"
 	"go.uber.org/zap"
-	"net"
-	"os"
-	"strings"
 )
 
 type Discover struct {
@@ -70,7 +71,7 @@ func (discover *Discover) udpDiscover() {
 			Port string `json:"port"`
 		}
 		resp := Resp{
-			Metadata: core.Metadata,
+			Metadata: driverbox.GetMetadata(),
 			Port:     helper.EnvConfig.HttpListen,
 		}
 		// 获取网关Metadata信息

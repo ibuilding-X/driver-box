@@ -3,16 +3,16 @@ package internal
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"sync"
+
 	"github.com/gorilla/websocket"
-	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/common"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/library"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin/callback"
 	"go.uber.org/zap"
-	"net/http"
-	"sync"
 )
 
 var upgrader = websocket.Upgrader{
@@ -70,12 +70,12 @@ func (c *connector) Send(raw interface{}) (err error) {
 // startServer 启动服务
 func (c *connector) startServer() {
 	if !c.config.Enable {
-		logger.Logger.Warn("websocket connector is not enable", zap.Any("connector", c.config))
+		helper.Logger.Warn("websocket connector is not enable", zap.Any("connector", c.config))
 		return
 	}
 	//复用driver-box自身服务
 	if c.config.Port == helper.EnvConfig.HttpListen {
-		logger.Logger.Error("websocket connector port is same as driver-box http listen port", zap.Any("connector", c.config))
+		helper.Logger.Error("websocket connector port is same as driver-box http listen port", zap.Any("connector", c.config))
 		return
 	}
 	//启动新的服务
@@ -88,7 +88,7 @@ func (c *connector) startServer() {
 	go func() {
 		e := c.server.ListenAndServe()
 		if e != nil {
-			logger.Logger.Error("websocket connector start server error", zap.Any("error", e))
+			helper.Logger.Error("websocket connector start server error", zap.Any("error", e))
 		}
 	}()
 }
@@ -118,7 +118,7 @@ func (c *connector) handleFunc(server *http.ServeMux) {
 				fmt.Println("Failed to read message:", err)
 				break
 			}
-			logger.Logger.Info("Received message", zap.Any("messageType", messageType), zap.Any("payload", string(p)))
+			helper.Logger.Info("Received message", zap.Any("messageType", messageType), zap.Any("payload", string(p)))
 			decode.Event = "read"
 			decode.Payload = string(p)
 			deviceDatas, err := library.Protocol().Decode(c.config.ProtocolKey, decode)

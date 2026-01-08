@@ -3,7 +3,7 @@ package internal
 import (
 	"errors"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/internal/logger"
+
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
@@ -40,7 +40,7 @@ func (p *Plugin) initConnPool(c config.Config) error {
 			continue
 		}
 		if !connectConfig.Enable {
-			logger.Logger.Warn("mqtt connection is disable", zap.String("connectionKey", k))
+			helper.Logger.Warn("mqtt connection is disable", zap.String("connectionKey", k))
 			continue
 		}
 		connectConfig.ConnectionKey = k
