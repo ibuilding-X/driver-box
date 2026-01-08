@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/ibuilding-x/driver-box/pkg/driverbox"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper/utils"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin/callback"
 	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/btypes"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
@@ -34,7 +34,7 @@ func mockRead(plugin *connector, L *lua.LState, data btypes.MultiplePropertyData
 			if err != nil {
 				helper.Logger.Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
 			} else {
-				callback.ExportTo(res)
+				driverbox.ExportTo(res)
 			}
 		}
 	}

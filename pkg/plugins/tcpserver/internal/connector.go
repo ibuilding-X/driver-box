@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"net"
+
+	"github.com/ibuilding-x/driver-box/pkg/driverbox"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/common"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin/callback"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
-	"net"
 )
 
 type connector struct {
@@ -83,7 +84,7 @@ func (c *connector) handelConn(conn net.Conn) {
 		if res, err := c.Decode(data.ToJSON()); err != nil {
 			c.plugin.logger.Error("tcp_server callback error", zap.Error(err))
 		} else {
-			callback.ExportTo(res)
+			driverbox.ExportTo(res)
 		}
 	}
 }

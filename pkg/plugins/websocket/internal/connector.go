@@ -7,11 +7,11 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/common"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/library"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin/callback"
 	"go.uber.org/zap"
 )
 
@@ -145,7 +145,7 @@ func (c *connector) handleFunc(server *http.ServeMux) {
 			}
 			//自动添加设备
 			common.WrapperDiscoverEvent(deviceDatas, c.config.ConnectionKey, ProtocolName)
-			callback.ExportTo(deviceDatas)
+			driverbox.ExportTo(deviceDatas)
 		}
 
 		//移除映射

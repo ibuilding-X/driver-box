@@ -4,12 +4,12 @@ import (
 	"errors"
 	"time"
 
+	"github.com/ibuilding-x/driver-box/pkg/driverbox"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/common"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin/callback"
 	dlt "github.com/ibuilding-x/driver-box/pkg/plugins/dlt645/internal/core"
 	"github.com/ibuilding-x/driver-box/pkg/plugins/dlt645/internal/core/dltcon"
 	"go.uber.org/zap"
@@ -213,7 +213,7 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 		if err != nil {
 			helper.Logger.Error("error dlt645 callback", zap.Any("data", pointReadValue), zap.Error(err))
 		} else {
-			callback.ExportTo(res)
+			driverbox.ExportTo(res)
 		}
 	}
 	return nil

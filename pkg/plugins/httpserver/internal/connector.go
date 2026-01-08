@@ -8,10 +8,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/common"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin/callback"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )
@@ -71,7 +71,7 @@ func (c *connector) startServer(opts connectorConfig) {
 			})
 			return
 		} else {
-			callback.ExportTo(res)
+			driverbox.ExportTo(res)
 		}
 		ctx.JSON(http.StatusOK, gin.H{
 			"code":    0,

@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ibuilding-x/driver-box/pkg/driverbox"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/common"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/library"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin/callback"
 	"go.uber.org/zap"
 )
 
@@ -158,7 +158,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 	}
 	//自动添加设备
 	common.WrapperDiscoverEvent(deviceData, c.config.ConnectionKey, ProtocolName)
-	callback.ExportTo(deviceData)
+	driverbox.ExportTo(deviceData)
 	return nil
 }
 

@@ -13,7 +13,6 @@ import (
 	"github.com/ibuilding-x/driver-box/pkg/driverbox"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin/callback"
 	"github.com/ibuilding-x/driver-box/pkg/exports/gateway"
 	"go.uber.org/zap"
 )
@@ -201,7 +200,7 @@ func (c *connector) handleWebSocketMessage(conn *websocket.Conn, message []byte)
 		if err != nil {
 			return err
 		}
-		callback.ExportTo(result)
+		driverbox.ExportTo(result)
 	default:
 		return nil
 	}

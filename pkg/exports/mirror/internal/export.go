@@ -5,13 +5,13 @@ import (
 	"os"
 	"sync"
 
+	"github.com/ibuilding-x/driver-box/pkg/driverbox"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/event"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/library"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin/callback"
 	"github.com/ibuilding-x/driver-box/pkg/plugins/mirror"
 	"go.uber.org/zap"
 )
@@ -71,7 +71,7 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 		if err != nil {
 			return err
 		}
-		callback.ExportTo(res)
+		driverbox.ExportTo(res)
 	case event.EventCodeDeviceStatus:
 		// 设备状态变更事件
 		mirrorDeviceID := "mirror_" + key
