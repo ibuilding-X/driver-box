@@ -2,8 +2,9 @@ package network
 
 import (
 	"fmt"
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
 	"testing"
+
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/btypes"
 )
 
 func TestDevice_ReadPointName(t *testing.T) {

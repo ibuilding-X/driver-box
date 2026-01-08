@@ -2,13 +2,14 @@ package encoding
 
 import (
 	"encoding/json"
-	pprint "github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/helpers/print"
+
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/btypes"
+	pprint "github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/helpers/print"
+
 	"log"
 	"reflect"
 	"strings"
 	"testing"
-
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
 )
 
 func TestReadPropertyService(t *testing.T) {

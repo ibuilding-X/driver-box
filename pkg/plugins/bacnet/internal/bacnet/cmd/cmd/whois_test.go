@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet"
-	pprint "github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/helpers/print"
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/network"
 	"testing"
+
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet"
+	pprint "github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/helpers/print"
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/network"
 )
 
 func TestByInterface(t *testing.T) {

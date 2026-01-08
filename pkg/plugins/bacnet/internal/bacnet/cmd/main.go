@@ -1,6 +1,6 @@
 package main
 
-import "github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/cmd/cmd"
+import "github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/cmd/cmd"
 
 func main() {
 	cmd.Execute()

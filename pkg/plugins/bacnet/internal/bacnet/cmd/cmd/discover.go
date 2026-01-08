@@ -6,9 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet"
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
-
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet"
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/btypes"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

@@ -2,9 +2,10 @@ package network
 
 import (
 	"fmt"
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet"
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
-	segmentation2 "github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes/segmentation"
+
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet"
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/btypes"
+	segmentation2 "github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/btypes/segmentation"
 
 	//"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet"
 

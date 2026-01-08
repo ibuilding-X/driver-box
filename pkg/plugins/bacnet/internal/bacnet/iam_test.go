@@ -2,10 +2,11 @@ package bacnet
 
 import (
 	"fmt"
-	pprint "github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/helpers/print"
 	"go/build"
 	"os"
 	"testing"
+
+	pprint "github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/helpers/print"
 )
 
 var iface = "enp0s31f6"

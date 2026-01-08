@@ -2,10 +2,10 @@ package cmd2
 
 import (
 	"fmt"
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet"
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
 	"log"
 
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet"
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/btypes"
 	"github.com/spf13/cobra"
 )
 

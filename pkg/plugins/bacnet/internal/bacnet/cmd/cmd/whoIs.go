@@ -2,12 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet"
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/network"
 	"time"
 
-	pprint "github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/helpers/print"
-
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet"
+	pprint "github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/helpers/print"
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/network"
 	"github.com/spf13/cobra"
 )
 

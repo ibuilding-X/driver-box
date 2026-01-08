@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet"
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/helpers/data"
-	ip2bytes "github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/helpers/ipbytes"
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet"
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/btypes"
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/helpers/data"
+	ip2bytes "github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/helpers/ipbytes"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

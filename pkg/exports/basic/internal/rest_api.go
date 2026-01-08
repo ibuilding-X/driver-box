@@ -1,4 +1,4 @@
-package basic
+package internal
 
 import (
 	"crypto/md5"

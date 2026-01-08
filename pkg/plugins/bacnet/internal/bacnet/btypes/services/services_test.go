@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	pprint "github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/helpers/print"
+	pprint "github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/helpers/print"
 )
 
 func TestSupported(t *testing.T) {

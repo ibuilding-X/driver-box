@@ -3,11 +3,12 @@ package bacnet
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/datalink"
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/encoding"
 	"log"
 	"testing"
+
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/btypes"
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/datalink"
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/encoding"
 )
 
 const interfaceName = "eth0"

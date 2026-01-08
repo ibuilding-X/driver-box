@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/helpers/homedir"
 	"os"
 
+	"github.com/ibuilding-x/driver-box/pkg/plugins/bacnet/internal/bacnet/helpers/homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
