@@ -2,15 +2,15 @@ package internal
 
 import (
 	"fmt"
+	"os"
+	"sync"
+
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/event"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/export/linkedge"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
-	"os"
-	"sync"
 )
 
 var driverInstance *Export
@@ -36,8 +36,8 @@ func (export *Export) Init() error {
 
 	//启动场景联动服务
 	export.linkEdge = service{
-		triggerConditions: make(map[string][]linkedge.DevicePointCondition),
-		configs:           make(map[string]linkedge.Config),
+		triggerConditions: make(map[string][]DevicePointCondition),
+		configs:           make(map[string]Config),
 		schedules:         make(map[string]*cron.Cron),
 		envConfig:         export.EnvConfig,
 	}

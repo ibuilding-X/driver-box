@@ -1,4 +1,4 @@
-package linkedge
+package internal
 
 // TriggerType 触发器类型
 type TriggerType string

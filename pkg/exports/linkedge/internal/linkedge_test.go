@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/export/linkedge"
 	"github.com/robfig/cron/v3"
 	"testing"
 )
@@ -101,9 +100,9 @@ var scene = `
 
 func TestCreate(t *testing.T) {
 	s := &service{
-		configs:           make(map[string]linkedge.Config),
+		configs:           make(map[string]Config),
 		schedules:         make(map[string]*cron.Cron),
-		triggerConditions: make(map[string][]linkedge.DevicePointCondition),
+		triggerConditions: make(map[string][]DevicePointCondition),
 		envConfig:         EnvConfig{},
 	}
 	if err := s.Create([]byte(scene)); err != nil {

@@ -1,4 +1,4 @@
-package linkedge
+package internal
 
 // ActionType 执行动作类型
 type ActionType string

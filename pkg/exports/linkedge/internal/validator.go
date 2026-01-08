@@ -1,4 +1,4 @@
-package linkedge
+package internal
 
 import "time"
 
