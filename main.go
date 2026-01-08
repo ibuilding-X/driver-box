@@ -3,9 +3,9 @@ package main
 import (
 	"os"
 
-	"github.com/ibuilding-x/driver-box/pkg/driverbox"
-	"github.com/ibuilding-x/driver-box/pkg/exports"
-	"github.com/ibuilding-x/driver-box/pkg/plugins"
+	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/exports"
+	"github.com/ibuilding-x/driver-box/plugins"
 )
 
 func main() {
