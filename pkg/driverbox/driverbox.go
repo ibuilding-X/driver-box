@@ -3,6 +3,10 @@ package driverbox
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"os"
+	"path"
+
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/event"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/export"
@@ -16,9 +20,6 @@ import (
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/restful"
 	"github.com/julienschmidt/httprouter"
 	"go.uber.org/zap"
-	"net/http"
-	"os"
-	"path"
 )
 
 var srv *http.Server
