@@ -3,7 +3,7 @@ package modbusserver
 import (
 	"fmt"
 
-	"github.com/ibuilding-x/driver-box/internal/core"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/pkg/mbserver"
@@ -70,7 +70,7 @@ func (e *Export) writeHandler(id string, propertyValues []mbserver.PropertyValue
 	}
 
 	// 下发控制
-	err := core.SendBatchWrite(id, points)
+	err := driverbox.WritePoints(id, points)
 	if err != nil {
 		helper.Logger.Error("modbus server send batch write error", zap.Error(err))
 	}
