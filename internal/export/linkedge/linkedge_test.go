@@ -1,7 +1,7 @@
 package linkedge
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/export/linkedge"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/export/linkedge"
 	"github.com/robfig/cron/v3"
 	"testing"
 )

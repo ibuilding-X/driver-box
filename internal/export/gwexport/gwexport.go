@@ -1,8 +1,8 @@
 package gwexport
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/export"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/export"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
 )
 
 type gatewayExport struct {

@@ -12,18 +12,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
-	"github.com/ibuilding-x/driver-box/driverbox/library"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/shadow"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/driverbox/restful"
-	"github.com/ibuilding-x/driver-box/driverbox/restful/request"
-	"github.com/ibuilding-x/driver-box/driverbox/restful/route"
 	"github.com/ibuilding-x/driver-box/internal/bootstrap"
 	"github.com/ibuilding-x/driver-box/internal/core"
 	"github.com/ibuilding-x/driver-box/internal/logger"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper/cmanager"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/library"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/pkg/shadow"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/restful"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/restful/request"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/restful/route"
 )
 
 func registerApi() {

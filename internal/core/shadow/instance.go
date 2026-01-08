@@ -2,8 +2,8 @@ package shadow
 
 import (
 	"errors"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
-	shadow2 "github.com/ibuilding-x/driver-box/driverbox/pkg/shadow"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper/crontab"
+	shadow2 "github.com/ibuilding-x/driver-box/pkg/driverbox/pkg/shadow"
 	"sync"
 	"time"
 )

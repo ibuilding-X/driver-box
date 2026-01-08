@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/event"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/core/shadow"
 	"github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/internal/logger"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/event"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper/cmanager"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
 	"go.uber.org/zap"
 )
 

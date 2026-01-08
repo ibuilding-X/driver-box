@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/mark3labs/mcp-go/mcp"
 )
 

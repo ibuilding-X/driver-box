@@ -1,7 +1,7 @@
 package shadow
 
 import (
-	shadow2 "github.com/ibuilding-x/driver-box/driverbox/pkg/shadow"
+	shadow2 "github.com/ibuilding-x/driver-box/pkg/driverbox/pkg/shadow"
 	"sync"
 	"time"
 )

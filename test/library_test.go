@@ -1,9 +1,9 @@
 package test
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/library"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/logger"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/library"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
 	"go.uber.org/zap"
 	"testing"
 )

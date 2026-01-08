@@ -1,0 +1,10 @@
+package mqtt
+
+import (
+	plugins0 "github.com/ibuilding-x/driver-box/internal/plugins"
+	"github.com/ibuilding-x/driver-box/pkg/plugins/mqtt/internal"
+)
+
+func RegisterPlugin() {
+	plugins0.Manager.Register(internal.ProtocolName, new(internal.Plugin))
+}

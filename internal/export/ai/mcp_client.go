@@ -2,7 +2,7 @@ package ai
 
 import (
 	langchaingo_mcp_adapter "github.com/i2y/langchaingo-mcp-adapter"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/tmc/langchaingo/tools"

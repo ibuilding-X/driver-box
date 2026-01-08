@@ -3,8 +3,8 @@ package tools
 import (
 	"context"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/driverbox/export/history"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/export/history"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/mark3labs/mcp-go/mcp"
 	"go.uber.org/zap"
 )

@@ -1,9 +1,9 @@
 package dto
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/shadow"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/pkg/shadow"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
 )
 
 type WSPayloadType int8

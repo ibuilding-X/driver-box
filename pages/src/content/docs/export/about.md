@@ -93,7 +93,7 @@ Export 模块的使用需要结合具体的业务需求，通过实现 `Export` 
 package myexport
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/export"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/export"
 	"github.com/eclipse/paho.mqtt.golang"
 	"go.uber.org/zap"
 )
@@ -152,10 +152,10 @@ func (export *MqttExport) IsReady() bool {
 package main
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/export"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/driverbox/restful"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/export"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/restful"
 	"os"
 	"time"
 )

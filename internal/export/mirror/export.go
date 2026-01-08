@@ -5,15 +5,15 @@ import (
 	"os"
 	"sync"
 
-	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/event"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
-	"github.com/ibuilding-x/driver-box/driverbox/library"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin/callback"
 	"github.com/ibuilding-x/driver-box/internal/logger"
-	"github.com/ibuilding-x/driver-box/internal/plugins/mirror"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/event"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper/cmanager"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/library"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin/callback"
+	"github.com/ibuilding-x/driver-box/pkg/plugins/mirror"
 	"go.uber.org/zap"
 )
 
