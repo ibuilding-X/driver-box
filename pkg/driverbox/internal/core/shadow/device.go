@@ -1,28 +1,29 @@
 package shadow
 
 import (
-	shadow2 "github.com/ibuilding-x/driver-box/pkg/driverbox/pkg/shadow"
 	"sync"
 	"time"
+
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/shadow"
 )
 
 // device 设备内部结构
 type device struct {
-	id              string                          // 设备 ID
-	modelName       string                          // 设备模型名称
-	points          map[string]*shadow2.DevicePoint // 设备点位列表
-	online          bool                            // 在线状态
-	ttl             time.Duration                   // 设备离线阈值，超过该时长没有收到数据视为离线
-	disconnectTimes int                             // 断开连接次数，60秒内超过3次判定离线
-	updatedAt       time.Time                       // 更新时间（用于设备离线判断）
-	mutex           *sync.RWMutex                   // 锁
+	id              string                         // 设备 ID
+	modelName       string                         // 设备模型名称
+	points          map[string]*shadow.DevicePoint // 设备点位列表
+	online          bool                           // 在线状态
+	ttl             time.Duration                  // 设备离线阈值，超过该时长没有收到数据视为离线
+	disconnectTimes int                            // 断开连接次数，60秒内超过3次判定离线
+	updatedAt       time.Time                      // 更新时间（用于设备离线判断）
+	mutex           *sync.RWMutex                  // 锁
 }
 
 func newDevice(id string, modelName string, ttl time.Duration) *device {
 	return &device{
 		id:              id,
 		modelName:       modelName,
-		points:          make(map[string]*shadow2.DevicePoint),
+		points:          make(map[string]*shadow.DevicePoint),
 		online:          false,
 		ttl:             ttl,
 		disconnectTimes: 0,
@@ -31,8 +32,8 @@ func newDevice(id string, modelName string, ttl time.Duration) *device {
 	}
 }
 
-func newDevicePoint(name string) *shadow2.DevicePoint {
-	return &shadow2.DevicePoint{
+func newDevicePoint(name string) *shadow.DevicePoint {
+	return &shadow.DevicePoint{
 		Name: name,
 	}
 }
@@ -102,7 +103,7 @@ func (d *device) getWritePointValue(name string) (interface{}, bool) {
 	return nil, false
 }
 
-func (d *device) getPoint(name string) (*shadow2.DevicePoint, bool) {
+func (d *device) getPoint(name string) (*shadow.DevicePoint, bool) {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
@@ -110,22 +111,22 @@ func (d *device) getPoint(name string) (*shadow2.DevicePoint, bool) {
 		return d.points[name], true
 	}
 
-	return &shadow2.DevicePoint{}, false
+	return &shadow.DevicePoint{}, false
 }
 
-func (d *device) toPublic() shadow2.Device {
+func (d *device) toPublic() shadow.Device {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
 	// 点位转换
-	points := make(map[string]shadow2.DevicePoint, len(d.points))
+	points := make(map[string]shadow.DevicePoint, len(d.points))
 	for pointName, point := range d.points {
 		if d.points[pointName] != nil {
 			points[pointName] = toPublic(point)
 		}
 	}
 
-	return shadow2.Device{
+	return shadow.Device{
 		ID:              d.id,
 		ModelName:       d.modelName,
 		Points:          points,
@@ -204,8 +205,8 @@ func (d *device) refreshStatus() (old bool, new bool) {
 	return true, true
 }
 
-func toPublic(dp *shadow2.DevicePoint) shadow2.DevicePoint {
-	return shadow2.DevicePoint{
+func toPublic(dp *shadow.DevicePoint) shadow.DevicePoint {
+	return shadow.DevicePoint{
 		Name:       dp.Name,
 		Value:      dp.Value,
 		WriteValue: dp.WriteValue,

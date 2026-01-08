@@ -16,11 +16,11 @@ import (
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/library"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/pkg/shadow"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/restful"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/restful/request"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/restful/route"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/shadow"
 )
 
 func registerApi() {

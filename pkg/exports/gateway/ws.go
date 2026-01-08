@@ -7,7 +7,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/pkg/driverbox"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper/cmanager"
-	"github.com/ibuilding-x/driver-box/pkg/driverbox/pkg/shadow"
+	"github.com/ibuilding-x/driver-box/pkg/driverbox/shadow"
 	"github.com/ibuilding-x/driver-box/pkg/exports/discover"
 
 	"net/http"
