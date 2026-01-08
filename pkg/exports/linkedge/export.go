@@ -1,8 +1,8 @@
 package linkedge
 
 import (
-	"github.com/ibuilding-x/driver-box/internal/export/linkedge"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox"
+	"github.com/ibuilding-x/driver-box/pkg/exports/linkedge/internal"
 )
 
 // LoadLinkEdgeExport 加载场景联动Export插件
@@ -10,5 +10,5 @@ import (
 //
 //	创建并加载linkedge.NewExport()实例
 func LoadExport() {
-	driverbox.Exports.LoadExport(linkedge.NewExport())
+	driverbox.Exports.LoadExport(internal.NewExport())
 }

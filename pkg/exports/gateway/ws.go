@@ -1,10 +1,13 @@
-package gwexport
+package gateway
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper/cmanager"
+	"github.com/ibuilding-x/driver-box/pkg/exports/discover"
+
 	"net/http"
 	"strings"
 	"sync"
@@ -12,7 +15,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/ibuilding-x/driver-box/internal/core"
 	"github.com/ibuilding-x/driver-box/internal/dto"
-	"github.com/ibuilding-x/driver-box/internal/export/discover"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/config"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/event"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"

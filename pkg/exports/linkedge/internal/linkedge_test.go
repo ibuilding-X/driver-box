@@ -1,4 +1,4 @@
-package linkedge
+package internal
 
 import (
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/export/linkedge"

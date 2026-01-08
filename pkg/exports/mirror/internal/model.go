@@ -1,4 +1,4 @@
-package mirror
+package internal
 
 const (
 	PropertyKeyAutoMirrorFrom string = "autoMirrorFrom"

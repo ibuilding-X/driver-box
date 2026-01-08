@@ -1,4 +1,4 @@
-package gwexport
+package gateway
 
 import (
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/export"

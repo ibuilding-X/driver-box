@@ -13,10 +13,10 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/core"
 	"github.com/ibuilding-x/driver-box/internal/core/shadow"
 	"github.com/ibuilding-x/driver-box/internal/dto"
-	"github.com/ibuilding-x/driver-box/internal/export/gwexport"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox/plugin/callback"
+	"github.com/ibuilding-x/driver-box/pkg/exports/gateway"
 	"go.uber.org/zap"
 )
 
@@ -120,7 +120,7 @@ func (c *connector) Release() (err error) {
 // * 会阻塞进程，需携程处理
 // * 需要实现重连机制
 func (c *connector) connect() {
-	url := fmt.Sprintf("ws://%s:%s%s", c.conf.IP, helper.EnvConfig.HttpListen, gwexport.WebSocketPath)
+	url := fmt.Sprintf("ws://%s:%s%s", c.conf.IP, helper.EnvConfig.HttpListen, gateway.WebSocketPath)
 	dialer := &websocket.Dialer{
 		Proxy:            http.ProxyFromEnvironment,
 		HandshakeTimeout: c.conf.timeout,

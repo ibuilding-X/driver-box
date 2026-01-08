@@ -6,7 +6,6 @@ import (
 	"github.com/ibuilding-x/driver-box/pkg/exports/gateway"
 	"github.com/ibuilding-x/driver-box/pkg/exports/linkedge"
 	"github.com/ibuilding-x/driver-box/pkg/exports/mirror"
-	"github.com/ibuilding-x/driver-box/pkg/exports/ui"
 )
 
 // LoadAllExports 加载driver-box框架内置的所有Export插件
@@ -17,7 +16,6 @@ func LoadAllExports() {
 	basic.LoadExport()
 	linkedge.LoadExport()
 	mirror.LoadExport()
-	ui.LoadExport()
 	discover.LoadExport()
 	gateway.LoadExport()
 }

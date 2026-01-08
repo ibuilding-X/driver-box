@@ -1,8 +1,8 @@
 package mirror
 
 import (
-	"github.com/ibuilding-x/driver-box/internal/export/mirror"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox"
+	"github.com/ibuilding-x/driver-box/pkg/exports/mirror/internal"
 )
 
 // LoadMirrorExport 加载镜像设备Export插件
@@ -10,5 +10,5 @@ import (
 //
 //	创建并加载mirror.NewExport()实例
 func LoadExport() {
-	driverbox.Exports.LoadExport(mirror.NewExport())
+	driverbox.Exports.LoadExport(internal.NewExport())
 }

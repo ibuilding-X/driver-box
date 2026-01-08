@@ -1,7 +1,6 @@
 package gateway
 
 import (
-	"github.com/ibuilding-x/driver-box/internal/export/gwexport"
 	"github.com/ibuilding-x/driver-box/pkg/driverbox"
 )
 
@@ -10,5 +9,5 @@ import (
 //
 //	创建并加载gwexport.New()实例
 func LoadExport() {
-	driverbox.Exports.LoadExport(gwexport.New())
+	driverbox.Exports.LoadExport(New())
 }
