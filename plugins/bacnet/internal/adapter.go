@@ -7,6 +7,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
@@ -106,7 +107,7 @@ func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 				if err != nil {
 					return nil, err
 				}
-				result, err := helper.CallLuaEncodeConverter(c.plugin.ls, deviceSn, string(bytes))
+				result, err := luautil.CallLuaEncodeConverter(c.plugin.ls, deviceSn, string(bytes))
 				err = json.Unmarshal([]byte(result), &bwc)
 				if err != nil {
 					return nil, err
@@ -233,7 +234,7 @@ func validObjType(objType string) bool {
 // Decode 解码
 func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
 	if c.plugin.ls != nil {
-		return helper.CallLuaConverter(c.plugin.ls, "decode", raw)
+		return luautil.CallLuaConverter(c.plugin.ls, "decode", raw)
 	} else {
 		rawJson := raw.(string)
 		var resp readResponse

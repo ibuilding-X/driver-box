@@ -9,8 +9,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
@@ -114,5 +114,5 @@ func (a *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 
 // Decode 解码数据，调用动态脚本解析
 func (a *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
-	return helper.CallLuaConverter(a.ls, "decode", raw)
+	return luautil.CallLuaConverter(a.ls, "decode", raw)
 }

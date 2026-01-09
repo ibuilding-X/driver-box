@@ -7,6 +7,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
@@ -15,7 +16,7 @@ import (
 func mockRead(plugin *connector, L *lua.LState, data btypes.MultiplePropertyData) error {
 	for _, object := range data.Objects {
 		for deviceId, pointName := range object.Points {
-			mockData, e := helper.CallLuaMethod(L, "mockRead", lua.LString(deviceId), lua.LString(pointName))
+			mockData, e := luautil.CallLuaMethod(L, "mockRead", lua.LString(deviceId), lua.LString(pointName))
 			if e != nil {
 				helper.Logger.Error("mockRead error", zap.Error(e))
 			}
@@ -42,7 +43,7 @@ func mockRead(plugin *connector, L *lua.LState, data btypes.MultiplePropertyData
 }
 
 func mockWrite(L *lua.LState, deviceId, pointName string, value interface{}) error {
-	result, err := helper.CallLuaMethod(L, "mockWrite", lua.LString(deviceId), lua.LString(pointName), lua.LString(fmt.Sprint(value)))
+	result, err := luautil.CallLuaMethod(L, "mockWrite", lua.LString(deviceId), lua.LString(pointName), lua.LString(fmt.Sprint(value)))
 	if err == nil {
 		helper.Logger.Info("mockWrite result", zap.Any("result", result))
 	}

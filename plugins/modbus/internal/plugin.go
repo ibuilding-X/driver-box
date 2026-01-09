@@ -2,16 +2,18 @@ package internal
 
 import (
 	"errors"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/simonvetter/modbus"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
-	"sync"
-	"sync/atomic"
-	"time"
 )
 
 const ProtocolName = "modbus"
@@ -120,7 +122,7 @@ func (p *Plugin) Destroy() error {
 	//延迟关闭lua虚拟机，防止lua虚拟机正在使用
 	time.Sleep(time.Second * 1)
 	if p.ls != nil {
-		helper.Close(p.ls)
+		luautil.Close(p.ls)
 	}
 	return nil
 }

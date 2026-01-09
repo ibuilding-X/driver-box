@@ -1,4 +1,4 @@
-package lua
+package luautil
 
 import (
 	"encoding/json"

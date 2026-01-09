@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
@@ -138,7 +138,7 @@ func (p *Plugin) IsReady() bool {
 
 func (p *Plugin) Destroy() error {
 	if p.ls != nil {
-		helper.Close(p.ls)
+		luautil.Close(p.ls)
 	}
 	p.connector.mirrors = make(map[string]map[string]Device)
 	p.connector.rawMapping = make(map[string]map[string][]plugin.DeviceData)

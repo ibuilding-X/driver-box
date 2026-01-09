@@ -12,11 +12,11 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/internal/core/shadow"
 	"github.com/ibuilding-x/driver-box/driverbox/internal/export"
 	"github.com/ibuilding-x/driver-box/driverbox/internal/logger"
-	"github.com/ibuilding-x/driver-box/driverbox/internal/lua"
 	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/event"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	glua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
@@ -123,7 +123,7 @@ func loadPlugins() error {
 		var ls *glua.LState
 		path := filepath.Join(helper.EnvConfig.ConfigPath, key, common.LuaScriptName)
 		if common.FileExists(path) {
-			ls, err = lua.InitLuaVM(path)
+			ls, err = luautil.InitLuaVM(path)
 			if err != nil {
 				helper.Logger.Error(err.Error())
 				continue

@@ -6,6 +6,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
@@ -76,7 +77,7 @@ func (p *Plugin) Connector(deviceId string) (plugin.Connector, error) {
 // Destroy 销毁驱动
 func (p *Plugin) Destroy() error {
 	if p.ls != nil {
-		helper.Close(p.ls)
+		luautil.Close(p.ls)
 	}
 	connectors := p.connectors
 	for _, conn := range connectors {

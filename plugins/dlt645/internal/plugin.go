@@ -8,6 +8,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/plugins/dlt645/internal/core/dltcon"
 	lua "github.com/yuin/gopher-lua"
@@ -106,7 +107,7 @@ func (p *Plugin) Destroy() error {
 		conn.Close()
 	}
 	if p.ls != nil {
-		helper.Close(p.ls)
+		luautil.Close(p.ls)
 	}
 	return nil
 }

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/ibuilding-x/driver-box/driverbox/internal/lua"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/event"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	glua "github.com/yuin/gopher-lua"
 )
@@ -18,7 +18,7 @@ type ProtocolDriver struct {
 
 // 加载指定key的驱动
 func (device *ProtocolDriver) LoadLibrary(protocolKey string) error {
-	L, err := lua.InitLuaVM(path.Join(config.ResourcePath, baseDir, string(protocolDriver), protocolKey+".lua"))
+	L, err := luautil.InitLuaVM(path.Join(config.ResourcePath, baseDir, string(protocolDriver), protocolKey+".lua"))
 	if err != nil {
 		return err
 	}
@@ -29,7 +29,7 @@ func (device *ProtocolDriver) LoadLibrary(protocolKey string) error {
 // 执行制定的方法
 func (device *ProtocolDriver) Execute(protocolKey string, luaMethod string, param string) (string, error) {
 	L := device.drivers[protocolKey]
-	return lua.CallLuaMethod(L, luaMethod, glua.LString(param))
+	return luautil.CallLuaMethod(L, luaMethod, glua.LString(param))
 }
 
 // 设备下行指令编码，该接口试下如下功能：
@@ -57,7 +57,7 @@ func (device *ProtocolDriver) Encode(protocolKey string, req ProtocolEncodeReque
 		}
 		points.Append(pointData)
 	}
-	return lua.CallLuaMethod(L, "encode", glua.LString(req.DeviceId), glua.LString(req.Mode), points)
+	return luautil.CallLuaMethod(L, "encode", glua.LString(req.DeviceId), glua.LString(req.Mode), points)
 }
 
 func (device *ProtocolDriver) EncodeV2(protocolKey string, req ProtocolEncodeRequest) (*glua.LTable, error) {
@@ -81,7 +81,7 @@ func (device *ProtocolDriver) EncodeV2(protocolKey string, req ProtocolEncodeReq
 		}
 		points.Append(pointData)
 	}
-	return lua.CallLuaMethodV2(L, "encode", glua.LString(req.DeviceId), glua.LString(req.Mode), points)
+	return luautil.CallLuaMethodV2(L, "encode", glua.LString(req.DeviceId), glua.LString(req.Mode), points)
 }
 
 // Deprecated:
@@ -94,7 +94,7 @@ func (device *ProtocolDriver) Decode(protocolKey string, req any) ([]plugin.Devi
 	if e != nil {
 		return nil, e
 	}
-	result, e := lua.CallLuaMethod(L, "decode", glua.LString(bytes))
+	result, e := luautil.CallLuaMethod(L, "decode", glua.LString(bytes))
 	if e != nil {
 		return nil, e
 	}
@@ -105,7 +105,7 @@ func (device *ProtocolDriver) Decode(protocolKey string, req any) ([]plugin.Devi
 
 func (device *ProtocolDriver) DecodeV2(protocolKey string, param func(L *glua.LState) *glua.LTable) ([]plugin.DeviceData, error) {
 	L := device.drivers[protocolKey]
-	result, e := lua.CallLuaMethodV2(L, "decode", param(L))
+	result, e := luautil.CallLuaMethodV2(L, "decode", param(L))
 	if e != nil {
 		return nil, e
 	}
@@ -152,7 +152,7 @@ func (device *ProtocolDriver) UnloadDeviceDrivers() {
 	temp := device.drivers
 	device.drivers = make(map[string]*glua.LState)
 	for _, L := range temp {
-		lua.Close(L)
+		luautil.Close(L)
 	}
 }
 

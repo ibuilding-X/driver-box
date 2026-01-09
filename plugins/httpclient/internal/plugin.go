@@ -6,6 +6,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
@@ -48,7 +49,7 @@ func (p *Plugin) Connector(deviceSn string) (connector plugin.Connector, err err
 
 func (p *Plugin) Destroy() error {
 	if p.ls != nil {
-		helper.Close(p.ls)
+		luautil.Close(p.ls)
 	}
 	if len(p.connPool) > 0 {
 		for i, _ := range p.connPool {

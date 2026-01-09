@@ -6,9 +6,9 @@ import (
 	"sync"
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
-	"github.com/ibuilding-x/driver-box/driverbox/internal/lua"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/event"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	glua "github.com/yuin/gopher-lua"
 )
@@ -28,7 +28,7 @@ func (device *DeviceDriver) loadLibrary(driverKey string) (*glua.LState, error) 
 	if ok {
 		return cache.(*glua.LState), nil
 	}
-	L, err := lua.InitLuaVM(path.Join(config.ResourcePath, baseDir, string(deviceDriver), driverKey+".lua"))
+	L, err := luautil.InitLuaVM(path.Join(config.ResourcePath, baseDir, string(deviceDriver), driverKey+".lua"))
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (device *DeviceDriver) DeviceEncode(driverKey string, req DeviceEncodeReque
 		}
 		points.Append(pointData)
 	}
-	result, e := lua.CallLuaMethodV2(L, "encode", glua.LString(req.DeviceId), glua.LString(req.Mode), points)
+	result, e := luautil.CallLuaMethodV2(L, "encode", glua.LString(req.DeviceId), glua.LString(req.Mode), points)
 	if e != nil {
 		return &DeviceEncodeResult{Error: e}
 	}
@@ -129,7 +129,7 @@ func (device *DeviceDriver) DeviceDecode(driverKey string, req DeviceDecodeReque
 		}
 		points.Append(pointData)
 	}
-	result, e := lua.CallLuaMethodV2(L, "decode", glua.LString(req.DeviceId), points)
+	result, e := luautil.CallLuaMethodV2(L, "decode", glua.LString(req.DeviceId), points)
 	if e != nil {
 		return &DeviceDecodeResult{Error: e}
 	}
@@ -192,7 +192,7 @@ func (device *DeviceDriver) UnloadDeviceDrivers() {
 	temp := device.drivers
 	device.drivers = &sync.Map{}
 	temp.Range(func(key, value interface{}) bool {
-		lua.Close(value.(*glua.LState))
+		luautil.Close(value.(*glua.LState))
 		return true
 	})
 }
