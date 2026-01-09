@@ -1,7 +1,9 @@
 package internal
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"sync"
 
@@ -9,10 +11,13 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/exports/basic/restful"
+	"github.com/julienschmidt/httprouter"
 )
 
 var driverInstance *Export
 var once = &sync.Once{}
+var srv *http.Server
 
 // 设备自动发现插件
 type Export struct {
@@ -53,6 +58,12 @@ func (export *Export) Init() error {
 func (export *Export) Destroy() error {
 	export.ready = false
 	export.discover.stopDiscover()
+	if srv != nil {
+		_ = srv.Shutdown(context.Background())
+		srv = nil
+		restful.HttpRouter = httprouter.New()
+		http.DefaultServeMux = http.NewServeMux()
+	}
 	return nil
 }
 func NewExport() *Export {

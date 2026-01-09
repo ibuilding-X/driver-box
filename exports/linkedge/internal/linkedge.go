@@ -20,8 +20,8 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/driverbox/restful"
-	"github.com/ibuilding-x/driver-box/driverbox/restful/route"
+	"github.com/ibuilding-x/driver-box/exports/basic/restful"
+	"github.com/ibuilding-x/driver-box/exports/basic/restful/route"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 )

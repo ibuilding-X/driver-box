@@ -1,9 +1,7 @@
 package driverbox
 
 import (
-	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"path"
 
@@ -17,12 +15,8 @@ import (
 	export0 "github.com/ibuilding-x/driver-box/driverbox/internal/export"
 	plugins0 "github.com/ibuilding-x/driver-box/driverbox/internal/plugins"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/driverbox/restful"
-	"github.com/julienschmidt/httprouter"
 	"go.uber.org/zap"
 )
-
-var srv *http.Server
 
 func Start() error {
 	//第一步：加载配置文件DriverConfig
@@ -47,15 +41,6 @@ func Start() error {
 		}
 	}
 
-	// 第五步：启动 REST 服务
-	go func() {
-		srv = &http.Server{Addr: ":" + helper.EnvConfig.HttpListen, Handler: restful.HttpRouter}
-		e := srv.ListenAndServe()
-		if e != nil {
-			helper.Logger.Error("start rest server error", zap.Error(e))
-		}
-	}()
-
 	//第六步：启动driver-box插件
 	err = bootstrap.LoadPlugins()
 	if err != nil {
@@ -79,12 +64,7 @@ func Stop() error {
 		crontab.Instance().Clear()
 		helper.Crontab = nil
 	}
-	if srv != nil {
-		e = srv.Shutdown(context.Background())
-		srv = nil
-		restful.HttpRouter = httprouter.New()
-		http.DefaultServeMux = http.NewServeMux()
-	}
+
 	for _, item := range export0.Exports {
 		e = item.Destroy()
 		if e != nil {

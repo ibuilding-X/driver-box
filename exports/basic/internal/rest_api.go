@@ -17,10 +17,11 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/driverbox/restful"
-	"github.com/ibuilding-x/driver-box/driverbox/restful/request"
-	"github.com/ibuilding-x/driver-box/driverbox/restful/route"
 	"github.com/ibuilding-x/driver-box/driverbox/shadow"
+	"github.com/ibuilding-x/driver-box/exports/basic/restful"
+	"github.com/ibuilding-x/driver-box/exports/basic/restful/request"
+	"github.com/ibuilding-x/driver-box/exports/basic/restful/route"
+	"go.uber.org/zap"
 )
 
 func registerApi() {
@@ -85,6 +86,14 @@ func registerApi() {
 	//		w.(http.Flusher).Flush()
 	//	}
 	//})
+	// 第五步：启动 REST 服务
+	go func() {
+		srv = &http.Server{Addr: ":" + helper.EnvConfig.HttpListen, Handler: restful.HttpRouter}
+		e := srv.ListenAndServe()
+		if e != nil {
+			helper.Logger.Error("start rest server error", zap.Error(e))
+		}
+	}()
 }
 
 type kv map[string]interface{}

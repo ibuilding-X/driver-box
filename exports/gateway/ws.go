@@ -8,6 +8,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/shadow"
+	"github.com/ibuilding-x/driver-box/exports/basic/restful"
 	"github.com/ibuilding-x/driver-box/exports/discover"
 
 	"net/http"
@@ -20,7 +21,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/driverbox/restful"
 	"go.uber.org/zap"
 )
 
