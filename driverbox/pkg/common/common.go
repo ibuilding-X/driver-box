@@ -2,7 +2,7 @@ package common
 
 import (
 	"errors"
-	"github.com/ibuilding-x/driver-box/driverbox/event"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/event"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"io"
 	"os"

@@ -1,6 +1,6 @@
 package discover
 
-import "github.com/ibuilding-x/driver-box/driverbox/config"
+import "github.com/ibuilding-x/driver-box/driverbox/pkg/config"
 
 type DeviceDiscover struct {
 	ModelName string        `json:"modelName"` //模型名称后缀

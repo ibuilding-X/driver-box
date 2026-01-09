@@ -1,11 +1,11 @@
 package lua
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/internal/core/cache"
 	"github.com/ibuilding-x/driver-box/driverbox/internal/core/shadow"
 	"github.com/ibuilding-x/driver-box/driverbox/internal/logger"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )

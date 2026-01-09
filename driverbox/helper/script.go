@@ -1,8 +1,8 @@
 package helper
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/internal/lua"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	glua "github.com/yuin/gopher-lua"
 	"path/filepath"

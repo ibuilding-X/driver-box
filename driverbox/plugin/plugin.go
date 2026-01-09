@@ -3,18 +3,10 @@
 package plugin
 
 import (
-	"encoding/json"
-
-	"github.com/ibuilding-x/driver-box/driverbox/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )
-
-// ToJSON 设备数据转 json
-func (d DeviceData) ToJSON() string {
-	b, _ := json.Marshal(d)
-	return string(b)
-}
 
 // Plugin 驱动插件
 type Plugin interface {

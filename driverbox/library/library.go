@@ -3,12 +3,13 @@ package library
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/driverbox/common"
-	"github.com/ibuilding-x/driver-box/driverbox/config"
-	glua "github.com/yuin/gopher-lua"
 	"os"
 	"path"
 	"sync"
+
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	glua "github.com/yuin/gopher-lua"
 )
 
 type Type string

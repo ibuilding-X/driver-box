@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"

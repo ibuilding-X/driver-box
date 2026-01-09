@@ -3,9 +3,10 @@ package library
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/driverbox/common"
-	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"path"
+
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
 )
 
 type MirrorTemplate struct {

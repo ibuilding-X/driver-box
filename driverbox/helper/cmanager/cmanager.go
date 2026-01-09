@@ -10,8 +10,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/internal/logger"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
 	"go.uber.org/zap"
 )
 

@@ -9,9 +9,9 @@ import (
 	"sync"
 
 	"github.com/cjoudrey/gluahttp"
-	"github.com/ibuilding-x/driver-box/driverbox/common"
-	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/internal/logger"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"

@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/exports/modbusserver/mbserver"
 	"github.com/ibuilding-x/driver-box/exports/modbusserver/mbserver/modbus"

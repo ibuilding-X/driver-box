@@ -2,11 +2,12 @@ package library
 
 import (
 	"encoding/json"
-	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"golang.org/x/exp/slices"
 	"os"
 	"path"
 	"sync"
+
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"golang.org/x/exp/slices"
 )
 
 const (

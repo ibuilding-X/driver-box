@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"strconv"
+
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
 )
 
 // ConvPointType 点位类型转换
