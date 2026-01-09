@@ -10,14 +10,13 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
-	"github.com/ibuilding-x/driver-box/driverbox/internal/logger"
+	export0 "github.com/ibuilding-x/driver-box/driverbox/internal/export"
 	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 )
 
 var Exports exports
-var loadExports []export.Export
 
 // exports 结构体用于管理driver-box框架中的所有Export插件
 // 提供加载单个、批量加载以及加载所有内置Export的方法
@@ -34,7 +33,7 @@ type exports struct {
 //	如果该Export尚未加载，则将其添加到全局Exports列表中
 func (exports *exports) LoadExport(export2 export.Export) {
 	if !exports.exists(export2) {
-		loadExports = append(loadExports, export2)
+		export0.Exports = append(export0.Exports, export2)
 	}
 }
 
@@ -61,7 +60,7 @@ func (exports *exports) LoadExports(export2 []export.Export) {
 //
 //	bool: true表示已加载，false表示未加载
 func (exports *exports) exists(exp export.Export) bool {
-	for _, e := range loadExports {
+	for _, e := range export0.Exports {
 		if e == exp {
 			return true
 		}
@@ -83,16 +82,7 @@ func (exports *exports) exists(exp export.Export) bool {
 //	如果Export插件未就绪，则跳过该插件
 //	记录事件处理过程中的错误信息
 func TriggerEvents(eventCode string, key string, value interface{}) {
-	for _, e := range loadExports {
-		if !e.IsReady() {
-			logger.Logger.Debug("export not ready")
-			continue
-		}
-		err := e.OnEvent(eventCode, key, value)
-		if err != nil {
-			logger.Logger.Error("trigger event error", zap.String("eventCode", eventCode), zap.String("key", key), zap.Any("value", value), zap.Error(err))
-		}
-	}
+	export0.TriggerEvents(eventCode, key, value)
 }
 
 // Export 导出设备数据到各个Export插件
@@ -125,7 +115,7 @@ func Export(deviceData []plugin.DeviceData) {
 		if len(data.Values) == 0 {
 			continue
 		}
-		for _, export := range loadExports {
+		for _, export := range export0.Exports {
 			if export.IsReady() {
 				export.ExportTo(data)
 			}

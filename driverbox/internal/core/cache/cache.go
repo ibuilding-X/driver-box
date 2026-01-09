@@ -2,8 +2,6 @@ package cache
 
 import (
 	"fmt"
-	"sync"
-
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
@@ -12,6 +10,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/internal/logger"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
+	"sync"
 )
 
 const (

@@ -14,6 +14,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/internal/bootstrap"
 	"github.com/ibuilding-x/driver-box/driverbox/internal/core"
+	export0 "github.com/ibuilding-x/driver-box/driverbox/internal/export"
 	plugins0 "github.com/ibuilding-x/driver-box/driverbox/internal/plugins"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/restful"
@@ -40,7 +41,7 @@ func Start() error {
 	helper.Crontab = crontab.Instance()
 
 	//第四步：启动Export
-	for _, item := range loadExports {
+	for _, item := range export0.Exports {
 		if err := item.Init(); err != nil {
 			helper.Logger.Error("init export error", zap.Error(err))
 		}
@@ -84,13 +85,13 @@ func Stop() error {
 		restful.HttpRouter = httprouter.New()
 		http.DefaultServeMux = http.NewServeMux()
 	}
-	for _, item := range loadExports {
+	for _, item := range export0.Exports {
 		e = item.Destroy()
 		if e != nil {
 			helper.Logger.Error("destroy export error", zap.Error(e))
 		}
 	}
-	loadExports = make([]export.Export, 0)
+	export0.Exports = make([]export.Export, 0)
 	bootstrap.DestroyPlugins()
 	plugins0.Manager.Clear()
 	// 3. 停止影子服务设备状态监听、删除影子服务
