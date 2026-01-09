@@ -10,10 +10,8 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
-	"github.com/ibuilding-x/driver-box/driverbox/internal/bootstrap"
 	"github.com/ibuilding-x/driver-box/driverbox/internal/core"
 	export0 "github.com/ibuilding-x/driver-box/driverbox/internal/export"
-	plugins0 "github.com/ibuilding-x/driver-box/driverbox/internal/plugins"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 )
@@ -42,7 +40,7 @@ func Start() error {
 	}
 
 	//第六步：启动driver-box插件
-	err = bootstrap.LoadPlugins()
+	err = loadPlugins()
 	if err != nil {
 		helper.Logger.Error(err.Error())
 	}
@@ -72,8 +70,8 @@ func Stop() error {
 		}
 	}
 	export0.Exports = make([]export.Export, 0)
-	bootstrap.DestroyPlugins()
-	plugins0.Manager.Clear()
+	destroyPlugins()
+	Manager.Clear()
 	// 3. 停止影子服务设备状态监听、删除影子服务
 	helper.DeviceShadow.StopStatusListener()
 	helper.DeviceShadow = nil
