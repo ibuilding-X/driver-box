@@ -84,7 +84,7 @@ func (c *connector) handelConn(conn net.Conn) {
 		if res, err := c.Decode(data.ToJSON()); err != nil {
 			c.plugin.logger.Error("tcp_server callback error", zap.Error(err))
 		} else {
-			driverbox.ExportTo(res)
+			driverbox.Export(res)
 		}
 	}
 }

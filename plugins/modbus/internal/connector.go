@@ -352,7 +352,7 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 		if err != nil {
 			helper.Logger.Error("error modbus callback", zap.Any("data", pointReadValue), zap.Error(err))
 		}
-		driverbox.ExportTo(res)
+		driverbox.Export(res)
 	}
 	return nil
 }

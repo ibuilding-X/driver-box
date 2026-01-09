@@ -158,7 +158,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 	}
 	//自动添加设备
 	common.WrapperDiscoverEvent(deviceData, c.config.ConnectionKey, ProtocolName)
-	driverbox.ExportTo(deviceData)
+	driverbox.Export(deviceData)
 	return nil
 }
 

@@ -108,7 +108,7 @@ func (conn *connector) onReceiveHandler(_ mqtt.Client, message mqtt.Message) {
 	}
 	//自动添加设备
 	common.WrapperDiscoverEvent(deviceData, conn.config.ConnectionKey, ProtocolName)
-	driverbox.ExportTo(deviceData)
+	driverbox.Export(deviceData)
 }
 
 func (conn *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {

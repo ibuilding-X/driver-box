@@ -233,7 +233,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 					if err != nil {
 						helper.Logger.Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
 					} else {
-						driverbox.ExportTo(res)
+						driverbox.Export(res)
 					}
 				}
 			}

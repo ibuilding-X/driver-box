@@ -200,7 +200,7 @@ func (c *connector) handleWebSocketMessage(conn *websocket.Conn, message []byte)
 		if err != nil {
 			return err
 		}
-		driverbox.ExportTo(result)
+		driverbox.Export(result)
 	default:
 		return nil
 	}

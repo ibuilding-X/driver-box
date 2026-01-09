@@ -68,7 +68,21 @@ func (exports *exports) exists(exp export.Export) bool {
 	return false
 }
 
-func ExportTo(deviceData []plugin.DeviceData) {
+// Export 导出设备数据到各个Export插件
+// 参数:
+//
+//	deviceData: 设备数据数组，包含设备ID、数值、事件等信息
+//
+// 功能:
+//
+//  1. 记录调试日志
+//  2. 触发插件回调事件
+//  3. 遍历每个设备数据:
+//     - 如果设备有事件，则触发事件通知
+//     - 对点位数据进行缓存过滤
+//     - 如果设备没有数值数据则跳过
+//     - 将数据导出到所有已准备好的Export插件
+func Export(deviceData []plugin.DeviceData) {
 	helper.Logger.Debug("export data", zap.Any("data", deviceData))
 	// 产生插件回调事件
 	TriggerEvents(event.EventCodePluginCallback, "", deviceData)
@@ -124,7 +138,7 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 
 		// 如果是周期上报模式，且缓存中有值，停止触发
 		if p.ReportMode() == config.ReportMode_Change && shadowValue == point.Value {
-			helper.Logger.Debug("point report mode is change, stop to trigger ExportTo", zap.String("pointName", p.Name()))
+			helper.Logger.Debug("point report mode is change, stop to trigger Export", zap.String("pointName", p.Name()))
 		} else {
 			// 点位值类型名称转换
 			points = append(points, point)

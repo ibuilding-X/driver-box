@@ -71,7 +71,7 @@ func (c *connector) startServer(opts connectorConfig) {
 			})
 			return
 		} else {
-			driverbox.ExportTo(res)
+			driverbox.Export(res)
 		}
 		ctx.JSON(http.StatusOK, gin.H{
 			"code":    0,

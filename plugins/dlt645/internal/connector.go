@@ -213,7 +213,7 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 		if err != nil {
 			helper.Logger.Error("error dlt645 callback", zap.Any("data", pointReadValue), zap.Error(err))
 		} else {
-			driverbox.ExportTo(res)
+			driverbox.Export(res)
 		}
 	}
 	return nil

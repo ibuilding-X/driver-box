@@ -71,7 +71,7 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 		if err != nil {
 			return err
 		}
-		driverbox.ExportTo(res)
+		driverbox.Export(res)
 	case event.EventCodeDeviceStatus:
 		// 设备状态变更事件
 		mirrorDeviceID := "mirror_" + key

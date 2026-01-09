@@ -145,7 +145,7 @@ func (c *connector) handleFunc(server *http.ServeMux) {
 			}
 			//自动添加设备
 			common.WrapperDiscoverEvent(deviceDatas, c.config.ConnectionKey, ProtocolName)
-			driverbox.ExportTo(deviceDatas)
+			driverbox.Export(deviceDatas)
 		}
 
 		//移除映射
