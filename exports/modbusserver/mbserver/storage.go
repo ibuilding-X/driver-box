@@ -2,9 +2,10 @@ package mbserver
 
 import (
 	"fmt"
-	"github.com/ibuilding-x/driver-box/driverbox/mbserver/internal"
 	"math"
 	"sync"
+
+	"github.com/ibuilding-x/driver-box/exports/modbusserver/mbserver/internal"
 )
 
 type Storage struct {

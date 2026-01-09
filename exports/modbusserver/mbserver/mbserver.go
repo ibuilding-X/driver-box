@@ -2,8 +2,10 @@ package mbserver
 
 import (
 	"errors"
+
 	"github.com/goburrow/serial"
-	"github.com/ibuilding-x/driver-box/driverbox/mbserver/modbus"
+	"github.com/ibuilding-x/driver-box/exports/modbusserver/mbserver/modbus"
+
 	"sync"
 )
 
@@ -23,7 +25,7 @@ type Server interface {
 
 type ServerConfig struct {
 	URL           string `json:"url"` // 仅适用于 Modbus TCP, 示例：127.0.0.1:502【暂不支持 Modbus TCP 协议】
-	serial.Config        // 串口配置
+	serial.Config                     // 串口配置
 
 	Models  []Model  `json:"models"`  // 模型列表（注意属性顺序）
 	Devices []Device `json:"devices"` // 设备列表（注意设备顺序）
