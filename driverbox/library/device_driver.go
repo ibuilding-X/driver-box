@@ -5,8 +5,8 @@ import (
 	"path"
 	"sync"
 
-	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/event"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -58,7 +58,7 @@ func (device *DeviceDriver) DeviceEncode(driverKey string, req DeviceEncodeReque
 		pointData := L.NewTable()
 		pointData.RawSetString("name", glua.LString(point.PointName))
 		if req.Mode == plugin.WriteMode {
-			//经过 ConvPointType 加工，数据类型一定属于string、float64、int64之一
+			//经过 PointValue 加工，数据类型一定属于string、float64、int64之一
 			switch v := point.Value.(type) {
 			case string:
 				pointData.RawSetString("value", glua.LString(v))
@@ -113,13 +113,13 @@ func (device *DeviceDriver) DeviceDecode(driverKey string, req DeviceDecodeReque
 		case string:
 			pointData.RawSetString("value", glua.LString(v))
 		case int8, int16, int32, int64, int, uint, uint8, uint16, uint32, uint64:
-			intValue, e := utils.Conv2Int64(v)
+			intValue, e := convutil.Int64(v)
 			if e != nil {
 				return &DeviceDecodeResult{Error: e}
 			}
 			pointData.RawSetString("value", glua.LVAsNumber(glua.LNumber(intValue)))
 		case float32, float64:
-			floatValue, e := utils.Conv2Float64(v)
+			floatValue, e := convutil.Float64(v)
 			if e != nil {
 				return &DeviceDecodeResult{Error: e}
 			}

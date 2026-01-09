@@ -8,6 +8,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/event"
 	"github.com/ibuilding-x/driver-box/driverbox/shadow"
 	"github.com/ibuilding-x/driver-box/exports/basic/restful"
@@ -19,7 +20,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 )
@@ -261,7 +261,7 @@ func (wss *websocketService) sendDeviceData(data plugin.DeviceData) {
 				// todo 事件定义暂时无法获取设备 ID
 			case event.EventDeviceDiscover: // 设备发现
 				var deviceDiscover discover.DeviceDiscover
-				if err := utils.Conv2Struct(e.Value, &deviceDiscover); err == nil {
+				if err := convutil.Struct(e.Value, &deviceDiscover); err == nil {
 					deviceDiscover.ProtocolName = "driverbox"                                   // 修改协议名称
 					deviceDiscover.ConnectionKey = wss.mainGateway                              // 修改连接 Key
 					deviceDiscover.Device.ID = wss.genGatewayDeviceID(deviceDiscover.Device.ID) // 修改设备 ID

@@ -1,11 +1,11 @@
 package luautil
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/internal/core/cache"
 	"github.com/ibuilding-x/driver-box/driverbox/internal/core/shadow"
 	"github.com/ibuilding-x/driver-box/driverbox/internal/logger"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )
@@ -56,21 +56,21 @@ func (lm *LuaModule) getDeviceShadow(L *lua.LState) int {
 		}
 		switch p.ValueType() {
 		case config.ValueType_String:
-			v, e := utils.Conv2String(point.Value)
+			v, e := convutil.String(point.Value)
 			if e == nil {
 				points.RawSetString(point.Name, lua.LString(v))
 			} else {
 				logger.Logger.Error("could not conv2 string", zap.String("deviceId", deviceId), zap.Any("point", point), zap.Error(e))
 			}
 		case config.ValueType_Int:
-			v, e := utils.Conv2Int64(point.Value)
+			v, e := convutil.Int64(point.Value)
 			if e == nil {
 				points.RawSetString(point.Name, lua.LNumber(v))
 			} else {
 				logger.Logger.Error("could not conv2 int", zap.String("deviceId", deviceId), zap.Any("point", point), zap.Error(e))
 			}
 		case config.ValueType_Float:
-			v, e := utils.Conv2Float64(point.Value)
+			v, e := convutil.Float64(point.Value)
 			if e == nil {
 				points.RawSetString(point.Name, lua.LNumber(v))
 			} else {

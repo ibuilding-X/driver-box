@@ -16,7 +16,7 @@ var ls *lua.LState
 
 func InitMockLua(key string) {
 	if ls == nil {
-		path := filepath.Join(helper.EnvConfig.ConfigPath, key, common.LuaScriptName)
+		path := filepath.Join(helper.EnvConfig.ConfigPath, key, "converter.lua")
 		if common.FileExists(path) {
 			l, err := luautil.InitLuaVM(path)
 			if err != nil {

@@ -10,8 +10,7 @@ import (
 	"strings"
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 )
@@ -167,7 +166,7 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 	var values []uint16
 	switch ext.RegisterType {
 	case Coil: // 线圈固定长度1
-		i, err := utils.Conv2Int64(value)
+		i, err := convutil.Int64(value)
 		if err != nil {
 			return writeValue{}, err
 		}
@@ -175,7 +174,7 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 	case HoldingRegister:
 		valueStr := fmt.Sprintf("%v", value)
 		switch strings.ToUpper(ext.RawType) {
-		case strings.ToUpper(common.ValueTypeInt16), strings.ToUpper(common.ValueTypeUint16):
+		case strings.ToUpper(ValueTypeInt16), strings.ToUpper(ValueTypeUint16):
 			v, err := strconv.ParseUint(valueStr, 10, 16)
 			if err != nil {
 				return writeValue{}, fmt.Errorf("convert value %v to int16 error: %v", value, err)
@@ -224,7 +223,7 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 				binary.BigEndian.PutUint16(out, uint16(v))
 			}
 			values = []uint16{binary.BigEndian.Uint16(out)}
-		case strings.ToUpper(common.ValueTypeUint32):
+		case strings.ToUpper(ValueTypeUint32):
 			v, err := strconv.ParseUint(valueStr, 10, 32)
 			if err != nil {
 				return writeValue{}, fmt.Errorf("convert value %v to uint32 error: %v", value, err)
@@ -241,7 +240,7 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 			}
 			values = []uint16{binary.BigEndian.Uint16([]byte{out[2], out[3]}),
 				binary.BigEndian.Uint16([]byte{out[0], out[1]})}
-		case strings.ToUpper(common.ValueTypeInt32):
+		case strings.ToUpper(ValueTypeInt32):
 			v, err := strconv.ParseInt(valueStr, 10, 32)
 			if err != nil {
 				return writeValue{}, fmt.Errorf("convert value %v to int32 error: %v", value, err)
@@ -258,7 +257,7 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 			}
 			values = []uint16{binary.BigEndian.Uint16([]byte{out[2], out[3]}),
 				binary.BigEndian.Uint16([]byte{out[0], out[1]})}
-		case strings.ToUpper(common.ValueTypeFloat32):
+		case strings.ToUpper(ValueTypeFloat32):
 			v, err := strconv.ParseFloat(valueStr, 32)
 			if err != nil {
 				return writeValue{}, fmt.Errorf("convert value %v to float32 error: %v", value, err)
@@ -277,7 +276,7 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 			}
 			values = []uint16{binary.BigEndian.Uint16([]byte{out[2], out[3]}),
 				binary.BigEndian.Uint16([]byte{out[0], out[1]})}
-		case strings.ToUpper(common.ValueTypeUint64):
+		case strings.ToUpper(ValueTypeUint64):
 			v, err := strconv.ParseUint(valueStr, 10, 64)
 			if err != nil {
 				return writeValue{}, fmt.Errorf("convert value %v to uint64 error: %v", value, err)
@@ -298,7 +297,7 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 				binary.BigEndian.Uint16([]byte{out[2], out[3]}),
 				binary.BigEndian.Uint16([]byte{out[0], out[1]}),
 			}
-		case strings.ToUpper(common.ValueTypeInt64):
+		case strings.ToUpper(ValueTypeInt64):
 			v, err := strconv.ParseInt(valueStr, 10, 64)
 			if err != nil {
 				return writeValue{}, fmt.Errorf("convert value %v to int64 error: %v", value, err)
@@ -319,7 +318,7 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 				binary.BigEndian.Uint16([]byte{out[2], out[3]}),
 				binary.BigEndian.Uint16([]byte{out[0], out[1]}),
 			}
-		case strings.ToUpper(common.ValueTypeFloat64):
+		case strings.ToUpper(ValueTypeFloat64):
 			v, err := strconv.ParseFloat(valueStr, 64)
 			if err != nil {
 				return writeValue{}, fmt.Errorf("convert value %v to float64 error: %v", value, err)
@@ -340,7 +339,7 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 				binary.BigEndian.Uint16([]byte{out[2], out[3]}),
 				binary.BigEndian.Uint16([]byte{out[0], out[1]}),
 			}
-		case strings.ToUpper(common.ValueTypeString):
+		case strings.ToUpper(ValueTypeString):
 			valueBytes := []byte(valueStr)
 			if len(valueBytes) > int(ext.Quantity*2) {
 				return writeValue{}, fmt.Errorf("too long string [%v] to set in %d registers", valueStr, ext.Quantity)

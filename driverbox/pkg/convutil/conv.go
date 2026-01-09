@@ -1,4 +1,4 @@
-package utils
+package convutil
 
 import (
 	"encoding/json"
@@ -9,14 +9,15 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
 )
 
-// ConvPointType 点位类型转换
+//	点位类型转换
+//
 // 仅支持三种数据类型：int、float、string
-func ConvPointType(value interface{}, valueType config.ValueType) (interface{}, error) {
+func PointValue(value interface{}, valueType config.ValueType) (interface{}, error) {
 	switch valueType {
 	case config.ValueType_Int:
-		return Conv2Int64(value)
+		return Int64(value)
 	case config.ValueType_Float:
-		v, e := Conv2Float64(value)
+		v, e := Float64(value)
 		if e != nil {
 			return 0, e
 		}
@@ -26,14 +27,14 @@ func ConvPointType(value interface{}, valueType config.ValueType) (interface{}, 
 		}
 		return v, nil
 	case config.ValueType_String:
-		return Conv2String(value)
+		return String(value)
 	default:
 		return nil, fmt.Errorf("point value type must one of (int、float、string) ,unSupport:%v", valueType)
 	}
 }
 
-// Conv2Int64 转换为 int64 类型
-func Conv2Int64(value interface{}) (i int64, err error) {
+// 转换为 int64 类型
+func Int64(value interface{}) (i int64, err error) {
 	if value == nil {
 		return 0, nil
 	}
@@ -79,14 +80,14 @@ func Conv2Int64(value interface{}) (i int64, err error) {
 		if e != nil {
 			return 0, e
 		}
-		return Conv2Int64(fv)
+		return Int64(fv)
 	default:
 		return 0, errors.New(fmt.Sprintf("%T convert to int64 error", v))
 	}
 }
 
-// Conv2Float64 转换为 float64 类型
-func Conv2Float64(value interface{}) (f float64, err error) {
+// 转换为 float64 类型
+func Float64(value interface{}) (f float64, err error) {
 	if value == nil {
 		return 0, nil
 	}
@@ -127,8 +128,8 @@ func Conv2Float64(value interface{}) (f float64, err error) {
 	}
 }
 
-// Conv2String 转换为 string 类型
-func Conv2String(value interface{}) (s string, err error) {
+// 转换为 string 类型
+func String(value interface{}) (s string, err error) {
 	if value == nil {
 		return "", nil
 	}
@@ -169,7 +170,7 @@ func Conv2String(value interface{}) (s string, err error) {
 	}
 }
 
-func Conv2Struct(from any, to any) error {
+func Struct(from any, to any) error {
 	bytes, err := json.Marshal(from)
 	if err != nil {
 		return err

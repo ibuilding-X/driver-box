@@ -6,7 +6,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
 	lua "github.com/yuin/gopher-lua"
@@ -20,7 +20,7 @@ func mockRead(plugin *connector, L *lua.LState, data btypes.MultiplePropertyData
 			if e != nil {
 				helper.Logger.Error("mockRead error", zap.Error(e))
 			}
-			v, e := utils.Conv2Float64(mockData)
+			v, e := convutil.Float64(mockData)
 			if e != nil {
 				helper.Logger.Error("mockRead error", zap.Error(e))
 				continue

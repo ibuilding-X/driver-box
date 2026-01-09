@@ -8,8 +8,8 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"go.uber.org/zap"
 )
 
@@ -29,7 +29,7 @@ func (discover *Discover) udpDiscover() {
 	port := 9090
 	httpListen := os.Getenv(config.ENV_UDP_DISCOVER_LISTEN)
 	if httpListen != "" {
-		p, e := utils.Conv2Int64(httpListen)
+		p, e := convutil.Int64(httpListen)
 		if e != nil {
 			helper.Logger.Error("udp discover listen port error", zap.String(config.ENV_UDP_DISCOVER_LISTEN, httpListen), zap.Error(e))
 		} else {

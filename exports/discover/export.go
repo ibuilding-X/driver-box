@@ -6,9 +6,9 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/event"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
@@ -67,7 +67,7 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 func (export *Export) deviceAutoDiscover(deviceId string, value interface{}) error {
 	helper.Logger.Info("device auto discover", zap.Any("deviceId", deviceId), zap.Any("value", value))
 	deviceDiscover := DeviceDiscover{}
-	if err := utils.Conv2Struct(value, &deviceDiscover); err != nil {
+	if err := convutil.Struct(value, &deviceDiscover); err != nil {
 		helper.Logger.Error("device auto discover conv2struct error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
 		return err
 	}

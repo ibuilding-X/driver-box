@@ -7,10 +7,10 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	export0 "github.com/ibuilding-x/driver-box/driverbox/internal/export"
 	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/event"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
@@ -206,7 +206,7 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 			continue
 		}
 		//点位值类型还原
-		value, err := utils.ConvPointType(p.Value, point.ValueType())
+		value, err := convutil.PointValue(p.Value, point.ValueType())
 		if err != nil {
 			if !strings.HasPrefix(deviceData.ID, "vrf/") {
 				helper.Logger.Error("convert point value error", zap.Error(err), zap.Any("deviceId", deviceData.ID),

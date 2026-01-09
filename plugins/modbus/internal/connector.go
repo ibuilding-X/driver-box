@@ -297,44 +297,44 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 			value = rawValues[0]
 		case InputRegister, HoldingRegister: // 输入寄存器和保持寄存器需要根据大小端还有bit位进行处理
 			switch strings.ToUpper(point.RawType) {
-			case strings.ToUpper(common.ValueTypeUint16), strings.ToUpper(common.ValueTypeInt16):
+			case strings.ToUpper(ValueTypeUint16), strings.ToUpper(ValueTypeInt16):
 				out := getBytesFromUint16s(rawValues, point.ByteSwap)
 				val := binary.BigEndian.Uint16(out)
 				// 根据bit位读取数据
 				if point.BitLen > 0 {
 					value = getBitsFromPosition(val, point.Bit, point.BitLen)
 				} else {
-					if strings.ToUpper(point.RawType) == strings.ToUpper(common.ValueTypeInt16) {
+					if strings.ToUpper(point.RawType) == strings.ToUpper(ValueTypeInt16) {
 						value = int16(val)
 					} else {
 						value = val
 					}
 				}
-			case strings.ToUpper(common.ValueTypeUint32), strings.ToUpper(common.ValueTypeInt32), strings.ToUpper(common.ValueTypeFloat32):
+			case strings.ToUpper(ValueTypeUint32), strings.ToUpper(ValueTypeInt32), strings.ToUpper(ValueTypeFloat32):
 				out := getBytesFromUint16s(rawValues, point.ByteSwap)
 				out = swapWords(out, point.WordSwap)
 				val := binary.BigEndian.Uint32(out)
 				switch strings.ToUpper(point.RawType) {
-				case strings.ToUpper(common.ValueTypeUint32):
+				case strings.ToUpper(ValueTypeUint32):
 					value = val
-				case strings.ToUpper(common.ValueTypeInt32):
+				case strings.ToUpper(ValueTypeInt32):
 					value = int32(val)
-				case strings.ToUpper(common.ValueTypeFloat32):
+				case strings.ToUpper(ValueTypeFloat32):
 					value = math.Float32frombits(val)
 				}
-			case strings.ToUpper(common.ValueTypeUint64), strings.ToUpper(common.ValueTypeInt64), strings.ToUpper(common.ValueTypeFloat64):
+			case strings.ToUpper(ValueTypeUint64), strings.ToUpper(ValueTypeInt64), strings.ToUpper(ValueTypeFloat64):
 				out := getBytesFromUint16s(rawValues, point.ByteSwap)
 				out = swapWords(out, point.WordSwap)
 				val := binary.BigEndian.Uint64(out)
 				switch strings.ToUpper(point.RawType) {
-				case strings.ToUpper(common.ValueTypeUint64):
+				case strings.ToUpper(ValueTypeUint64):
 					value = val
-				case strings.ToUpper(common.ValueTypeInt64):
+				case strings.ToUpper(ValueTypeInt64):
 					value = int32(val)
-				case strings.ToUpper(common.ValueTypeFloat64):
+				case strings.ToUpper(ValueTypeFloat64):
 					value = math.Float64frombits(val)
 				}
-			case strings.ToUpper(common.ValueTypeString):
+			case strings.ToUpper(ValueTypeString):
 				out := getBytesFromUint16s(rawValues, point.ByteSwap)
 				out = swapWords(out, point.WordSwap)
 				value = string(out)
@@ -655,13 +655,13 @@ func convToPointExtend(extends config.Point) (*Point, error) {
 		extend.Quantity = 1
 	case InputRegister, HoldingRegister:
 		switch strings.ToUpper(extend.RawType) {
-		case strings.ToUpper(common.ValueTypeUint16), strings.ToUpper(common.ValueTypeInt16):
+		case strings.ToUpper(ValueTypeUint16), strings.ToUpper(ValueTypeInt16):
 			extend.Quantity = 1
-		case strings.ToUpper(common.ValueTypeUint32), strings.ToUpper(common.ValueTypeInt32), strings.ToUpper(common.ValueTypeFloat32):
+		case strings.ToUpper(ValueTypeUint32), strings.ToUpper(ValueTypeInt32), strings.ToUpper(ValueTypeFloat32):
 			extend.Quantity = 2
-		case strings.ToUpper(common.ValueTypeUint64), strings.ToUpper(common.ValueTypeInt64), strings.ToUpper(common.ValueTypeFloat64):
+		case strings.ToUpper(ValueTypeUint64), strings.ToUpper(ValueTypeInt64), strings.ToUpper(ValueTypeFloat64):
 			extend.Quantity = 4
-		case strings.ToUpper(common.ValueTypeString):
+		case strings.ToUpper(ValueTypeString):
 			if extend.Quantity == 0 {
 				extend.Quantity = 1
 			}

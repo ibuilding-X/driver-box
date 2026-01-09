@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
 	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 )
@@ -44,7 +44,7 @@ func deviceDriverProcess(deviceId string, mode plugin.EncodeMode, pointData ...p
 			if !ok {
 				return nil, fmt.Errorf("not found point, point name is %s", p.PointName)
 			}
-			value, err := utils.ConvPointType(p.Value, point.ValueType())
+			value, err := convutil.PointValue(p.Value, point.ValueType())
 			if err != nil {
 				return nil, err
 			}
