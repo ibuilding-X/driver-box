@@ -5,6 +5,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
@@ -67,7 +68,7 @@ func (g *gatewayPlugin) initConnection() error {
 	if len(g.c.Connections) > 0 {
 		for connKey, _ := range g.c.Connections {
 			conf := &connectorConfig{}
-			if err := helper.Map2Struct(g.c.Connections[connKey], conf); err != nil {
+			if err := convutil.Struct(g.c.Connections[connKey], conf); err != nil {
 				return err
 			}
 

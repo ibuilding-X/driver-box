@@ -7,6 +7,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/plugins/dlt645/internal/core/dltcon"
@@ -51,7 +52,7 @@ func (p *Plugin) initNetworks(config config.Config) {
 	for key, connConfig := range config.Connections {
 		// 按照串口采集
 		connectionConfig := new(ConnectionConfig)
-		if err := helper.Map2Struct(connConfig, connectionConfig); err != nil {
+		if err := convutil.Struct(connConfig, connectionConfig); err != nil {
 			helper.Logger.Error("convert connector config error", zap.Any("connection", connConfig), zap.Error(err))
 			continue
 		}

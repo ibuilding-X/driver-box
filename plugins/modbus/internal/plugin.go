@@ -8,6 +8,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
@@ -66,7 +67,7 @@ func (p *Plugin) initNetworks(config config.Config) {
 	//某个连接配置有问题，不影响其他连接的建立
 	for key, connConfig := range config.Connections {
 		connectionConfig := new(ConnectionConfig)
-		if err := helper.Map2Struct(connConfig, connectionConfig); err != nil {
+		if err := convutil.Struct(connConfig, connectionConfig); err != nil {
 			helper.Logger.Error("convert connector config error", zap.Any("connection", connConfig), zap.Error(err))
 			continue
 		}

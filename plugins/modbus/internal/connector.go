@@ -13,6 +13,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/simonvetter/modbus"
@@ -631,7 +632,7 @@ func (c *connector) write(wv *writeValue) (err error) {
 func convToPointExtend(extends config.Point) (*Point, error) {
 	extend := new(Point)
 	extend.Point = extends
-	if err := helper.Map2Struct(extends, extend); err != nil {
+	if err := convutil.Struct(extends, extend); err != nil {
 		helper.Logger.Error("error modbus config", zap.Any("config", extends), zap.Error(err))
 		return nil, err
 	}

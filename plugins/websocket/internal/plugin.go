@@ -7,6 +7,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 )
@@ -59,7 +60,7 @@ func (p *Plugin) Destroy() error {
 func (p *Plugin) initConnPool() (err error) {
 	for key, _ := range p.config.Connections {
 		var c connectorConfig
-		if err = helper.Map2Struct(p.config.Connections[key], &c); err != nil {
+		if err = convutil.Struct(p.config.Connections[key], &c); err != nil {
 			return
 		}
 		c.ConnectionKey = key

@@ -10,6 +10,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/event"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/plugins/mirror"
@@ -113,7 +114,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 
 	//第二步：生成设备、模型的内存结构
 	mirrorConfig := new(autoMirrorConfig)
-	if err := helper.Map2Struct(c, mirrorConfig); err != nil {
+	if err := convutil.Struct(c, mirrorConfig); err != nil {
 		return err
 	}
 	helper.Logger.Info("auto create mirror device", zap.String("deviceId", deviceId), zap.Any("mirrorConfig", mirrorConfig))

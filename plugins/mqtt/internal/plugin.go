@@ -6,6 +6,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 )
@@ -30,7 +31,7 @@ func (p *Plugin) initConnPool(c config.Config) error {
 	p.connectors = make(map[string]*connector)
 	for k, connection := range c.Connections {
 		var connectConfig ConnectConfig
-		if err := helper.Map2Struct(connection, &connectConfig); err != nil {
+		if err := convutil.Struct(connection, &connectConfig); err != nil {
 			helper.Logger.Error(fmt.Sprintf("unmarshal mqtt config error: %s", err.Error()))
 			continue
 		}

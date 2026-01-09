@@ -8,6 +8,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	dlt "github.com/ibuilding-x/driver-box/plugins/dlt645/internal/core"
@@ -253,7 +254,7 @@ func (c *connector) write() (err error) {
 func convToPointExtend(extends config.Point) (*Point, error) {
 	extend := new(Point)
 	extend.Point = extends
-	if err := helper.Map2Struct(extends, extend); err != nil {
+	if err := convutil.Struct(extends, extend); err != nil {
 		helper.Logger.Error("error dlt645 config", zap.Any("config", extends), zap.Error(err))
 		return nil, err
 	}

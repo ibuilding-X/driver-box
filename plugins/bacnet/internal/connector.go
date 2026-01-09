@@ -11,6 +11,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet"
@@ -66,7 +67,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 					continue
 				}
 				var ext extends
-				if err = helper.Map2Struct(point, &ext); err != nil {
+				if err = convutil.Struct(point, &ext); err != nil {
 					helper.Logger.Error("error bacnet config", zap.Any("config", point), zap.Error(err))
 					continue
 				}
@@ -334,7 +335,7 @@ type deviceProtocol struct {
 // createDevice
 func (c *connector) createDevice(properties map[string]string) (d *device, err error) {
 	var dp deviceProtocol
-	if err = helper.Map2Struct(properties, &dp); err != nil {
+	if err = convutil.Struct(properties, &dp); err != nil {
 		return nil, err
 	}
 	if dp.Port == "" {
@@ -395,7 +396,7 @@ func initConnector(key string, config map[string]interface{}, p *Plugin) (*conne
 		switch mode {
 		case IP:
 			var bic bacIpConfig
-			if err := helper.Map2Struct(config, &bic); err == nil {
+			if err := convutil.Struct(config, &bic); err == nil {
 				var n *network.Network
 				if err = bic.checkBacIpConfig(); err != nil {
 					return nil, err

@@ -7,6 +7,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
@@ -68,7 +69,7 @@ func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 			return nil, common.PointNotFoundError
 		}
 		var ext extends
-		if err = helper.Map2Struct(point, &ext); err != nil {
+		if err = convutil.Struct(point, &ext); err != nil {
 			return nil, err
 		}
 
@@ -89,7 +90,7 @@ func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 				return nil, common.PointNotFoundError
 			}
 			var ext extends
-			if err = helper.Map2Struct(point, &ext); err != nil {
+			if err = convutil.Struct(point, &ext); err != nil {
 				return nil, err
 			}
 			var bwc bacWriteCmd
