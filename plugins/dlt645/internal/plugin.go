@@ -8,10 +8,8 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/plugins/dlt645/internal/core/dltcon"
-	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )
 
@@ -20,7 +18,6 @@ const ProtocolName = "dlt645"
 // Plugin 驱动插件
 type Plugin struct {
 	connPool map[string]*connector // 连接器
-	ls       *lua.LState           // lua 虚拟机
 	config   config.Config
 }
 
@@ -40,8 +37,7 @@ type connector struct {
 }
 
 // Initialize 插件初始化
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) {
-	p.ls = ls
+func (p *Plugin) Initialize(c config.Config) {
 	p.config = c
 
 	//初始化连接池
@@ -105,9 +101,6 @@ func (p *Plugin) Connector(deviceId string) (conn plugin.Connector, err error) {
 func (p *Plugin) Destroy() error {
 	for _, conn := range p.connPool {
 		conn.Close()
-	}
-	if p.ls != nil {
-		luautil.Close(p.ls)
 	}
 	return nil
 }

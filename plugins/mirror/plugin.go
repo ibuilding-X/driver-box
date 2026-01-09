@@ -5,10 +5,9 @@ import (
 	"sync"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )
 
@@ -18,7 +17,6 @@ var instance *Plugin
 var once = &sync.Once{}
 
 type Plugin struct {
-	ls        *lua.LState // lua 虚拟机
 	connector *connector
 	mutex     *sync.Mutex
 	//是否已就绪
@@ -42,13 +40,12 @@ func NewPlugin() *Plugin {
 	return instance
 }
 
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) {
-	p.ls = ls
+func (p *Plugin) Initialize(c config.Config) {
 	//生成镜像设备映射关系
 	for _, model := range c.DeviceModels {
 		err := p.UpdateMirrorMapping(model)
 		if err != nil {
-			logger.Error("update mirror mapping failed", zap.Error(err))
+			helper.Logger.Error("update mirror mapping failed", zap.Error(err))
 		}
 	}
 	p.ready = true
@@ -137,9 +134,6 @@ func (p *Plugin) IsReady() bool {
 }
 
 func (p *Plugin) Destroy() error {
-	if p.ls != nil {
-		luautil.Close(p.ls)
-	}
 	p.connector.mirrors = make(map[string]map[string]Device)
 	p.connector.rawMapping = make(map[string]map[string][]plugin.DeviceData)
 	p.ready = false

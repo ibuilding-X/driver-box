@@ -4,14 +4,12 @@ package plugin
 
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
-	lua "github.com/yuin/gopher-lua"
-	"go.uber.org/zap"
 )
 
 // Plugin 驱动插件
 type Plugin interface {
 	// Initialize 初始化日志、配置、接收回调
-	Initialize(logger *zap.Logger, c config.Config, ls *lua.LState)
+	Initialize(c config.Config)
 	// Connector 连接器
 	Connector(deviceId string) (connector Connector, err error)
 	// Destroy 销毁驱动

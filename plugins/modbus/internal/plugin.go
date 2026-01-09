@@ -12,7 +12,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/simonvetter/modbus"
-	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )
 
@@ -21,7 +20,6 @@ const ProtocolName = "modbus"
 // Plugin 驱动插件
 type Plugin struct {
 	connPool map[string]*connector // 连接器
-	ls       *lua.LState           // lua 虚拟机
 	config   config.Config
 }
 
@@ -53,8 +51,7 @@ type connector struct {
 }
 
 // Initialize 插件初始化
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) {
-	p.ls = ls
+func (p *Plugin) Initialize(c config.Config) {
 	p.config = c
 	//初始化连接池
 	p.initNetworks(c)
@@ -78,6 +75,9 @@ func (p *Plugin) initNetworks(config config.Config) {
 		if err != nil {
 			helper.Logger.Error("init connector error", zap.Any("connection", connConfig), zap.Error(err))
 			continue
+		}
+		if conn.virtual {
+			InitMockLua(config.Key)
 		}
 
 		//生成点位采集组
@@ -119,10 +119,10 @@ func (p *Plugin) Destroy() error {
 	for _, conn := range p.connPool {
 		conn.Close()
 	}
+	if ls != nil {
+		luautil.Close(ls)
+	}
 	//延迟关闭lua虚拟机，防止lua虚拟机正在使用
 	time.Sleep(time.Second * 1)
-	if p.ls != nil {
-		luautil.Close(p.ls)
-	}
 	return nil
 }

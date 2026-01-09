@@ -6,28 +6,22 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )
 
 const ProtocolName = "mqtt"
 
 type Plugin struct {
-	logger     *zap.Logger           // 日志
 	connectors map[string]*connector // mqtt连接池
-	ls         *lua.LState           // lua 虚拟机
 }
 
 // Initialize 初始化日志、配置、接收回调
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) {
-	p.logger = logger
-	p.ls = ls
+func (p *Plugin) Initialize(c config.Config) {
 
 	// 初始化连接池
 	if err := p.initConnPool(c); err != nil {
-		logger.Error("init mqtt connector error", zap.Error(err))
+		helper.Logger.Error("init mqtt connector error", zap.Error(err))
 	}
 
 }
@@ -37,7 +31,7 @@ func (p *Plugin) initConnPool(c config.Config) error {
 	for k, connection := range c.Connections {
 		var connectConfig ConnectConfig
 		if err := helper.Map2Struct(connection, &connectConfig); err != nil {
-			p.logger.Error(fmt.Sprintf("unmarshal mqtt config error: %s", err.Error()))
+			helper.Logger.Error(fmt.Sprintf("unmarshal mqtt config error: %s", err.Error()))
 			continue
 		}
 		if !connectConfig.Enable {
@@ -51,7 +45,7 @@ func (p *Plugin) initConnPool(c config.Config) error {
 		}
 		err := conn.connect(connectConfig)
 		if err != nil {
-			p.logger.Error(fmt.Sprintf("mqtt connect error: %s", err.Error()))
+			helper.Logger.Error(fmt.Sprintf("mqtt connect error: %s", err.Error()))
 			continue
 		}
 		p.connectors[k] = conn
@@ -76,9 +70,6 @@ func (p *Plugin) Connector(deviceId string) (plugin.Connector, error) {
 
 // Destroy 销毁驱动
 func (p *Plugin) Destroy() error {
-	if p.ls != nil {
-		luautil.Close(p.ls)
-	}
 	connectors := p.connectors
 	for _, conn := range connectors {
 		conn := conn

@@ -4,30 +4,24 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )
 
 const ProtocolName = "tcp_server"
 
 type Plugin struct {
-	logger   *zap.Logger
 	config   config.Config
 	connPool []*connector
-	ls       *lua.LState
 }
 
 // Initialize 插件初始化
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) {
-	p.logger = logger
+func (p *Plugin) Initialize(c config.Config) {
 	p.config = c
-	p.ls = ls
 
 	// 初始化连接池
 	if err := p.initConnPool(); err != nil {
-		logger.Error("init connector pool failed", zap.Error(err))
+		helper.Logger.Error("init connector pool failed", zap.Error(err))
 	}
 
 }
@@ -39,9 +33,6 @@ func (p *Plugin) Connector(deviceSn string) (connector plugin.Connector, err err
 
 // Destroy 销毁插件
 func (p *Plugin) Destroy() error {
-	if p.ls != nil {
-		luautil.Close(p.ls)
-	}
 	return nil
 }
 
@@ -57,7 +48,6 @@ func (p *Plugin) initConnPool() (err error) {
 			config:    c,
 			plugin:    p,
 			scriptDir: p.config.Key,
-			ls:        p.ls,
 		}
 		if err = conn.startServer(); err != nil {
 			return

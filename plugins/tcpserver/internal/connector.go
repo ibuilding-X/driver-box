@@ -8,10 +8,9 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )
 
@@ -20,11 +19,11 @@ type connector struct {
 	plugin    *Plugin
 	conn      net.Listener
 	scriptDir string // 脚本目录名称
-	ls        *lua.LState
 }
 
 // connectorConfig 连接器配置
 type connectorConfig struct {
+	plugin.BaseConnection
 	Host     string `json:"host"`
 	Port     uint16 `json:"port"`
 	BuffSize uint   `json:"buffSize"`
@@ -77,13 +76,13 @@ func (c *connector) handelConn(conn net.Conn) {
 	for {
 		n, err := reader.Read(buf[:])
 		if err != nil {
-			c.plugin.logger.Error("tcp connection read error", zap.Error(err))
+			helper.Logger.Error("tcp connection read error", zap.Error(err))
 			break
 		}
 		data := protoData{Raw: string(buf[:n])}
 		// 接收数据，调用回调函数
 		if res, err := c.Decode(data.ToJSON()); err != nil {
-			c.plugin.logger.Error("tcp_server callback error", zap.Error(err))
+			helper.Logger.Error("tcp_server callback error", zap.Error(err))
 		} else {
 			driverbox.Export(res)
 		}
@@ -109,5 +108,5 @@ func (a *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 
 // Decode 解码
 func (a *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
-	return luautil.CallLuaConverter(a.ls, "decode", raw)
+	return library.Protocol().Decode(a.config.ProtocolKey, raw)
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
@@ -102,17 +101,17 @@ func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 			}
 			bwc.PointName = value.PointName
 			bwc.ModelName = device.ModelName
-			if c.plugin.ls != nil {
-				bytes, err := json.Marshal(bwc)
-				if err != nil {
-					return nil, err
-				}
-				result, err := luautil.CallLuaEncodeConverter(c.plugin.ls, deviceSn, string(bytes))
-				err = json.Unmarshal([]byte(result), &bwc)
-				if err != nil {
-					return nil, err
-				}
-			}
+			//if c.plugin.ls != nil {
+			//	bytes, err := json.Marshal(bwc)
+			//	if err != nil {
+			//		return nil, err
+			//	}
+			//	result, err := luautil.CallLuaEncodeConverter(c.plugin.ls, deviceSn, string(bytes))
+			//	err = json.Unmarshal([]byte(result), &bwc)
+			//	if err != nil {
+			//		return nil, err
+			//	}
+			//}
 			//是否存在前置操作
 			if len(bwc.PreOp) > 0 {
 				for _, op := range bwc.PreOp {
@@ -233,25 +232,21 @@ func validObjType(objType string) bool {
 
 // Decode 解码
 func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
-	if c.plugin.ls != nil {
-		return luautil.CallLuaConverter(c.plugin.ls, "decode", raw)
-	} else {
-		rawJson := raw.(string)
-		var resp readResponse
-		err := json.Unmarshal([]byte(rawJson), &resp)
-		if err != nil {
-			return nil, err
-		}
-		// 当前设备未被lua解析
-		pointDatalist := []plugin.PointData{{
-			PointName: resp.PointName,
-			Value:     resp.Value,
-		}}
-		res = append(res, plugin.DeviceData{
-			ID:     resp.DeviceId,
-			Values: pointDatalist,
-		})
+	rawJson := raw.(string)
+	var resp readResponse
+	err = json.Unmarshal([]byte(rawJson), &resp)
+	if err != nil {
+		return nil, err
 	}
+	// 当前设备未被lua解析
+	pointDatalist := []plugin.PointData{{
+		PointName: resp.PointName,
+		Value:     resp.Value,
+	}}
+	res = append(res, plugin.DeviceData{
+		ID:     resp.DeviceId,
+		Values: pointDatalist,
+	})
 
 	return
 }

@@ -4,31 +4,25 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )
 
 const ProtocolName = "bacnet"
 
 type Plugin struct {
-	logger   *zap.Logger
 	config   config.Config
 	connPool map[string]plugin.Connector
-	ls       *lua.LState
 }
 
 // Initialize 插件初始化
 // logger *zap.Logger、ls *lua.LState 参数未来可能会废弃
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) {
-	p.logger = logger
+func (p *Plugin) Initialize(c config.Config) {
 	p.config = c
-	p.ls = ls
 
 	// 初始化连接
 	if err := p.initNetworks(); err != nil {
-		logger.Error("initialize bacnet plugin error", zap.Error(err))
+		helper.Logger.Error("initialize bacnet plugin error", zap.Error(err))
 	}
 
 }
@@ -49,9 +43,6 @@ func (p *Plugin) Destroy() error {
 	for _, conn := range p.connPool {
 		c := conn.(*connector)
 		c.Close()
-	}
-	if p.ls != nil {
-		luautil.Close(p.ls)
 	}
 	return nil
 }

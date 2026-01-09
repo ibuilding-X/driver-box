@@ -3,7 +3,6 @@ package driverbox
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
 	"sync"
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
@@ -16,9 +15,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/event"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	glua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )
 
@@ -120,17 +117,7 @@ func loadPlugins() error {
 			continue
 		}
 
-		var ls *glua.LState
-		path := filepath.Join(helper.EnvConfig.ConfigPath, key, common.LuaScriptName)
-		if common.FileExists(path) {
-			ls, err = luautil.InitLuaVM(path)
-			if err != nil {
-				helper.Logger.Error(err.Error())
-				continue
-			}
-		}
-
-		p.Initialize(helper.Logger, configMap[key], ls)
+		p.Initialize(configMap[key])
 
 		// 缓存插件
 		helper.CoreCache.AddRunningPlugin(key, p)

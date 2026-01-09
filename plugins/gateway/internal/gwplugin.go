@@ -26,10 +26,8 @@ func New() plugin.Plugin {
 	}
 }
 
-func (g *gatewayPlugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) {
-	g.l = logger
+func (g *gatewayPlugin) Initialize(c config.Config) {
 	g.c = c
-	g.ls = ls
 
 	// 初始化连接
 	if err := g.initConnection(); err != nil {

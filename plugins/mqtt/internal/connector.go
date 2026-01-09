@@ -29,13 +29,13 @@ func (conn *connector) Send(data interface{}) error {
 	var encodeDatas []EncodeData
 	err := json.Unmarshal(res, &encodeDatas)
 	if err != nil {
-		conn.plugin.logger.Error(fmt.Sprintf("unmarshal error: %s", err.Error()))
-		conn.plugin.logger.Error(fmt.Sprintf("origin data is: %s", data.(string)))
+		helper.Logger.Error(fmt.Sprintf("unmarshal error: %s", err.Error()))
+		helper.Logger.Error(fmt.Sprintf("origin data is: %s", data.(string)))
 		return err
 	}
 	for _, encodeData := range encodeDatas {
 		if token := conn.client.Publish(encodeData.Topic, 0, false, encodeData.Payload); token.Wait() && token.Error() != nil {
-			conn.plugin.logger.Error(fmt.Sprintf("publish %s to topic %s error: %s",
+			helper.Logger.Error(fmt.Sprintf("publish %s to topic %s error: %s",
 				encodeData.Payload, encodeData.Topic, token.Error().Error()))
 			return token.Error()
 		}
@@ -83,7 +83,7 @@ func (conn *connector) newMqttClientOptions(connectConfig ConnectConfig) *mqtt.C
 func (conn *connector) onConnectHandler(client mqtt.Client) {
 	for _, topic := range conn.config.Topics {
 		if token := client.Subscribe(topic, 0, conn.onReceiveHandler); token.Wait() && token.Error() != nil {
-			conn.plugin.logger.Error(fmt.Sprintf("unable to subscribe topic: %s for client: %s", topic, conn.config.ClientId))
+			helper.Logger.Error(fmt.Sprintf("unable to subscribe topic: %s for client: %s", topic, conn.config.ClientId))
 			continue
 		}
 	}

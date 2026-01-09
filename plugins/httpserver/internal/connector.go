@@ -9,23 +9,23 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )
 
 type connectorConfig struct {
+	plugin.BaseConnection
 	Host string `json:"host"`
 	Port uint16 `json:"port"`
 }
 
 type connector struct {
-	scriptDir string      // 脚本目录名称
-	ls        *lua.LState // lua 虚拟机
-	plugin    *Plugin
-	server    *http.Server
+	protocolKey string // 脚本目录名称
+	plugin      *Plugin
+	server      *http.Server
 }
 
 // Release 释放资源
@@ -49,7 +49,7 @@ func (c *connector) startServer(opts connectorConfig) {
 		// 取 body
 		body, err := io.ReadAll(ctx.Request.Body)
 		if err != nil {
-			c.plugin.logger.Error("http request read body error", zap.Error(err))
+			helper.Logger.Error("http request read body error", zap.Error(err))
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":    -1,
 				"message": err.Error(),
@@ -64,7 +64,7 @@ func (c *connector) startServer(opts connectorConfig) {
 		}
 		// 调用回调函数
 		if res, err := c.Decode(data.ToJSON()); err != nil {
-			c.plugin.logger.Error("http_server callback error", zap.Error(err))
+			helper.Logger.Error("http_server callback error", zap.Error(err))
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":    -1,
 				"message": err.Error(),
@@ -88,7 +88,7 @@ func (c *connector) startServer(opts connectorConfig) {
 
 	go func(addr string) {
 		if err := c.server.ListenAndServe(); err != nil {
-			c.plugin.logger.Error("start http server error", zap.Error(err))
+			helper.Logger.Error("start http server error", zap.Error(err))
 		}
 	}(addr)
 }
@@ -114,5 +114,5 @@ func (a *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 
 // Decode 解码数据，调用动态脚本解析
 func (a *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
-	return luautil.CallLuaConverter(a.ls, "decode", raw)
+	return library.Protocol().Decode(a.protocolKey, raw)
 }

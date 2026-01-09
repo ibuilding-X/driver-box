@@ -7,9 +7,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )
 
@@ -19,17 +17,15 @@ type Plugin struct {
 	config config.Config // 核心配置
 
 	connPool map[string]*connector // 连接器
-	ls       *lua.LState           // lua 虚拟机
 }
 
-func (p *Plugin) Initialize(logger *zap.Logger, c config.Config, ls *lua.LState) {
+func (p *Plugin) Initialize(c config.Config) {
 	p.config = c
 	p.connPool = make(map[string]*connector)
-	p.ls = ls
 
 	// 初始化连接池
 	if err := p.initConnPool(); err != nil {
-		logger.Error("initialize websocket plugin failed", zap.Error(err))
+		helper.Logger.Error("initialize websocket plugin failed", zap.Error(err))
 	}
 
 }
@@ -49,9 +45,6 @@ func (p *Plugin) Connector(deviceId string) (connector plugin.Connector, err err
 }
 
 func (p *Plugin) Destroy() error {
-	if p.ls != nil {
-		luautil.Close(p.ls)
-	}
 	if len(p.connPool) > 0 {
 		for _, c := range p.connPool {
 			if c.server != nil {

@@ -195,7 +195,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 			helper.Logger.Info("mirror plugin initialize fail")
 			return errors.New("mirror config not found")
 		}
-		export.plugin.Initialize(nil, c, nil)
+		export.plugin.Initialize(c)
 		// 缓存插件
 		helper.CoreCache.AddRunningPlugin(mirror.ProtocolName, export.plugin)
 		helper.Logger.Info("mirror plugin initialize success")

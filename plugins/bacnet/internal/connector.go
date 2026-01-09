@@ -2,6 +2,7 @@ package internal
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"time"
@@ -201,7 +202,8 @@ func (c *connector) Send(raw interface{}) (err error) {
 	// 读
 	case plugin.ReadMode:
 		if c.virtual {
-			return mockRead(c, c.plugin.ls, br.req.(btypes.MultiplePropertyData))
+			//return mockRead(c, c.plugin.ls, br.req.(btypes.MultiplePropertyData))
+			return errors.New("unSupport now")
 		}
 		req := br.req.(btypes.MultiplePropertyData)
 		var out btypes.MultiplePropertyData
@@ -211,7 +213,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 			return err
 		}
 		if out.ErrorClass != 0 {
-			c.plugin.logger.Error(fmt.Sprintf("read error: [%d-%d] %s)", out.ErrorClass, out.ErrorCode, err.Error()))
+			helper.Logger.Error(fmt.Sprintf("read error: [%d-%d] %s)", out.ErrorClass, out.ErrorCode, err.Error()))
 			return err
 		}
 		for _, object := range out.Objects {
@@ -242,14 +244,15 @@ func (c *connector) Send(raw interface{}) (err error) {
 		writes := br.req.([]*network.Write)
 		for _, write := range writes {
 			if c.virtual {
-				err = mockWrite(c.plugin.ls, write.DeviceId, write.PointName, write.WriteValue)
+				//err = mockWrite(c.plugin.ls, write.DeviceId, write.PointName, write.WriteValue)
+				err = errors.New("unSupport now")
 				if err != nil {
 					helper.Logger.Error("mock write error", zap.Error(err))
 				}
 			} else {
 				err = device.device.Write(write)
 				if err != nil {
-					c.plugin.logger.Error(fmt.Sprintf("write error: %s", err.Error()))
+					helper.Logger.Error(fmt.Sprintf("write error: %s", err.Error()))
 				}
 			}
 		}
