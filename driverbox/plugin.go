@@ -197,16 +197,6 @@ func initDeviceShadow(configMap map[string]config.Config) {
 	// 设置影子服务设备生命周期
 	if helper.DeviceShadow == nil {
 		helper.DeviceShadow = shadow.NewDeviceShadow()
-		// 设置回调
-		helper.DeviceShadow.SetOnlineChangeCallback(func(deviceId string, online bool) {
-			if online {
-				helper.Logger.Info("device online", zap.String("deviceId", deviceId))
-			} else {
-				helper.Logger.Warn("device offline...", zap.String("deviceId", deviceId))
-			}
-			//触发设备在离线事件
-			export.TriggerEvents(event.EventCodeDeviceStatus, deviceId, online)
-		})
 	}
 	// 添加设备
 	for _, c := range configMap {

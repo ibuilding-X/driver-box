@@ -59,10 +59,7 @@ type DeviceShadow interface {
 
 	// MayBeOffline 可能离线事件（60秒内超过3次判定离线）
 	MayBeOffline(id string) (err error)
-
-	// SetOnlineChangeCallback 设置设备在线状态变化回调函数
-	SetOnlineChangeCallback(handlerFunc OnlineChangeCallback)
-
+	
 	// StopStatusListener 停止设备状态监听
 	StopStatusListener()
 

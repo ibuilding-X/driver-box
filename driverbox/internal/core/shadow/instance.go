@@ -4,7 +4,11 @@ import (
 	"errors"
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
+	"github.com/ibuilding-x/driver-box/driverbox/internal/export"
+	"github.com/ibuilding-x/driver-box/driverbox/internal/logger"
+	"github.com/ibuilding-x/driver-box/driverbox/pkg/event"
 	"github.com/ibuilding-x/driver-box/driverbox/shadow"
+	"go.uber.org/zap"
 
 	"sync"
 	"time"
@@ -13,10 +17,9 @@ import (
 var ErrUnknownDevice = errors.New("unknown device")
 var DeviceShadow shadow.DeviceShadow // 本地设备影子
 type deviceShadow struct {
-	devices     map[string]*device
-	ticker      *crontab.Future
-	handlerFunc shadow.OnlineChangeCallback
-	mutex       *sync.RWMutex
+	devices map[string]*device
+	ticker  *crontab.Future
+	mutex   *sync.RWMutex
 }
 
 func NewDeviceShadow() shadow.DeviceShadow {
@@ -205,13 +208,6 @@ func (d *deviceShadow) MayBeOffline(id string) (err error) {
 	return ErrUnknownDevice
 }
 
-func (d *deviceShadow) SetOnlineChangeCallback(handlerFunc shadow.OnlineChangeCallback) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
-	d.handlerFunc = handlerFunc
-}
-
 func (d *deviceShadow) StopStatusListener() {
 	if d.ticker != nil {
 		d.ticker.Disable()
@@ -259,9 +255,13 @@ func (d *deviceShadow) GetWritePointValue(id string, pointName string) (value in
 }
 
 func (d *deviceShadow) handlerCallback(id string, online bool) {
-	if d.handlerFunc != nil {
-		go d.handlerFunc(id, online)
+	if online {
+		logger.Logger.Info("device online", zap.String("deviceId", id))
+	} else {
+		logger.Logger.Warn("device offline...", zap.String("deviceId", id))
 	}
+	//触发设备在离线事件
+	go export.TriggerEvents(event.EventCodeDeviceStatus, id, online)
 }
 
 func (d *deviceShadow) checkOffline() {
