@@ -14,7 +14,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper/crontab"
 	"github.com/ibuilding-x/driver-box/driverbox/internal/bootstrap"
 	"github.com/ibuilding-x/driver-box/driverbox/internal/core"
-	export0 "github.com/ibuilding-x/driver-box/driverbox/internal/export"
 	plugins0 "github.com/ibuilding-x/driver-box/driverbox/internal/plugins"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/restful"
@@ -41,7 +40,7 @@ func Start() error {
 	helper.Crontab = crontab.Instance()
 
 	//第四步：启动Export
-	for _, item := range export0.Exports {
+	for _, item := range loadExports {
 		if err := item.Init(); err != nil {
 			helper.Logger.Error("init export error", zap.Error(err))
 		}
@@ -85,13 +84,13 @@ func Stop() error {
 		restful.HttpRouter = httprouter.New()
 		http.DefaultServeMux = http.NewServeMux()
 	}
-	for _, item := range export0.Exports {
+	for _, item := range loadExports {
 		e = item.Destroy()
 		if e != nil {
 			helper.Logger.Error("destroy export error", zap.Error(e))
 		}
 	}
-	export0.Exports = make([]export.Export, 0)
+	loadExports = make([]export.Export, 0)
 	bootstrap.DestroyPlugins()
 	plugins0.Manager.Clear()
 	// 3. 停止影子服务设备状态监听、删除影子服务
@@ -153,11 +152,6 @@ func ReadPoints(deviceId string, pointData []plugin.PointData) error {
 //func GetExports() []export.Export {
 //	return export0.Exports
 //}
-
-// 触发运行时事件
-func TriggerEvents(eventCode string, key string, value interface{}) {
-	export0.TriggerEvents(eventCode, key, value)
-}
 
 func UpdateMetadata(f func(*config.Metadata)) {
 	f(&core.Metadata)

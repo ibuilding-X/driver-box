@@ -10,13 +10,14 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
-	export0 "github.com/ibuilding-x/driver-box/driverbox/internal/export"
+	"github.com/ibuilding-x/driver-box/driverbox/internal/logger"
 	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 )
 
 var Exports exports
+var loadExports []export.Export
 
 // exports 结构体用于管理driver-box框架中的所有Export插件
 // 提供加载单个、批量加载以及加载所有内置Export的方法
@@ -33,7 +34,7 @@ type exports struct {
 //	如果该Export尚未加载，则将其添加到全局Exports列表中
 func (exports *exports) LoadExport(export2 export.Export) {
 	if !exports.exists(export2) {
-		export0.Exports = append(export0.Exports, export2)
+		loadExports = append(loadExports, export2)
 	}
 }
 
@@ -60,12 +61,38 @@ func (exports *exports) LoadExports(export2 []export.Export) {
 //
 //	bool: true表示已加载，false表示未加载
 func (exports *exports) exists(exp export.Export) bool {
-	for _, e := range export0.Exports {
+	for _, e := range loadExports {
 		if e == exp {
 			return true
 		}
 	}
 	return false
+}
+
+// 触发事件
+// TriggerEvents 触发事件通知到所有已加载的Export插件
+// 参数:
+//
+//	eventCode: 事件代码，标识事件类型
+//	key: 事件关联的键值，通常是设备ID或其他标识符
+//	value: 事件携带的数据值，可以是任意类型
+//
+// 功能:
+//
+//	遍历所有已加载的Export插件，调用其OnEvent方法处理事件
+//	如果Export插件未就绪，则跳过该插件
+//	记录事件处理过程中的错误信息
+func TriggerEvents(eventCode string, key string, value interface{}) {
+	for _, e := range loadExports {
+		if !e.IsReady() {
+			logger.Logger.Debug("export not ready")
+			continue
+		}
+		err := e.OnEvent(eventCode, key, value)
+		if err != nil {
+			logger.Logger.Error("trigger event error", zap.String("eventCode", eventCode), zap.String("key", key), zap.Any("value", value), zap.Error(err))
+		}
+	}
 }
 
 // Export 导出设备数据到各个Export插件
@@ -98,7 +125,7 @@ func Export(deviceData []plugin.DeviceData) {
 		if len(data.Values) == 0 {
 			continue
 		}
-		for _, export := range export0.Exports {
+		for _, export := range loadExports {
 			if export.IsReady() {
 				export.ExportTo(data)
 			}

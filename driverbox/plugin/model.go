@@ -40,18 +40,6 @@ type PointReadValue struct {
 	Value interface{} `json:"value"`
 }
 
-// PointWriteValue 点位写操作的结构体
-type PointWriteValue struct {
-	// PointName 点位名称
-	PointName string `json:"pointName"`
-	// Value 点位值
-	Value interface{} `json:"value"`
-	//模型名称，某些驱动解析需要根据模型作区分
-	ModelName string `json:"modelName"`
-	//前置操作，例如空开要先解锁，空调要先开机
-	PreOp []PointWriteValue `json:"preOp"`
-}
-
 // 连接配置基础模型
 type BaseConnection struct {
 	ConnectionKey string //连接标识
