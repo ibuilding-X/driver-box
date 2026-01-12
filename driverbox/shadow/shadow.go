@@ -4,8 +4,6 @@ import (
 	"time"
 )
 
-type OnlineChangeCallback func(id string, online bool) // 设备上/下线回调
-
 // Device 设备
 type Device struct {
 	ID              string                 `json:"id"`
@@ -59,7 +57,7 @@ type DeviceShadow interface {
 
 	// MayBeOffline 可能离线事件（60秒内超过3次判定离线）
 	MayBeOffline(id string) (err error)
-	
+
 	// StopStatusListener 停止设备状态监听
 	StopStatusListener()
 
