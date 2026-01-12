@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"sort"
@@ -28,11 +27,6 @@ func registerApi() {
 	restful.HandleFunc(http.MethodGet, route.V1Prefix+"ok", func(h *http.Request) (any, error) {
 		return true, nil
 	})
-	// 插件 REST API
-	restful.HandleFunc(http.MethodGet, route.V1Prefix+"plugin/cache/get", getCache)
-	restful.HandleFunc(http.MethodPost, route.V1Prefix+"plugin/cache/set", setCache)
-	// 核心配置 API
-	//restful.HandleFunc(http.MethodPost, route.V1Prefix+"config/update", updateCoreConfig)
 
 	// 设备影子 API
 	restful.HandleFunc(http.MethodGet, route.V1Prefix+"shadow/all", getAllDevices)
@@ -97,46 +91,6 @@ func registerApi() {
 }
 
 type kv map[string]interface{}
-
-// Get 获取信息
-// 返回数据结构：{"key":"value"}
-func getCache(r *http.Request) (any, error) {
-	// 获取查询 Key
-	key := r.URL.Query().Get("key")
-	if key == "" {
-		return nil, errors.New("key cannot be empty")
-	}
-
-	// 响应
-	value, ok := helper.PluginCacheMap.Load(key)
-	if !ok {
-		value = ""
-	}
-	obj := kv{key: value}
-	return obj, nil
-}
-
-// Set 存储信息
-// body 示例：{"key", "value"}
-func setCache(r *http.Request) (any, error) {
-	// 读取 body
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read body error: %s", err)
-	}
-	defer r.Body.Close()
-	// 键值对解析
-	var obj kv
-	if err = json.Unmarshal(body, &body); err != nil {
-		return nil, fmt.Errorf("json decode error: %s", err)
-	}
-	// 存储
-	for key, value := range obj {
-		helper.PluginCacheMap.Store(key, value)
-	}
-	// 响应
-	return nil, nil
-}
 
 var (
 	snRequiredErr         = errors.New("sn is required")
