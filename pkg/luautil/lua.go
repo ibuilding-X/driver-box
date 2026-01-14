@@ -56,7 +56,7 @@ func InitLuaVM(filePath string) (*lua.LState, error) {
 func CallLuaConverter(L *lua.LState, method string, raw interface{}) ([]plugin.DeviceData, error) {
 	data, ok := raw.(string)
 	if !ok {
-		return nil, common.ProtocolDataFormatErr
+		return nil, errors.New("protocol data format error")
 	}
 	// 获取解析结果
 	result, err := CallLuaMethod(L, method, lua.LString(data))
@@ -137,12 +137,12 @@ func CallLuaEncodeConverter(L *lua.LState, deviceSn string, raw interface{}) (st
 
 	data, ok := raw.(string)
 	if !ok {
-		return "", common.ProtocolDataFormatErr
+		return "", errors.New("protocol data format error")
 	}
 
 	lock, ok := luaLocks.Load(L)
 	if !ok {
-		return "", common.ProtocolDataFormatErr
+		return "", errors.New("protocol data format error")
 	}
 	lock.(*sync.Mutex).Lock()
 	defer lock.(*sync.Mutex).Unlock()

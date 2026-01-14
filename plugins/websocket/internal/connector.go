@@ -10,7 +10,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/common"
 	"github.com/ibuilding-x/driver-box/pkg/library"
 	"go.uber.org/zap"
 )
@@ -144,7 +143,7 @@ func (c *connector) handleFunc(server *http.ServeMux) {
 				c.connMappingDevice.Store(conn, devices)
 			}
 			//自动添加设备
-			common.WrapperDiscoverEvent(deviceDatas, c.config.ConnectionKey, ProtocolName)
+			plugin.WrapperDiscoverEvent(deviceDatas, c.config.ConnectionKey, ProtocolName)
 			driverbox.Export(deviceDatas)
 		}
 
@@ -185,5 +184,5 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 
 // Decode 解码数据，调用动态脚本解析
 func (a *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
-	return nil, common.NotSupportDecode
+	return nil, plugin.NotSupportDecode
 }

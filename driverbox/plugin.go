@@ -12,7 +12,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/internal/shadow"
-	"github.com/ibuilding-x/driver-box/pkg/common"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/event"
 	"github.com/ibuilding-x/driver-box/pkg/library"
@@ -73,7 +72,7 @@ func loadPlugins() error {
 	cmanager.SetConfigPath(helper.EnvConfig.ConfigPath)
 	err := cmanager.LoadConfig()
 	if err != nil {
-		return errors.New(common.LoadCoreConfigErr.Error() + ":" + err.Error())
+		return errors.New("load core config error:" + err.Error())
 	}
 	configMap := cmanager.GetConfigs()
 

@@ -11,7 +11,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/common"
 	"github.com/ibuilding-x/driver-box/pkg/library"
 	"go.uber.org/zap"
 )
@@ -109,7 +108,7 @@ func (pd protoData) ToJSON() string {
 
 // Encode 编码数据，无需实现
 func (a *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
-	return nil, common.NotSupportEncode
+	return nil, plugin.NotSupportEncode
 }
 
 // Decode 解码数据，调用动态脚本解析

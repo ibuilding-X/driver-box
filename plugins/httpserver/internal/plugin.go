@@ -3,7 +3,6 @@ package internal
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/common"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
 	"go.uber.org/zap"
@@ -29,7 +28,7 @@ func (p *Plugin) Initialize(c config.Config) {
 
 // Connector 此协议不支持获取连接器
 func (p *Plugin) Connector(deviceSn string) (connector plugin.Connector, err error) {
-	return nil, common.NotSupportGetConnector
+	return nil, plugin.NotSupportGetConnector
 }
 
 func (p *Plugin) Destroy() error {

@@ -1,9 +1,10 @@
 package internal
 
 import (
+	"errors"
+
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/common"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"go.uber.org/zap"
 )
@@ -33,9 +34,9 @@ func (p *Plugin) Connector(deviceName string) (connector plugin.Connector, err e
 		if conn, ok := p.connPool[device.ConnectionKey]; ok {
 			return conn, nil
 		}
-		return nil, common.ConnectorNotFound
+		return nil, errors.New("connector not found error")
 	}
-	return nil, common.DeviceNotFoundError
+	return nil, errors.New("device not found error")
 }
 
 // Destroy 销毁插件

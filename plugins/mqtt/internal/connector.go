@@ -8,7 +8,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/common"
 	"github.com/ibuilding-x/driver-box/pkg/library"
 	"go.uber.org/zap"
 )
@@ -107,7 +106,7 @@ func (conn *connector) onReceiveHandler(_ mqtt.Client, message mqtt.Message) {
 		return
 	}
 	//自动添加设备
-	common.WrapperDiscoverEvent(deviceData, conn.config.ConnectionKey, ProtocolName)
+	plugin.WrapperDiscoverEvent(deviceData, conn.config.ConnectionKey, ProtocolName)
 	driverbox.Export(deviceData)
 }
 

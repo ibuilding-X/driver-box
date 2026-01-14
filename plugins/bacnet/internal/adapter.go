@@ -2,12 +2,12 @@ package internal
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/common"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
@@ -54,19 +54,19 @@ type bacWriteCmd struct {
 func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
 	device, ok := helper.CoreCache.GetDevice(deviceSn)
 	if !ok {
-		return nil, common.DeviceNotFoundError
+		return nil, errors.New("device not found error")
 	}
 	deviceId := device.Properties["id"]
 
 	switch mode {
 	case plugin.ReadMode:
 		if len(values) != 1 {
-			return nil, common.NotSupportEncode
+			return nil, plugin.NotSupportEncode
 		}
 		value := values[0]
 		point, ok := helper.CoreCache.GetPointByDevice(deviceSn, value.PointName)
 		if !ok {
-			return nil, common.PointNotFoundError
+			return nil, errors.New("point not found error")
 		}
 		var ext extends
 		if err = convutil.Struct(point, &ext); err != nil {
@@ -87,7 +87,7 @@ func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 		for _, value := range values {
 			point, ok := helper.CoreCache.GetPointByDevice(deviceSn, value.PointName)
 			if !ok {
-				return nil, common.PointNotFoundError
+				return nil, errors.New("point not found error")
 			}
 			var ext extends
 			if err = convutil.Struct(point, &ext); err != nil {
@@ -145,7 +145,7 @@ func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 			deviceId: deviceId,
 		}, nil
 	default:
-		return nil, common.NotSupportEncode
+		return nil, plugin.NotSupportEncode
 	}
 }
 

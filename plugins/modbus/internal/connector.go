@@ -12,7 +12,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/common"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/pkg/crontab"
@@ -232,7 +231,7 @@ func (c *connector) Send(data interface{}) (err error) {
 			}
 		}
 	default:
-		return common.NotSupportMode
+		return errors.New("not support mode error")
 	}
 
 	return
@@ -625,7 +624,7 @@ func (c *connector) write(wv *writeValue) (err error) {
 		}
 		return c.client.WriteRegisters(address, values)
 	default:
-		return common.UnsupportedWriteCommandRegisterType
+		return errors.New("unsupport write command register type")
 	}
 }
 

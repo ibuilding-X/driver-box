@@ -10,7 +10,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/common"
 	"github.com/ibuilding-x/driver-box/pkg/crontab"
 	"github.com/ibuilding-x/driver-box/pkg/library"
 	"go.uber.org/zap"
@@ -157,17 +156,17 @@ func (c *connector) Send(raw interface{}) (err error) {
 		return err
 	}
 	//自动添加设备
-	common.WrapperDiscoverEvent(deviceData, c.config.ConnectionKey, ProtocolName)
+	plugin.WrapperDiscoverEvent(deviceData, c.config.ConnectionKey, ProtocolName)
 	driverbox.Export(deviceData)
 	return nil
 }
 
 // Encode 编码数据
 func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
-	return nil, common.NotSupportEncode
+	return nil, plugin.NotSupportEncode
 }
 
 // Decode 解码数据，调用动态脚本解析
 func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
-	return nil, common.NotSupportDecode
+	return nil, plugin.NotSupportDecode
 }
