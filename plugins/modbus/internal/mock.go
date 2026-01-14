@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/pkg/common"
+	"github.com/ibuilding-x/driver-box/pkg/fileutil"
 	"github.com/ibuilding-x/driver-box/pkg/luautil"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
@@ -17,7 +17,7 @@ var ls *lua.LState
 func InitMockLua(key string) {
 	if ls == nil {
 		path := filepath.Join(helper.EnvConfig.ConfigPath, key, "converter.lua")
-		if common.FileExists(path) {
+		if fileutil.FileExists(path) {
 			l, err := luautil.InitLuaVM(path)
 			if err != nil {
 				helper.Logger.Error("init lua vm error", zap.Error(err))

@@ -7,8 +7,8 @@ import (
 	"path"
 	"sync"
 
-	"github.com/ibuilding-x/driver-box/pkg/common"
 	"github.com/ibuilding-x/driver-box/pkg/config"
+	"github.com/ibuilding-x/driver-box/pkg/fileutil"
 	glua "github.com/yuin/gopher-lua"
 )
 
@@ -78,11 +78,11 @@ func Model() *DeviceModel {
 // 加载library中的内容
 func LoadContent(library string, fileName string) ([]byte, error) {
 	filePath := path.Join(config.ResourcePath, baseDir, library, fileName)
-	if !common.FileExists(filePath) {
+	if !fileutil.FileExists(filePath) {
 		return []byte{}, fmt.Errorf("library not found: %s/%s", library, fileName)
 	}
 	//读取filePath中的文件内容
-	return common.ReadFileBytes(filePath)
+	return fileutil.ReadFileBytes(filePath)
 }
 
 // 加载library中的内容，并填充至结构体
@@ -97,14 +97,14 @@ func LoadLibrary(library string, key string, v any) error {
 // 保存library中的内容
 func SaveContent(library string, fileName string, data string) error {
 	libraryPath := path.Join(config.ResourcePath, baseDir, library)
-	if !common.FileExists(libraryPath) {
+	if !fileutil.FileExists(libraryPath) {
 		err := os.MkdirAll(libraryPath, 0755)
 		if err != nil {
 			return err
 		}
 	}
 	filePath := path.Join(libraryPath, fileName)
-	if common.FileExists(filePath) {
+	if fileutil.FileExists(filePath) {
 		return fmt.Errorf("library is exists: %s/%s", library, fileName)
 	}
 	//将data写入filePath中

@@ -1,4 +1,4 @@
-package common
+package fileutil
 
 import (
 	"io"

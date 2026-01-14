@@ -11,8 +11,8 @@ import (
 	"github.com/cjoudrey/gluahttp"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/logger"
-	"github.com/ibuilding-x/driver-box/pkg/common"
 	"github.com/ibuilding-x/driver-box/pkg/config"
+	"github.com/ibuilding-x/driver-box/pkg/fileutil"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 	luajson "layeh.com/gopher-json"
@@ -23,7 +23,7 @@ var luaLocks = sync.Map{}
 
 // InitLuaVM 编译 lua 脚本
 func InitLuaVM(filePath string) (*lua.LState, error) {
-	if !common.FileExists(filePath) {
+	if !fileutil.FileExists(filePath) {
 		logger.Logger.Warn("lua script not found, aborting initializing lua vm", zap.Any("filePath", filePath))
 		return nil, errors.New("lua script not found")
 	}
