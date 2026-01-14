@@ -2,8 +2,8 @@ package luautil
 
 import (
 	"github.com/ibuilding-x/driver-box/internal/core/cache"
-	"github.com/ibuilding-x/driver-box/internal/core/shadow"
 	"github.com/ibuilding-x/driver-box/internal/logger"
+	"github.com/ibuilding-x/driver-box/internal/shadow"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
 	lua "github.com/yuin/gopher-lua"
