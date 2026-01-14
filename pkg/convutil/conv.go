@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/pkg/config"
 )
 
 //	点位类型转换

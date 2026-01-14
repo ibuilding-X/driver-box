@@ -6,8 +6,8 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/convutil"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/luautil"
+	"github.com/ibuilding-x/driver-box/pkg/convutil"
+	"github.com/ibuilding-x/driver-box/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"

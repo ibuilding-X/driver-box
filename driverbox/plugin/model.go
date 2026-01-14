@@ -1,7 +1,7 @@
 package plugin
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/event"
+	"github.com/ibuilding-x/driver-box/pkg/event"
 )
 
 // 触发 ExportTo 的类型

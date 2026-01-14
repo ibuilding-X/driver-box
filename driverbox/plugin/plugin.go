@@ -3,7 +3,7 @@
 package plugin
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/pkg/config"
 )
 
 // Plugin 驱动插件

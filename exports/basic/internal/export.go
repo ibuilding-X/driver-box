@@ -9,9 +9,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/exports/basic/restful"
+	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/julienschmidt/httprouter"
 )
 

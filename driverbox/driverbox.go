@@ -7,12 +7,12 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/internal/core"
-	export0 "github.com/ibuilding-x/driver-box/driverbox/internal/export"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/crontab"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/event"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/core"
+	export0 "github.com/ibuilding-x/driver-box/internal/export"
+	"github.com/ibuilding-x/driver-box/pkg/config"
+	"github.com/ibuilding-x/driver-box/pkg/crontab"
+	"github.com/ibuilding-x/driver-box/pkg/event"
 	"go.uber.org/zap"
 )
 
@@ -71,7 +71,7 @@ func Stop() error {
 	}
 	export0.Exports = make([]export.Export, 0)
 	destroyPlugins()
-	Manager.Clear()
+	plugins.Clear()
 	// 3. 停止影子服务设备状态监听、删除影子服务
 	helper.DeviceShadow.StopStatusListener()
 	helper.DeviceShadow = nil

@@ -7,23 +7,23 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
-	"github.com/ibuilding-x/driver-box/driverbox/internal/core/cache"
-	"github.com/ibuilding-x/driver-box/driverbox/internal/core/shadow"
-	"github.com/ibuilding-x/driver-box/driverbox/internal/export"
-	"github.com/ibuilding-x/driver-box/driverbox/internal/logger"
 	"github.com/ibuilding-x/driver-box/driverbox/library"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/common"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/event"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/core/cache"
+	"github.com/ibuilding-x/driver-box/internal/core/shadow"
+	"github.com/ibuilding-x/driver-box/internal/export"
+	"github.com/ibuilding-x/driver-box/internal/logger"
+	"github.com/ibuilding-x/driver-box/pkg/common"
+	"github.com/ibuilding-x/driver-box/pkg/config"
+	"github.com/ibuilding-x/driver-box/pkg/event"
 	"go.uber.org/zap"
 )
 
-// Manager 插件管理器
-var Manager *manager
+// manager 插件管理器
+var plugins *manager
 
 func init() {
-	Manager = &manager{
+	plugins = &manager{
 		plugins: &sync.Map{},
 	}
 }
@@ -111,7 +111,7 @@ func loadPlugins() error {
 	for key, _ := range configMap {
 		helper.Logger.Info(key+" begin start", zap.Any("directoryName", key), zap.Any("plugin", configMap[key].ProtocolName))
 		// 获取插件示例
-		p, err := Manager.Get(configMap[key])
+		p, err := plugins.Get(configMap[key])
 		if err != nil {
 			helper.Logger.Error(err.Error())
 			continue
@@ -244,5 +244,5 @@ func ReloadPlugins() error {
 }
 
 func RegisterPlugin(name string, plugin plugin.Plugin) {
-	Manager.Register(name, plugin)
+	plugins.Register(name, plugin)
 }

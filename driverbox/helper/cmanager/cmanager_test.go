@@ -1,7 +1,7 @@
 package cmanager
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/config"
+	"github.com/ibuilding-x/driver-box/pkg/config"
 	"testing"
 )
 

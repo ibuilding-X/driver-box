@@ -5,8 +5,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/ibuilding-x/driver-box/driverbox/pkg/event"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/pkg/event"
 )
 
 var (
