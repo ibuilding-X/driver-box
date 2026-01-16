@@ -296,7 +296,7 @@ func (m *manager) LoadConfig() error {
 	}
 
 	// 优化配置文件
-	m.optimizeConfig()
+	//m.optimizeConfig()
 
 	// 保存
 	for k, _ := range m.configs {
