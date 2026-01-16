@@ -3,6 +3,7 @@ package internal
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/ibuilding-x/driver-box/driverbox"
@@ -49,11 +50,11 @@ func (conn *connector) Release() (err error) {
 
 type ConnectConfig struct {
 	plugin.BaseConnection
-	ClientId string   `json:"clientId"`
-	Broker   string   `json:"broker"`
-	Username string   `json:"username"`
-	Password string   `json:"password"`
-	Topics   []string `json:"topics"`
+	ClientId string `json:"clientId"`
+	Broker   string `json:"broker"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Topics   string `json:"topics"`
 }
 
 func (conn *connector) connect(connectConfig ConnectConfig) error {
@@ -80,7 +81,8 @@ func (conn *connector) newMqttClientOptions(connectConfig ConnectConfig) *mqtt.C
 
 // onConnectHandler 执行连接回调： 完成订阅
 func (conn *connector) onConnectHandler(client mqtt.Client) {
-	for _, topic := range conn.config.Topics {
+	topics := strings.Split(conn.config.Topics, ",")
+	for _, topic := range topics {
 		if token := client.Subscribe(topic, 0, conn.onReceiveHandler); token.Wait() && token.Error() != nil {
 			helper.Logger.Error(fmt.Sprintf("unable to subscribe topic: %s for client: %s", topic, conn.config.ClientId))
 			continue
