@@ -338,18 +338,18 @@ func (c Config) UpdateIndexAndClean() Config {
 	}
 
 	// 移除无效连接
-	for k, _ := range c.Connections {
-		// 是否为自动发现连接
-		if connIsSupportDiscover(c.Connections[k]) {
-			continue
-		}
-		// 是否为有效连接
-		if _, ok := usefulConnKeys[k]; ok {
-			continue
-		}
-		// 移除无效连接
-		delete(c.Connections, k)
-	}
+	//for k, _ := range c.Connections {
+	//	// 是否为自动发现连接
+	//	if connIsSupportDiscover(c.Connections[k]) {
+	//		continue
+	//	}
+	//	// 是否为有效连接
+	//	if _, ok := usefulConnKeys[k]; ok {
+	//		continue
+	//	}
+	//	// 移除无效连接
+	//	delete(c.Connections, k)
+	//}
 
 	return c
 }
