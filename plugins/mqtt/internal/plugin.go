@@ -41,7 +41,6 @@ func (p *Plugin) initConnPool(c config.Config) error {
 		}
 		connectConfig.ConnectionKey = k
 		conn := &connector{
-			plugin: p,
 			config: connectConfig,
 		}
 		err := conn.connect(connectConfig)

@@ -14,7 +14,6 @@ import (
 )
 
 type connector struct {
-	plugin *Plugin
 	client mqtt.Client
 	config ConnectConfig
 }
@@ -76,6 +75,14 @@ func (conn *connector) newMqttClientOptions(connectConfig ConnectConfig) *mqtt.C
 	opts.SetUsername(connectConfig.Username)
 	opts.SetPassword(connectConfig.Password)
 	opts.SetOnConnectHandler(conn.onConnectHandler)
+	opts.SetConnectionLostHandler(func(client mqtt.Client, err error) {
+		// 设备离线
+		for _, device := range helper.CoreCache.Devices() {
+			if device.ConnectionKey == connectConfig.ConnectionKey {
+				helper.DeviceShadow.SetOffline(device.ID)
+			}
+		}
+	})
 	return opts
 }
 
