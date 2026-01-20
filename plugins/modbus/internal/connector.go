@@ -64,7 +64,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 	}
 
 	//注册定时采集任务
-	return helper.Crontab.AddFunc("1s", func() {
+	return driverbox.Crontab().AddFunc("1s", func() {
 		//遍历所有通讯设备
 		for unitID, device := range c.devices {
 			if len(device.pointGroup) == 0 {

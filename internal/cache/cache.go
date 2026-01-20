@@ -9,12 +9,14 @@ import (
 	"path"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/internal/shadow"
 	"github.com/ibuilding-x/driver-box/pkg/config"
+	"github.com/ibuilding-x/driver-box/pkg/crontab"
 	"github.com/ibuilding-x/driver-box/pkg/event"
 	"github.com/ibuilding-x/driver-box/pkg/fileutil"
 	"go.uber.org/zap"
@@ -92,7 +94,7 @@ func InitCoreCache(plugins map[string]plugin.Plugin) (obj CoreCache, err error) 
 			plugin: p,
 		}
 	}
-	err = instance.LoadConfig()
+	err = instance.loadConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +137,19 @@ func InitCoreCache(plugins map[string]plugin.Plugin) (obj CoreCache, err error) 
 		}
 	}
 
-	return instance, nil
+	_, err = crontab.Instance().AddFunc("5s", func() {
+		var configs map[string]configCache
+		instance.mutex.RLock()
+		configs = instance.configs
+		instance.mutex.RUnlock()
+		for protocol, cfg := range configs {
+			if cfg.cacheModifyTime.After(cfg.fileModifyTime) && cfg.cacheModifyTime.Before(time.Now().Add(-5*time.Second)) {
+				instance.Flush(protocol)
+			}
+		}
+	})
+
+	return instance, err
 }
 
 func GetConfig(pluginName string) config.Config {
@@ -153,7 +167,7 @@ func GetConfig(pluginName string) config.Config {
 		ProtocolName: pluginName,
 	}
 }
-func (c *cache) LoadConfig() error {
+func (c *cache) loadConfig() error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	driverPath := path.Join(config.ResourcePath, "driver")
@@ -186,9 +200,20 @@ func (c *cache) LoadConfig() error {
 		// fix：填充配置文件 Key 字段
 		cfg.Key = dirs[i]
 
+		curTime := time.Now()
 		item := configCache{
-			FilePath: path,
-			plugin:   c.configs[cfg.ProtocolName].plugin,
+			FilePath:        path,
+			plugin:          c.configs[cfg.ProtocolName].plugin,
+			Models:          make(map[string]config.DeviceModel),
+			Connections:     make(map[string]interface{}),
+			fileModifyTime:  curTime,
+			cacheModifyTime: curTime,
+		}
+		for _, model := range cfg.DeviceModels {
+			item.Models[model.Name] = model
+		}
+		if cfg.Connections != nil {
+			item.Connections = cfg.Connections
 		}
 		c.configs[cfg.ProtocolName] = item
 	}
@@ -454,7 +479,9 @@ func (c *cache) AddOrUpdateDevice(dev config.Device) error {
 	if !shadow.Shadow().HasDevice(dev.ID) {
 		shadow.Shadow().AddDevice(dev.ID, dev.ModelName)
 	}
-	// todo 持久化
+	cfg := c.configs[dev.Protocol]
+	cfg.cacheModifyTime = time.Now()
+	c.configs[dev.Protocol] = cfg
 	return nil
 }
 
@@ -462,8 +489,10 @@ func (c *cache) AddOrUpdateDevice(dev config.Device) error {
 func (c *cache) AddConnection(plugin string, key string, conn any) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.configs[plugin].Connections[key] = conn
-	// todo 持久化
+	cfg := c.configs[plugin]
+	cfg.Connections[key] = conn
+	cfg.cacheModifyTime = time.Now()
+	c.configs[plugin] = cfg
 	return nil
 }
 
@@ -483,8 +512,10 @@ func (c *cache) GetConnection(key string) any {
 func (c *cache) AddModel(plugin string, model config.DeviceModel) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.configs[plugin].Models[model.Name] = model
-	//todo 持久化
+	cfg := c.configs[plugin]
+	cfg.Models[model.Name] = model
+	cfg.cacheModifyTime = time.Now()
+	c.configs[plugin] = cfg
 	return nil
 }
 
@@ -492,23 +523,63 @@ func (c *cache) AddModel(plugin string, model config.DeviceModel) error {
 func (c *cache) BatchRemoveDevice(ids []string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
+	nowUnix := time.Now()
 	for _, id := range ids {
+		if dev, ok := c.devices[id]; ok {
+			cfg := c.configs[dev.Protocol]
+			cfg.cacheModifyTime = nowUnix
+			c.configs[dev.Protocol] = cfg
+		}
 		export.TriggerEvents(event.EventCodeWillDeleteDevice, id, nil)
 		delete(c.devices, id)
 	}
 	// 删除设备影子
 	_ = shadow.Shadow().DeleteDevice(ids...)
-	//todo 持久化
 	return nil
 }
 
 func (c *cache) Flush(pluginName string) {
-
+	c.mutex.RLock()
+	cfgCache, ok := c.configs[pluginName]
+	if !ok {
+		c.mutex.RUnlock()
+		return
+	}
+	models := make([]config.DeviceModel, 0, len(cfgCache.Models))
+	for _, model := range cfgCache.Models {
+		models = append(models, model)
+	}
+	config := config.Config{
+		Connections:  cfgCache.Connections,
+		DeviceModels: models,
+		ProtocolName: pluginName,
+	}
+	c.mutex.RUnlock()
+	bytes, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		logger.Logger.Error("marshal config error", zap.Error(err))
+		return
+	}
+	err = os.WriteFile(cfgCache.FilePath, bytes, 0644)
+	if err != nil {
+		logger.Logger.Error("write config file error", zap.Error(err))
+		return
+	}
+	// 更新文件修改时间
+	c.mutex.Lock()
+	cfg := c.configs[pluginName]
+	cfg.fileModifyTime = time.Now()
+	c.configs[pluginName] = cfg
+	c.mutex.Unlock()
 }
 func (c *cache) FlushAll() {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	for k, _ := range c.configs {
+	c.mutex.RLock()
+	keys := make([]string, 0, len(c.configs))
+	for k := range c.configs {
+		keys = append(keys, k)
+	}
+	c.mutex.RUnlock()
+	for _, k := range keys {
 		c.Flush(k)
 	}
 }

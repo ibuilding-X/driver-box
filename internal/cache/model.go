@@ -1,6 +1,8 @@
 package cache
 
 import (
+	"time"
+
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 )
@@ -12,4 +14,7 @@ type configCache struct {
 	plugin      plugin.Plugin
 	// 配置文件路径
 	FilePath string `json:"-" validate:"-"`
+
+	fileModifyTime  time.Time
+	cacheModifyTime time.Time
 }

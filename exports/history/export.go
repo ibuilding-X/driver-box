@@ -2,16 +2,18 @@ package history
 
 import (
 	"database/sql"
+	"os"
+	"strconv"
+	"sync"
+	"time"
+
 	_ "github.com/glebarez/sqlite"
+	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/crontab"
 	"go.uber.org/zap"
-	"os"
-	"strconv"
-	"sync"
-	"time"
 )
 
 var once = &sync.Once{}
@@ -82,7 +84,7 @@ func (export0 *Export) Init() error {
 	if realTimeCycle == "" {
 		realTimeCycle = "5s"
 	}
-	export0.realTask, e = helper.Crontab.AddFunc(realTimeCycle, func() {
+	export0.realTask, e = driverbox.Crontab().AddFunc(realTimeCycle, func() {
 		if len(export0.realTimeDataQueue) == 0 {
 			return
 		}
@@ -100,7 +102,7 @@ func (export0 *Export) Init() error {
 	if snapshotDataCycle == "" {
 		snapshotDataCycle = "60s"
 	}
-	export0.snapshotTask, e = helper.Crontab.AddFunc(snapshotDataCycle, func() {
+	export0.snapshotTask, e = driverbox.Crontab().AddFunc(snapshotDataCycle, func() {
 		export0.writeDeviceSnapshotData()
 	})
 	if e != nil {
@@ -115,7 +117,7 @@ func (export0 *Export) Init() error {
 		value, _ := strconv.ParseInt(duration, 10, 64)
 		defaultDuration = int(value)
 	}
-	export0.clearTask, e = helper.Crontab.AddFunc("1h", func() {
+	export0.clearTask, e = driverbox.Crontab().AddFunc("1h", func() {
 		export0.clearExpiredData(defaultDuration)
 	})
 	if e != nil {

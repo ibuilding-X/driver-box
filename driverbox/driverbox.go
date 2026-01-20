@@ -32,9 +32,6 @@ func Start() error {
 		fmt.Println("init logger error", err)
 		return err
 	}
-	//第三步：启动定时器
-	helper.Crontab = crontab.Instance()
-
 	//第四步：启动Export
 	for _, item := range export0.Exports {
 		if err := item.Init(); err != nil {
@@ -61,10 +58,7 @@ func Start() error {
 func Stop() error {
 	var e error
 	//清理存量定时器
-	if helper.Crontab != nil {
-		crontab.Instance().Clear()
-		helper.Crontab = nil
-	}
+	crontab.Instance().Clear()
 
 	for _, item := range export0.Exports {
 		e = item.Destroy()
@@ -153,4 +147,8 @@ func CoreCache() cache.CoreCache {
 // 设备影子服务用于维护设备状态，提供状态同步和监控功能
 func Shadow() shadow0.DeviceShadow {
 	return shadow.Shadow()
+}
+
+func Crontab() crontab.Crontab {
+	return crontab.Instance()
 }

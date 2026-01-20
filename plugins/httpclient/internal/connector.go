@@ -80,7 +80,7 @@ func (c *connector) initCollectTask() (*crontab.Future, error) {
 		return nil, e
 	}
 	action := string(bytes)
-	return helper.Crontab.AddFunc("1s", func() {
+	return driverbox.Crontab().AddFunc("1s", func() {
 		for i, timer := range c.config.Timer {
 			//采集周期不满足，跳过本次
 			if timer.latestTime.Add(timer.duration).After(time.Now()) {
