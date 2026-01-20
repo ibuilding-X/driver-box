@@ -23,12 +23,7 @@ type cacheConnection struct {
 type cacheModel struct {
 	config.Model
 	pluginName string
-	points     map[string]cachePoint
-}
-
-type cachePoint struct {
-	config.Point
-	order int
+	points     map[string]*config.Point
 }
 
 type cacheDevice struct {

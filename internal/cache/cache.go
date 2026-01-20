@@ -226,17 +226,14 @@ func (c *cache) loadConfig(plugins map[string]plugin.Plugin) error {
 					device,
 				}
 			}
-			points := make(map[string]cachePoint)
-			for order, point := range model.DevicePoints {
-				checkPoint(&model.Model, &point)
-				points[point.Name()] = cachePoint{
-					point,
-					order,
-				}
+			points := make(map[string]*config.Point)
+			for k, _ := range model.DevicePoints {
+				point := &model.DevicePoints[k]
+				checkPoint(&model.Model, point)
+				points[point.Name()] = point
 			}
 			//释放内存
 			model.Devices = nil
-			model.DevicePoints = nil
 			c.models[model.Name] = cacheModel{
 				Model:      model.Model,
 				pluginName: cfg.PluginName,
@@ -335,10 +332,11 @@ func (c *cache) GetModel(modelName string) (config.Model, bool) {
 func (c *cache) GetPoints(modelName string) ([]config.Point, bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	if model, exist := c.GetModel(modelName); exist {
-		return model.DevicePoints, true
+	m, ok := c.models[modelName]
+	if !ok {
+		return make([]config.Point, 0), false
 	}
-	return make([]config.Point, 0), false
+	return m.DevicePoints, true
 }
 func (c *cache) GetDevice(id string) (config.Device, bool) {
 	c.mutex.RLock()
@@ -371,7 +369,7 @@ func (c *cache) GetPointByModel(modelName string, pointName string) (point confi
 		logger.Logger.Error("point name not match", zap.String("pointName", pointName), zap.Any("point", pointBase))
 		return config.Point{}, false
 	}
-	return pointBase.Point, true
+	return *pointBase, true
 }
 
 // GetPointByDevice 查询指定设备的指定点位信息
@@ -573,12 +571,9 @@ func (c *cache) AddModel(pluginName string, model config.Model) error {
 	if ok {
 		return errors.New("model " + model.Name + " already exists")
 	}
-	points := make(map[string]cachePoint)
+	points := make(map[string]*config.Point)
 	for i, point := range model.DevicePoints {
-		points[point.Name()] = cachePoint{
-			Point: point,
-			order: i,
-		}
+		points[point.Name()] = &model.DevicePoints[i]
 	}
 	//释放模型点位内存空间
 	model.DevicePoints = nil
