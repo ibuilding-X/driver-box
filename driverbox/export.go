@@ -1,6 +1,5 @@
 package driverbox
 
-import "C"
 import (
 	"fmt"
 	"math"
