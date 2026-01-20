@@ -8,6 +8,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/internal/logger"
+	"github.com/ibuilding-x/driver-box/internal/shadow"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"go.uber.org/zap"
 )
@@ -15,7 +16,7 @@ import (
 // 单点操作
 func SendSinglePoint(deviceId string, mode plugin.EncodeMode, pointData plugin.PointData) error {
 	logger.Logger.Info("send single point", zap.String("deviceId", deviceId), zap.Any("mode", mode), zap.Any("pointData", pointData))
-	_ = helper.DeviceShadow.SetWritePointValue(deviceId, pointData.PointName, pointData.Value)
+	_ = shadow.Shadow().SetWritePointValue(deviceId, pointData.PointName, pointData.Value)
 	if !checkMode(mode) {
 		return errors.New("invalid mode")
 	}
@@ -75,7 +76,7 @@ func singleRead(deviceId string, pointData plugin.PointData) error {
 	}
 	// 发送数据
 	if err = conn.Send(res); err != nil {
-		_ = helper.DeviceShadow.MayBeOffline(deviceId)
+		_ = shadow.Shadow().MayBeOffline(deviceId)
 		return err
 	}
 
@@ -108,7 +109,7 @@ func singleWrite(deviceId string, pointData plugin.PointData) error {
 	}
 	// 发送数据
 	if err = conn.Send(res); err != nil {
-		_ = helper.DeviceShadow.MayBeOffline(deviceId)
+		_ = shadow.Shadow().MayBeOffline(deviceId)
 		return err
 	}
 	return err

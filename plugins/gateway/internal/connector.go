@@ -250,7 +250,7 @@ func (c *connector) registerRes(payload gateway.WSPayload) error {
 	// 注册成功
 	helper.Logger.Info("gateway plugin register success", zap.String("IP", c.conf.IP))
 	// 更新网关设备状态
-	return helper.DeviceShadow.SetDevicePoint(c.conf.IP, "SN", payload.GatewayKey)
+	return driverbox.Shadow().SetDevicePoint(c.conf.IP, "SN", payload.GatewayKey)
 }
 
 // unregister 向子网关发送注销消息
@@ -273,7 +273,7 @@ func (c *connector) unregisterRes(payload gateway.WSPayload) error {
 	// 注销成功
 	helper.Logger.Info("gateway plugin unregister success", zap.String("IP", c.conf.IP))
 	// 更新网关设备状态
-	return helper.DeviceShadow.SetOffline(c.conf.IP)
+	return driverbox.Shadow().SetOffline(c.conf.IP)
 }
 
 // ping 向子网关发送心跳消息
@@ -381,10 +381,10 @@ func (c *connector) syncShadow(payload gateway.WSPayload) error {
 	if len(payload.Shadow) > 0 {
 		for _, device := range payload.Shadow {
 			// 添加设备
-			helper.DeviceShadow.AddDevice(device.ID, device.ModelName)
+			driverbox.Shadow().AddDevice(device.ID, device.ModelName)
 			// 更新点位数据
 			for _, point := range device.Points {
-				_ = helper.DeviceShadow.SetDevicePoint(device.ID, point.Name, point.Value)
+				_ = driverbox.Shadow().SetDevicePoint(device.ID, point.Name, point.Value)
 			}
 		}
 	}

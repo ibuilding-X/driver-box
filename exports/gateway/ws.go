@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/shadow"
 	"github.com/ibuilding-x/driver-box/exports/basic/restful"
 	"github.com/ibuilding-x/driver-box/exports/discover"
+	"github.com/ibuilding-x/driver-box/internal/shadow"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/pkg/event"
@@ -221,7 +221,7 @@ func (wss *websocketService) syncDevices() {
 
 // syncDevicesPoints 同步设备点位数据
 func (wss *websocketService) syncDevicesPoints() {
-	devices := helper.DeviceShadow.GetDevices()
+	devices := driverbox.Shadow().GetDevices()
 	// 修改设备 ID
 	for i, _ := range devices {
 		devices[i].ID = wss.genGatewayDeviceID(devices[i].ID)

@@ -9,6 +9,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/internal/logger"
+	"github.com/ibuilding-x/driver-box/internal/shadow"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"go.uber.org/zap"
 )
@@ -17,7 +18,7 @@ import (
 func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 	logger.Logger.Info("send batch write", zap.String("deviceId", deviceId), zap.Any("points", points))
 	for _, point := range points {
-		_ = helper.DeviceShadow.SetWritePointValue(deviceId, point.PointName, point.Value)
+		_ = shadow.Shadow().SetWritePointValue(deviceId, point.PointName, point.Value)
 	}
 	//设备驱动层加工
 	result, err := deviceDriverProcess(deviceId, plugin.WriteMode, points...)
@@ -46,7 +47,7 @@ func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 	}
 	// 发送数据
 	if err = connector.Send(res); err != nil {
-		_ = helper.DeviceShadow.MayBeOffline(deviceId)
+		_ = shadow.Shadow().MayBeOffline(deviceId)
 		return err
 	}
 	//点位写成功后，立即触发读取操作以及时更新影子状态
@@ -89,7 +90,7 @@ func SendBatchRead(deviceId string, points []plugin.PointData) (err error) {
 	}
 	// 发送数据
 	if err = connector.Send(res); err != nil {
-		_ = helper.DeviceShadow.MayBeOffline(deviceId)
+		_ = shadow.Shadow().MayBeOffline(deviceId)
 		return err
 	}
 	return nil
@@ -120,7 +121,7 @@ func tryReadNewValues(deviceId string, points []plugin.PointData) {
 			time.Sleep(time.Duration(i*100) * time.Millisecond)
 			//优先检查影子状态
 			newReadPoints := make([]plugin.PointData, 0)
-			shadowPoints, _ := helper.DeviceShadow.GetDevicePoints(deviceId)
+			shadowPoints, _ := shadow.Shadow().GetDevicePoints(deviceId)
 			for _, p := range readPoints {
 				point, ok := shadowPoints[p.PointName]
 				if !ok {
@@ -162,7 +163,7 @@ func getConnector(deviceId string) (plugin.Connector, error) {
 	}
 	connector, err := p.Connector(deviceId)
 	if err != nil {
-		_ = helper.DeviceShadow.MayBeOffline(deviceId)
+		_ = shadow.Shadow().MayBeOffline(deviceId)
 		return nil, err
 	} else if connector != nil {
 		return connector, nil

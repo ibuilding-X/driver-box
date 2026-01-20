@@ -9,7 +9,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/internal/logger"
-	"github.com/ibuilding-x/driver-box/internal/shadow"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/event"
 	"github.com/ibuilding-x/driver-box/pkg/library"
@@ -138,19 +137,15 @@ func initProtocolDriver() error {
 
 // 初始化影子服务
 func initDeviceShadow() {
-	// 设置影子服务设备生命周期
-	if helper.DeviceShadow == nil {
-		helper.DeviceShadow = shadow.Shadow()
-	}
 	// 添加设备
 	for _, dev := range CoreCache().Devices() {
 		// 设备存在校验
-		if helper.DeviceShadow.HasDevice(dev.ID) {
+		if Shadow().HasDevice(dev.ID) {
 			helper.Logger.Warn("device already exist", zap.String("deviceId", dev.ID))
 			continue
 		}
 		// 添加设备
-		helper.DeviceShadow.AddDevice(dev.ID, dev.ModelName)
+		Shadow().AddDevice(dev.ID, dev.ModelName)
 	}
 }
 
@@ -176,7 +171,7 @@ func ReloadPlugins() error {
 	// 2. 停止运行中的 plugin
 	destroyPlugins()
 	// 3. 停止影子服务设备状态监听、删除影子服务
-	helper.DeviceShadow.StopStatusListener()
+	Shadow().StopStatusListener()
 	// 4. 清除核心缓存数据
 	CoreCache().Reset()
 	// 5. 加载 plugins

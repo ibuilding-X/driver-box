@@ -75,12 +75,12 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 	case event.EventCodeDeviceStatus:
 		// 设备状态变更事件
 		mirrorDeviceID := "mirror_" + key
-		if helper.DeviceShadow.HasDevice(mirrorDeviceID) {
+		if driverbox.Shadow().HasDevice(mirrorDeviceID) {
 			if online, ok := eventValue.(bool); ok {
 				if online {
-					_ = helper.DeviceShadow.SetOnline(mirrorDeviceID)
+					_ = driverbox.Shadow().SetOnline(mirrorDeviceID)
 				} else {
-					_ = helper.DeviceShadow.SetOffline(mirrorDeviceID)
+					_ = driverbox.Shadow().SetOffline(mirrorDeviceID)
 				}
 			}
 		}

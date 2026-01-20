@@ -79,7 +79,7 @@ func (conn *connector) newMqttClientOptions(connectConfig ConnectConfig) *mqtt.C
 		// 设备离线
 		for _, device := range driverbox.CoreCache().Devices() {
 			if device.ConnectionKey == connectConfig.ConnectionKey {
-				helper.DeviceShadow.SetOffline(device.ID)
+				driverbox.Shadow().SetOffline(device.ID)
 			}
 		}
 	})

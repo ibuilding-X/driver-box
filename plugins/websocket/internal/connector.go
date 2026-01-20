@@ -155,7 +155,7 @@ func (c *connector) handleFunc(server *http.ServeMux) {
 				//否则，将该设备设置为：离线
 				deleted := c.deviceMappingConn.CompareAndDelete(device, conn)
 				if deleted {
-					_ = helper.DeviceShadow.SetOffline(device)
+					_ = driverbox.Shadow().SetOffline(device)
 				}
 			}
 		}

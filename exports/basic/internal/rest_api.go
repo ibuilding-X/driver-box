@@ -11,10 +11,10 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/driverbox/shadow"
 	"github.com/ibuilding-x/driver-box/exports/basic/restful"
 	"github.com/ibuilding-x/driver-box/exports/basic/restful/request"
 	"github.com/ibuilding-x/driver-box/exports/basic/restful/route"
+	"github.com/ibuilding-x/driver-box/internal/shadow"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/library"
 	"go.uber.org/zap"
@@ -96,7 +96,7 @@ var (
 
 // All 获取影子所有设备数据
 func getAllDevices(_ *http.Request) (any, error) {
-	devices := helper.DeviceShadow.GetDevices()
+	devices := driverbox.Shadow().GetDevices()
 	//按DeviceID排序
 	sort.Slice(devices, func(i, j int) bool {
 		return devices[i].ID < devices[j].ID
@@ -192,7 +192,7 @@ func getDevicePoint(r *http.Request) (any, error) {
 
 // queryDevice 查询设备数据
 func queryDevice(sn string) (any, error) {
-	device, ok := helper.DeviceShadow.GetDevice(sn)
+	device, ok := driverbox.Shadow().GetDevice(sn)
 	if !ok {
 		return nil, errors.New("unknown device")
 	}
@@ -201,7 +201,7 @@ func queryDevice(sn string) (any, error) {
 
 // queryDevicePoint 查询指定点位数据
 func queryDevicePoint(sn string, point string) (any, error) {
-	p, err := helper.DeviceShadow.GetDevicePointDetails(sn, point)
+	p, err := driverbox.Shadow().GetDevicePointDetails(sn, point)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +211,7 @@ func queryDevicePoint(sn string, point string) (any, error) {
 // updateDevice 更新设备影子数据
 func updateDevice(data request.UpdateDeviceReq) error {
 	for i, _ := range data {
-		err := helper.DeviceShadow.SetDevicePoint(data[i].ID, data[i].Name, data[i].Value)
+		err := driverbox.Shadow().SetDevicePoint(data[i].ID, data[i].Name, data[i].Value)
 		if err != nil {
 			return err
 		}
@@ -259,7 +259,7 @@ func readPoint(r *http.Request) (any, error) {
 	if e != nil {
 		return nil, e
 	}
-	return helper.DeviceShadow.GetDevicePoint(sn, point)
+	return driverbox.Shadow().GetDevicePoint(sn, point)
 }
 
 // 获取设备列表

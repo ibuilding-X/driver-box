@@ -432,7 +432,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...Config) error {
 	connectGroup := make(map[string]map[string][]plugin.PointData)
 	for deviceId, points := range actions {
 		// 跳过未知设备
-		if !helper.DeviceShadow.HasDevice(deviceId) {
+		if !driverbox.Shadow().HasDevice(deviceId) {
 			// 事件信息：场景ID、设备ID
 			driverbox.TriggerEvents(event.UnknownDevice, id, deviceId)
 			continue
@@ -456,7 +456,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...Config) error {
 			defer wg.Done()
 			for deviceId, points := range ds {
 				// 跳过离线设备，避免阻塞场景执行
-				device, ok := helper.DeviceShadow.GetDevice(deviceId)
+				device, ok := driverbox.Shadow().GetDevice(deviceId)
 				if !ok || !device.Online {
 					helper.Logger.Error("device offline, skip action", zap.String("deviceId", deviceId), zap.String("linkedge", id))
 					continue
@@ -507,7 +507,7 @@ func (s *service) checkConditions(conditions []Condition) error {
 				bytes, _ := json.Marshal(condition.DevicePointCondition)
 				return errors.New("invalid trigger:" + string(bytes))
 			}
-			pointValue, err := helper.DeviceShadow.GetDevicePoint(condition.DeviceID, condition.DevicePoint)
+			pointValue, err := driverbox.Shadow().GetDevicePoint(condition.DeviceID, condition.DevicePoint)
 			if err != nil {
 				return fmt.Errorf("get device:%v point:%v value error:%v", condition.DeviceID, condition.DevicePoint, err)
 			}

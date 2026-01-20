@@ -3,7 +3,8 @@ package tools
 import (
 	"context"
 	"encoding/json"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
+
+	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
@@ -12,7 +13,7 @@ var ShadowDeviceListTool = mcp.NewTool("device_shadow_list",
 )
 
 var ShadowDeviceListHandler = func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	devices := helper.DeviceShadow.GetDevices()
+	devices := driverbox.Shadow().GetDevices()
 	jsonData, _ := json.Marshal(devices)
 	return mcp.NewToolResultText(string(jsonData)), nil
 }
@@ -27,7 +28,7 @@ var ShadowDeviceHandler = func(ctx context.Context, request mcp.CallToolRequest)
 	if err != nil {
 		return mcp.NewToolResultError(err.Error()), nil
 	}
-	devices, _ := helper.DeviceShadow.GetDevice(id)
+	devices, _ := driverbox.Shadow().GetDevice(id)
 	jsonData, _ := json.Marshal(devices)
 	return mcp.NewToolResultText(string(jsonData)), nil
 }

@@ -174,7 +174,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 								continue
 							}
 							devices[deviceSn] = pointName
-							_ = helper.DeviceShadow.MayBeOffline(deviceSn)
+							_ = driverbox.Shadow().MayBeOffline(deviceSn)
 						}
 					}
 				}

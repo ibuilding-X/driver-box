@@ -58,7 +58,7 @@ func (export0 *Export) writeRealTimeData(queue []deviceQueueData) {
 func (export0 *Export) writeDeviceSnapshotData() {
 
 	// 1. 获取设备影子数据 填充
-	devices := helper.DeviceShadow.GetDevices()
+	devices := driverbox.Shadow().GetDevices()
 	// 2. 设备数据批量落库，50台设备一批次
 	total, pageSize := len(devices), 50
 	pageIndex := int(math.Ceil(float64(total) / float64(pageSize)))

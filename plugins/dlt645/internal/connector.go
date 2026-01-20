@@ -100,7 +100,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 							continue
 						}
 						devices[point.DeviceId] = point.Name
-						_ = helper.DeviceShadow.MayBeOffline(point.DeviceId)
+						_ = driverbox.Shadow().MayBeOffline(point.DeviceId)
 					}
 				}
 				group.LatestTime = time.Now()

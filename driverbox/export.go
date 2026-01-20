@@ -152,7 +152,7 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 		}
 
 		// 缓存比较
-		shadowValue, _ := helper.DeviceShadow.GetDevicePoint(deviceData.ID, point.PointName)
+		shadowValue, _ := Shadow().GetDevicePoint(deviceData.ID, point.PointName)
 
 		// 如果是周期上报模式，且缓存中有值，停止触发
 		if p.ReportMode() == config.ReportMode_Change && shadowValue == point.Value {
@@ -163,7 +163,7 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 		}
 
 		// 缓存
-		if err := helper.DeviceShadow.SetDevicePoint(deviceData.ID, point.PointName, point.Value); err != nil {
+		if err := Shadow().SetDevicePoint(deviceData.ID, point.PointName, point.Value); err != nil {
 			helper.Logger.Error("shadow store point value error", zap.Error(err), zap.Any("deviceId", deviceData.ID))
 		}
 	}

@@ -11,6 +11,7 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/internal/core"
 	export0 "github.com/ibuilding-x/driver-box/internal/export"
+	"github.com/ibuilding-x/driver-box/internal/shadow"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/crontab"
 	"github.com/ibuilding-x/driver-box/pkg/event"
@@ -74,8 +75,7 @@ func Stop() error {
 	destroyPlugins()
 	plugins.Clear()
 	// 3. 停止影子服务设备状态监听、删除影子服务
-	helper.DeviceShadow.StopStatusListener()
-	helper.DeviceShadow = nil
+	Shadow().StopStatusListener()
 	// 4. 清除核心缓存数据
 	CoreCache().Reset()
 	return nil
@@ -142,4 +142,8 @@ func GetMetadata() config.Metadata {
 
 func CoreCache() cache.CoreCache {
 	return cache.Get()
+}
+
+func Shadow() shadow.DeviceShadow {
+	return shadow.Shadow()
 }
