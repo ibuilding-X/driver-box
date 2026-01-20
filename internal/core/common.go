@@ -6,6 +6,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/pkg/library"
@@ -31,7 +32,7 @@ func checkMode(mode plugin.EncodeMode) bool {
 
 // 点位值加工：设备驱动
 func deviceDriverProcess(deviceId string, mode plugin.EncodeMode, pointData ...plugin.PointData) ([]plugin.PointData, error) {
-	device, ok := helper.CoreCache.GetDevice(deviceId)
+	device, ok := cache.Get().GetDevice(deviceId)
 	if !ok {
 		helper.Logger.Error("unknown device", zap.Any("deviceId", device))
 		return nil, errors.New("unknown device")
@@ -40,7 +41,7 @@ func deviceDriverProcess(deviceId string, mode plugin.EncodeMode, pointData ...p
 
 	if mode == plugin.WriteMode {
 		for i, p := range pointData {
-			point, ok := helper.CoreCache.GetPointByDevice(deviceId, p.PointName)
+			point, ok := cache.Get().GetPointByDevice(deviceId, p.PointName)
 			if !ok {
 				return nil, fmt.Errorf("not found point, point name is %s", p.PointName)
 			}

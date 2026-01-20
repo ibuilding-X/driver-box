@@ -109,7 +109,7 @@ func (export *Export) deviceAutoDiscover(deviceId string, value interface{}) err
 		model.DevicePoints = points
 	}
 
-	err = helper.CoreCache.AddModel(deviceDiscover.ProtocolName, model)
+	err = driverbox.CoreCache().AddModel(deviceDiscover.ProtocolName, model)
 	if err != nil {
 		helper.Logger.Error("device auto discover add model error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
 		return err
@@ -117,7 +117,7 @@ func (export *Export) deviceAutoDiscover(deviceId string, value interface{}) err
 	//添加设备
 	deviceDiscover.Device.ModelName = model.Name
 	deviceDiscover.Device.ConnectionKey = deviceDiscover.ConnectionKey
-	err = helper.CoreCache.AddOrUpdateDevice(deviceDiscover.Device)
+	err = driverbox.CoreCache().AddOrUpdateDevice(deviceDiscover.Device)
 	if err != nil {
 		helper.Logger.Error("device auto discover add device error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
 		return err

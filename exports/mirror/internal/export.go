@@ -7,7 +7,6 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
@@ -92,12 +91,12 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	helper.Logger.Info("auto create mirror device checking", zap.String("deviceId", deviceId))
 	//第一步：参数合法性校验
-	device, ok := helper.CoreCache.GetDevice(deviceId)
+	device, ok := driverbox.CoreCache().GetDevice(deviceId)
 	if !ok {
 		helper.Logger.Info("auto create mirror device failed, device not found", zap.String("deviceId", deviceId))
 		return nil
 	}
-	rawModel, ok := helper.CoreCache.GetModel(device.ModelName)
+	rawModel, ok := driverbox.CoreCache().GetModel(device.ModelName)
 	if !ok {
 		helper.Logger.Info("auto create mirror device failed, model not found", zap.String("deviceId", deviceId), zap.String("modelName", device.ModelName))
 		return nil
@@ -136,8 +135,8 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 		ModelName:   rawModel.Name + "_mirror_" + deviceId,
 	}
 
-	helper.CoreCache.UpdateDeviceProperty(deviceId, PropertyKeyAutoMirrorTo, mirrorDevice.ID)
-	if _, ok := helper.CoreCache.GetDevice(mirrorDevice.ID); ok {
+	driverbox.CoreCache().UpdateDeviceProperty(deviceId, PropertyKeyAutoMirrorTo, mirrorDevice.ID)
+	if _, ok := driverbox.CoreCache().GetDevice(mirrorDevice.ID); ok {
 		helper.Logger.Info("auto create mirror device ignore, device already exists", zap.String("deviceId", mirrorDevice.ID))
 		return nil
 	}
@@ -176,12 +175,12 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	mirrorModel.DevicePoints = points
 
 	//第三步：配置持久化
-	e := helper.CoreCache.AddModel(mirror.ProtocolName, mirrorModel)
+	e := driverbox.CoreCache().AddModel(mirror.ProtocolName, mirrorModel)
 	if e != nil {
 		helper.Logger.Error("add mirror model error", zap.Error(e))
 		return e
 	}
-	e = helper.CoreCache.AddOrUpdateDevice(mirrorDevice)
+	e = driverbox.CoreCache().AddOrUpdateDevice(mirrorDevice)
 	if e != nil {
 		helper.Logger.Error("add mirror model error", zap.Error(e))
 		return e
@@ -190,16 +189,16 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	if export.plugin.IsReady() {
 		e = export.plugin.UpdateMirrorMapping(mirrorModel)
 	} else {
-		helper.Logger.Info("add mirror model success, but mirror plugin is not ready. will initialize...")
-		c, ok := cmanager.GetConfig(mirror.ProtocolName)
-		if !ok {
-			helper.Logger.Info("mirror plugin initialize fail")
-			return errors.New("mirror config not found")
-		}
-		export.plugin.Initialize(c)
-		// 缓存插件
-		helper.CoreCache.AddRunningPlugin(mirror.ProtocolName, export.plugin)
-		helper.Logger.Info("mirror plugin initialize success")
+		e = errors.New("mirror plugin is not ready")
+		//helper.Logger.Info("add mirror model success, but mirror plugin is not ready. will initialize...")
+		//c, ok := cmanager.GetConfig(mirror.ProtocolName)
+		//if !ok {
+		//	helper.Logger.Info("mirror plugin initialize fail")
+		//	return errors.New("mirror config not found")
+		//}
+		//export.plugin.Initialize(c)
+		//// 缓存插件
+		//helper.Logger.Info("mirror plugin initialize success")
 	}
 
 	if e == nil {

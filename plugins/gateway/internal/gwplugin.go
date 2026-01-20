@@ -3,7 +3,7 @@ package internal
 import (
 	"errors"
 
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
@@ -38,7 +38,7 @@ func (g *gatewayPlugin) Initialize(c config.Config) {
 
 func (g *gatewayPlugin) Connector(deviceId string) (connector plugin.Connector, err error) {
 	// 获取连接 key
-	device, ok := helper.CoreCache.GetDevice(deviceId)
+	device, ok := driverbox.CoreCache().GetDevice(deviceId)
 	if !ok {
 		return nil, errors.New("not found device connection key")
 	}

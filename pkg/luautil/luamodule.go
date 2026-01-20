@@ -1,7 +1,7 @@
 package luautil
 
 import (
-	"github.com/ibuilding-x/driver-box/internal/core/cache"
+	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/internal/shadow"
 	"github.com/ibuilding-x/driver-box/pkg/config"
@@ -42,14 +42,14 @@ func (lm *LuaModule) getDeviceList(L *lua.LState) int {
 // getDeviceShadow 获取指定ID的设备影子
 func (lm *LuaModule) getDeviceShadow(L *lua.LState) int {
 	deviceId := L.ToString(1)
-	device, ok := shadow.DeviceShadow.GetDevice(deviceId)
+	device, ok := shadow.Shadow().GetDevice(deviceId)
 	points := L.NewTable()
 	defer L.Push(points)
 	if !ok {
 		return 1
 	}
 	for _, point := range device.Points {
-		p, ok := cache.Instance.GetPointByDevice(deviceId, point.Name)
+		p, ok := cache.Get().GetPointByDevice(deviceId, point.Name)
 		if !ok {
 			logger.Logger.Error("could not get point", zap.String("deviceId", deviceId), zap.String("pointName", point.Name))
 			continue
@@ -84,7 +84,7 @@ func (lm *LuaModule) getDeviceShadow(L *lua.LState) int {
 // getDevice  获取指定ID的影子信息
 func (lm *LuaModule) getDevice(L *lua.LState) int {
 	deviceId := L.ToString(1)
-	device, ok := cache.Instance.GetDevice(deviceId)
+	device, ok := cache.Get().GetDevice(deviceId)
 	deviceTable := L.NewTable()
 	if !ok {
 		return 0
@@ -111,7 +111,7 @@ func (lm *LuaModule) setDeviceProp(L *lua.LState) int {
 	propValue := L.ToString(3)
 	deviceTable := L.NewTable()
 	defer L.Push(deviceTable)
-	cache.Instance.UpdateDeviceProperty(deviceId, propName, propValue)
+	cache.Get().UpdateDeviceProperty(deviceId, propName, propValue)
 	return 1
 }
 

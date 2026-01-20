@@ -1,5 +1,6 @@
 package driverbox
 
+import "C"
 import (
 	"fmt"
 	"math"
@@ -141,7 +142,7 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 	var points []plugin.PointData
 	for _, point := range deviceData.Values {
 		// 获取点位信息
-		p, ok := helper.CoreCache.GetPointByDevice(deviceData.ID, point.PointName)
+		p, ok := CoreCache().GetPointByDevice(deviceData.ID, point.PointName)
 		if !ok {
 			//todo 临时屏蔽vrf异常日志输出
 			if !strings.HasPrefix(deviceData.ID, "vrf/") {
@@ -173,7 +174,7 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 }
 
 func pointValueProcess(deviceData *plugin.DeviceData) error {
-	device, ok := helper.CoreCache.GetDevice(deviceData.ID)
+	device, ok := CoreCache().GetDevice(deviceData.ID)
 	if !ok {
 		helper.Logger.Error("unknown device", zap.Any("deviceId", deviceData.ID))
 		return fmt.Errorf("unknown device")
@@ -197,7 +198,7 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 		}
 	}
 	for i, p := range deviceData.Values {
-		point, ok := helper.CoreCache.GetPointByDevice(deviceData.ID, p.PointName)
+		point, ok := CoreCache().GetPointByDevice(deviceData.ID, p.PointName)
 		if !ok {
 			//todo 临时屏蔽vrf异常日志输出
 			if !strings.HasPrefix(deviceData.ID, "vrf/") {

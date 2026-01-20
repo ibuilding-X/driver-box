@@ -1,8 +1,6 @@
 package internal
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -12,7 +10,6 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/shadow"
 	"github.com/ibuilding-x/driver-box/exports/basic/restful"
@@ -39,7 +36,6 @@ func registerApi() {
 	restful.HandleFunc(http.MethodGet, route.DevicePointRead, readPoint)
 	restful.HandleFunc(http.MethodGet, route.DeviceList, deviceList)
 	restful.HandleFunc(http.MethodGet, route.DeviceGet, deviceGet)
-	restful.HandleFunc(http.MethodPost, route.DeviceAdd, deviceAdd)
 	restful.HandleFunc(http.MethodPost, route.DeviceDelete, deviceDelete)
 
 	//资源库服务
@@ -273,8 +269,8 @@ func deviceList(r *http.Request) (any, error) {
 		Points []config.Point `json:"points"`
 	}
 	devices := make([]Device, 0)
-	for _, device := range helper.CoreCache.Devices() {
-		points, _ := helper.CoreCache.GetPoints(device.ModelName)
+	for _, device := range driverbox.CoreCache().Devices() {
+		points, _ := driverbox.CoreCache().GetPoints(device.ModelName)
 		devices = append(devices, Device{
 			Device: device,
 			Points: points,
@@ -286,64 +282,11 @@ func deviceList(r *http.Request) (any, error) {
 // 获取设备信息
 func deviceGet(r *http.Request) (any, error) {
 	sn := r.URL.Query().Get("id")
-	device, ok := helper.CoreCache.GetDevice(sn)
+	device, ok := driverbox.CoreCache().GetDevice(sn)
 	if !ok {
 		return nil, errors.New("device not found")
 	}
 	return device, nil
-}
-
-// 获取设备信息
-func deviceAdd(r *http.Request) (any, error) {
-	//读取body中的json内容
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		return false, err
-	}
-	defer r.Body.Close()
-	//解析body
-	type AddDevice struct {
-		config.Config
-		Drivers map[string]string `json:"drivers" validate:""`
-	}
-	var cfg AddDevice
-	err = json.Unmarshal(body, &cfg)
-	if err != nil {
-		return false, err
-	}
-
-	driverMap := make(map[string]string)
-	for key, content := range cfg.Drivers {
-		// 计算 DriverContent 的 MD5 哈希值
-		hash := md5.Sum([]byte(content))
-		// 将 MD5 哈希值转换为十六进制字符串
-		md5Str := hex.EncodeToString(hash[:])
-		driverMap[key] = key + md5Str
-		library.SaveContent("driver", key+md5Str+".lua", content)
-	}
-
-	models := make([]config.DeviceModel, 0)
-	for _, model := range cfg.DeviceModels {
-		devices := make([]config.Device, 0)
-		for _, device := range model.Devices {
-			device.DriverKey = driverMap[device.DriverKey]
-			devices = append(devices, device)
-			d, ok := helper.CoreCache.GetDevice(device.ID)
-			if ok && d.ModelName != model.Name {
-				return false, errors.New("device id: " + d.ID + " already exist in other model")
-			}
-		}
-		model.Devices = devices
-		models = append(models, model)
-	}
-
-	cfg.DeviceModels = models
-	err = cmanager.AddConfig(cfg.Config)
-	if err != nil {
-		return false, err
-	}
-	driverbox.ReloadPlugins()
-	return true, nil
 }
 
 // 删除设备
@@ -365,7 +308,7 @@ func deviceDelete(r *http.Request) (any, error) {
 	defer func() {
 		driverbox.ReloadPlugins()
 	}()
-	return nil, helper.CoreCache.BatchRemoveDevice(cfg.DeviceIds)
+	return nil, driverbox.CoreCache().BatchRemoveDevice(cfg.DeviceIds)
 }
 
 func libraryModelGet(r *http.Request) (any, error) {

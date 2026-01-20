@@ -3,7 +3,7 @@ package internal
 import (
 	"fmt"
 
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 )
 
@@ -30,7 +30,7 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 		return nil, err
 	}
 
-	device, ok := helper.CoreCache.GetDevice(deviceId)
+	device, ok := driverbox.CoreCache().GetDevice(deviceId)
 	if !ok {
 		return nil, fmt.Errorf("device [%s] not found", deviceId)
 	}

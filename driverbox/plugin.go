@@ -1,14 +1,12 @@
 package driverbox
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/internal/core/cache"
+	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/internal/shadow"
@@ -23,27 +21,27 @@ var plugins *manager
 
 func init() {
 	plugins = &manager{
-		plugins: &sync.Map{},
+		plugins: make(map[string]plugin.Plugin, 0),
 	}
 }
 
 // manager 管理器
 type manager struct {
-	plugins *sync.Map
+	plugins map[string]plugin.Plugin
 }
 
 // 注册自定义插件
 func (m *manager) Register(name string, plugin plugin.Plugin) {
-	if _, ok := m.plugins.Load(name); ok {
+	if _, ok := m.plugins[name]; ok {
 		fmt.Printf("plugin %s already exists, replace it", name)
 	}
 	fmt.Printf("register plugin: %s\n", name)
-	m.plugins.Store(name, plugin)
+	m.plugins[name] = plugin
 }
 
 // Get 获取插件实例
 func (m *manager) Get(c config.Config) (p plugin.Plugin, err error) {
-	if raw, ok := m.plugins.Load(c.ProtocolName); ok {
+	if raw, ok := m.plugins[c.ProtocolName]; ok {
 		p = raw.(plugin.Plugin)
 	} else {
 		err = fmt.Errorf("plugin:[%s] not found", c.ProtocolName)
@@ -52,80 +50,49 @@ func (m *manager) Get(c config.Config) (p plugin.Plugin, err error) {
 }
 
 func (m *manager) GetSupportPlugins() []string {
-	plugins := make([]string, 0)
-	m.plugins.Range(func(key, value interface{}) bool {
-		plugins = append(plugins, key.(string))
-		return true
-	})
-	return plugins
+	keys := make([]string, 0)
+	for key, _ := range m.plugins {
+		keys = append(keys, key)
+	}
+	return keys
 }
 
 func (m *manager) Clear() {
-	m.plugins = &sync.Map{}
+	m.plugins = make(map[string]plugin.Plugin, 0)
 }
 
 // loadPlugins 加载插件并运行
 func loadPlugins() error {
 	//打印环境配置
 	helper.Logger.Info("driver-box environment config", zap.Any("config", helper.EnvConfig))
-	// 加载核心配置
-	cmanager.SetConfigPath(helper.EnvConfig.ConfigPath)
-	err := cmanager.LoadConfig()
-	if err != nil {
-		return errors.New("load core config error:" + err.Error())
-	}
-	configMap := cmanager.GetConfigs()
-
-	if len(configMap) == 0 {
-		helper.Logger.Warn("driver-box config is empty", zap.String("path", helper.EnvConfig.ConfigPath))
-	}
-
-	// 核心配置校验
-	for key, _ := range configMap {
-		if err = configMap[key].Validate(); err != nil {
-			return fmt.Errorf("[%s] config is error: %s", key, err.Error())
-		}
-	}
-
 	// 缓存核心配置
-	c, err := cache.InitCoreCache(configMap)
+	_, err := cache.InitCoreCache(plugins.plugins)
 	if err != nil {
 		helper.Logger.Error("init core cache error")
 		return err
 	}
-	helper.CoreCache = c
 	// 初始化本地影子服务
-	initDeviceShadow(configMap)
+	initDeviceShadow()
 
 	//初始化设备层驱动
-	initDeviceDriver(configMap)
+	initDeviceDriver()
 
 	//初始化协议层驱动
-	err = initProtocolDriver(configMap)
+	err = initProtocolDriver()
 	if err != nil {
 		return err
 	}
 
 	// 启动插件
-	for key, _ := range configMap {
-		helper.Logger.Info(key+" begin start", zap.Any("directoryName", key), zap.Any("plugin", configMap[key].ProtocolName))
-		// 获取插件示例
-		p, err := plugins.Get(configMap[key])
-		if err != nil {
-			helper.Logger.Error(err.Error())
-			continue
-		}
+	for key, p := range plugins.plugins {
+		helper.Logger.Info(key+" begin start", zap.Any("directoryName", key), zap.Any("plugin", key))
+		p.Initialize(cache.GetConfig(key))
 
-		p.Initialize(configMap[key])
-
-		// 缓存插件
-		helper.CoreCache.AddRunningPlugin(key, p)
-
-		helper.Logger.Info("start success", zap.Any("directoryName", key), zap.Any("plugin", configMap[key].ProtocolName))
+		helper.Logger.Info("start success", zap.Any("directoryName", key), zap.Any("plugin", key))
 	}
 
 	//完成初始化后触发设备添加事件通知
-	for _, device := range helper.CoreCache.Devices() {
+	for _, device := range cache.Get().Devices() {
 		export.TriggerEvents(event.EventCodeAddDevice, device.ID, nil)
 	}
 
@@ -133,40 +100,31 @@ func loadPlugins() error {
 }
 
 // 初始化设备层驱动
-func initDeviceDriver(configMap map[string]config.Config) {
+func initDeviceDriver() {
 	//清空设备驱动库
 	library.Driver().UnloadDeviceDrivers()
-	//重新添加
-	drivers := make(map[string]string)
-	for _, c := range configMap {
-		for _, model := range c.DeviceModels {
-			for _, d := range model.Devices {
-				if len(d.DriverKey) > 0 {
-					drivers[d.DriverKey] = d.DriverKey
-				}
-			}
-		}
-	}
 }
 
 // 初始化协议层驱动
-func initProtocolDriver(configMap map[string]config.Config) error {
+func initProtocolDriver() error {
 	//清空设备驱动库
 	library.Protocol().UnloadDeviceDrivers()
 	//重新添加
 	drivers := make(map[string]string)
-	for _, c := range configMap {
-		for _, connection := range c.Connections {
-			protocolKey, ok := connection.(map[string]any)[library.ProtocolConfigKey]
-			if !ok {
-				continue
-			}
-			if len(protocolKey.(string)) == 0 {
-				logger.Logger.Warn("protocolKey is empty", zap.Any("connection", connection))
-				continue
-			}
-			drivers[protocolKey.(string)] = protocolKey.(string)
+	for _, dev := range cache.Get().Devices() {
+		connection := cache.Get().GetConnection(dev.ConnectionKey)
+		if connection == nil {
+			continue
 		}
+		protocolKey, ok := connection.(map[string]any)[library.ProtocolConfigKey]
+		if !ok {
+			continue
+		}
+		if len(protocolKey.(string)) == 0 {
+			logger.Logger.Warn("protocolKey is empty", zap.Any("connection", connection))
+			continue
+		}
+		drivers[protocolKey.(string)] = protocolKey.(string)
 	}
 	for key, _ := range drivers {
 		err := library.Protocol().LoadLibrary(key)
@@ -179,49 +137,32 @@ func initProtocolDriver(configMap map[string]config.Config) error {
 }
 
 // 初始化影子服务
-func initDeviceShadow(configMap map[string]config.Config) {
+func initDeviceShadow() {
 	// 设置影子服务设备生命周期
 	if helper.DeviceShadow == nil {
-		helper.DeviceShadow = shadow.NewDeviceShadow()
+		helper.DeviceShadow = shadow.Shadow()
 	}
 	// 添加设备
-	for _, c := range configMap {
-		for _, model := range c.DeviceModels {
-			for _, d := range model.Devices {
-				if d.ID == "" {
-					helper.Logger.Error("config error ,device sn is empty", zap.Any("device", d))
-					continue
-				}
-				// 特殊处理：虚拟设备 TTL 值设置
-				if c.ProtocolName == "virtual" {
-					d.Ttl = "8760h"
-				}
-				// 设备存在校验
-				if helper.DeviceShadow.HasDevice(d.ID) {
-					helper.Logger.Warn("device already exist", zap.String("deviceId", d.ID))
-					continue
-				}
-				// 添加设备
-				helper.DeviceShadow.AddDevice(d.ID, model.Name)
-			}
+	for _, dev := range CoreCache().Devices() {
+		// 设备存在校验
+		if helper.DeviceShadow.HasDevice(dev.ID) {
+			helper.Logger.Warn("device already exist", zap.String("deviceId", dev.ID))
+			continue
 		}
+		// 添加设备
+		helper.DeviceShadow.AddDevice(dev.ID, dev.ModelName)
 	}
 }
 
 var reloadLock sync.Mutex
 
 func destroyPlugins() {
-	pluginKeys := helper.CoreCache.GetAllRunningPluginKey()
-	if len(pluginKeys) > 0 {
-		for i, _ := range pluginKeys {
-			if plugin, ok := helper.CoreCache.GetRunningPluginByKey(pluginKeys[i]); ok {
-				err := plugin.Destroy()
-				if err != nil {
-					helper.Logger.Error("stop plugin error", zap.String("plugin", pluginKeys[i]), zap.Error(err))
-				} else {
-					helper.Logger.Info("stop plugin success", zap.String("plugin", pluginKeys[i]))
-				}
-			}
+	for key, p := range plugins.plugins {
+		err := p.Destroy()
+		if err != nil {
+			helper.Logger.Error("stop plugin error", zap.String("plugin", key), zap.Error(err))
+		} else {
+			helper.Logger.Info("stop plugin success", zap.String("plugin", key))
 		}
 	}
 }
@@ -237,7 +178,7 @@ func ReloadPlugins() error {
 	// 3. 停止影子服务设备状态监听、删除影子服务
 	helper.DeviceShadow.StopStatusListener()
 	// 4. 清除核心缓存数据
-	helper.CoreCache.Reset()
+	CoreCache().Reset()
 	// 5. 加载 plugins
 	return loadPlugins()
 }

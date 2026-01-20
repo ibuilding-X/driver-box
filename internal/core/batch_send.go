@@ -7,6 +7,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"go.uber.org/zap"
@@ -58,7 +59,7 @@ func SendBatchRead(deviceId string, points []plugin.PointData) (err error) {
 	logger.Logger.Info("send batch read", zap.String("deviceId", deviceId), zap.Any("points", points))
 	readPoints := make([]plugin.PointData, 0)
 	for _, p := range points {
-		point, ok := helper.CoreCache.GetPointByDevice(deviceId, p.PointName)
+		point, ok := cache.Get().GetPointByDevice(deviceId, p.PointName)
 		if !ok {
 			return errors.New("point not found")
 		}
@@ -98,7 +99,7 @@ func SendBatchRead(deviceId string, points []plugin.PointData) (err error) {
 func tryReadNewValues(deviceId string, points []plugin.PointData) {
 	readPoints := make([]plugin.PointData, 0)
 	for _, p := range points {
-		point, ok := helper.CoreCache.GetPointByDevice(deviceId, p.PointName)
+		point, ok := cache.Get().GetPointByDevice(deviceId, p.PointName)
 		if !ok {
 			return
 		}
@@ -154,7 +155,7 @@ func tryReadNewValues(deviceId string, points []plugin.PointData) {
 
 func getConnector(deviceId string) (plugin.Connector, error) {
 	//按照点位的协议、连接分组
-	p, ok := helper.CoreCache.GetRunningPluginByDevice(deviceId)
+	p, ok := cache.GetRunningPluginByDevice(deviceId)
 	if !ok {
 		logger.Logger.Error("not found running plugin", zap.String("deviceId", deviceId))
 		return nil, fmt.Errorf("not found running plugin, deviceId: %s ,point: %s", deviceId)

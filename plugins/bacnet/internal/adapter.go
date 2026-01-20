@@ -52,7 +52,7 @@ type bacWriteCmd struct {
 
 // Encode 编码
 func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
-	device, ok := helper.CoreCache.GetDevice(deviceSn)
+	device, ok := driverbox.CoreCache().GetDevice(deviceSn)
 	if !ok {
 		return nil, errors.New("device not found error")
 	}
@@ -64,7 +64,7 @@ func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 			return nil, plugin.NotSupportEncode
 		}
 		value := values[0]
-		point, ok := helper.CoreCache.GetPointByDevice(deviceSn, value.PointName)
+		point, ok := driverbox.CoreCache().GetPointByDevice(deviceSn, value.PointName)
 		if !ok {
 			return nil, errors.New("point not found error")
 		}
@@ -85,7 +85,7 @@ func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 	case plugin.WriteMode:
 		writeReqs := make([]*network.Write, 0)
 		for _, value := range values {
-			point, ok := helper.CoreCache.GetPointByDevice(deviceSn, value.PointName)
+			point, ok := driverbox.CoreCache().GetPointByDevice(deviceSn, value.PointName)
 			if !ok {
 				return nil, errors.New("point not found error")
 			}

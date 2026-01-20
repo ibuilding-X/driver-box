@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
@@ -31,7 +32,7 @@ func (p *Plugin) Initialize(c config.Config) {
 // Connector 此协议不支持获取连接器
 func (p *Plugin) Connector(deviceSn string) (connector plugin.Connector, err error) {
 	// 获取连接key
-	device, ok := helper.CoreCache.GetDevice(deviceSn)
+	device, ok := driverbox.CoreCache().GetDevice(deviceSn)
 	if !ok {
 		return nil, errors.New("not found device connection key")
 	}

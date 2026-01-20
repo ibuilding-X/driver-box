@@ -6,7 +6,7 @@ import (
 )
 
 func TestShadow(t *testing.T) {
-	shadow := NewDeviceShadow()
+	shadow := Shadow()
 
 	t.Run("TestAddDevice", func(t *testing.T) {
 		shadow.AddDevice("device", "model", 10*time.Second)

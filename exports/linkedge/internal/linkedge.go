@@ -437,7 +437,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...Config) error {
 			driverbox.TriggerEvents(event.UnknownDevice, id, deviceId)
 			continue
 		}
-		device, ok := helper.CoreCache.GetDevice(deviceId)
+		device, ok := driverbox.CoreCache().GetDevice(deviceId)
 		if !ok {
 			helper.Logger.Error("get device error", zap.String("deviceId", deviceId))
 			continue

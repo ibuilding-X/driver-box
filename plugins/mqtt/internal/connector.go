@@ -77,7 +77,7 @@ func (conn *connector) newMqttClientOptions(connectConfig ConnectConfig) *mqtt.C
 	opts.SetOnConnectHandler(conn.onConnectHandler)
 	opts.SetConnectionLostHandler(func(client mqtt.Client, err error) {
 		// 设备离线
-		for _, device := range helper.CoreCache.Devices() {
+		for _, device := range driverbox.CoreCache().Devices() {
 			if device.ConnectionKey == connectConfig.ConnectionKey {
 				helper.DeviceShadow.SetOffline(device.ID)
 			}

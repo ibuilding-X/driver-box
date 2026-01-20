@@ -3,6 +3,7 @@ package internal
 import (
 	"errors"
 
+	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
@@ -30,7 +31,7 @@ func (p *Plugin) Initialize(c config.Config) {
 
 // Connector 连接器
 func (p *Plugin) Connector(deviceName string) (connector plugin.Connector, err error) {
-	if device, ok := helper.CoreCache.GetDevice(deviceName); ok {
+	if device, ok := driverbox.CoreCache().GetDevice(deviceName); ok {
 		if conn, ok := p.connPool[device.ConnectionKey]; ok {
 			return conn, nil
 		}

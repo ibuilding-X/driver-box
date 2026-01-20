@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/cmanager"
 	"github.com/ibuilding-x/driver-box/driverbox/shadow"
 	"github.com/ibuilding-x/driver-box/exports/basic/restful"
 	"github.com/ibuilding-x/driver-box/exports/discover"
@@ -159,7 +158,7 @@ func (wss *websocketService) sync() {
 // syncModels 同步设备模型数据
 func (wss *websocketService) syncModels() {
 	// 获取所有模型名称
-	models := helper.CoreCache.Models()
+	models := driverbox.CoreCache().Models()
 	if len(models) == 0 {
 		return
 	}
@@ -167,7 +166,7 @@ func (wss *websocketService) syncModels() {
 	// 获取设备模型
 	var deviceModels []config.DeviceModel
 	for _, model := range models {
-		deviceModel, ok := cmanager.GetModel(model.Name)
+		deviceModel, ok := driverbox.CoreCache().GetModel(model.Name)
 		if !ok {
 			continue
 		}
@@ -192,7 +191,7 @@ func (wss *websocketService) syncModels() {
 
 // syncDevices 同步设备数据
 func (wss *websocketService) syncDevices() {
-	devices := helper.CoreCache.Devices()
+	devices := driverbox.CoreCache().Devices()
 	if len(devices) == 0 {
 		return
 	}

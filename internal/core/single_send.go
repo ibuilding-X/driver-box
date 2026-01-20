@@ -6,6 +6,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"go.uber.org/zap"
@@ -49,7 +50,7 @@ func SendSinglePoint(deviceId string, mode plugin.EncodeMode, pointData plugin.P
 }
 
 func singleRead(deviceId string, pointData plugin.PointData) error {
-	point, ok := helper.CoreCache.GetPointByDevice(deviceId, pointData.PointName)
+	point, ok := cache.Get().GetPointByDevice(deviceId, pointData.PointName)
 	if !ok {
 		return fmt.Errorf("not found point, point name is %s", pointData.PointName)
 	}
@@ -82,7 +83,7 @@ func singleRead(deviceId string, pointData plugin.PointData) error {
 }
 
 func singleWrite(deviceId string, pointData plugin.PointData) error {
-	point, ok := helper.CoreCache.GetPointByDevice(deviceId, pointData.PointName)
+	point, ok := cache.Get().GetPointByDevice(deviceId, pointData.PointName)
 	if !ok {
 		return fmt.Errorf("not found point, point name is %s", pointData.PointName)
 	}

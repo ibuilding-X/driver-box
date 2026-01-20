@@ -298,7 +298,7 @@ func (c *connector) syncModels(payload gateway.WSPayload) error {
 			// fix: 同步模型时，移除模型下所有设备
 			model.Devices = nil
 
-			err := helper.CoreCache.AddModel(ProtocolName, model)
+			err := driverbox.CoreCache().AddModel(ProtocolName, model)
 			if err != nil {
 				errCounter++
 				helper.Logger.Error("gateway plugin add model failed", zap.Any("model", model), zap.Error(err))
@@ -339,14 +339,14 @@ func (c *connector) syncDevices(payload gateway.WSPayload) error {
 			device.ConnectionKey = c.conf.IP
 
 			// 获取本地设备信息
-			if localDevice, ok := helper.CoreCache.GetDevice(device.ID); ok {
+			if localDevice, ok := driverbox.CoreCache().GetDevice(device.ID); ok {
 				// 优先使用本地设备信息
 				device.Description = localDevice.Description
 				device.Tags = localDevice.Tags
 				device.Properties = localDevice.Properties
 			}
 
-			err := helper.CoreCache.AddOrUpdateDevice(device)
+			err := driverbox.CoreCache().AddOrUpdateDevice(device)
 			if err != nil {
 				errCounter++
 				helper.Logger.Error("gateway plugin add device failed", zap.Any("device", device))

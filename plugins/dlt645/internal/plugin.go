@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
@@ -86,7 +87,7 @@ func (p *Plugin) initNetworks(config config.Config) {
 // Connector 连接器
 func (p *Plugin) Connector(deviceId string) (conn plugin.Connector, err error) {
 	// 获取连接key
-	device, ok := helper.CoreCache.GetDevice(deviceId)
+	device, ok := driverbox.CoreCache().GetDevice(deviceId)
 	if !ok {
 		return nil, errors.New("not found device connection key")
 	}

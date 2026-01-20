@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
@@ -16,7 +16,7 @@ var CoreCacheDevicesTool = mcp.NewTool("device_list",
 )
 
 var CoreCacheDevicesHandler = func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	devices := helper.CoreCache.Devices()
+	devices := driverbox.CoreCache().Devices()
 
 	// 构建表格形式的Markdown响应
 	markdown := fmt.Sprintf("## 设备列表（共 %d 个设备）\n\n", len(devices))
@@ -79,7 +79,7 @@ var CoreCacheGetModelByDeviceHandler = func(ctx context.Context, request mcp.Cal
 	}
 
 	// 获取设备信息
-	device, ok := helper.CoreCache.GetDevice(deviceID)
+	device, ok := driverbox.CoreCache().GetDevice(deviceID)
 	if !ok {
 		return mcp.NewToolResultError(fmt.Sprintf("设备 %s 不存在", deviceID)), fmt.Errorf("设备不存在")
 	}
@@ -100,7 +100,7 @@ var CoreCacheGetModelByNameHandler = func(ctx context.Context, request mcp.CallT
 }
 
 func getModelInfo(modelName string) (string, error) {
-	model, ok := helper.CoreCache.GetModel(modelName)
+	model, ok := driverbox.CoreCache().GetModel(modelName)
 	if !ok {
 		return "", errors.New("模型不存在")
 	}

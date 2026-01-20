@@ -3,12 +3,14 @@ package history
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"go.uber.org/zap"
 	"math"
 	"strings"
 	"time"
+
+	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"go.uber.org/zap"
 )
 
 type deviceQueueData struct {
@@ -25,13 +27,13 @@ func (export0 *Export) writeRealTimeData(queue []deviceQueueData) {
 
 	for _, deviceData := range queue {
 		deviceId := deviceData.deviceData.ID
-		device, res := helper.CoreCache.GetDevice(deviceId)
+		device, res := driverbox.CoreCache().GetDevice(deviceId)
 		pointData := map[string]interface{}{
 			"device_id":   deviceId,
 			"create_time": deviceData.addTime,
 		}
 		if res {
-			model, success := helper.CoreCache.GetModel(device.ModelName)
+			model, success := driverbox.CoreCache().GetModel(device.ModelName)
 			if success {
 				pointData["mo_id"] = model.ModelID
 			}
@@ -75,7 +77,7 @@ func (export0 *Export) writeDeviceSnapshotData() {
 		for j := startRow; j < maxIdx; j++ {
 			device := devices[j]
 			modelName := device.ModelName
-			model, res := helper.CoreCache.GetModel(modelName)
+			model, res := driverbox.CoreCache().GetModel(modelName)
 			pointData := map[string]interface{}{
 				"device_id":   device.ID,
 				"create_time": now,

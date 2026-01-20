@@ -15,23 +15,27 @@ import (
 )
 
 var ErrUnknownDevice = errors.New("unknown device")
-var DeviceShadow shadow.DeviceShadow // 本地设备影子
+var instance shadow.DeviceShadow // 本地设备影子
+var once = &sync.Once{}
+
 type deviceShadow struct {
 	devices map[string]*device
 	ticker  *crontab.Future
 	mutex   *sync.RWMutex
 }
 
-func NewDeviceShadow() shadow.DeviceShadow {
-	ds := &deviceShadow{
-		devices: make(map[string]*device),
-		mutex:   &sync.RWMutex{},
-	}
-	ds.ticker, _ = crontab.Instance().AddFunc("5s", func() {
-		ds.checkOffline()
+func Shadow() shadow.DeviceShadow {
+	once.Do(func() {
+		ds := &deviceShadow{
+			devices: make(map[string]*device),
+			mutex:   &sync.RWMutex{},
+		}
+		ds.ticker, _ = crontab.Instance().AddFunc("5s", func() {
+			ds.checkOffline()
+		})
+		instance = ds
 	})
-	DeviceShadow = ds
-	return ds
+	return instance
 }
 
 func (d *deviceShadow) AddDevice(id string, modelName string, ttl ...time.Duration) {

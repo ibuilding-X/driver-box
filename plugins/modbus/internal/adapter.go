@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
@@ -45,7 +46,7 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 		}, err
 	}
 
-	device, ok := helper.CoreCache.GetDevice(deviceId)
+	device, ok := driverbox.CoreCache().GetDevice(deviceId)
 	if !ok {
 		return nil, fmt.Errorf("device [%s] not found", deviceId)
 	}
@@ -145,7 +146,7 @@ func (c *connector) batchWriteEncode(deviceId string, points []plugin.PointData)
 }
 func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, writeValues []*writeValue) (writeValue, error) {
 	value := pointData.Value
-	d, ok := helper.CoreCache.GetDevice(deviceId)
+	d, ok := driverbox.CoreCache().GetDevice(deviceId)
 	if !ok {
 		return writeValue{}, errors.New("device not found")
 	}
@@ -153,7 +154,7 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 	if err != nil {
 		return writeValue{}, err
 	}
-	p, ok := helper.CoreCache.GetPointByDevice(deviceId, pointData.PointName)
+	p, ok := driverbox.CoreCache().GetPointByDevice(deviceId, pointData.PointName)
 	if !ok {
 		return writeValue{}, errors.New("point not found")
 	}

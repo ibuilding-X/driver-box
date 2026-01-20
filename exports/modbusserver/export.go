@@ -128,7 +128,7 @@ func (e *Export) convertPoints(points []config.Point) []mbserver.Property {
 func (e *Export) getConvertedModels() []mbserver.Model {
 	var result []mbserver.Model
 
-	models := helper.CoreCache.Models()
+	models := driverbox.CoreCache().Models()
 	for _, model := range models {
 		result = append(result, mbserver.Model{
 			Id:         model.Name,
@@ -143,7 +143,7 @@ func (e *Export) getConvertedModels() []mbserver.Model {
 func (e *Export) getConvertedDevices() []mbserver.Device {
 	var result []mbserver.Device
 
-	devices := helper.CoreCache.Devices()
+	devices := driverbox.CoreCache().Devices()
 	for _, device := range devices {
 		result = append(result, mbserver.Device{
 			ModelId: device.ModelName,
