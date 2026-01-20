@@ -152,7 +152,7 @@ func convertConfig(pluginName string) config.Config {
 	return config.Config{
 		Connections:  connections,
 		DeviceModels: models,
-		ProtocolName: pluginName,
+		PluginName:   pluginName,
 	}
 }
 func (c *cache) loadConfig(plugins map[string]plugin.Plugin) error {
@@ -187,27 +187,27 @@ func (c *cache) loadConfig(plugins map[string]plugin.Plugin) error {
 			return err
 		}
 
-		p, ok := plugins[cfg.ProtocolName]
+		p, ok := plugins[cfg.PluginName]
 		if !ok {
-			return errors.New("plugin " + cfg.ProtocolName + " not found")
+			return errors.New("plugin " + cfg.PluginName + " not found")
 		}
 		//相同插件不允许存在多个文件中
-		pl, ok := c.plugins[cfg.ProtocolName]
+		pl, ok := c.plugins[cfg.PluginName]
 		if !ok {
-			return errors.New("plugin " + cfg.ProtocolName + " unSupport!")
+			return errors.New("plugin " + cfg.PluginName + " unSupport!")
 		}
 		if pl.plugin != p {
-			return errors.New("invalid plugin " + cfg.ProtocolName + "!")
+			return errors.New("invalid plugin " + cfg.PluginName + "!")
 		}
 		if len(pl.FilePath) > 0 && pl.FilePath != path {
-			return errors.New("plugin " + cfg.ProtocolName + " already exists in " + pl.FilePath)
+			return errors.New("plugin " + cfg.PluginName + " already exists in " + pl.FilePath)
 		}
 
 		//构建coreCache的缓存结构
 		pl.FilePath = path
 		pl.fileModifyTime = curTime
 		pl.cacheModifyTime = curTime
-		c.plugins[cfg.ProtocolName] = pl
+		c.plugins[cfg.PluginName] = pl
 
 		for _, model := range cfg.DeviceModels {
 			for _, device := range model.Devices {
@@ -237,7 +237,7 @@ func (c *cache) loadConfig(plugins map[string]plugin.Plugin) error {
 			model.DevicePoints = nil
 			c.models[model.Name] = cacheModel{
 				Model:      model.Model,
-				pluginName: cfg.ProtocolName,
+				pluginName: cfg.PluginName,
 				points:     points,
 			}
 
@@ -245,7 +245,7 @@ func (c *cache) loadConfig(plugins map[string]plugin.Plugin) error {
 		for key, connection := range cfg.Connections {
 			c.connections[key] = cacheConnection{
 				connection: connection,
-				pluginName: cfg.ProtocolName,
+				pluginName: cfg.PluginName,
 			}
 		}
 	}

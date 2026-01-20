@@ -40,10 +40,10 @@ func (m *manager) Register(name string, plugin plugin.Plugin) {
 
 // Get 获取插件实例
 func (m *manager) Get(c config.Config) (p plugin.Plugin, err error) {
-	if raw, ok := m.plugins[c.ProtocolName]; ok {
+	if raw, ok := m.plugins[c.PluginName]; ok {
 		p = raw.(plugin.Plugin)
 	} else {
-		err = fmt.Errorf("plugin:[%s] not found", c.ProtocolName)
+		err = fmt.Errorf("plugin:[%s] not found", c.PluginName)
 	}
 	return
 }

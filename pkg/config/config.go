@@ -209,7 +209,7 @@ type Config struct {
 	// 连接配置
 	Connections map[string]interface{} `json:"connections" validate:""`
 	// 协议名称（通过协议名称区分连接模式：客户端、服务端）
-	ProtocolName string `json:"protocolName" validate:"required"`
+	PluginName string `json:"protocolName" validate:"required"`
 }
 
 //------------------------------ 设备模型 ------------------------------

@@ -190,7 +190,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	} else {
 		e = errors.New("mirror plugin is not ready")
 		//helper.Logger.Info("add mirror model success, but mirror plugin is not ready. will initialize...")
-		//c, ok := cmanager.GetConfig(mirror.ProtocolName)
+		//c, ok := cmanager.GetConfig(mirror.PluginName)
 		//if !ok {
 		//	helper.Logger.Info("mirror plugin initialize fail")
 		//	return errors.New("mirror config not found")
