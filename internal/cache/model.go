@@ -5,16 +5,11 @@ import (
 	"github.com/ibuilding-x/driver-box/pkg/config"
 )
 
-type configs struct {
+type configCache struct {
 	Models map[string]config.DeviceModel
 	// 连接配置
 	Connections map[string]interface{}
 	plugin      plugin.Plugin
 	// 配置文件路径
 	FilePath string `json:"-" validate:"-"`
-}
-
-type deviceCache struct {
-	config.Device
-	protocolName string
 }
