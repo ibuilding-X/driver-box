@@ -14,9 +14,12 @@ import (
 
 var ls *lua.LState
 
-func InitMockLua(key string) {
+func InitMockLua() {
 	if ls == nil {
-		path := filepath.Join(helper.EnvConfig.ConfigPath, key, "converter.lua")
+		path := filepath.Join(helper.EnvConfig.ConfigPath, "modbus", "converter.lua")
+		if !fileutil.FileExists(path) {
+			path = filepath.Join(helper.EnvConfig.ConfigPath, "virtual", "converter.lua")
+		}
 		if fileutil.FileExists(path) {
 			l, err := luautil.InitLuaVM(path)
 			if err != nil {
