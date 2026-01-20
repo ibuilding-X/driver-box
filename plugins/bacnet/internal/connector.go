@@ -138,7 +138,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 	}
 
 	//注册定时采集任务
-	future, err := driverbox.Crontab().AddFunc("1s", func() {
+	future, err := driverbox.AddFunc("1s", func() {
 		//遍历所有通讯设备
 		for deviceId, device := range c.devices {
 			if len(device.pointGroup) == 0 {

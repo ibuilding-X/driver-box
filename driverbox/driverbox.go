@@ -149,6 +149,6 @@ func Shadow() shadow0.DeviceShadow {
 	return shadow.Shadow()
 }
 
-func Crontab() crontab.Crontab {
-	return crontab.Instance()
+func AddFunc(s string, f func()) (*crontab.Future, error) {
+	return crontab.Instance().AddFunc(s, f)
 }
