@@ -47,7 +47,7 @@ func (p *Plugin) initConnPool() (err error) {
 		conn := &connector{
 			config:    c,
 			plugin:    p,
-			scriptDir: p.config.Key,
+			scriptDir: c.ConnectionKey,
 		}
 		if err = conn.startServer(); err != nil {
 			return

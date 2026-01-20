@@ -43,7 +43,15 @@ func NewPlugin() *Plugin {
 func (p *Plugin) Initialize(c config.Config) {
 	//生成镜像设备映射关系
 	for _, model := range c.DeviceModels {
-		err := p.UpdateMirrorMapping(model)
+		deviceCount := len(model.Devices)
+		if deviceCount == 0 {
+			continue
+		}
+		if deviceCount > 1 {
+			helper.Logger.Error("mirror only support one device")
+			continue
+		}
+		err := p.UpdateMirrorMapping(model.Model, model.Devices[0])
 		if err != nil {
 			helper.Logger.Error("update mirror mapping failed", zap.Error(err))
 		}
@@ -52,20 +60,13 @@ func (p *Plugin) Initialize(c config.Config) {
 }
 
 // UpdateMirrorMapping 更新镜像设备映射关系
-func (p *Plugin) UpdateMirrorMapping(model config.DeviceModel) error {
-	deviceCount := len(model.Devices)
-	if deviceCount == 0 {
-		return nil
-	}
-	if deviceCount > 1 {
-		return errors.New("mirror only support one device")
-	}
+func (p *Plugin) UpdateMirrorMapping(model config.Model, device config.Device) error {
+
 	p.mutex.Lock()
 	defer func() {
 		p.mutex.Unlock()
 	}()
 
-	device := model.Devices[0]
 	if _, ok := p.connector.mirrors[device.ID]; ok {
 		return errors.New("mirror device id must be unique")
 	}

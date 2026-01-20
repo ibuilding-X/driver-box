@@ -16,17 +16,17 @@ type DeviceModel struct {
 }
 
 // 加载指定key的驱动
-func (device *DeviceModel) LoadLibrary(modelKey string) (config.DeviceModel, error) {
+func (device *DeviceModel) LoadLibrary(modelKey string) (config.Model, error) {
 	filePath := path.Join(config.ResourcePath, baseDir, string(deviceModel), modelKey+".json")
 	if !fileutil.FileExists(filePath) {
-		return config.DeviceModel{}, fmt.Errorf("device model library not found: %s", modelKey)
+		return config.Model{}, fmt.Errorf("device model library not found: %s", modelKey)
 	}
 	//读取filePath中的文件内容
 	bytes, e := fileutil.ReadFileBytes(filePath)
 	if e != nil {
-		return config.DeviceModel{}, e
+		return config.Model{}, e
 	}
-	model := config.DeviceModel{}
+	model := config.Model{}
 	e = json.Unmarshal(bytes, &model)
 	return model, e
 }

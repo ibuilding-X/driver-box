@@ -295,8 +295,6 @@ func (c *connector) syncModels(payload gateway.WSPayload) error {
 	if len(payload.Models) > 0 {
 		var errCounter int
 		for _, model := range payload.Models {
-			// fix: 同步模型时，移除模型下所有设备
-			model.Devices = nil
 
 			err := driverbox.CoreCache().AddModel(ProtocolName, model)
 			if err != nil {

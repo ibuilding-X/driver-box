@@ -149,7 +149,6 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	}
 	mirrorModel.Name = mirrorDevice.ModelName
 	mirrorModel.Description = mirrorConfig.Description
-	mirrorModel.Devices = []config.Device{mirrorDevice}
 
 	points := make([]config.Point, 0)
 	for _, point := range mirrorConfig.Points {
@@ -187,7 +186,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	}
 	//ready为false，说明不存在mirror目录
 	if export.plugin.IsReady() {
-		e = export.plugin.UpdateMirrorMapping(mirrorModel)
+		e = export.plugin.UpdateMirrorMapping(mirrorModel, mirrorDevice)
 	} else {
 		e = errors.New("mirror plugin is not ready")
 		//helper.Logger.Info("add mirror model success, but mirror plugin is not ready. will initialize...")
@@ -208,7 +207,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 }
 
 // 获取模型中关联的镜像配置
-func (export *Export) getMirrorConfig(rawModel config.DeviceModel) (interface{}, error) {
+func (export *Export) getMirrorConfig(rawModel config.Model) (interface{}, error) {
 	c := rawModel.Attributes[MirrorTemplateName]
 	if c != nil {
 		return c, nil

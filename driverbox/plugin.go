@@ -67,7 +67,6 @@ func loadPlugins() error {
 	// 缓存核心配置
 	_, err := cache.InitCoreCache(plugins.plugins)
 	if err != nil {
-		helper.Logger.Error("init core cache error")
 		return err
 	}
 	// 初始化本地影子服务

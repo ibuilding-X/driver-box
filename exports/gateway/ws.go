@@ -164,15 +164,12 @@ func (wss *websocketService) syncModels() {
 	}
 
 	// 获取设备模型
-	var deviceModels []config.DeviceModel
+	var deviceModels []config.Model
 	for _, model := range models {
 		deviceModel, ok := driverbox.CoreCache().GetModel(model.Name)
 		if !ok {
 			continue
 		}
-
-		// fix：同步模型时，应去除模型下设备
-		deviceModel.Devices = nil
 
 		// 修改模型名称，防止与主网关模型名称重复
 		deviceModel.Name = wss.genGatewayModelName(deviceModel.Name)
@@ -394,11 +391,11 @@ const (
 
 // WSPayload websocket 消息体
 type WSPayload struct {
-	Type       WSPayloadType        `json:"type"`        // 消息类型
-	GatewayKey string               `json:"gateway_key"` // 网关唯一标识（当前版本使用主网关的连接 Key），当 type 为 WSForRegister、 WSForUnregister 时，此字段必填
-	DeviceData plugin.DeviceData    `json:"device_data"` // 当 type 为 WSForReport、 WSForControl 时，此字段必填
-	Models     []config.DeviceModel `json:"models"`      // 模型数据，当 type 为 WSForSyncModels 时，此字段必填
-	Devices    []config.Device      `json:"devices"`     // 设备数据，当 type 为 WSForSyncDevices 时，此字段必填
-	Shadow     []shadow.Device      `json:"shadow"`      // 设别影子数据，当 type 为 WSForSyncShadow 时，此字段必填
-	Error      string               `json:"error"`       // 错误信息，当 type 为 WSForRegisterRes、 WSForUnregisterRes、 WSForControlRes 时，此字段必填
+	Type       WSPayloadType     `json:"type"`        // 消息类型
+	GatewayKey string            `json:"gateway_key"` // 网关唯一标识（当前版本使用主网关的连接 Key），当 type 为 WSForRegister、 WSForUnregister 时，此字段必填
+	DeviceData plugin.DeviceData `json:"device_data"` // 当 type 为 WSForReport、 WSForControl 时，此字段必填
+	Models     []config.Model    `json:"models"`      // 模型数据，当 type 为 WSForSyncModels 时，此字段必填
+	Devices    []config.Device   `json:"devices"`     // 设备数据，当 type 为 WSForSyncDevices 时，此字段必填
+	Shadow     []shadow.Device   `json:"shadow"`      // 设别影子数据，当 type 为 WSForSyncShadow 时，此字段必填
+	Error      string            `json:"error"`       // 错误信息，当 type 为 WSForRegisterRes、 WSForUnregisterRes、 WSForControlRes 时，此字段必填
 }

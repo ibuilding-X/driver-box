@@ -193,17 +193,22 @@ func (c *cache) loadConfig(plugins map[string]plugin.Plugin) error {
 		}
 		//相同插件不允许存在多个文件中
 		pl, ok := c.plugins[cfg.ProtocolName]
-		if ok {
+		if !ok {
+			return errors.New("plugin " + cfg.ProtocolName + " unSupport!")
+		}
+		if pl.plugin != p {
+			return errors.New("invalid plugin " + cfg.ProtocolName + "!")
+		}
+		if len(pl.FilePath) > 0 && pl.FilePath != path {
 			return errors.New("plugin " + cfg.ProtocolName + " already exists in " + pl.FilePath)
 		}
 
 		//构建coreCache的缓存结构
-		c.plugins[cfg.ProtocolName] = cachePlugin{
-			plugin:          p,
-			FilePath:        path,
-			fileModifyTime:  curTime,
-			cacheModifyTime: curTime,
-		}
+		pl.FilePath = path
+		pl.fileModifyTime = curTime
+		pl.cacheModifyTime = curTime
+		c.plugins[cfg.ProtocolName] = pl
+
 		for _, model := range cfg.DeviceModels {
 			for _, device := range model.Devices {
 				if device.ID == "" {

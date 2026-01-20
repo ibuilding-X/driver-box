@@ -79,7 +79,7 @@ func (p *Plugin) initNetworks(config config.Config) {
 			continue
 		}
 		if conn.virtual {
-			InitMockLua(config.Key)
+			InitMockLua(connectionConfig.ConnectionKey)
 		}
 
 		//生成点位采集组
