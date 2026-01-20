@@ -271,22 +271,6 @@ type Device struct {
 	PluginName string `json:"-" validate:"-"`
 }
 
-// TimerTask 定时任务
-type TimerTask struct {
-	// 间隔（单位：毫秒）
-	Interval string `json:"interval" validate:"required"`
-	// 任务类型
-	Type string `json:"type" validate:"required"`
-	// 任务动作
-	Action interface{} `json:"action" validate:"required"`
-}
-
-type ReadPointsAction struct {
-	//设备SN列表
-	Devices []string `json:"devices"`
-	Points  []string `json:"points"`
-}
-
 // Validate 核心配置文件校验
 func (c Config) Validate() error {
 	validate := validator.New()
