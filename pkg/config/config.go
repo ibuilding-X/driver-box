@@ -210,16 +210,12 @@ type Config struct {
 	Connections map[string]interface{} `json:"connections" validate:""`
 	// 协议名称（通过协议名称区分连接模式：客户端、服务端）
 	ProtocolName string `json:"protocolName" validate:"required"`
-	// 配置唯一key，一般对应目录名称
-	Key string `json:"-" validate:"-"`
-	// 模型索引
-	modelIndexes map[string]int
 }
 
 //------------------------------ 设备模型 ------------------------------
 
-// ModelBase 模型基础信息
-type ModelBase struct {
+// Model 模型基础信息
+type Model struct {
 	// 模型名称
 	Name string `json:"name" validate:"required"`
 	// 云端模型 ID
@@ -228,19 +224,15 @@ type ModelBase struct {
 	Description string `json:"description" validate:"required"`
 	//扩展属性
 	Attributes map[string]interface{} `json:"attributes"`
+	// 模型点位列表
+	DevicePoints []Point `json:"devicePoints" validate:"required"`
 }
 
 // DeviceModel 设备模型
 type DeviceModel struct {
-	ModelBase
-	// 模型点位列表
-	DevicePoints []Point `json:"devicePoints" validate:"required"`
+	Model
 	// 设备列表
 	Devices []Device `json:"devices" validate:"required"`
-	// 设备索引
-	deviceIndexes map[string]int
-	// 设备点位索引
-	devicePoints map[string]int
 }
 
 type PointEnum struct {
@@ -276,7 +268,7 @@ type Device struct {
 	DriverKey string `json:"driverKey"`
 
 	//设备对应的协议
-	Protocol string `json:"-" validate:"-"`
+	PluginName string `json:"-" validate:"-"`
 }
 
 // TimerTask 定时任务
@@ -304,76 +296,6 @@ func (c Config) Validate() error {
 // 是否处于虚拟运行模式：未建立真实的设备连接
 func IsVirtual() bool {
 	return os.Getenv(ENV_VIRTUAL) == "true"
-}
-
-// UpdateIndexAndClean 更新索引并清理无效数据
-// 1. 更新模型、设备索引
-// 2. 移除无效连接
-func (c Config) UpdateIndexAndClean() Config {
-	c.modelIndexes = make(map[string]int)
-
-	usefulConnKeys := make(map[string]struct{})
-	// 遍历模型
-	for i, model := range c.DeviceModels {
-		c.modelIndexes[c.DeviceModels[i].Name] = i
-		c.DeviceModels[i].deviceIndexes = make(map[string]int)
-		c.DeviceModels[i].devicePoints = make(map[string]int)
-		// 遍历设备
-		for j, device := range c.DeviceModels[i].Devices {
-			usefulConnKeys[device.ConnectionKey] = struct{}{}
-			c.DeviceModels[i].deviceIndexes[device.ID] = j
-		}
-
-		// 建立设备点位索引
-		for j, point := range model.DevicePoints {
-			c.DeviceModels[i].devicePoints[point.Name()] = j
-		}
-	}
-
-	// 移除无效连接
-	//for k, _ := range c.Connections {
-	//	// 是否为自动发现连接
-	//	if connIsSupportDiscover(c.Connections[k]) {
-	//		continue
-	//	}
-	//	// 是否为有效连接
-	//	if _, ok := usefulConnKeys[k]; ok {
-	//		continue
-	//	}
-	//	// 移除无效连接
-	//	delete(c.Connections, k)
-	//}
-
-	return c
-}
-
-// GetModelIndexes 获取模型索引
-func (c Config) GetModelIndexes() map[string]int {
-	return c.modelIndexes
-}
-
-// GetDeviceIndexes 获取设备索引
-func (dm DeviceModel) GetDeviceIndexes() map[string]int {
-	return dm.deviceIndexes
-}
-
-// GetPoint 获取点位
-func (dm DeviceModel) GetPoint(pointName string) (Point, bool) {
-	index, ok := dm.devicePoints[pointName]
-	if !ok {
-		return nil, ok
-	}
-	return dm.DevicePoints[index], ok
-}
-
-// connIsSupportDiscover 连接是否支持自动发现设备
-func connIsSupportDiscover(conn any) bool {
-	if m, ok := conn.(map[string]interface{}); ok {
-		if _, ok := m["discover"]; ok && (m["discover"] == true || m["discover"] == "true" || m["discover"] == 1 || m["discover"] == "1") {
-			return true
-		}
-	}
-	return false
 }
 
 // 网关元数据

@@ -7,14 +7,30 @@ import (
 	"github.com/ibuilding-x/driver-box/pkg/config"
 )
 
-type configCache struct {
-	Models map[string]config.DeviceModel
-	// 连接配置
-	Connections map[string]interface{}
-	plugin      plugin.Plugin
+type cachePlugin struct {
+	plugin plugin.Plugin
 	// 配置文件路径
 	FilePath string `json:"-" validate:"-"`
 
 	fileModifyTime  time.Time
 	cacheModifyTime time.Time
+}
+
+type cacheConnection struct {
+	pluginName string
+	connection any
+}
+type cacheModel struct {
+	config.Model
+	pluginName string
+	points     map[string]cachePoint
+}
+
+type cachePoint struct {
+	config.Point
+	order int
+}
+
+type cacheDevice struct {
+	config.Device
 }

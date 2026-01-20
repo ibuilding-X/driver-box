@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/internal/logger"
@@ -22,6 +23,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const configFile = "config.json"
+
 var (
 	// ErrConfigNotExist is the error returned when the config file does not exist.
 	ErrConfigNotExist = errors.New("config not exist")
@@ -31,25 +34,25 @@ var (
 
 // coreCache 核心缓存
 type CoreCache interface {
-	GetModel(modelName string) (model config.DeviceModel, ok bool) // model info
+	GetModel(modelName string) (model config.Model, ok bool) // model info
 	// 查询指定模型的所有点，并保持该点位在配置文件中的有序性
 	GetPoints(modelName string) ([]config.Point, bool)
 	GetDevice(id string) (device config.Device, ok bool)
 	GetPointByModel(modelName string, pointName string) (point config.Point, ok bool) // search point by model
 	GetPointByDevice(id string, pointName string) (point config.Point, ok bool)       // search point by device
-	Models() (models []config.DeviceModel)                                            // all model
+	Models() (models []config.Model)                                                  // all model
 	Devices() (devices []config.Device)
 
 	UpdateDeviceProperty(id string, key string, value string) error // 更新设备属性
 	DeleteDevice(id string)                                         // 删除设备
-	UpdateDeviceDesc(id string, desc string)                        // 更新设备描述
+	UpdateDeviceDesc(id string, desc string) error                  // 更新设备描述
 	Reset()
 	// AddConnection 新增连接
 	AddConnection(plugin string, key string, conn any) error
 	// GetConnection 获取连接信息
 	GetConnection(key string) any
 	// AddModel 新增模型
-	AddModel(plugin string, model config.DeviceModel) error
+	AddModel(plugin string, model config.Model) error
 	// AddOrUpdateDevice 新增或更新设备
 	AddOrUpdateDevice(device config.Device) error
 	// BatchRemoveDevice 批量删除设备
@@ -66,21 +69,24 @@ var once = &sync.Once{}
 
 type cache struct {
 	//各协议插件的配置缓存
-	configs map[string]configCache
+	plugins map[string]cachePlugin
 	//设备缓存
-	devices map[string]*config.Device
+	devices map[string]cacheDevice
 	//模型缓存
-	models map[string]*config.DeviceModel
-	mutex  *sync.RWMutex // 锁
+	models map[string]cacheModel
+	//连接换成
+	connections map[string]cacheConnection
+	mutex       *sync.RWMutex // 锁
 }
 
 func Get() CoreCache {
 	once.Do(func() {
 		instance = &cache{
-			devices: make(map[string]*config.Device),
-			configs: make(map[string]configCache),
-			models:  make(map[string]*config.DeviceModel),
-			mutex:   &sync.RWMutex{},
+			plugins:     make(map[string]cachePlugin),
+			devices:     make(map[string]cacheDevice),
+			models:      make(map[string]cacheModel),
+			connections: make(map[string]cacheConnection),
+			mutex:       &sync.RWMutex{},
 		}
 	})
 	return instance
@@ -90,57 +96,19 @@ func Get() CoreCache {
 func InitCoreCache(plugins map[string]plugin.Plugin) (obj CoreCache, err error) {
 	obj = Get()
 	for key, p := range plugins {
-		instance.configs[key] = configCache{
+		instance.plugins[key] = cachePlugin{
 			plugin: p,
 		}
 	}
-	err = instance.loadConfig()
+	err = instance.loadConfig(plugins)
 	if err != nil {
 		return nil, err
 	}
 
-	configMap := instance.configs
-	for key, _ := range configMap {
-		for _, deviceModel := range configMap[key].Models {
-
-			//modelName防重校验
-			if preModel, ok := instance.models[deviceModel.Name]; ok {
-				if preModel.Name != deviceModel.Name ||
-					preModel.ModelID != deviceModel.ModelID {
-					return instance, fmt.Errorf("conflict model base information: %v  %v",
-						deviceModel.ModelBase, preModel.ModelBase)
-				}
-			} else {
-				instance.models[deviceModel.Name] = &deviceModel
-			}
-			//点表基础校验
-			for _, devicePoint := range deviceModel.DevicePoints {
-				checkPoint(&deviceModel, &devicePoint)
-			}
-			for _, device := range deviceModel.Devices {
-				if device.ID == "" {
-					logger.Logger.Error("config error , device id is empty", zap.Any("device", device))
-					continue
-				}
-				deviceId := device.ID
-				device.ModelName = deviceModel.Name
-				device.Protocol = key
-				if deviceRaw, ok := instance.devices[deviceId]; !ok {
-					instance.devices[deviceId] = &device
-				} else {
-					if deviceRaw.ModelName != device.ModelName {
-						return instance, fmt.Errorf("conflict model for device [%s]: %s -> %s", device.ID,
-							device.ModelName, deviceRaw.ModelName)
-					}
-				}
-			}
-		}
-	}
-
 	_, err = crontab.Instance().AddFunc("5s", func() {
-		var configs map[string]configCache
+		var configs map[string]cachePlugin
 		instance.mutex.RLock()
-		configs = instance.configs
+		configs = instance.plugins
 		instance.mutex.RUnlock()
 		for protocol, cfg := range configs {
 			if cfg.cacheModifyTime.After(cfg.fileModifyTime) && cfg.cacheModifyTime.Before(time.Now().Add(-5*time.Second)) {
@@ -153,21 +121,41 @@ func InitCoreCache(plugins map[string]plugin.Plugin) (obj CoreCache, err error) 
 }
 
 func GetConfig(pluginName string) config.Config {
-	cfg, ok := instance.configs[pluginName]
+	instance.mutex.RLock()
+	defer instance.mutex.RUnlock()
+	return convertConfig(pluginName)
+}
+func convertConfig(pluginName string) config.Config {
+	_, ok := instance.plugins[pluginName]
 	if !ok {
 		return config.Config{}
 	}
-	models := make([]config.DeviceModel, 0, len(cfg.Models))
-	for _, model := range cfg.Models {
-		models = append(models, model)
+	models := make([]config.DeviceModel, 0, len(instance.models))
+	for _, model := range instance.models {
+		devices := make([]config.Device, 0)
+		for _, device := range instance.devices {
+			if device.ModelName == model.Name {
+				devices = append(devices, device.Device)
+			}
+		}
+		models = append(models, config.DeviceModel{
+			Model:   model.Model,
+			Devices: devices,
+		})
+	}
+	connections := make(map[string]interface{})
+	for key, connection := range instance.connections {
+		if connection.pluginName == pluginName {
+			connections[key] = connection.connection
+		}
 	}
 	return config.Config{
-		Connections:  cfg.Connections,
+		Connections:  connections,
 		DeviceModels: models,
 		ProtocolName: pluginName,
 	}
 }
-func (c *cache) loadConfig() error {
+func (c *cache) loadConfig(plugins map[string]plugin.Plugin) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	driverPath := path.Join(config.ResourcePath, "driver")
@@ -182,10 +170,11 @@ func (c *cache) loadConfig() error {
 		return nil
 	}
 
+	curTime := time.Now()
 	//config 协议唯一性
 	// 解析每个文件夹的配置
 	for i, _ := range dirs {
-		path := filepath.Join(driverPath, dirs[i], "config.json")
+		path := filepath.Join(driverPath, dirs[i], configFile)
 		cfg, err := parseConfigFromFile(path)
 		if err != nil {
 			if errors.Is(err, ErrConfigNotExist) {
@@ -197,25 +186,63 @@ func (c *cache) loadConfig() error {
 			logger.Logger.Error("parse config from file error", zap.String("path", path), zap.Error(err))
 			return err
 		}
-		// fix：填充配置文件 Key 字段
-		cfg.Key = dirs[i]
 
-		curTime := time.Now()
-		item := configCache{
+		p, ok := plugins[cfg.ProtocolName]
+		if !ok {
+			return errors.New("plugin " + cfg.ProtocolName + " not found")
+		}
+		//相同插件不允许存在多个文件中
+		pl, ok := c.plugins[cfg.ProtocolName]
+		if ok {
+			return errors.New("plugin " + cfg.ProtocolName + " already exists in " + pl.FilePath)
+		}
+
+		//构建coreCache的缓存结构
+		c.plugins[cfg.ProtocolName] = cachePlugin{
+			plugin:          p,
 			FilePath:        path,
-			plugin:          c.configs[cfg.ProtocolName].plugin,
-			Models:          make(map[string]config.DeviceModel),
-			Connections:     make(map[string]interface{}),
 			fileModifyTime:  curTime,
 			cacheModifyTime: curTime,
 		}
 		for _, model := range cfg.DeviceModels {
-			item.Models[model.Name] = model
+			for _, device := range model.Devices {
+				if device.ID == "" {
+					logger.Logger.Error("config error , device id is empty", zap.Any("device", device))
+					continue
+				}
+				_, ok = c.devices[device.ID]
+				if ok {
+					helper.Logger.Error("device exists！", zap.Any("device", device))
+					continue
+				}
+				c.devices[device.ID] = cacheDevice{
+					device,
+				}
+			}
+			points := make(map[string]cachePoint)
+			for order, point := range model.DevicePoints {
+				checkPoint(&model.Model, &point)
+				points[point.Name()] = cachePoint{
+					point,
+					order,
+				}
+			}
+			//释放内存
+			model.Devices = nil
+			model.DevicePoints = nil
+			c.models[model.Name] = cacheModel{
+				Model:      model.Model,
+				pluginName: cfg.ProtocolName,
+				points:     points,
+			}
+
 		}
-		if cfg.Connections != nil {
-			item.Connections = cfg.Connections
+		for key, connection := range cfg.Connections {
+			c.connections[key] = cacheConnection{
+				connection: connection,
+				pluginName: cfg.ProtocolName,
+			}
 		}
-		c.configs[cfg.ProtocolName] = item
 	}
 	return nil
 }
@@ -264,7 +291,7 @@ func getSubDirs(driverPath string) []string {
 }
 
 // 检查点位配置合法性
-func checkPoint(model *config.DeviceModel, point *config.Point) {
+func checkPoint(model *config.Model, point *config.Point) {
 	if point.Name() == "" {
 		logger.Logger.Error("config error , point name is empty", zap.Any("point", point), zap.String("modelName", model.Name))
 	}
@@ -288,17 +315,14 @@ func checkPoint(model *config.DeviceModel, point *config.Point) {
 		logger.Logger.Error("point scale config error , valid config is: float", zap.Any("point", point), zap.String("model", model.Name))
 	}
 }
-func (c *cache) GetModel(modelName string) (model config.DeviceModel, ok bool) {
+func (c *cache) GetModel(modelName string) (config.Model, bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	for _, conf := range c.configs {
-		for _, m := range conf.Models {
-			if m.Name == modelName {
-				return m, true
-			}
-		}
+	m, ok := c.models[modelName]
+	if ok {
+		return m.Model, true
 	}
-	return config.DeviceModel{}, false
+	return config.Model{}, false
 }
 
 func (c *cache) GetPoints(modelName string) ([]config.Point, bool) {
@@ -313,7 +337,7 @@ func (c *cache) GetDevice(id string) (config.Device, bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	if dev, exist := c.devices[id]; exist {
-		return *dev, true
+		return dev.Device, true
 	}
 	return config.Device{}, false
 }
@@ -330,7 +354,8 @@ func (c *cache) GetPointByModel(modelName string, pointName string) (point confi
 		logger.Logger.Error("model name not match", zap.String("modelName", modelName), zap.String("model", model.Name))
 		return config.Point{}, false
 	}
-	pointBase, ok := model.GetPoint(pointName)
+
+	pointBase, ok := model.points[pointName]
 	if !ok {
 		return config.Point{}, false
 	}
@@ -339,7 +364,7 @@ func (c *cache) GetPointByModel(modelName string, pointName string) (point confi
 		logger.Logger.Error("point name not match", zap.String("pointName", pointName), zap.Any("point", pointBase))
 		return config.Point{}, false
 	}
-	return pointBase, true
+	return pointBase.Point, true
 }
 
 // GetPointByDevice 查询指定设备的指定点位信息
@@ -355,7 +380,7 @@ func GetRunningPluginByDevice(id string) (plugin plugin.Plugin, ok bool) {
 	instance.mutex.RLock()
 	defer instance.mutex.RUnlock()
 	if key, ok := instance.devices[id]; ok {
-		if cfg, ok := instance.configs[key.Protocol]; ok {
+		if cfg, ok := instance.plugins[key.PluginName]; ok {
 			return cfg.plugin, true
 		}
 		return nil, false
@@ -364,14 +389,12 @@ func GetRunningPluginByDevice(id string) (plugin plugin.Plugin, ok bool) {
 	return nil, false
 }
 
-func (c *cache) Models() (models []config.DeviceModel) {
+func (c *cache) Models() (models []config.Model) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	var results []config.DeviceModel
-	for _, conf := range c.configs {
-		for _, model := range conf.Models {
-			results = append(results, model)
-		}
+	var results []config.Model
+	for _, model := range c.models {
+		results = append(results, model.Model)
 
 	}
 	return results
@@ -381,7 +404,7 @@ func (c *cache) Devices() (devices []config.Device) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	for _, dev := range c.devices {
-		devices = append(devices, *dev)
+		devices = append(devices, dev.Device)
 	}
 	return
 }
@@ -390,7 +413,7 @@ func (c *cache) GetAllRunningPluginKey() []string {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	keys := make([]string, 0)
-	for key, _ := range c.configs {
+	for key, _ := range c.plugins {
 		keys = append(keys, key)
 	}
 	return keys
@@ -400,15 +423,18 @@ func (c *cache) GetAllRunningPluginKey() []string {
 func (c *cache) UpdateDeviceProperty(id string, key string, value string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	if dev, ok := c.devices[id]; ok {
-		if dev.Properties == nil {
-			dev.Properties = make(map[string]string)
-		}
-		dev.Properties[key] = value
-		// 持久化
-		return c.AddOrUpdateDevice(*dev)
+	dev, ok := c.devices[id]
+	if !ok {
+		return errors.New("device " + id + " not found")
 	}
-	return fmt.Errorf("device %s not found", id)
+	if dev.Properties == nil {
+		dev.Properties = make(map[string]string)
+	}
+	dev.Properties[key] = value
+	cfg := c.plugins[dev.PluginName]
+	cfg.cacheModifyTime = time.Now()
+	c.plugins[dev.PluginName] = cfg
+	return nil
 }
 
 // DeleteDevice 删除设备
@@ -420,23 +446,27 @@ func (c *cache) DeleteDevice(id string) {
 }
 
 // UpdateDeviceDesc 更新设备描述
-func (c *cache) UpdateDeviceDesc(id string, desc string) {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	if dev, ok := c.devices[id]; ok {
-		dev.Description = desc
-		// 持久化
-		_ = c.AddOrUpdateDevice(*dev)
+func (c *cache) UpdateDeviceDesc(id string, desc string) error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	dev, ok := c.devices[id]
+	if !ok {
+		return errors.New("device " + id + " not found")
 	}
+	dev.Description = desc
+	cfg := c.plugins[dev.PluginName]
+	cfg.cacheModifyTime = time.Now()
+	return nil
 }
 
 // Reset 重置数据
 func (c *cache) Reset() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.configs = make(map[string]configCache)
-	c.devices = make(map[string]*config.Device)
-	c.models = make(map[string]*config.DeviceModel)
+	c.plugins = make(map[string]cachePlugin)
+	c.devices = make(map[string]cacheDevice)
+	c.models = make(map[string]cacheModel)
+	c.connections = make(map[string]cacheConnection)
 }
 
 // AddOrUpdateDevice 添加或更新设备
@@ -445,43 +475,51 @@ func (c *cache) Reset() {
 // * 设备影子
 // * 持久化文件
 func (c *cache) AddOrUpdateDevice(dev config.Device) error {
+	if len(dev.ModelName) == 0 {
+		return errors.New("device modelName is empty")
+	}
+	if dev.ID == "" {
+		return errors.New("device id is empty")
+	}
+	// 自动补全设备描述
+	if dev.Description == "" {
+		dev.Description = dev.ID
+	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	if logger.Logger != nil {
-		logger.Logger.Info("core cache add device", zap.Any("device", dev), zap.Any("model", dev.ModelName))
-	}
-	// 查找模型信息
-	_, ok := c.GetModel(dev.ModelName)
+	logger.Logger.Info("core cache add device", zap.Any("device", dev))
+
+	//未匹配到模型
+	model, ok := c.models[dev.ModelName]
 	if !ok {
 		logger.Logger.Error("model not found", zap.String("modelName", dev.ModelName))
 		return fmt.Errorf("model %s not found", dev.ModelName)
 	}
-	// 校验设备是否已存在
+
+	dev.PluginName = model.pluginName
+
 	storedDeviceBase, ok := c.devices[dev.ID]
+	// 校验设备是否已存在
 	if ok {
 		if storedDeviceBase.ModelName != dev.ModelName {
 			logger.Logger.Error("conflict model for device", zap.String("deviceId", dev.ID))
 			return fmt.Errorf("conflict model for device [%s]: %s -> %s", dev.ID,
 				dev.ModelName, storedDeviceBase.ModelName)
 		}
-	}
-
-	// 自动补全设备描述
-	if dev.Description == "" {
-		dev.Description = dev.ID
-	}
-
-	if !ok {
+	} else {
 		defer export.TriggerEvents(event.EventCodeAddDevice, dev.ID, nil)
 	}
-	c.devices[dev.ID] = &dev
+	c.devices[dev.ID] = cacheDevice{
+		Device: dev,
+	}
+
 	// 更新设备影子
 	if !shadow.Shadow().HasDevice(dev.ID) {
 		shadow.Shadow().AddDevice(dev.ID, dev.ModelName)
 	}
-	cfg := c.configs[dev.Protocol]
-	cfg.cacheModifyTime = time.Now()
-	c.configs[dev.Protocol] = cfg
+	p := c.plugins[model.pluginName]
+	p.cacheModifyTime = time.Now()
+	c.plugins[dev.PluginName] = p
 	return nil
 }
 
@@ -489,10 +527,20 @@ func (c *cache) AddOrUpdateDevice(dev config.Device) error {
 func (c *cache) AddConnection(plugin string, key string, conn any) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	cfg := c.configs[plugin]
-	cfg.Connections[key] = conn
+	cfg, ok := c.plugins[plugin]
+	if !ok {
+		return errors.New("plugin " + plugin + " not exists")
+	}
+	_, ok = c.connections[key]
+	if ok {
+		return errors.New("connection " + key + " already exists")
+	}
+	c.connections[key] = cacheConnection{
+		connection: conn,
+		pluginName: plugin,
+	}
 	cfg.cacheModifyTime = time.Now()
-	c.configs[plugin] = cfg
+	c.plugins[plugin] = cfg
 	return nil
 }
 
@@ -500,22 +548,39 @@ func (c *cache) AddConnection(plugin string, key string, conn any) error {
 func (c *cache) GetConnection(key string) any {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	for _, conf := range c.configs {
-		if conn, ok := conf.Connections[key]; ok {
-			return conn
-		}
+	if conn, ok := c.connections[key]; ok {
+		return conn.connection
 	}
 	return nil
 }
 
 // AddModel 新增模型
-func (c *cache) AddModel(plugin string, model config.DeviceModel) error {
+func (c *cache) AddModel(pluginName string, model config.Model) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	cfg := c.configs[plugin]
-	cfg.Models[model.Name] = model
-	cfg.cacheModifyTime = time.Now()
-	c.configs[plugin] = cfg
+	p, exists := c.plugins[pluginName]
+	if !exists {
+		return errors.New("plugin " + pluginName + " not exists")
+	}
+	_, ok := c.models[model.Name]
+	if ok {
+		return errors.New("model " + model.Name + " already exists")
+	}
+	points := make(map[string]cachePoint)
+	for i, point := range model.DevicePoints {
+		points[point.Name()] = cachePoint{
+			Point: point,
+			order: i,
+		}
+	}
+	//释放模型点位内存空间
+	model.DevicePoints = nil
+	c.models[model.Name] = cacheModel{
+		Model:  model,
+		points: points,
+	}
+	p.cacheModifyTime = time.Now()
+	c.plugins[pluginName] = p
 	return nil
 }
 
@@ -523,15 +588,19 @@ func (c *cache) AddModel(plugin string, model config.DeviceModel) error {
 func (c *cache) BatchRemoveDevice(ids []string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	nowUnix := time.Now()
+	plugins := make(map[string]string)
 	for _, id := range ids {
 		if dev, ok := c.devices[id]; ok {
-			cfg := c.configs[dev.Protocol]
-			cfg.cacheModifyTime = nowUnix
-			c.configs[dev.Protocol] = cfg
+			plugins[dev.PluginName] = dev.PluginName
 		}
 		export.TriggerEvents(event.EventCodeWillDeleteDevice, id, nil)
 		delete(c.devices, id)
+	}
+	nowUnix := time.Now()
+	for _, p := range plugins {
+		cfg := c.plugins[p]
+		cfg.cacheModifyTime = nowUnix
+		c.plugins[p] = cfg
 	}
 	// 删除设备影子
 	_ = shadow.Shadow().DeleteDevice(ids...)
@@ -539,43 +608,44 @@ func (c *cache) BatchRemoveDevice(ids []string) error {
 }
 
 func (c *cache) Flush(pluginName string) {
-	c.mutex.RLock()
-	cfgCache, ok := c.configs[pluginName]
-	if !ok {
-		c.mutex.RUnlock()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	p := c.plugins[pluginName]
+	cfg := convertConfig(pluginName)
+
+	//闲置插件
+	if len(cfg.Connections) == 0 && len(cfg.Connections) == 0 {
+		//无接入配置，需删除
+		if len(p.FilePath) > 0 {
+			err := os.Remove(p.FilePath)
+			if err != nil {
+				helper.Logger.Error("remove file error", zap.String("file", p.FilePath), zap.Error(err))
+			}
+
+		}
 		return
 	}
-	models := make([]config.DeviceModel, 0, len(cfgCache.Models))
-	for _, model := range cfgCache.Models {
-		models = append(models, model)
+
+	if p.FilePath == "" {
+		p.FilePath = path.Join(config.ResourcePath, "driver", pluginName, configFile)
 	}
-	config := config.Config{
-		Connections:  cfgCache.Connections,
-		DeviceModels: models,
-		ProtocolName: pluginName,
-	}
-	c.mutex.RUnlock()
-	bytes, err := json.MarshalIndent(config, "", "  ")
+	bytes, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		logger.Logger.Error("marshal config error", zap.Error(err))
 		return
 	}
-	err = os.WriteFile(cfgCache.FilePath, bytes, 0644)
+	err = os.WriteFile(p.FilePath, bytes, 0644)
 	if err != nil {
 		logger.Logger.Error("write config file error", zap.Error(err))
 		return
 	}
-	// 更新文件修改时间
-	c.mutex.Lock()
-	cfg := c.configs[pluginName]
-	cfg.fileModifyTime = time.Now()
-	c.configs[pluginName] = cfg
-	c.mutex.Unlock()
+	p.fileModifyTime = time.Now()
+	c.plugins[pluginName] = p
 }
 func (c *cache) FlushAll() {
 	c.mutex.RLock()
-	keys := make([]string, 0, len(c.configs))
-	for k := range c.configs {
+	keys := make([]string, 0, len(c.plugins))
+	for k := range c.plugins {
 		keys = append(keys, k)
 	}
 	c.mutex.RUnlock()
