@@ -137,14 +137,20 @@ func UpdateMetadata(f func(*config.Metadata)) {
 	f(&core.Metadata)
 }
 
+// GetMetadata 获取服务元数据信息
+// 返回当前服务的核心元数据配置，包括序列号等关键信息
 func GetMetadata() config.Metadata {
 	return core.Metadata
 }
 
+// CoreCache 获取核心缓存实例
+// 提供对系统核心缓存的访问，用于存储和检索运行时数据
 func CoreCache() cache.CoreCache {
 	return cache.Get()
 }
 
+// Shadow 获取设备影子服务实例
+// 设备影子服务用于维护设备状态，提供状态同步和监控功能
 func Shadow() shadow0.DeviceShadow {
 	return shadow.Shadow()
 }
