@@ -220,6 +220,8 @@ func (c *cache) loadConfig(plugins map[string]plugin.Plugin) error {
 					helper.Logger.Error("device exists！", zap.Any("device", device))
 					continue
 				}
+				device.ModelName = model.Name
+				device.PluginName = cfg.PluginName
 				c.devices[device.ID] = cacheDevice{
 					device,
 				}
