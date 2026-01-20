@@ -24,7 +24,7 @@ type deviceShadow struct {
 	mutex   *sync.RWMutex
 }
 
-func Shadow() DeviceShadow {
+func Shadow() shadow.DeviceShadow {
 	once.Do(func() {
 		ds := &deviceShadow{
 			devices: make(map[string]*device),

@@ -8,6 +8,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	shadow0 "github.com/ibuilding-x/driver-box/driverbox/shadow"
 	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/internal/core"
 	export0 "github.com/ibuilding-x/driver-box/internal/export"
@@ -144,6 +145,6 @@ func CoreCache() cache.CoreCache {
 	return cache.Get()
 }
 
-func Shadow() shadow.DeviceShadow {
+func Shadow() shadow0.DeviceShadow {
 	return shadow.Shadow()
 }

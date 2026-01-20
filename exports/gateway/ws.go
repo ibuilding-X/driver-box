@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/driverbox/shadow"
 	"github.com/ibuilding-x/driver-box/exports/basic/restful"
 	"github.com/ibuilding-x/driver-box/exports/discover"
-	"github.com/ibuilding-x/driver-box/internal/shadow"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/pkg/event"
