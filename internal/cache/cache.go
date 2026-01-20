@@ -130,6 +130,7 @@ func InitCoreCache(plugins map[string]plugin.Plugin) (obj CoreCache, err error) 
 				}
 				deviceId := device.ID
 				device.ModelName = deviceModel.Name
+				device.Protocol = key
 				if deviceRaw, ok := instance.devices[deviceId]; !ok {
 					instance.devices[deviceId] = deviceCache{
 						Device:       device,

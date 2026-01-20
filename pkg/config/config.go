@@ -274,16 +274,9 @@ type Device struct {
 
 	//设备层驱动的引用
 	DriverKey string `json:"driverKey"`
-}
 
-// DeviceBusinessProp 设备业务属性
-type DeviceBusinessProp struct {
-	// SN 设备 SN
-	SN string
-	// ParentID 父设备 ID
-	ParentID string
-	// SystemID 所属系统 ID
-	SystemID string
+	//设备对应的协议
+	Protocol string `json:"-" validate:"-"`
 }
 
 // TimerTask 定时任务
