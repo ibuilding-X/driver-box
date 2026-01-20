@@ -123,6 +123,7 @@ func (p *Plugin) Destroy() error {
 	}
 	if ls != nil {
 		luautil.Close(ls)
+		ls = nil
 	}
 	//延迟关闭lua虚拟机，防止lua虚拟机正在使用
 	time.Sleep(time.Second * 1)
