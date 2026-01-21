@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"sync"
 
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
@@ -12,23 +13,42 @@ import (
 	glua "github.com/yuin/gopher-lua"
 )
 
+// 同步锁
+var driverLock sync.Mutex
+
 type ProtocolDriver struct {
-	drivers map[string]*glua.LState
+	drivers *sync.Map
 }
 
 // 加载指定key的驱动
-func (device *ProtocolDriver) LoadLibrary(protocolKey string) error {
+func (device *ProtocolDriver) LoadLibrary(protocolKey string) (*glua.LState, error) {
+	driverLock.Lock()
+	defer driverLock.Unlock()
+	cache, ok := device.drivers.Load(protocolKey)
+	if ok {
+		return cache.(*glua.LState), nil
+	}
 	L, err := luautil.InitLuaVM(path.Join(config.ResourcePath, baseDir, string(protocolDriver), protocolKey+".lua"))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	device.drivers[protocolKey] = L
-	return nil
+	device.drivers.Store(protocolKey, L)
+	return L, nil
 }
 
 // 执行制定的方法
 func (device *ProtocolDriver) Execute(protocolKey string, luaMethod string, param string) (string, error) {
-	L := device.drivers[protocolKey]
+	cache, ok := device.drivers.Load(protocolKey)
+	var L *glua.LState
+	if !ok {
+		l, err := device.LoadLibrary(protocolKey)
+		if err != nil {
+			return "", err
+		}
+		L = l
+	} else {
+		L = cache.(*glua.LState)
+	}
 	return luautil.CallLuaMethod(L, luaMethod, glua.LString(param))
 }
 
@@ -37,7 +57,17 @@ func (device *ProtocolDriver) Execute(protocolKey string, luaMethod string, para
 // 2. 针对点位A发起的读写操作，通过编码可变更为点位B
 // 3. 对单点位发起的读写请求，通过编码可扩展为多点位。例如：执行空开的开关操作，会先触发解锁，再执行开关行为。
 func (device *ProtocolDriver) Encode(protocolKey string, req ProtocolEncodeRequest) (string, error) {
-	L := device.drivers[protocolKey]
+	cache, ok := device.drivers.Load(protocolKey)
+	var L *glua.LState
+	if !ok {
+		l, err := device.LoadLibrary(protocolKey)
+		if err != nil {
+			return "", err
+		}
+		L = l
+	} else {
+		L = cache.(*glua.LState)
+	}
 	points := L.NewTable()
 	for _, point := range req.Points {
 		pointData := L.NewTable()
@@ -61,7 +91,17 @@ func (device *ProtocolDriver) Encode(protocolKey string, req ProtocolEncodeReque
 }
 
 func (device *ProtocolDriver) EncodeV2(protocolKey string, req ProtocolEncodeRequest) (*glua.LTable, error) {
-	L := device.drivers[protocolKey]
+	cache, ok := device.drivers.Load(protocolKey)
+	var L *glua.LState
+	if !ok {
+		l, err := device.LoadLibrary(protocolKey)
+		if err != nil {
+			return nil, err
+		}
+		L = l
+	} else {
+		L = cache.(*glua.LState)
+	}
 	points := L.NewTable()
 	for _, point := range req.Points {
 		pointData := L.NewTable()
@@ -89,7 +129,17 @@ func (device *ProtocolDriver) EncodeV2(protocolKey string, req ProtocolEncodeReq
 // 1. 对读到的数据进行点位值加工
 // 2. 将读到的点位值，同步到本设备的另外一个点位上
 func (device *ProtocolDriver) Decode(protocolKey string, req any) ([]plugin.DeviceData, error) {
-	L := device.drivers[protocolKey]
+	cache, ok := device.drivers.Load(protocolKey)
+	var L *glua.LState
+	if !ok {
+		l, err := device.LoadLibrary(protocolKey)
+		if err != nil {
+			return nil, err
+		}
+		L = l
+	} else {
+		L = cache.(*glua.LState)
+	}
 	bytes, e := json.Marshal(req)
 	if e != nil {
 		return nil, e
@@ -104,7 +154,17 @@ func (device *ProtocolDriver) Decode(protocolKey string, req any) ([]plugin.Devi
 }
 
 func (device *ProtocolDriver) DecodeV2(protocolKey string, param func(L *glua.LState) *glua.LTable) ([]plugin.DeviceData, error) {
-	L := device.drivers[protocolKey]
+	cache, ok := device.drivers.Load(protocolKey)
+	var L *glua.LState
+	if !ok {
+		l, err := device.LoadLibrary(protocolKey)
+		if err != nil {
+			return nil, err
+		}
+		L = l
+	} else {
+		L = cache.(*glua.LState)
+	}
 	result, e := luautil.CallLuaMethodV2(L, "decode", param(L))
 	if e != nil {
 		return nil, e
@@ -150,10 +210,11 @@ func (device *ProtocolDriver) DecodeV2(protocolKey string, param func(L *glua.LS
 // 卸载驱动
 func (device *ProtocolDriver) UnloadDeviceDrivers() {
 	temp := device.drivers
-	device.drivers = make(map[string]*glua.LState)
-	for _, L := range temp {
-		luautil.Close(L)
-	}
+	device.drivers = &sync.Map{}
+	temp.Range(func(key, value interface{}) bool {
+		luautil.Close(value.(*glua.LState))
+		return true
+	})
 }
 
 // 设备驱动编码请求

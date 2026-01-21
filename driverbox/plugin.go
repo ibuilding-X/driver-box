@@ -7,7 +7,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/internal/export"
-	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/pkg/event"
 	"github.com/ibuilding-x/driver-box/pkg/library"
 	"go.uber.org/zap"
@@ -44,6 +43,8 @@ func (m *manager) Clear() {
 func loadPlugins() error {
 	//清空设备驱动库
 	library.Driver().UnloadDeviceDrivers()
+	//清空设备驱动库
+	library.Protocol().UnloadDeviceDrivers()
 
 	//打印环境配置
 	Log().Info("driver-box environment config", zap.Any("config", helper.EnvConfig))
@@ -54,12 +55,6 @@ func loadPlugins() error {
 	}
 	// 初始化本地影子服务
 	initDeviceShadow()
-
-	//初始化协议层驱动
-	err = initProtocolDriver()
-	if err != nil {
-		return err
-	}
 
 	// 启动插件
 	for key, p := range plugins.plugins {
@@ -74,37 +69,6 @@ func loadPlugins() error {
 		export.TriggerEvents(event.EventCodeAddDevice, device.ID, nil)
 	}
 
-	return nil
-}
-
-// 初始化协议层驱动
-func initProtocolDriver() error {
-	//清空设备驱动库
-	library.Protocol().UnloadDeviceDrivers()
-	//重新添加
-	drivers := make(map[string]string)
-	for _, dev := range cache.Get().Devices() {
-		connection := cache.Get().GetConnection(dev.ConnectionKey)
-		if connection == nil {
-			continue
-		}
-		protocolKey, ok := connection.(map[string]any)[library.ProtocolConfigKey]
-		if !ok {
-			continue
-		}
-		if len(protocolKey.(string)) == 0 {
-			logger.Logger.Warn("protocolKey is empty", zap.Any("connection", connection))
-			continue
-		}
-		drivers[protocolKey.(string)] = protocolKey.(string)
-	}
-	for key, _ := range drivers {
-		err := library.Protocol().LoadLibrary(key)
-		if err != nil {
-			Log().Error("load device protocol error", zap.String("driverKey", key), zap.Error(err))
-			return err
-		}
-	}
 	return nil
 }
 
@@ -133,6 +97,15 @@ func destroyPlugins() {
 	}
 }
 
+// 注册插件
 func RegisterPlugin(name string, plugin plugin.Plugin) {
 	plugins.Register(name, plugin)
+}
+
+// 插件重启
+func ReloadPlugin(pluginName string) {
+	cfg := cache.GetConfig(pluginName)
+	p := plugins.plugins[pluginName]
+	p.Destroy()
+	p.Initialize(cfg)
 }
