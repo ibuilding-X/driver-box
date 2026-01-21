@@ -18,7 +18,7 @@ var (
 // Plugin 驱动插件
 type Plugin interface {
 	// Initialize 初始化日志、配置、接收回调
-	Initialize(c config.Config)
+	Initialize(c config.DeviceConfig)
 	// Connector 连接器
 	Connector(deviceId string) (connector Connector, err error)
 	// Destroy 销毁驱动

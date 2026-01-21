@@ -11,12 +11,12 @@ import (
 const ProtocolName = "http_server"
 
 type Plugin struct {
-	config config.Config // 核心配置
+	config config.DeviceConfig // 核心配置
 
 	connPool []*connector // 连接器
 }
 
-func (p *Plugin) Initialize(c config.Config) {
+func (p *Plugin) Initialize(c config.DeviceConfig) {
 	p.config = c
 
 	// 初始化连接池

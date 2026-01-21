@@ -19,7 +19,7 @@ const ProtocolName = "dlt645"
 // Plugin 驱动插件
 type Plugin struct {
 	connPool map[string]*connector // 连接器
-	config   config.Config
+	config   config.DeviceConfig
 }
 
 // connector 连接器
@@ -38,7 +38,7 @@ type connector struct {
 }
 
 // Initialize 插件初始化
-func (p *Plugin) Initialize(c config.Config) {
+func (p *Plugin) Initialize(c config.DeviceConfig) {
 	p.config = c
 
 	//初始化连接池
@@ -46,7 +46,7 @@ func (p *Plugin) Initialize(c config.Config) {
 }
 
 // 初始化Modbus连接池
-func (p *Plugin) initNetworks(config config.Config) {
+func (p *Plugin) initNetworks(config config.DeviceConfig) {
 	p.connPool = make(map[string]*connector)
 	//某个连接配置有问题，不影响其他连接的建立
 	for key, connConfig := range config.Connections {

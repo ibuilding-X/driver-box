@@ -12,13 +12,13 @@ import (
 const ProtocolName = "bacnet"
 
 type Plugin struct {
-	config   config.Config
+	config   config.DeviceConfig
 	connPool map[string]plugin.Connector
 }
 
 // Initialize 插件初始化
 // logger *zap.Logger、ls *lua.LState 参数未来可能会废弃
-func (p *Plugin) Initialize(c config.Config) {
+func (p *Plugin) Initialize(c config.DeviceConfig) {
 	p.config = c
 
 	// 初始化连接

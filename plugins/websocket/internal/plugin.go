@@ -15,12 +15,12 @@ import (
 const ProtocolName = "websocket"
 
 type Plugin struct {
-	config config.Config // 核心配置
+	config config.DeviceConfig // 核心配置
 
 	connPool map[string]*connector // 连接器
 }
 
-func (p *Plugin) Initialize(c config.Config) {
+func (p *Plugin) Initialize(c config.DeviceConfig) {
 	p.config = c
 	p.connPool = make(map[string]*connector)
 

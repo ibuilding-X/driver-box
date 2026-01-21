@@ -18,7 +18,7 @@ type Plugin struct {
 }
 
 // Initialize 初始化日志、配置、接收回调
-func (p *Plugin) Initialize(c config.Config) {
+func (p *Plugin) Initialize(c config.DeviceConfig) {
 
 	// 初始化连接池
 	if err := p.initConnPool(c); err != nil {
@@ -27,7 +27,7 @@ func (p *Plugin) Initialize(c config.Config) {
 
 }
 
-func (p *Plugin) initConnPool(c config.Config) error {
+func (p *Plugin) initConnPool(c config.DeviceConfig) error {
 	p.connectors = make(map[string]*connector)
 	for k, connection := range c.Connections {
 		var connectConfig ConnectConfig

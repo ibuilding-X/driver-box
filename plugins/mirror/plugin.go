@@ -39,7 +39,7 @@ func NewPlugin() *Plugin {
 	return instance
 }
 
-func (p *Plugin) Initialize(c config.Config) {
+func (p *Plugin) Initialize(c config.DeviceConfig) {
 	//生成镜像设备映射关系
 	for _, model := range c.DeviceModels {
 		deviceCount := len(model.Devices)

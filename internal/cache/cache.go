@@ -118,15 +118,15 @@ func InitCoreCache(plugins map[string]plugin.Plugin) (obj CoreCache, err error) 
 	return instance, err
 }
 
-func GetConfig(pluginName string) config.Config {
+func GetConfig(pluginName string) config.DeviceConfig {
 	instance.mutex.RLock()
 	defer instance.mutex.RUnlock()
 	return convertConfig(pluginName)
 }
-func convertConfig(pluginName string) config.Config {
+func convertConfig(pluginName string) config.DeviceConfig {
 	_, ok := instance.plugins[pluginName]
 	if !ok {
-		return config.Config{}
+		return config.DeviceConfig{}
 	}
 	models := make([]config.DeviceModel, 0, len(instance.models))
 	for _, model := range instance.models {
@@ -147,7 +147,7 @@ func convertConfig(pluginName string) config.Config {
 			connections[key] = connection.connection
 		}
 	}
-	return config.Config{
+	return config.DeviceConfig{
 		Connections:  connections,
 		DeviceModels: models,
 		PluginName:   pluginName,
@@ -248,23 +248,23 @@ func (c *cache) loadConfig(plugins map[string]plugin.Plugin) error {
 	}
 	return nil
 }
-func parseConfigFromFile(path string) (config.Config, error) {
+func parseConfigFromFile(path string) (config.DeviceConfig, error) {
 	if !fileutil.FileExists(path) {
-		return config.Config{}, ErrConfigNotExist
+		return config.DeviceConfig{}, ErrConfigNotExist
 	}
 	// 读取文件
 	bytes, err := os.ReadFile(path)
 	if err != nil {
-		return config.Config{}, err
+		return config.DeviceConfig{}, err
 	}
 	// 空文件校验
 	if len(bytes) == 0 {
-		return config.Config{}, ErrConfigEmpty
+		return config.DeviceConfig{}, ErrConfigEmpty
 	}
 	// json 解析
-	var c config.Config
+	var c config.DeviceConfig
 	if err = json.Unmarshal(bytes, &c); err != nil {
-		return config.Config{}, err
+		return config.DeviceConfig{}, err
 	}
 	return c, nil
 }

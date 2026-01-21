@@ -16,7 +16,7 @@ const ProtocolName = "driverbox"
 
 type gatewayPlugin struct {
 	l           *zap.Logger
-	c           config.Config
+	c           config.DeviceConfig
 	ls          *lua.LState
 	connections map[string]*connector
 }
@@ -27,7 +27,7 @@ func New() plugin.Plugin {
 	}
 }
 
-func (g *gatewayPlugin) Initialize(c config.Config) {
+func (g *gatewayPlugin) Initialize(c config.DeviceConfig) {
 	g.c = c
 
 	// 初始化连接
