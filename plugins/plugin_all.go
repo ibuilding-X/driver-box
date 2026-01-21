@@ -13,7 +13,7 @@ import (
 	"github.com/ibuilding-x/driver-box/plugins/websocket"
 )
 
-func EnableAllPlugins() {
+func EnableAll() {
 	modbus.EnablePlugin()
 	bacnet.EnablePlugin()
 	httpserver.EnablePlugin()
