@@ -5,6 +5,6 @@ import (
 	"github.com/ibuilding-x/driver-box/plugins/mqtt/internal"
 )
 
-func RegisterPlugin() {
+func EnablePlugin() {
 	driverbox.RegisterPlugin(internal.ProtocolName, new(internal.Plugin))
 }

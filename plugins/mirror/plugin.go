@@ -22,7 +22,7 @@ type Plugin struct {
 	ready bool
 }
 
-func RegisterPlugin() {
+func EnablePlugin() {
 	driverbox.RegisterPlugin(ProtocolName, NewPlugin())
 }
 

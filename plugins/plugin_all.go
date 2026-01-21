@@ -13,15 +13,15 @@ import (
 	"github.com/ibuilding-x/driver-box/plugins/websocket"
 )
 
-func RegisterAllPlugins() {
-	modbus.RegisterPlugin()
-	bacnet.RegisterPlugin()
-	httpserver.RegisterPlugin()
-	httpclient.RegisterPlugin()
-	websocket.RegisterPlugin()
-	tcpserver.RegisterPlugin()
-	mqtt.RegisterPlugin()
-	mirror.RegisterPlugin()
-	dlt645.RegisterPlugin()
-	gateway.RegisterPlugin()
+func EnableAllPlugins() {
+	modbus.EnablePlugin()
+	bacnet.EnablePlugin()
+	httpserver.EnablePlugin()
+	httpclient.EnablePlugin()
+	websocket.EnablePlugin()
+	tcpserver.EnablePlugin()
+	mqtt.EnablePlugin()
+	mirror.EnablePlugin()
+	dlt645.EnablePlugin()
+	gateway.EnablePlugin()
 }
