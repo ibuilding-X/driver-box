@@ -21,6 +21,9 @@ const (
 	//日志文件存放路径
 	ENV_LOG_PATH = "DRIVERBOX_LOG_PATH"
 
+	//日志级别
+	ENV_LOG_LEVEL = "LOG_LEVEL"
+
 	//是否虚拟设备模式: true:是,false:否
 	ENV_VIRTUAL = "DRIVERBOX_VIRTUAL"
 
@@ -87,10 +90,8 @@ var (
 var ResourcePath = "./res"
 
 type EnvConfig struct {
-	ConfigPath string
 	//http服务监听端口号
 	HttpListen string
-	LogPath    string
 }
 
 type Point map[string]interface{} // 点位 Map，可转换为标准点位数据

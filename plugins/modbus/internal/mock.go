@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/fileutil"
 	"github.com/ibuilding-x/driver-box/pkg/luautil"
 	lua "github.com/yuin/gopher-lua"
@@ -17,9 +17,9 @@ var ls *lua.LState
 
 func InitMockLua() {
 	if ls == nil {
-		path := filepath.Join(helper.EnvConfig.ConfigPath, "modbus", "converter.lua")
+		path := filepath.Join(config.ResourcePath, "driver", "modbus", "converter.lua")
 		if !fileutil.FileExists(path) {
-			path = filepath.Join(helper.EnvConfig.ConfigPath, "virtual", "converter.lua")
+			path = filepath.Join(config.ResourcePath, "driver", "virtual", "converter.lua")
 		}
 		if fileutil.FileExists(path) {
 			l, err := luautil.InitLuaVM(path)

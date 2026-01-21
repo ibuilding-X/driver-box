@@ -3,7 +3,6 @@ package driverbox
 import (
 	"fmt"
 	"os"
-	"path"
 
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
@@ -29,7 +28,7 @@ func Start() error {
 	}
 
 	//第二步：初始化日志记录器
-	logger.InitLogger(helper.EnvConfig.LogPath, os.Getenv("LOG_LEVEL"))
+	logger.InitLogger(os.Getenv(config.ENV_LOG_PATH), os.Getenv(config.ENV_LOG_LEVEL))
 
 	//第四步：启动Export
 	for _, item := range export0.Exports {
@@ -82,8 +81,6 @@ func initEnvConfig() error {
 	} else {
 		config.ResourcePath = dir
 	}
-	//驱动配置文件存放目录
-	helper.EnvConfig.ConfigPath = path.Join(config.ResourcePath, "driver")
 	//http服务绑定host
 	httpListen := os.Getenv(config.ENV_HTTP_LISTEN)
 	if httpListen != "" {
@@ -92,10 +89,6 @@ func initEnvConfig() error {
 		helper.EnvConfig.HttpListen = "8081"
 	}
 
-	logPath := os.Getenv(config.ENV_LOG_PATH)
-	if logPath != "" {
-		helper.EnvConfig.LogPath = logPath
-	}
 	return nil
 }
 
