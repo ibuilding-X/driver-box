@@ -266,7 +266,7 @@ func parseConfigFromFile(path string) (config.Config, error) {
 	if err = json.Unmarshal(bytes, &c); err != nil {
 		return config.Config{}, err
 	}
-	return c, c.Validate()
+	return c, nil
 }
 
 // createDir 创建目录

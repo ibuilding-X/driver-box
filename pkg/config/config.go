@@ -4,8 +4,6 @@ package config
 import (
 	"encoding/json"
 	"os"
-
-	"github.com/go-playground/validator/v10"
 )
 
 // 环境变量配置项
@@ -270,12 +268,6 @@ type Device struct {
 
 	//设备对应的协议
 	PluginName string `json:"-" validate:"-"`
-}
-
-// Validate 核心配置文件校验
-func (c Config) Validate() error {
-	validate := validator.New()
-	return validate.Struct(c)
 }
 
 // 是否处于虚拟运行模式：未建立真实的设备连接

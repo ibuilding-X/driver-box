@@ -9,7 +9,6 @@ import (
 
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/fileutil"
-	glua "github.com/yuin/gopher-lua"
 )
 
 type Type string
@@ -61,7 +60,7 @@ func Mirror() *MirrorTemplate {
 func Protocol() *ProtocolDriver {
 	protocolOnce.Do(func() {
 		protocol = &ProtocolDriver{
-			drivers: make(map[string]*glua.LState),
+			drivers: &sync.Map{},
 		}
 	})
 	return protocol
