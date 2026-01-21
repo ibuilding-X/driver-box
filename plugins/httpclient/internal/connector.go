@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/crontab"
 	"github.com/ibuilding-x/driver-box/pkg/library"
@@ -56,17 +55,17 @@ type connector struct {
 // startServer 启动服务
 func (c *connector) initCollectTask() (*crontab.Future, error) {
 	if !c.config.Enable {
-		helper.Logger.Warn("httpclient connector is not enable", zap.Any("connector", c.config))
+		driverbox.Log().Warn("httpclient connector is not enable", zap.Any("connector", c.config))
 		return nil, nil
 	}
 	if len(c.config.Timer) == 0 {
-		helper.Logger.Warn("httpclient connector timer is empty", zap.Any("connector", c.config))
+		driverbox.Log().Warn("httpclient connector timer is empty", zap.Any("connector", c.config))
 		return nil, nil
 	}
 	for i, timer := range c.config.Timer {
 		duration, e := time.ParseDuration(timer.Duration)
 		if e != nil {
-			helper.Logger.Error("parse duration error", zap.Any("config", c.config))
+			driverbox.Log().Error("parse duration error", zap.Any("config", c.config))
 			duration = time.Second * 5
 		}
 		c.config.Timer[i].duration = duration
@@ -76,7 +75,7 @@ func (c *connector) initCollectTask() (*crontab.Future, error) {
 	}
 	bytes, e := json.Marshal(actionParam)
 	if e != nil {
-		helper.Logger.Error("json marshal error", zap.Any("config", c.config))
+		driverbox.Log().Error("json marshal error", zap.Any("config", c.config))
 		return nil, e
 	}
 	action := string(bytes)
@@ -89,14 +88,14 @@ func (c *connector) initCollectTask() (*crontab.Future, error) {
 			c.config.Timer[i].latestTime = time.Now()
 			payload, err := library.Protocol().Execute(c.config.ProtocolKey, timer.Action, action)
 			if err != nil {
-				helper.Logger.Error("execute protocol driver error", zap.Any("protocolKey", c.config.ProtocolKey), zap.Any("action", timer.Action), zap.Any("error", err))
+				driverbox.Log().Error("execute protocol driver error", zap.Any("protocolKey", c.config.ProtocolKey), zap.Any("action", timer.Action), zap.Any("error", err))
 				continue
 			}
 			var data HttpRequest
 			json.Unmarshal([]byte(payload), &data)
 			e := c.Send(data)
 			if e != nil {
-				helper.Logger.Error("send data error", zap.Any("data", data), zap.Any("error", e))
+				driverbox.Log().Error("send data error", zap.Any("data", data), zap.Any("error", e))
 				continue
 			}
 		}

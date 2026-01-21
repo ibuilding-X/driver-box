@@ -12,6 +12,7 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/internal/core"
 	export0 "github.com/ibuilding-x/driver-box/internal/export"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/internal/shadow"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/crontab"
@@ -28,21 +29,19 @@ func Start() error {
 	}
 
 	//第二步：初始化日志记录器
-	if err := helper.InitLogger(os.Getenv("LOG_LEVEL")); err != nil {
-		fmt.Println("init logger error", err)
-		return err
-	}
+	logger.InitLogger(helper.EnvConfig.LogPath, os.Getenv("LOG_LEVEL"))
+
 	//第四步：启动Export
 	for _, item := range export0.Exports {
 		if err := item.Init(); err != nil {
-			helper.Logger.Error("init export error", zap.Error(err))
+			Log().Error("init export error", zap.Error(err))
 		}
 	}
 
 	//第六步：启动driver-box插件
 	err = loadPlugins()
 	if err != nil {
-		helper.Logger.Error(err.Error())
+		Log().Error(err.Error())
 	}
 
 	if err != nil {
@@ -51,7 +50,7 @@ func Start() error {
 		TriggerEvents(event.EventCodeServiceStatus, GetMetadata().SerialNo, event.ServiceStatusHealthy)
 	}
 
-	helper.Logger.Info("start driver-box success.")
+	Log().Info("start driver-box success.")
 	return err
 }
 
@@ -63,7 +62,7 @@ func Stop() error {
 	for _, item := range export0.Exports {
 		e = item.Destroy()
 		if e != nil {
-			helper.Logger.Error("destroy export error", zap.Error(e))
+			Log().Error("destroy export error", zap.Error(e))
 		}
 	}
 	export0.Exports = make([]export.Export, 0)

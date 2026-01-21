@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/exports/basic/restful/response"
 	"github.com/julienschmidt/httprouter"
 	"go.uber.org/zap"
@@ -17,7 +17,7 @@ type Handler func(*http.Request) (any, error)
 
 // HandleFunc 注册处理函数
 func HandleFunc(method, pattern string, handler Handler) {
-	helper.Logger.Info("register api", zap.String("method", method), zap.String("pattern", pattern))
+	driverbox.Log().Info("register api", zap.String("method", method), zap.String("pattern", pattern))
 	HttpRouter.HandlerFunc(method, pattern, func(writer http.ResponseWriter, request *http.Request) {
 		// 定义响应数据结构
 		var data response.Common
@@ -45,7 +45,7 @@ func HandleFunc(method, pattern string, handler Handler) {
 		// 序列化响应数据
 		b, err := json.Marshal(data)
 		if err != nil {
-			helper.Logger.Error("[api] json marshal fail", zap.Error(err))
+			driverbox.Log().Error("[api] json marshal fail", zap.Error(err))
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -53,7 +53,7 @@ func HandleFunc(method, pattern string, handler Handler) {
 		// 写入响应数据
 		_, err = writer.Write(b)
 		if err != nil {
-			helper.Logger.Error("[api] write response fail", zap.Error(err))
+			driverbox.Log().Error("[api] write response fail", zap.Error(err))
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}

@@ -7,7 +7,6 @@ import (
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/library"
 	"go.uber.org/zap"
@@ -28,13 +27,13 @@ func (conn *connector) Send(data interface{}) error {
 	var encodeDatas []EncodeData
 	err := json.Unmarshal(res, &encodeDatas)
 	if err != nil {
-		helper.Logger.Error(fmt.Sprintf("unmarshal error: %s", err.Error()))
-		helper.Logger.Error(fmt.Sprintf("origin data is: %s", data.(string)))
+		driverbox.Log().Error(fmt.Sprintf("unmarshal error: %s", err.Error()))
+		driverbox.Log().Error(fmt.Sprintf("origin data is: %s", data.(string)))
 		return err
 	}
 	for _, encodeData := range encodeDatas {
 		if token := conn.client.Publish(encodeData.Topic, 0, false, encodeData.Payload); token.Wait() && token.Error() != nil {
-			helper.Logger.Error(fmt.Sprintf("publish %s to topic %s error: %s",
+			driverbox.Log().Error(fmt.Sprintf("publish %s to topic %s error: %s",
 				encodeData.Payload, encodeData.Topic, token.Error().Error()))
 			return token.Error()
 		}
@@ -91,7 +90,7 @@ func (conn *connector) onConnectHandler(client mqtt.Client) {
 	topics := strings.Split(conn.config.Topics, ",")
 	for _, topic := range topics {
 		if token := client.Subscribe(topic, 0, conn.onReceiveHandler); token.Wait() && token.Error() != nil {
-			helper.Logger.Error(fmt.Sprintf("unable to subscribe topic: %s for client: %s", topic, conn.config.ClientId))
+			driverbox.Log().Error(fmt.Sprintf("unable to subscribe topic: %s for client: %s", topic, conn.config.ClientId))
 			continue
 		}
 	}
@@ -111,7 +110,7 @@ func (conn *connector) onReceiveHandler(_ mqtt.Client, message mqtt.Message) {
 	// 执行回调 写入消息总线
 	deviceData, err := library.Protocol().Decode(conn.config.ProtocolKey, msg)
 	if err != nil {
-		helper.Logger.Error("decode error", zap.Error(err))
+		driverbox.Log().Error("decode error", zap.Error(err))
 		return
 	}
 	//自动添加设备

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
@@ -23,7 +22,7 @@ func (p *Plugin) Initialize(c config.Config) {
 
 	// 初始化连接池
 	if err := p.initConnPool(c); err != nil {
-		helper.Logger.Error("init mqtt connector error", zap.Error(err))
+		driverbox.Log().Error("init mqtt connector error", zap.Error(err))
 	}
 
 }
@@ -33,11 +32,11 @@ func (p *Plugin) initConnPool(c config.Config) error {
 	for k, connection := range c.Connections {
 		var connectConfig ConnectConfig
 		if err := convutil.Struct(connection, &connectConfig); err != nil {
-			helper.Logger.Error(fmt.Sprintf("unmarshal mqtt config error: %s", err.Error()))
+			driverbox.Log().Error(fmt.Sprintf("unmarshal mqtt config error: %s", err.Error()))
 			continue
 		}
 		if !connectConfig.Enable {
-			helper.Logger.Warn("mqtt connection is disable", zap.String("connectionKey", k))
+			driverbox.Log().Warn("mqtt connection is disable", zap.String("connectionKey", k))
 			continue
 		}
 		connectConfig.ConnectionKey = k
@@ -46,7 +45,7 @@ func (p *Plugin) initConnPool(c config.Config) error {
 		}
 		err := conn.connect(connectConfig)
 		if err != nil {
-			helper.Logger.Error(fmt.Sprintf("mqtt connect error: %s", err.Error()))
+			driverbox.Log().Error(fmt.Sprintf("mqtt connect error: %s", err.Error()))
 			continue
 		}
 		p.connectors[k] = conn
@@ -63,7 +62,7 @@ func (p *Plugin) Connector(deviceId string) (plugin.Connector, error) {
 	}
 	c, ok := p.connectors[device.ConnectionKey]
 	if !ok {
-		helper.Logger.Error("not found connection key, key is ", zap.String("key", device.ConnectionKey), zap.Any("connections", p.connectors))
+		driverbox.Log().Error("not found connection key, key is ", zap.String("key", device.ConnectionKey), zap.Any("connections", p.connectors))
 		return nil, errors.New("not found connection key, key is " + device.ConnectionKey)
 	}
 	return c, nil

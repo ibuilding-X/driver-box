@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/ibuilding-x/driver-box/driverbox/export"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	export0 "github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/pkg/config"
@@ -100,7 +99,7 @@ func TriggerEvents(eventCode string, key string, value interface{}) {
 //     - 如果设备没有数值数据则跳过
 //     - 将数据导出到所有已准备好的Export插件
 func Export(deviceData []plugin.DeviceData) {
-	helper.Logger.Debug("export data", zap.Any("data", deviceData))
+	Log().Debug("export data", zap.Any("data", deviceData))
 	// 产生插件回调事件
 	TriggerEvents(event.EventCodePluginCallback, "", deviceData)
 	// 写入消息总线
@@ -126,7 +125,7 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 	// 设备层驱动，对点位进行预处理
 	err := pointValueProcess(deviceData)
 	if err != nil {
-		helper.Logger.Error("device driver process error", zap.Any("deviceData", deviceData), zap.Error(err))
+		Log().Error("device driver process error", zap.Any("deviceData", deviceData), zap.Error(err))
 		return
 	}
 	//获取完成点位加工后的真实 deviceData
@@ -145,7 +144,7 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 		if !ok {
 			//todo 临时屏蔽vrf异常日志输出
 			if !strings.HasPrefix(deviceData.ID, "vrf/") {
-				helper.Logger.Error("unknown point", zap.Any("deviceId", deviceData.ID), zap.Any("pointName", point.PointName))
+				Log().Error("unknown point", zap.Any("deviceId", deviceData.ID), zap.Any("pointName", point.PointName))
 			}
 			continue
 		}
@@ -155,7 +154,7 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 
 		// 如果是周期上报模式，且缓存中有值，停止触发
 		if p.ReportMode() == config.ReportMode_Change && shadowValue == point.Value {
-			helper.Logger.Debug("point report mode is change, stop to trigger Export", zap.String("pointName", p.Name()))
+			Log().Debug("point report mode is change, stop to trigger Export", zap.String("pointName", p.Name()))
 		} else {
 			// 点位值类型名称转换
 			points = append(points, point)
@@ -163,7 +162,7 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 
 		// 缓存
 		if err := Shadow().SetDevicePoint(deviceData.ID, point.PointName, point.Value); err != nil {
-			helper.Logger.Error("shadow store point value error", zap.Error(err), zap.Any("deviceId", deviceData.ID))
+			Log().Error("shadow store point value error", zap.Error(err), zap.Any("deviceId", deviceData.ID))
 		}
 	}
 	deviceData.Values = points
@@ -175,7 +174,7 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 func pointValueProcess(deviceData *plugin.DeviceData) error {
 	device, ok := CoreCache().GetDevice(deviceData.ID)
 	if !ok {
-		helper.Logger.Error("unknown device", zap.Any("deviceId", deviceData.ID))
+		Log().Error("unknown device", zap.Any("deviceId", deviceData.ID))
 		return fmt.Errorf("unknown device")
 	}
 	driverEnable := len(device.DriverKey) > 0
@@ -184,7 +183,7 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 	if driverEnable {
 		result := library.Driver().DeviceDecode(device.DriverKey, library.DeviceDecodeRequest{DeviceId: deviceData.ID, Points: deviceData.Values})
 		if result.Error != nil {
-			helper.Logger.Error("library.DeviceDecode error", zap.Error(result.Error), zap.Any("deviceData", deviceData))
+			Log().Error("library.DeviceDecode error", zap.Error(result.Error), zap.Any("deviceData", deviceData))
 			return result.Error
 		} else {
 			deviceData.Values = result.Points
@@ -201,7 +200,7 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 		if !ok {
 			//todo 临时屏蔽vrf异常日志输出
 			if !strings.HasPrefix(deviceData.ID, "vrf/") {
-				helper.Logger.Error("unknown point", zap.Any("deviceId", deviceData.ID), zap.Any("pointName", p.PointName))
+				Log().Error("unknown point", zap.Any("deviceId", deviceData.ID), zap.Any("pointName", p.PointName))
 			}
 			continue
 		}
@@ -209,7 +208,7 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 		value, err := convutil.PointValue(p.Value, point.ValueType())
 		if err != nil {
 			if !strings.HasPrefix(deviceData.ID, "vrf/") {
-				helper.Logger.Error("convert point value error", zap.Error(err), zap.Any("deviceId", deviceData.ID),
+				Log().Error("convert point value error", zap.Error(err), zap.Any("deviceId", deviceData.ID),
 					zap.String("pointName", p.PointName), zap.Any("value", p.Value))
 			}
 			continue
@@ -219,7 +218,7 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 		if !driverEnable && point.Scale() != 0 {
 			value, err = multiplyWithFloat64(value, point.Scale())
 			if err != nil {
-				helper.Logger.Error("multiplyWithFloat64 error", zap.Error(err), zap.Any("deviceId", deviceData.ID))
+				Log().Error("multiplyWithFloat64 error", zap.Error(err), zap.Any("deviceId", deviceData.ID))
 				continue
 			}
 		}

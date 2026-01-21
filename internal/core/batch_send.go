@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/internal/logger"
@@ -26,7 +25,7 @@ func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 		return err
 	}
 	if len(result) == 0 {
-		helper.Logger.Warn("device driver process result is empty", zap.String("deviceId", deviceId))
+		logger.Logger.Warn("device driver process result is empty", zap.String("deviceId", deviceId))
 		return nil
 	}
 
@@ -131,23 +130,23 @@ func tryReadNewValues(deviceId string, points []plugin.PointData) {
 				}
 				if point.WriteAt.After(checkTime) {
 					//在checkTime之后有发生过写行为,则本次检验可能不会生效
-					helper.Logger.Warn("point write success, but expect point value maybe expired", zap.String("deviceId", deviceId), zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", point.Value))
+					logger.Logger.Warn("point write success, but expect point value maybe expired", zap.String("deviceId", deviceId), zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", point.Value))
 					continue
 				}
 				if fmt.Sprint(p.Value) != fmt.Sprint(point.Value) {
 					newReadPoints = append(newReadPoints, p)
 				}
-				helper.Logger.Info("point write success, read new value", zap.String("deviceId", deviceId), zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", point.Value))
+				logger.Logger.Info("point write success, read new value", zap.String("deviceId", deviceId), zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", point.Value))
 			}
 			if len(newReadPoints) == 0 {
 				return
 			}
 			readPoints = newReadPoints
 
-			helper.Logger.Info("point write success,try to read new value", zap.String("deviceId", deviceId), zap.Any("points", readPoints))
+			logger.Logger.Info("point write success,try to read new value", zap.String("deviceId", deviceId), zap.Any("points", readPoints))
 			err := SendBatchRead(deviceId, readPoints)
 			if err != nil {
-				helper.Logger.Error("point write success, read new value error", zap.String("deviceId", deviceId), zap.Any("points", readPoints), zap.Error(err))
+				logger.Logger.Error("point write success, read new value error", zap.String("deviceId", deviceId), zap.Any("points", readPoints), zap.Error(err))
 				break
 			}
 		}

@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/internal/logger"
@@ -216,7 +215,7 @@ func (c *cache) loadConfig(plugins map[string]plugin.Plugin) error {
 				}
 				_, ok = c.devices[device.ID]
 				if ok {
-					helper.Logger.Error("device exists！", zap.Any("device", device))
+					logger.Logger.Error("device exists！", zap.Any("device", device))
 					continue
 				}
 				device.ModelName = model.Name
@@ -620,7 +619,7 @@ func (c *cache) Flush(pluginName string) {
 		if len(p.FilePath) > 0 {
 			err := os.Remove(p.FilePath)
 			if err != nil {
-				helper.Logger.Error("remove file error", zap.String("file", p.FilePath), zap.Error(err))
+				logger.Logger.Error("remove file error", zap.String("file", p.FilePath), zap.Error(err))
 			}
 
 		}

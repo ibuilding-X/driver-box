@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
@@ -18,11 +17,11 @@ func mockRead(plugin *connector, L *lua.LState, data btypes.MultiplePropertyData
 		for deviceId, pointName := range object.Points {
 			mockData, e := luautil.CallLuaMethod(L, "mockRead", lua.LString(deviceId), lua.LString(pointName))
 			if e != nil {
-				helper.Logger.Error("mockRead error", zap.Error(e))
+				driverbox.Log().Error("mockRead error", zap.Error(e))
 			}
 			v, e := convutil.Float64(mockData)
 			if e != nil {
-				helper.Logger.Error("mockRead error", zap.Error(e))
+				driverbox.Log().Error("mockRead error", zap.Error(e))
 				continue
 			}
 			resp := map[string]interface{}{
@@ -33,7 +32,7 @@ func mockRead(plugin *connector, L *lua.LState, data btypes.MultiplePropertyData
 			respJson, err := json.Marshal(resp)
 			res, err := plugin.Decode(respJson)
 			if err != nil {
-				helper.Logger.Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
+				driverbox.Log().Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
 			} else {
 				driverbox.Export(res)
 			}
@@ -45,7 +44,7 @@ func mockRead(plugin *connector, L *lua.LState, data btypes.MultiplePropertyData
 func mockWrite(L *lua.LState, deviceId, pointName string, value interface{}) error {
 	result, err := luautil.CallLuaMethod(L, "mockWrite", lua.LString(deviceId), lua.LString(pointName), lua.LString(fmt.Sprint(value)))
 	if err == nil {
-		helper.Logger.Info("mockWrite result", zap.Any("result", result))
+		driverbox.Log().Info("mockWrite result", zap.Any("result", result))
 	}
 	return err
 }

@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"go.uber.org/zap"
@@ -48,12 +47,12 @@ func (p *Plugin) Initialize(c config.Config) {
 			continue
 		}
 		if deviceCount > 1 {
-			helper.Logger.Error("mirror only support one device")
+			driverbox.Log().Error("mirror only support one device")
 			continue
 		}
 		err := p.UpdateMirrorMapping(model.Model, model.Devices[0])
 		if err != nil {
-			helper.Logger.Error("update mirror mapping failed", zap.Error(err))
+			driverbox.Log().Error("update mirror mapping failed", zap.Error(err))
 		}
 	}
 	p.ready = true

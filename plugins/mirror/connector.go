@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 )
@@ -127,6 +126,6 @@ func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error)
 	for _, data := range group {
 		res = append(res, data)
 	}
-	helper.Logger.Debug("mirror decode result", zap.Any("raw", rawDeviceData), zap.Any("mirror", res))
+	driverbox.Log().Debug("mirror decode result", zap.Any("raw", rawDeviceData), zap.Any("mirror", res))
 	return res, err
 }

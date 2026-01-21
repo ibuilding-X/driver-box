@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
@@ -21,7 +21,7 @@ func (p *Plugin) Initialize(c config.Config) {
 
 	// 初始化连接池
 	if err := p.initConnPool(); err != nil {
-		helper.Logger.Error("init connector pool failed", zap.Error(err))
+		driverbox.Log().Error("init connector pool failed", zap.Error(err))
 	}
 
 }

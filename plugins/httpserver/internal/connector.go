@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/library"
 	"go.uber.org/zap"
@@ -48,7 +47,7 @@ func (c *connector) startServer(opts connectorConfig) {
 		// 取 body
 		body, err := io.ReadAll(ctx.Request.Body)
 		if err != nil {
-			helper.Logger.Error("http request read body error", zap.Error(err))
+			driverbox.Log().Error("http request read body error", zap.Error(err))
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":    -1,
 				"message": err.Error(),
@@ -63,7 +62,7 @@ func (c *connector) startServer(opts connectorConfig) {
 		}
 		// 调用回调函数
 		if res, err := c.Decode(data.ToJSON()); err != nil {
-			helper.Logger.Error("http_server callback error", zap.Error(err))
+			driverbox.Log().Error("http_server callback error", zap.Error(err))
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":    -1,
 				"message": err.Error(),
@@ -87,7 +86,7 @@ func (c *connector) startServer(opts connectorConfig) {
 
 	go func(addr string) {
 		if err := c.server.ListenAndServe(); err != nil {
-			helper.Logger.Error("start http server error", zap.Error(err))
+			driverbox.Log().Error("start http server error", zap.Error(err))
 		}
 	}(addr)
 }

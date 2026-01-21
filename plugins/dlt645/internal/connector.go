@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
@@ -58,11 +57,11 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 
 func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, error) {
 	if !conf.Enable {
-		helper.Logger.Warn("dlt645 connection is disabled, ignore collect task", zap.String("key", c.config.ConnectionKey))
+		driverbox.Log().Warn("dlt645 connection is disabled, ignore collect task", zap.String("key", c.config.ConnectionKey))
 		return nil, nil
 	}
 	if len(c.devices) == 0 {
-		helper.Logger.Warn("dlt645 connection has no device to collect", zap.String("key", c.config.ConnectionKey))
+		driverbox.Log().Warn("dlt645 connection has no device to collect", zap.String("key", c.config.ConnectionKey))
 		return nil, nil
 	}
 
@@ -71,13 +70,13 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 		//遍历所有通讯设备
 		for unitID, device := range c.devices {
 			if len(device.pointGroup) == 0 {
-				helper.Logger.Warn("device has none read point", zap.String("slaveId", unitID))
+				driverbox.Log().Warn("device has none read point", zap.String("slaveId", unitID))
 				continue
 			}
 			//批量遍历通讯设备下的点位，并将结果关联至物模型设备
 			for i, group := range device.pointGroup {
 				if c.close {
-					helper.Logger.Warn("dlt645 connection is closed, ignore collect task!", zap.String("key", c.config.ConnectionKey))
+					driverbox.Log().Warn("dlt645 connection is closed, ignore collect task!", zap.String("key", c.config.ConnectionKey))
 					break
 				}
 
@@ -86,13 +85,13 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 					continue
 				}
 
-				helper.Logger.Debug("timer read dlt645", zap.Any("group", i), zap.Any("latestTime", group.LatestTime), zap.Any("duration", group.Duration))
+				driverbox.Log().Debug("timer read dlt645", zap.Any("group", i), zap.Any("latestTime", group.LatestTime), zap.Any("duration", group.Duration))
 				bac := command{
 					Mode:  plugin.ReadMode,
 					Value: group,
 				}
 				if err := c.Send(bac); err != nil {
-					helper.Logger.Error("read error", zap.Any("connection", conf), zap.Any("group", group), zap.Error(err))
+					driverbox.Log().Error("read error", zap.Any("connection", conf), zap.Any("group", group), zap.Error(err))
 					//通讯失败，触发离线
 					devices := make(map[string]interface{})
 					for _, point := range group.Points {
@@ -119,19 +118,19 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 		}
 		ext, err := convToPointExtend(point)
 		if err != nil {
-			helper.Logger.Error("error dlt645 point config", zap.String("deviceId", dev.ID), zap.Any("point", point), zap.Error(err))
+			driverbox.Log().Error("error dlt645 point config", zap.String("deviceId", dev.ID), zap.Any("point", point), zap.Error(err))
 			continue
 		}
 		ext.DeviceId = dev.ID
 		duration, err := time.ParseDuration(ext.Duration)
 		if err != nil {
-			helper.Logger.Error("error dlt645 duration config", zap.String("deviceId", dev.ID), zap.Any("config", point), zap.Error(err))
+			driverbox.Log().Error("error dlt645 duration config", zap.String("deviceId", dev.ID), zap.Any("config", point), zap.Error(err))
 			duration = time.Second
 		}
 
 		device, err := c.createDevice(dev.Properties)
 		if err != nil {
-			helper.Logger.Error("error dlt645 device config", zap.String("deviceId", dev.ID), zap.Any("config", point), zap.Error(err))
+			driverbox.Log().Error("error dlt645 device config", zap.String("deviceId", dev.ID), zap.Any("config", point), zap.Error(err))
 			continue
 		}
 
@@ -211,7 +210,7 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 		}
 		res, err := c.Decode(pointReadValue)
 		if err != nil {
-			helper.Logger.Error("error dlt645 callback", zap.Any("data", pointReadValue), zap.Error(err))
+			driverbox.Log().Error("error dlt645 callback", zap.Any("data", pointReadValue), zap.Error(err))
 		} else {
 			driverbox.Export(res)
 		}
@@ -240,7 +239,7 @@ func (c *connector) read(address, dataMaker string) (values float64, err error) 
 	readconfig := &dlt.Dlt645ConfigClient{address, dataMaker}
 	value, err := readconfig.SendMessageToSerial(c.client)
 	if err != nil {
-		helper.Logger.Error("dlt645 client error", zap.Any("dlt645", c.config), zap.Error(err))
+		driverbox.Log().Error("dlt645 client error", zap.Any("dlt645", c.config), zap.Error(err))
 	}
 	return value, err
 }
@@ -254,7 +253,7 @@ func convToPointExtend(extends config.Point) (*Point, error) {
 	extend := new(Point)
 	extend.Point = extends
 	if err := convutil.Struct(extends, extend); err != nil {
-		helper.Logger.Error("error dlt645 config", zap.Any("config", extends), zap.Error(err))
+		driverbox.Log().Error("error dlt645 config", zap.Any("config", extends), zap.Error(err))
 		return nil, err
 	}
 	//未设置，则默认每秒采集一次

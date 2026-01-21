@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes/ndpu"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/datalink"
@@ -136,7 +136,7 @@ func (c *client) handleMsg(src *btypes.Address, b []byte) {
 	dec := encoding.NewDecoder(b)
 	err := dec.BVLC(&header)
 	if err != nil {
-		helper.Logger.Error("bacnet decode error", zap.Error(err))
+		driverbox.Log().Error("bacnet decode error", zap.Error(err))
 		return
 	}
 
@@ -145,12 +145,12 @@ func (c *client) handleMsg(src *btypes.Address, b []byte) {
 		b = b[mtuHeaderLength:]
 		networkList, err := dec.NPDU(&npdu)
 		if err != nil {
-			helper.Logger.Error(err.Error())
+			driverbox.Log().Error(err.Error())
 			return
 		}
 
 		if npdu.IsNetworkLayerMessage {
-			helper.Logger.Debug("Ignored Network Layer Message")
+			driverbox.Log().Debug("Ignored Network Layer Message")
 			if npdu.NetworkLayerMessageType == ndpu.NetworkIs {
 				c.utsm.Publish(int(npdu.Source.Net), npdu)
 				//return
@@ -166,7 +166,7 @@ func (c *client) handleMsg(src *btypes.Address, b []byte) {
 		send := dec.Bytes()
 		err = dec.APDU(&apdu)
 		if err != nil {
-			helper.Logger.Error("Issue decoding APDU", zap.Error(err))
+			driverbox.Log().Error("Issue decoding APDU", zap.Error(err))
 			return
 		}
 		switch apdu.DataType {
@@ -175,7 +175,7 @@ func (c *client) handleMsg(src *btypes.Address, b []byte) {
 				dec = encoding.NewDecoder(apdu.RawData)
 				var iam btypes.IAm
 				err = dec.IAm(&iam)
-				helper.Logger.Debug("Received IAM Message", zap.Any("iam", iam.ID))
+				driverbox.Log().Debug("Received IAM Message", zap.Any("iam", iam.ID))
 				iam.Addr = *src
 
 				if npdu.Source != nil {
@@ -189,7 +189,7 @@ func (c *client) handleMsg(src *btypes.Address, b []byte) {
 					}
 				}
 				if err != nil {
-					helper.Logger.Error(err.Error())
+					driverbox.Log().Error(err.Error())
 					return
 				}
 
@@ -200,24 +200,24 @@ func (c *client) handleMsg(src *btypes.Address, b []byte) {
 				dec.WhoIs(&low, &high)
 				// For now we are going to ignore who is request.
 				// log.WithFields(log.Fields{"low": low, "high": high}).Debug("WHO IS Request")
-				helper.Logger.Debug("ignore who is request")
+				driverbox.Log().Debug("ignore who is request")
 			} else {
-				helper.Logger.Error(fmt.Sprintf("Unconfirmed: %d %v", apdu.UnconfirmedService, apdu.RawData))
+				driverbox.Log().Error(fmt.Sprintf("Unconfirmed: %d %v", apdu.UnconfirmedService, apdu.RawData))
 			}
 		case btypes.SimpleAck:
-			helper.Logger.Debug("Received Simple Ack")
+			driverbox.Log().Debug("Received Simple Ack")
 			err := c.tsm.Send(int(apdu.InvokeId), send)
 			if err != nil {
 				return
 			}
 		case btypes.ComplexAck:
-			helper.Logger.Debug("Received Complex Ack")
+			driverbox.Log().Debug("Received Complex Ack")
 			err := c.tsm.Send(int(apdu.InvokeId), send)
 			if err != nil {
 				return
 			}
 		case btypes.ConfirmedServiceRequest:
-			helper.Logger.Debug("Received  Confirmed Service Request")
+			driverbox.Log().Debug("Received  Confirmed Service Request")
 			err := c.tsm.Send(int(apdu.InvokeId), send)
 			if err != nil {
 				return
@@ -226,7 +226,7 @@ func (c *client) handleMsg(src *btypes.Address, b []byte) {
 			err := fmt.Errorf("error class %s code %s", apdu.Error.Class.String(), apdu.Error.Code.String())
 			err = c.tsm.Send(int(apdu.InvokeId), err)
 			if err != nil {
-				helper.Logger.Debug(fmt.Sprintf("unable to Send error to %d: %v", apdu.InvokeId, err))
+				driverbox.Log().Debug(fmt.Sprintf("unable to Send error to %d: %v", apdu.InvokeId, err))
 			}
 		default:
 			// Ignore it
@@ -239,7 +239,7 @@ func (c *client) handleMsg(src *btypes.Address, b []byte) {
 		// we will need to check it for any additional information we can gleam.
 		// NDPU has source
 		b = b[forwardHeaderLength:]
-		helper.Logger.Debug("Ignored NDPU Forwarded")
+		driverbox.Log().Debug("Ignored NDPU Forwarded")
 	}
 }
 

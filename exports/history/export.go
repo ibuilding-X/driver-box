@@ -9,7 +9,6 @@ import (
 
 	_ "github.com/glebarez/sqlite"
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/crontab"
@@ -75,7 +74,7 @@ func NewExport() *Export {
 func (export0 *Export) Init() error {
 	e := export0.initHistoryDataDB()
 	if e != nil {
-		helper.Logger.Error("init history data db error", zap.Error(e))
+		driverbox.Log().Error("init history data db error", zap.Error(e))
 		return e
 	}
 
@@ -93,7 +92,7 @@ func (export0 *Export) Init() error {
 		export0.writeRealTimeData(queue)
 	})
 	if e != nil {
-		helper.Logger.Error("register realTime data task error", zap.Error(e))
+		driverbox.Log().Error("register realTime data task error", zap.Error(e))
 		return e
 	}
 
@@ -106,7 +105,7 @@ func (export0 *Export) Init() error {
 		export0.writeDeviceSnapshotData()
 	})
 	if e != nil {
-		helper.Logger.Error("register snapshot data task error", zap.Error(e))
+		driverbox.Log().Error("register snapshot data task error", zap.Error(e))
 		return e
 	}
 
@@ -121,7 +120,7 @@ func (export0 *Export) Init() error {
 		export0.clearExpiredData(defaultDuration)
 	})
 	if e != nil {
-		helper.Logger.Error("register clear history data task error", zap.Error(e))
+		driverbox.Log().Error("register clear history data task error", zap.Error(e))
 		return e
 	}
 	export0.ready = true
@@ -172,14 +171,14 @@ func (export0 *Export) initHistoryDataDB() error {
 		//目录不存在创建目录
 		err = os.MkdirAll(dir, 0755)
 		if err != nil {
-			helper.Logger.Error("create history data directory error", zap.Error(err))
+			driverbox.Log().Error("create history data directory error", zap.Error(err))
 			return err
 		}
 	}
 	dataSourceName := dir + "/history.db"
 	export0.db, err = sql.Open("sqlite", dataSourceName)
 	if err != nil {
-		helper.Logger.Error("open history db error", zap.Error(err))
+		driverbox.Log().Error("open history db error", zap.Error(err))
 		return err
 	}
 
@@ -191,7 +190,7 @@ func (export0 *Export) initHistoryDataDB() error {
 
 	_, err = export0.db.Exec(SchemaSQL)
 	if err != nil {
-		helper.Logger.Error(err.Error())
+		driverbox.Log().Error(err.Error())
 		return err
 	}
 	return nil
@@ -204,10 +203,10 @@ func (export0 *Export) clearExpiredData(day int) {
 	durationDaysAgo := currentTime.Add(-24 * time.Duration(day) * time.Hour)
 	_, err := export0.db.Exec(historyDataSql, durationDaysAgo)
 	if err != nil {
-		helper.Logger.Error(err.Error())
+		driverbox.Log().Error(err.Error())
 	}
 	_, er := export0.db.Exec(realTimeDataSql, durationDaysAgo)
 	if er != nil {
-		helper.Logger.Error(er.Error())
+		driverbox.Log().Error(er.Error())
 	}
 }

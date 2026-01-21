@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/exports/modbusserver/mbserver"
 	"github.com/ibuilding-x/driver-box/exports/modbusserver/mbserver/modbus"
@@ -32,7 +31,7 @@ func (e *Export) Init() error {
 
 	// 启动
 	if err := ser.Start(); err != nil {
-		helper.Logger.Error("start modbus server error", zap.Error(err))
+		driverbox.Log().Error("start modbus server error", zap.Error(err))
 	}
 
 	return nil
@@ -45,7 +44,7 @@ func (e *Export) ExportTo(deviceData plugin.DeviceData) {
 	for _, point := range deviceData.Values {
 		err := e.server.SetProperty(deviceData.ID, point.PointName, point.Value)
 		if err != nil {
-			helper.Logger.Error("modbus server set property error", zap.Error(err))
+			driverbox.Log().Error("modbus server set property error", zap.Error(err))
 		}
 	}
 }
@@ -72,7 +71,7 @@ func (e *Export) writeHandler(id string, propertyValues []mbserver.PropertyValue
 	// 下发控制
 	err := driverbox.WritePoints(id, points)
 	if err != nil {
-		helper.Logger.Error("modbus server send batch write error", zap.Error(err))
+		driverbox.Log().Error("modbus server send batch write error", zap.Error(err))
 	}
 }
 

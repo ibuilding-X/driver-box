@@ -3,11 +3,12 @@ package dlt645
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"go.uber.org/zap"
 	"io"
 	"strings"
 	"time"
+
+	"github.com/ibuilding-x/driver-box/driverbox"
+	"go.uber.org/zap"
 )
 
 const (
@@ -120,7 +121,7 @@ func (dlt *Dlt645ClientProvider) SendRawFrame(request string) (response float64,
 	_, err = dlt.port.Write(serialMessage)
 	if err != nil {
 		_ = dlt.close()
-		helper.Logger.Error("dlt645 write port failed", zap.Error(err))
+		driverbox.Log().Error("dlt645 write port failed", zap.Error(err))
 		return 0, err
 	}
 

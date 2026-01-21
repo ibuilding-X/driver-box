@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/cache"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/pkg/library"
@@ -34,7 +34,7 @@ func checkMode(mode plugin.EncodeMode) bool {
 func deviceDriverProcess(deviceId string, mode plugin.EncodeMode, pointData ...plugin.PointData) ([]plugin.PointData, error) {
 	device, ok := cache.Get().GetDevice(deviceId)
 	if !ok {
-		helper.Logger.Error("unknown device", zap.Any("deviceId", device))
+		logger.Logger.Error("unknown device", zap.Any("deviceId", device))
 		return nil, errors.New("unknown device")
 	}
 	scaleEnable := len(device.DriverKey) == 0

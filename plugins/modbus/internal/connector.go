@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
@@ -55,11 +54,11 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 
 func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, error) {
 	if !conf.Enable {
-		helper.Logger.Warn("modbus connection is disabled, ignore collect task", zap.String("key", c.config.ConnectionKey))
+		driverbox.Log().Warn("modbus connection is disabled, ignore collect task", zap.String("key", c.config.ConnectionKey))
 		return nil, nil
 	}
 	if len(c.devices) == 0 {
-		helper.Logger.Warn("modbus connection has no device to collect", zap.String("key", c.config.ConnectionKey))
+		driverbox.Log().Warn("modbus connection has no device to collect", zap.String("key", c.config.ConnectionKey))
 		return nil, nil
 	}
 
@@ -68,13 +67,13 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 		//遍历所有通讯设备
 		for unitID, device := range c.devices {
 			if len(device.pointGroup) == 0 {
-				helper.Logger.Warn("device has none read point", zap.Uint8("unitID", unitID))
+				driverbox.Log().Warn("device has none read point", zap.Uint8("unitID", unitID))
 				continue
 			}
 			//批量遍历通讯设备下的点位，并将结果关联至物模型设备
 			for i, group := range device.pointGroup {
 				if c.close {
-					helper.Logger.Warn("modbus connection is closed, ignore collect task!", zap.String("key", c.config.ConnectionKey))
+					driverbox.Log().Warn("modbus connection is closed, ignore collect task!", zap.String("key", c.config.ConnectionKey))
 					break
 				}
 
@@ -88,7 +87,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 						group.TimeOutCount = 0
 						duration = group.Duration
 					}
-					helper.Logger.Warn("modbus connection has timeout, increase duration", zap.Any("group", group), zap.Any("duration", duration))
+					driverbox.Log().Warn("modbus connection has timeout, increase duration", zap.Any("group", group), zap.Any("duration", duration))
 				}
 				//采集时间未到
 				if group.LatestTime.Add(duration).After(time.Now()) {
@@ -97,17 +96,17 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 
 				//最近发生过写操作，推测当前时段可能存在其他设备的写入需求，采集任务主动避让
 				if c.writeSemaphore.Load() > 0 || c.latestWriteTime.Add(time.Duration(conf.MinInterval)).After(time.Now()) {
-					helper.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.config.ConnectionKey), zap.Any("semaphore", c.writeSemaphore.Load()))
+					driverbox.Log().Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.config.ConnectionKey), zap.Any("semaphore", c.writeSemaphore.Load()))
 					continue
 				}
 
-				helper.Logger.Debug("timer read modbus", zap.Any("group", i), zap.Any("latestTime", group.LatestTime), zap.Any("duration", group.Duration))
+				driverbox.Log().Debug("timer read modbus", zap.Any("group", i), zap.Any("latestTime", group.LatestTime), zap.Any("duration", group.Duration))
 				bac := command{
 					Mode:  plugin.ReadMode,
 					Value: group,
 				}
 				if err := c.Send(bac); err != nil {
-					helper.Logger.Error("read error", zap.Any("connection", conf), zap.Any("group", group), zap.Error(err))
+					driverbox.Log().Error("read error", zap.Any("connection", conf), zap.Any("group", group), zap.Error(err))
 					//发生读超时，设备可能离线或者当前group点位配置有问题。将当前group的采集时间设置为未来值，跳过数个采集周期
 					if errors.Is(err, modbus.ErrRequestTimedOut) {
 						group.TimeOutCount += 1
@@ -140,19 +139,19 @@ func (c *connector) createPointGroup(conf *ConnectionConfig, model config.Device
 		}
 		ext, err := convToPointExtend(point)
 		if err != nil {
-			helper.Logger.Error("error modbus point config", zap.String("deviceId", dev.ID), zap.Any("point", point), zap.Error(err))
+			driverbox.Log().Error("error modbus point config", zap.String("deviceId", dev.ID), zap.Any("point", point), zap.Error(err))
 			continue
 		}
 		ext.DeviceId = dev.ID
 		duration, err := time.ParseDuration(ext.Duration)
 		if err != nil {
-			helper.Logger.Error("error modbus duration config", zap.String("deviceId", dev.ID), zap.Any("config", point), zap.Error(err))
+			driverbox.Log().Error("error modbus duration config", zap.String("deviceId", dev.ID), zap.Any("config", point), zap.Error(err))
 			duration = time.Second
 		}
 
 		device, err := c.createDevice(dev.Properties)
 		if err != nil {
-			helper.Logger.Error("error modbus device config", zap.String("deviceId", dev.ID), zap.Any("config", point), zap.Error(err))
+			driverbox.Log().Error("error modbus device config", zap.String("deviceId", dev.ID), zap.Any("config", point), zap.Error(err))
 			continue
 		}
 		ok := false
@@ -271,7 +270,7 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 
 	if c.writeSemaphore.Load() > 0 {
 		c.resetCollectTime(group)
-		helper.Logger.Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.config.ConnectionKey), zap.Any("semaphore", c.writeSemaphore))
+		driverbox.Log().Warn("modbus connection is writing, ignore collect task!", zap.String("key", c.config.ConnectionKey), zap.Any("semaphore", c.writeSemaphore))
 		return nil
 	}
 
@@ -339,7 +338,7 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 				out = swapWords(out, point.WordSwap)
 				value = string(out)
 			default:
-				helper.Logger.Error(fmt.Sprintf("unsupported raw type: %v", point))
+				driverbox.Log().Error(fmt.Sprintf("unsupported raw type: %v", point))
 				continue
 			}
 		}
@@ -350,7 +349,7 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 		}
 		res, err := c.Decode(pointReadValue)
 		if err != nil {
-			helper.Logger.Error("error modbus callback", zap.Any("data", pointReadValue), zap.Error(err))
+			driverbox.Log().Error("error modbus callback", zap.Any("data", pointReadValue), zap.Error(err))
 		}
 		driverbox.Export(res)
 	}
@@ -540,7 +539,7 @@ func (c *connector) openModbusClient() error {
 	err := c.client.Open()
 	if err != nil {
 		c.mutex.Unlock()
-		helper.Logger.Error("open modbus client error", zap.Any("modbus", c.config), zap.Error(err))
+		driverbox.Log().Error("open modbus client error", zap.Any("modbus", c.config), zap.Error(err))
 	} else {
 		c.keepAlive = true
 	}
@@ -552,7 +551,7 @@ func (c *connector) closeModbusClient(e error) {
 		c.mutex.Unlock()
 	}()
 	if e != nil {
-		helper.Logger.Error("modbus client error, will close it", zap.Error(e))
+		driverbox.Log().Error("modbus client error, will close it", zap.Error(e))
 	}
 	//RTU 模式下，连接不关闭
 	if c.config.Mode != "rtu" || e != nil {
@@ -632,7 +631,7 @@ func convToPointExtend(extends config.Point) (*Point, error) {
 	extend := new(Point)
 	extend.Point = extends
 	if err := convutil.Struct(extends, extend); err != nil {
-		helper.Logger.Error("error modbus config", zap.Any("config", extends), zap.Error(err))
+		driverbox.Log().Error("error modbus config", zap.Any("config", extends), zap.Error(err))
 		return nil, err
 	}
 	//未设置，则默认每秒采集一次

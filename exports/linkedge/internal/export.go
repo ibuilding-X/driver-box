@@ -5,7 +5,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/event"
@@ -30,7 +30,7 @@ func (export *Export) Init() error {
 	var err error
 	export.EnvConfig, err = initLinkEdgeEnvConfig()
 	if err != nil {
-		helper.Logger.Error(fmt.Sprintf("init linkEdge env config error:%v", err))
+		driverbox.Log().Error(fmt.Sprintf("init linkEdge env config error:%v", err))
 		return err
 	}
 
@@ -43,7 +43,7 @@ func (export *Export) Init() error {
 	}
 	err = export.linkEdge.NewService()
 	if err != nil {
-		helper.Logger.Error(fmt.Sprintf("init linkEdge service error:%v", err))
+		driverbox.Log().Error(fmt.Sprintf("init linkEdge service error:%v", err))
 		return err
 	}
 	export.ready = true
@@ -52,7 +52,7 @@ func (export *Export) Init() error {
 func (export *Export) Destroy() error {
 	export.ready = false
 	for key, c := range export.linkEdge.schedules {
-		helper.Logger.Info("stop linkEdge cron", zap.String("id", key))
+		driverbox.Log().Info("stop linkEdge cron", zap.String("id", key))
 		c.Stop()
 	}
 	return nil
@@ -77,11 +77,11 @@ func (export *Export) ExportTo(deviceData plugin.DeviceData) {
 func (export *Export) OnEvent(eventCode string, key string, eventValue interface{}) error {
 	switch eventCode {
 	case event.EventCodeLinkEdgeTrigger:
-		helper.Logger.Info("trigger linkEdge", zap.String("id", key), zap.Any("result", eventValue))
+		driverbox.Log().Info("trigger linkEdge", zap.String("id", key), zap.Any("result", eventValue))
 	case event.EventCodePluginCallback:
 		data, ok := eventValue.([]plugin.DeviceData)
 		if !ok {
-			helper.Logger.Error("plugin callback data error", zap.Any("eventValue", eventValue))
+			driverbox.Log().Error("plugin callback data error", zap.Any("eventValue", eventValue))
 			return nil
 		}
 		for _, datum := range data {

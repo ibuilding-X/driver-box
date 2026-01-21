@@ -5,6 +5,7 @@ import (
 	"errors"
 	"path/filepath"
 
+	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/fileutil"
 	"github.com/ibuilding-x/driver-box/pkg/luautil"
@@ -23,7 +24,7 @@ func InitMockLua() {
 		if fileutil.FileExists(path) {
 			l, err := luautil.InitLuaVM(path)
 			if err != nil {
-				helper.Logger.Error("init lua vm error", zap.Error(err))
+				driverbox.Log().Error("init lua vm error", zap.Error(err))
 				return
 			}
 			ls = l
@@ -52,7 +53,7 @@ func (c *connector) mockWrite(slaveID uint8, registerType primaryTable, address 
 	}
 	result, err := luautil.CallLuaMethod(ls, "mockWrite", lua.LNumber(slaveID), lua.LString(registerType), lua.LNumber(address), valueTable)
 	if err == nil {
-		helper.Logger.Info("mockWrite result", zap.Any("result", result))
+		driverbox.Log().Info("mockWrite result", zap.Any("result", result))
 	}
 	return err
 }

@@ -3,11 +3,12 @@ package dlt645
 import (
 	"errors"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/shopspring/decimal"
 	"math/big"
 	"strconv"
 	"strings"
+
+	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/shopspring/decimal"
 )
 
 func DecConvertToX(n, num int) (string, error) {
@@ -61,11 +62,11 @@ func analysis(dlt *Dlt645ClientProvider, command string) (float64, error) {
 		dlt.Debug("invalid response", newCommands)
 		return 0, fmt.Errorf("invalid response")
 	} else {
-		helper.Logger.Debug(fmt.Sprintf("报文源码：%s", command))
-		helper.Logger.Debug(fmt.Sprintf("帧起始符：%s", newCommands[0]))
-		helper.Logger.Debug(fmt.Sprintf("报文源码：%s", command))
-		helper.Logger.Debug(fmt.Sprintf("报文源码：%s", command))
-		helper.Logger.Debug(fmt.Sprintf("报文源码：%s", command))
+		driverbox.Log().Debug(fmt.Sprintf("报文源码：%s", command))
+		driverbox.Log().Debug(fmt.Sprintf("帧起始符：%s", newCommands[0]))
+		driverbox.Log().Debug(fmt.Sprintf("报文源码：%s", command))
+		driverbox.Log().Debug(fmt.Sprintf("报文源码：%s", command))
+		driverbox.Log().Debug(fmt.Sprintf("报文源码：%s", command))
 		dlt.Debug("帧起始符：%s", newCommands[0])
 		meter_serial := newCommands[6] + newCommands[5] + newCommands[4] + newCommands[3] + newCommands[2] + newCommands[1]
 		dlt.Debug("电表地址：%s", meter_serial)

@@ -18,7 +18,6 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 )
@@ -52,29 +51,29 @@ func (wss *websocketService) handler(w http.ResponseWriter, r *http.Request) {
 	// 升级 websocket 连接
 	conn, err := wss.upGrader.Upgrade(w, r, nil)
 	if err != nil {
-		helper.Logger.Error("gateway export ws upgrade error", zap.Error(err))
+		driverbox.Log().Error("gateway export ws upgrade error", zap.Error(err))
 		return
 	}
 	defer conn.Close()
 
-	helper.Logger.Info("gateway export ws connect success", zap.String("remoteAddress", conn.RemoteAddr().String()))
+	driverbox.Log().Info("gateway export ws connect success", zap.String("remoteAddress", conn.RemoteAddr().String()))
 
 	// 处理 websocket 消息
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
-			helper.Logger.Error("gateway export read ws message error", zap.Error(err))
+			driverbox.Log().Error("gateway export read ws message error", zap.Error(err))
 			break
 		}
 
 		if err = wss.handleMessage(conn, message); err != nil {
-			helper.Logger.Error("gateway export handle ws message error", zap.Error(err))
+			driverbox.Log().Error("gateway export handle ws message error", zap.Error(err))
 		}
 	}
 	wss.mainGatewayConn = nil
 	wss.mainGateway = ""
 	// ws 连接关闭
-	helper.Logger.Warn("gateway export ws close", zap.String("remoteAddress", conn.RemoteAddr().String()))
+	driverbox.Log().Warn("gateway export ws close", zap.String("remoteAddress", conn.RemoteAddr().String()))
 }
 
 // handleMessage 处理消息
@@ -112,27 +111,27 @@ func (wss *websocketService) handleMessage(conn *websocket.Conn, message []byte)
 		}
 	case WSForReportRes: // 设备数据上报响应
 		if payload.Error != "" {
-			helper.Logger.Error("gateway export report error", zap.String("error", payload.Error))
+			driverbox.Log().Error("gateway export report error", zap.String("error", payload.Error))
 		} else {
-			helper.Logger.Info("gateway export report success")
+			driverbox.Log().Info("gateway export report success")
 		}
 	case WSForSyncModelsRes: // 模型数据同步响应
 		if payload.Error != "" {
-			helper.Logger.Error("gateway export sync models error", zap.String("error", payload.Error))
+			driverbox.Log().Error("gateway export sync models error", zap.String("error", payload.Error))
 		} else {
-			helper.Logger.Info("gateway export sync models success")
+			driverbox.Log().Info("gateway export sync models success")
 		}
 	case WSForSyncDevicesRes: // 设备数据同步响应
 		if payload.Error != "" {
-			helper.Logger.Error("gateway export sync devices error", zap.String("error", payload.Error))
+			driverbox.Log().Error("gateway export sync devices error", zap.String("error", payload.Error))
 		} else {
-			helper.Logger.Info("gateway export sync devices success")
+			driverbox.Log().Info("gateway export sync devices success")
 		}
 	case WSForSyncShadowRes: // 设备影子数据同步响应
 		if payload.Error != "" {
-			helper.Logger.Error("gateway export sync shadow error", zap.String("error", payload.Error))
+			driverbox.Log().Error("gateway export sync shadow error", zap.String("error", payload.Error))
 		} else {
-			helper.Logger.Info("gateway export sync shadow success")
+			driverbox.Log().Info("gateway export sync shadow success")
 		}
 	default:
 		return nil
@@ -182,7 +181,7 @@ func (wss *websocketService) syncModels() {
 	sendData.Models = deviceModels
 
 	if err := wss.sendJSONToWebSocket(sendData); err != nil {
-		helper.Logger.Error("gateway export sync models error", zap.Error(err))
+		driverbox.Log().Error("gateway export sync models error", zap.Error(err))
 	}
 }
 
@@ -212,7 +211,7 @@ func (wss *websocketService) syncDevices() {
 	sendData.Devices = devices
 
 	if err := wss.sendJSONToWebSocket(sendData); err != nil {
-		helper.Logger.Error("gateway export sync devices error", zap.Error(err))
+		driverbox.Log().Error("gateway export sync devices error", zap.Error(err))
 	}
 }
 
@@ -231,7 +230,7 @@ func (wss *websocketService) syncDevicesPoints() {
 	sendData.Shadow = devices
 
 	if err := wss.sendJSONToWebSocket(sendData); err != nil {
-		helper.Logger.Error("gateway export sync shadow error", zap.Error(err))
+		driverbox.Log().Error("gateway export sync shadow error", zap.Error(err))
 	}
 }
 
@@ -279,7 +278,7 @@ func (wss *websocketService) sendDeviceData(data plugin.DeviceData) {
 	sendData.DeviceData = data
 
 	if err := wss.sendJSONToWebSocket(sendData); err != nil {
-		helper.Logger.Error("gateway export send device data error", zap.Error(err))
+		driverbox.Log().Error("gateway export send device data error", zap.Error(err))
 	}
 }
 

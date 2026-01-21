@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet"
@@ -116,7 +115,7 @@ func (c *connector) Encode(deviceSn string, mode plugin.EncodeMode, values ...pl
 			//是否存在前置操作
 			if len(bwc.PreOp) > 0 {
 				for _, op := range bwc.PreOp {
-					helper.Logger.Info("Send preOp", zap.String("deviceId", deviceSn), zap.String("pointName", op.PointName), zap.Any("value", op.Value))
+					driverbox.Log().Info("Send preOp", zap.String("deviceId", deviceSn), zap.String("pointName", op.PointName), zap.Any("value", op.Value))
 					err = driverbox.WritePoint(deviceSn, plugin.PointData{
 						PointName: op.PointName,
 						Value:     op.Value,

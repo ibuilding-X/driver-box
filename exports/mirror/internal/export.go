@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
@@ -31,7 +30,7 @@ type Export struct {
 
 func (export *Export) Init() error {
 	if os.Getenv(config.ENV_EXPORT_MIRROR_ENABLED) == "false" {
-		helper.Logger.Warn("mirror export is disabled")
+		driverbox.Log().Warn("mirror export is disabled")
 		return nil
 	}
 	//注册镜像插件
@@ -55,7 +54,7 @@ func NewExport() *Export {
 func (export *Export) ExportTo(deviceData plugin.DeviceData) {
 	//设备点位已通过
 	//if export.plugin.VirtualConnector != nil && len(deviceData.Events) > 0 {
-	//	helper.Logger.Info("export to virtual connector", zap.Any("deviceData", deviceData))
+	//	driverbox.Log().Info("export to virtual connector", zap.Any("deviceData", deviceData))
 	//	callback.OnReceiveHandler(export.plugin.VirtualConnector, deviceData)
 	//}
 }
@@ -89,25 +88,25 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 }
 
 func (export *Export) autoCreateMirrorDevice(deviceId string) error {
-	helper.Logger.Info("auto create mirror device checking", zap.String("deviceId", deviceId))
+	driverbox.Log().Info("auto create mirror device checking", zap.String("deviceId", deviceId))
 	//第一步：参数合法性校验
 	device, ok := driverbox.CoreCache().GetDevice(deviceId)
 	if !ok {
-		helper.Logger.Info("auto create mirror device failed, device not found", zap.String("deviceId", deviceId))
+		driverbox.Log().Info("auto create mirror device failed, device not found", zap.String("deviceId", deviceId))
 		return nil
 	}
 	rawModel, ok := driverbox.CoreCache().GetModel(device.ModelName)
 	if !ok {
-		helper.Logger.Info("auto create mirror device failed, model not found", zap.String("deviceId", deviceId), zap.String("modelName", device.ModelName))
+		driverbox.Log().Info("auto create mirror device failed, model not found", zap.String("deviceId", deviceId), zap.String("modelName", device.ModelName))
 		return nil
 	}
 	c, err := export.getMirrorConfig(rawModel)
 	if err != nil {
-		helper.Logger.Error("auto create mirror device failed", zap.String("deviceId", deviceId), zap.Error(err))
+		driverbox.Log().Error("auto create mirror device failed", zap.String("deviceId", deviceId), zap.Error(err))
 		return err
 	}
 	if c == nil {
-		helper.Logger.Info("auto create mirror device failed, no mirror config", zap.String("deviceId", deviceId), zap.Any("modeName", rawModel.Name))
+		driverbox.Log().Info("auto create mirror device failed, no mirror config", zap.String("deviceId", deviceId), zap.Any("modeName", rawModel.Name))
 		return nil
 	}
 
@@ -116,7 +115,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	if err := convutil.Struct(c, mirrorConfig); err != nil {
 		return err
 	}
-	helper.Logger.Info("auto create mirror device", zap.String("deviceId", deviceId), zap.Any("mirrorConfig", mirrorConfig))
+	driverbox.Log().Info("auto create mirror device", zap.String("deviceId", deviceId), zap.Any("mirrorConfig", mirrorConfig))
 	properties := make(map[string]string)
 	if device.Properties != nil {
 		for key, val := range device.Properties {
@@ -137,14 +136,14 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 
 	driverbox.CoreCache().UpdateDeviceProperty(deviceId, PropertyKeyAutoMirrorTo, mirrorDevice.ID)
 	if _, ok := driverbox.CoreCache().GetDevice(mirrorDevice.ID); ok {
-		helper.Logger.Info("auto create mirror device ignore, device already exists", zap.String("deviceId", mirrorDevice.ID))
+		driverbox.Log().Info("auto create mirror device ignore, device already exists", zap.String("deviceId", mirrorDevice.ID))
 		return nil
 	}
 
 	//加载模型库资源
 	mirrorModel, err := library.Model().LoadLibrary(mirrorConfig.ModelKey)
 	if err != nil {
-		helper.Logger.Error("auto create mirror device failed, modelKey not exists", zap.String("deviceId", deviceId), zap.String("modelKey", mirrorConfig.ModelKey), zap.Error(err))
+		driverbox.Log().Error("auto create mirror device failed, modelKey not exists", zap.String("deviceId", deviceId), zap.String("modelKey", mirrorConfig.ModelKey), zap.Error(err))
 		return err
 	}
 	mirrorModel.Name = mirrorDevice.ModelName
@@ -154,7 +153,7 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	for _, point := range mirrorConfig.Points {
 		pointName, ok := point["name"]
 		if !ok || len(pointName) == 0 {
-			helper.Logger.Error("auto create mirror device failed, point name is nil", zap.Any("mirrorConfig", mirrorConfig), zap.String("deviceId", deviceId))
+			driverbox.Log().Error("auto create mirror device failed, point name is nil", zap.Any("mirrorConfig", mirrorConfig), zap.String("deviceId", deviceId))
 			return nil
 		}
 		//根据镜像模版中定义的点名，找到镜像模型的点位配置
@@ -176,12 +175,12 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	//第三步：配置持久化
 	e := driverbox.CoreCache().AddModel(mirror.ProtocolName, mirrorModel)
 	if e != nil {
-		helper.Logger.Error("add mirror model error", zap.Error(e))
+		driverbox.Log().Error("add mirror model error", zap.Error(e))
 		return e
 	}
 	e = driverbox.CoreCache().AddOrUpdateDevice(mirrorDevice)
 	if e != nil {
-		helper.Logger.Error("add mirror model error", zap.Error(e))
+		driverbox.Log().Error("add mirror model error", zap.Error(e))
 		return e
 	}
 	//ready为false，说明不存在mirror目录
@@ -189,19 +188,19 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 		e = export.plugin.UpdateMirrorMapping(mirrorModel, mirrorDevice)
 	} else {
 		e = errors.New("mirror plugin is not ready")
-		//helper.Logger.Info("add mirror model success, but mirror plugin is not ready. will initialize...")
+		//driverbox.Log().Info("add mirror model success, but mirror plugin is not ready. will initialize...")
 		//c, ok := cmanager.GetConfig(mirror.PluginName)
 		//if !ok {
-		//	helper.Logger.Info("mirror plugin initialize fail")
+		//	driverbox.Log().Info("mirror plugin initialize fail")
 		//	return errors.New("mirror config not found")
 		//}
 		//export.plugin.Initialize(c)
 		//// 缓存插件
-		//helper.Logger.Info("mirror plugin initialize success")
+		//driverbox.Log().Info("mirror plugin initialize success")
 	}
 
 	if e == nil {
-		helper.Logger.Info("auto create mirror device success", zap.String("deviceId", deviceId))
+		driverbox.Log().Info("auto create mirror device success", zap.String("deviceId", deviceId))
 	}
 	return e
 }

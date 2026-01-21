@@ -46,7 +46,7 @@ func loadPlugins() error {
 	library.Driver().UnloadDeviceDrivers()
 
 	//打印环境配置
-	helper.Logger.Info("driver-box environment config", zap.Any("config", helper.EnvConfig))
+	Log().Info("driver-box environment config", zap.Any("config", helper.EnvConfig))
 	// 缓存核心配置
 	_, err := cache.InitCoreCache(plugins.plugins)
 	if err != nil {
@@ -63,10 +63,10 @@ func loadPlugins() error {
 
 	// 启动插件
 	for key, p := range plugins.plugins {
-		helper.Logger.Info(key+" begin start", zap.Any("directoryName", key), zap.Any("plugin", key))
+		Log().Info(key+" begin start", zap.Any("directoryName", key), zap.Any("plugin", key))
 		p.Initialize(cache.GetConfig(key))
 
-		helper.Logger.Info("start success", zap.Any("directoryName", key), zap.Any("plugin", key))
+		Log().Info("start success", zap.Any("directoryName", key), zap.Any("plugin", key))
 	}
 
 	//完成初始化后触发设备添加事件通知
@@ -101,7 +101,7 @@ func initProtocolDriver() error {
 	for key, _ := range drivers {
 		err := library.Protocol().LoadLibrary(key)
 		if err != nil {
-			helper.Logger.Error("load device protocol error", zap.String("driverKey", key), zap.Error(err))
+			Log().Error("load device protocol error", zap.String("driverKey", key), zap.Error(err))
 			return err
 		}
 	}
@@ -114,7 +114,7 @@ func initDeviceShadow() {
 	for _, dev := range CoreCache().Devices() {
 		// 设备存在校验
 		if Shadow().HasDevice(dev.ID) {
-			helper.Logger.Warn("device already exist", zap.String("deviceId", dev.ID))
+			Log().Warn("device already exist", zap.String("deviceId", dev.ID))
 			continue
 		}
 		// 添加设备
@@ -126,9 +126,9 @@ func destroyPlugins() {
 	for key, p := range plugins.plugins {
 		err := p.Destroy()
 		if err != nil {
-			helper.Logger.Error("stop plugin error", zap.String("plugin", key), zap.Error(err))
+			Log().Error("stop plugin error", zap.String("plugin", key), zap.Error(err))
 		} else {
-			helper.Logger.Info("stop plugin success", zap.String("plugin", key))
+			Log().Info("stop plugin success", zap.String("plugin", key))
 		}
 	}
 }

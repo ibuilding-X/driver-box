@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
@@ -27,7 +26,7 @@ func LoadExport() {
 }
 func (export *Export) Init() error {
 	if os.Getenv(config.ENV_EXPORT_DISCOVER_ENABLED) == "false" {
-		helper.Logger.Warn("discover export is disabled")
+		driverbox.Log().Warn("discover export is disabled")
 		return nil
 	}
 	export.ready = true
@@ -49,7 +48,7 @@ func (export *Export) Destroy() error {
 func (export *Export) ExportTo(deviceData plugin.DeviceData) {
 	//设备点位已通过
 	//if export.plugin.VirtualConnector != nil && len(deviceData.Events) > 0 {
-	//	helper.Logger.Info("export to virtual connector", zap.Any("deviceData", deviceData))
+	//	driverbox.Log().Info("export to virtual connector", zap.Any("deviceData", deviceData))
 	//	callback.OnReceiveHandler(export.plugin.VirtualConnector, deviceData)
 	//}
 }
@@ -65,15 +64,15 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 
 // 设备自动发现
 func (export *Export) deviceAutoDiscover(deviceId string, value interface{}) error {
-	helper.Logger.Info("device auto discover", zap.Any("deviceId", deviceId), zap.Any("value", value))
+	driverbox.Log().Info("device auto discover", zap.Any("deviceId", deviceId), zap.Any("value", value))
 	deviceDiscover := DeviceDiscover{}
 	if err := convutil.Struct(value, &deviceDiscover); err != nil {
-		helper.Logger.Error("device auto discover conv2struct error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
+		driverbox.Log().Error("device auto discover conv2struct error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
 		return err
 	}
 	model, err := library.Model().LoadLibrary(deviceDiscover.ModelKey)
 	if err != nil {
-		helper.Logger.Error("device auto discover load model error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
+		driverbox.Log().Error("device auto discover load model error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
 		return err
 	}
 	//通过 modelKey 添加的统一模型 Name
@@ -111,7 +110,7 @@ func (export *Export) deviceAutoDiscover(deviceId string, value interface{}) err
 
 	err = driverbox.CoreCache().AddModel(deviceDiscover.ProtocolName, model)
 	if err != nil {
-		helper.Logger.Error("device auto discover add model error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
+		driverbox.Log().Error("device auto discover add model error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
 		return err
 	}
 	//添加设备
@@ -119,7 +118,7 @@ func (export *Export) deviceAutoDiscover(deviceId string, value interface{}) err
 	deviceDiscover.Device.ConnectionKey = deviceDiscover.ConnectionKey
 	err = driverbox.CoreCache().AddOrUpdateDevice(deviceDiscover.Device)
 	if err != nil {
-		helper.Logger.Error("device auto discover add device error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
+		driverbox.Log().Error("device auto discover add device error", zap.String("deviceId", deviceId), zap.Any("value", value), zap.Any("error", err))
 		return err
 	}
 

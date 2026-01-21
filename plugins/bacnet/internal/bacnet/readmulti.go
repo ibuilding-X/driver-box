@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
 	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/encoding"
 
@@ -102,7 +102,7 @@ func (c *client) sendReadMultipleProperty(id int, dev btypes.Device, npdu *btype
 	}
 	err = dec.ReadMultiplePropertyAck(&out)
 	if err != nil {
-		helper.Logger.Debug(fmt.Sprintf("WEIRD PACKET: %v: %v", err, b))
+		driverbox.Log().Debug(fmt.Sprintf("WEIRD PACKET: %v: %v", err, b))
 		return out, err
 	}
 	return out, err

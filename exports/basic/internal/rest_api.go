@@ -36,7 +36,6 @@ func registerApi() {
 	restful.HandleFunc(http.MethodGet, route.DevicePointRead, readPoint)
 	restful.HandleFunc(http.MethodGet, route.DeviceList, deviceList)
 	restful.HandleFunc(http.MethodGet, route.DeviceGet, deviceGet)
-	restful.HandleFunc(http.MethodPost, route.DeviceDelete, deviceDelete)
 
 	//资源库服务
 	restful.HandleFunc(http.MethodGet, route.V1Prefix+"library/model/get", libraryModelGet)
@@ -81,7 +80,7 @@ func registerApi() {
 		srv = &http.Server{Addr: ":" + helper.EnvConfig.HttpListen, Handler: restful.HttpRouter}
 		e := srv.ListenAndServe()
 		if e != nil {
-			helper.Logger.Error("start rest server error", zap.Error(e))
+			driverbox.Log().Error("start rest server error", zap.Error(e))
 		}
 	}()
 }
@@ -287,28 +286,6 @@ func deviceGet(r *http.Request) (any, error) {
 		return nil, errors.New("device not found")
 	}
 	return device, nil
-}
-
-// 删除设备
-func deviceDelete(r *http.Request) (any, error) {
-	type Body struct {
-		DeviceIds []string `json:"deviceIds"`
-	}
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		return false, err
-	}
-	defer r.Body.Close()
-	//解析body
-	var cfg Body
-	err = json.Unmarshal(body, &cfg)
-	if err != nil {
-		return false, err
-	}
-	defer func() {
-		driverbox.ReloadPlugins()
-	}()
-	return nil, driverbox.CoreCache().BatchRemoveDevice(cfg.DeviceIds)
 }
 
 func libraryModelGet(r *http.Request) (any, error) {

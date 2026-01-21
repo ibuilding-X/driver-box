@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"go.uber.org/zap"
@@ -24,7 +23,7 @@ func (p *Plugin) Initialize(c config.Config) {
 
 	// 初始化连接
 	if err := p.initNetworks(); err != nil {
-		helper.Logger.Error("initialize bacnet plugin error", zap.Error(err))
+		driverbox.Log().Error("initialize bacnet plugin error", zap.Error(err))
 	}
 
 }

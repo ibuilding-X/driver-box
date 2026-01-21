@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
@@ -67,7 +66,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 				}
 				var ext extends
 				if err = convutil.Struct(point, &ext); err != nil {
-					helper.Logger.Error("error bacnet config", zap.Any("config", point), zap.Error(err))
+					driverbox.Log().Error("error bacnet config", zap.Any("config", point), zap.Error(err))
 					continue
 				}
 				//未设置，则默认每秒采集一次
@@ -76,13 +75,13 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 				}
 				duration, err := time.ParseDuration(ext.Duration)
 				if err != nil {
-					helper.Logger.Error("error bacnet duration config", zap.String("deviceId", dev.ID), zap.Any("config", point), zap.Error(err))
+					driverbox.Log().Error("error bacnet duration config", zap.String("deviceId", dev.ID), zap.Any("config", point), zap.Error(err))
 					duration = time.Second
 				}
 
 				object, err := createObject(ext)
 				if err != nil {
-					helper.Logger.Error("error bacnet config", zap.Any("config", point), zap.Error(err))
+					driverbox.Log().Error("error bacnet config", zap.Any("config", point), zap.Error(err))
 					continue
 
 				}
@@ -98,7 +97,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 					for _, obj := range group.multiData.Objects {
 						if obj.ID.Instance == object.ID.Instance {
 							if obj.ID.Type != object.ID.Type {
-								helper.Logger.Error("error bacnet config, the same instance has different type")
+								driverbox.Log().Error("error bacnet config, the same instance has different type")
 							} else {
 								obj.Points[dev.ID] = point.Name()
 							}
@@ -142,13 +141,13 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 		//遍历所有通讯设备
 		for deviceId, device := range c.devices {
 			if len(device.pointGroup) == 0 {
-				helper.Logger.Warn("device has none read point", zap.String("device", deviceId))
+				driverbox.Log().Warn("device has none read point", zap.String("device", deviceId))
 				continue
 			}
 			//批量遍历通讯设备下的点位，并将结果关联至物模型设备
 			for i, group := range device.pointGroup {
 				if c.close {
-					helper.Logger.Warn("bacnet connection is closed, ignore collect task!", zap.String("key", c.key))
+					driverbox.Log().Warn("bacnet connection is closed, ignore collect task!", zap.String("key", c.key))
 					break
 				}
 
@@ -156,7 +155,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 					continue
 				}
 				//采集时间未到
-				helper.Logger.Debug("timer read bacnet", zap.Any("group", i), zap.Any("latestTime", group.LatestTime), zap.Any("duration", group.Duration))
+				driverbox.Log().Debug("timer read bacnet", zap.Any("group", i), zap.Any("latestTime", group.LatestTime), zap.Any("duration", group.Duration))
 				bac := bacRequest{
 					deviceId: deviceId,
 					mode:     plugin.ReadMode,
@@ -165,7 +164,7 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 					},
 				}
 				if err = c.Send(bac); err != nil {
-					helper.Logger.Error("read error", zap.Error(err))
+					driverbox.Log().Error("read error", zap.Error(err))
 					//通讯失败，触发离线
 					devices := make(map[string]interface{})
 					for _, obj := range group.multiData.Objects {
@@ -195,7 +194,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 	br := raw.(bacRequest)
 	device, ok := c.devices[br.deviceId]
 	if !ok {
-		helper.Logger.Error("none device config")
+		driverbox.Log().Error("none device config")
 		return err
 	}
 	switch br.mode {
@@ -213,13 +212,13 @@ func (c *connector) Send(raw interface{}) (err error) {
 			return err
 		}
 		if out.ErrorClass != 0 {
-			helper.Logger.Error(fmt.Sprintf("read error: [%d-%d] %s)", out.ErrorClass, out.ErrorCode, err.Error()))
+			driverbox.Log().Error(fmt.Sprintf("read error: [%d-%d] %s)", out.ErrorClass, out.ErrorCode, err.Error()))
 			return err
 		}
 		for _, object := range out.Objects {
 			resp, err := convertObj2Resp(&object)
 			if err != nil {
-				helper.Logger.Error("error bacnet result", zap.Any("object", object), zap.Error(err))
+				driverbox.Log().Error("error bacnet result", zap.Any("object", object), zap.Error(err))
 				continue
 			}
 
@@ -233,7 +232,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 					respJson, err := json.Marshal(resp)
 					res, err := c.Decode(respJson)
 					if err != nil {
-						helper.Logger.Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
+						driverbox.Log().Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
 					} else {
 						driverbox.Export(res)
 					}
@@ -247,12 +246,12 @@ func (c *connector) Send(raw interface{}) (err error) {
 				//err = mockWrite(c.plugin.ls, write.DeviceId, write.PointName, write.WriteValue)
 				err = errors.New("unSupport now")
 				if err != nil {
-					helper.Logger.Error("mock write error", zap.Error(err))
+					driverbox.Log().Error("mock write error", zap.Error(err))
 				}
 			} else {
 				err = device.device.Write(write)
 				if err != nil {
-					helper.Logger.Error(fmt.Sprintf("write error: %s", err.Error()))
+					driverbox.Log().Error(fmt.Sprintf("write error: %s", err.Error()))
 				}
 			}
 		}
@@ -427,7 +426,7 @@ func initConnector(key string, config map[string]interface{}, p *Plugin) (*conne
 				//启动数据采集任务
 				err = c.initCollectTask(&bic)
 				if err != nil {
-					helper.Logger.Error("init Collect Task error", zap.Error(err))
+					driverbox.Log().Error("init Collect Task error", zap.Error(err))
 				}
 				return c, err
 			} else {

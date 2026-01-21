@@ -124,7 +124,7 @@ func (c *connector) connect() {
 	}
 
 	for {
-		helper.Logger.Info("gateway plugin connect to gateway", zap.String("url", url))
+		driverbox.Log().Info("gateway plugin connect to gateway", zap.String("url", url))
 
 		// 建立连接
 		var conn *websocket.Conn
@@ -132,7 +132,7 @@ func (c *connector) connect() {
 
 		if conn, _, err = dialer.Dial(url, nil); err == nil {
 			// 连接成功
-			helper.Logger.Info("gateway plugin connect to gateway success")
+			driverbox.Log().Info("gateway plugin connect to gateway success")
 			// 存储连接
 			c.conn = conn
 			// 发送注册消息
@@ -145,7 +145,7 @@ func (c *connector) connect() {
 				}
 				// 处理子网关数据
 				if err = c.handleWebSocketMessage(conn, message); err != nil {
-					helper.Logger.Error("gateway plugin handle websocket message failed", zap.Error(err), zap.Any("message", message))
+					driverbox.Log().Error("gateway plugin handle websocket message failed", zap.Error(err), zap.Any("message", message))
 				}
 			}
 		}
@@ -154,18 +154,18 @@ func (c *connector) connect() {
 		// 关闭连接
 		if conn != nil {
 			if err = conn.Close(); err != nil {
-				helper.Logger.Error("gateway plugin close websocket connection failed", zap.Error(err))
+				driverbox.Log().Error("gateway plugin close websocket connection failed", zap.Error(err))
 			}
 		}
 		// 删除存储的 websocket 连接
 		c.conn = nil
 		// 已销毁连接不再重连
 		if c.destroyed {
-			helper.Logger.Info("gateway plugin destroyed, stop reconnect")
+			driverbox.Log().Info("gateway plugin destroyed, stop reconnect")
 			break
 		}
 		// 延迟重连
-		helper.Logger.Error("gateway plugin connect to gateway failed, retry after 30 seconds")
+		driverbox.Log().Error("gateway plugin connect to gateway failed, retry after 30 seconds")
 		time.Sleep(c.conf.reconnectInterval)
 	}
 }
@@ -236,19 +236,19 @@ func (c *connector) register() {
 		Type:       gateway.WSForRegister,
 		GatewayKey: c.conf.IP, // 网关唯一标识
 	}); err != nil {
-		helper.Logger.Error("gateway plugin send register payload failed", zap.String("IP", c.conf.IP), zap.Error(err))
+		driverbox.Log().Error("gateway plugin send register payload failed", zap.String("IP", c.conf.IP), zap.Error(err))
 	}
 }
 
 // registerRes 处理注册响应
 func (c *connector) registerRes(payload gateway.WSPayload) error {
 	if payload.Error != "" {
-		helper.Logger.Error("gateway plugin register failed", zap.String("IP", c.conf.IP), zap.String("error", payload.Error))
+		driverbox.Log().Error("gateway plugin register failed", zap.String("IP", c.conf.IP), zap.String("error", payload.Error))
 		return nil
 	}
 
 	// 注册成功
-	helper.Logger.Info("gateway plugin register success", zap.String("IP", c.conf.IP))
+	driverbox.Log().Info("gateway plugin register success", zap.String("IP", c.conf.IP))
 	// 更新网关设备状态
 	return driverbox.Shadow().SetDevicePoint(c.conf.IP, "SN", payload.GatewayKey)
 }
@@ -260,18 +260,18 @@ func (c *connector) unregister() {
 		Type:       gateway.WSForUnregister,
 		GatewayKey: driverbox.GetMetadata().SerialNo, // 网关唯一标识
 	}); err != nil {
-		helper.Logger.Error("gateway plugin send unregister payload failed", zap.String("IP", c.conf.IP))
+		driverbox.Log().Error("gateway plugin send unregister payload failed", zap.String("IP", c.conf.IP))
 	}
 }
 
 // unregisterRes 处理注销响应
 func (c *connector) unregisterRes(payload gateway.WSPayload) error {
 	if payload.Error != "" {
-		helper.Logger.Error("gateway plugin unregister failed", zap.String("IP", c.conf.IP), zap.String("error", payload.Error))
+		driverbox.Log().Error("gateway plugin unregister failed", zap.String("IP", c.conf.IP), zap.String("error", payload.Error))
 	}
 
 	// 注销成功
-	helper.Logger.Info("gateway plugin unregister success", zap.String("IP", c.conf.IP))
+	driverbox.Log().Info("gateway plugin unregister success", zap.String("IP", c.conf.IP))
 	// 更新网关设备状态
 	return driverbox.Shadow().SetOffline(c.conf.IP)
 }
@@ -281,13 +281,13 @@ func (c *connector) ping() {
 	if err := c.sendWebSocketPayload(gateway.WSPayload{
 		Type: gateway.WSForPing,
 	}); err != nil {
-		helper.Logger.Error("gateway plugin send ping payload failed", zap.String("IP", c.conf.IP))
+		driverbox.Log().Error("gateway plugin send ping payload failed", zap.String("IP", c.conf.IP))
 	}
 }
 
 // pong 处理心跳响应
 func (c *connector) pong(_ gateway.WSPayload) error {
-	helper.Logger.Debug("gateway plugin pong", zap.String("IP", c.conf.IP))
+	driverbox.Log().Debug("gateway plugin pong", zap.String("IP", c.conf.IP))
 	return nil
 }
 
@@ -299,7 +299,7 @@ func (c *connector) syncModels(payload gateway.WSPayload) error {
 			err := driverbox.CoreCache().AddModel(ProtocolName, model)
 			if err != nil {
 				errCounter++
-				helper.Logger.Error("gateway plugin add model failed", zap.Any("model", model), zap.Error(err))
+				driverbox.Log().Error("gateway plugin add model failed", zap.Any("model", model), zap.Error(err))
 			}
 		}
 
@@ -323,7 +323,7 @@ func (c *connector) syncModelsRes(err error) {
 		Type:  gateway.WSForSyncModelsRes,
 		Error: errMsg,
 	}); err != nil {
-		helper.Logger.Error("gateway plugin send sync models res failed", zap.String("IP", c.conf.IP))
+		driverbox.Log().Error("gateway plugin send sync models res failed", zap.String("IP", c.conf.IP))
 	}
 }
 
@@ -347,7 +347,7 @@ func (c *connector) syncDevices(payload gateway.WSPayload) error {
 			err := driverbox.CoreCache().AddOrUpdateDevice(device)
 			if err != nil {
 				errCounter++
-				helper.Logger.Error("gateway plugin add device failed", zap.Any("device", device))
+				driverbox.Log().Error("gateway plugin add device failed", zap.Any("device", device))
 			}
 		}
 
@@ -371,7 +371,7 @@ func (c *connector) syncDevicesRes(err error) {
 		Type:  gateway.WSForSyncDevicesRes,
 		Error: errMsg,
 	}); err != nil {
-		helper.Logger.Error("gateway plugin send sync devices res failed", zap.String("IP", c.conf.IP))
+		driverbox.Log().Error("gateway plugin send sync devices res failed", zap.String("IP", c.conf.IP))
 	}
 }
 
@@ -401,7 +401,7 @@ func (c *connector) syncShadowRes(err error) {
 		Type:  gateway.WSForSyncShadowRes,
 		Error: errMsg,
 	}); err != nil {
-		helper.Logger.Error("gateway plugin send shadow res failed", zap.String("IP", c.conf.IP))
+		driverbox.Log().Error("gateway plugin send shadow res failed", zap.String("IP", c.conf.IP))
 	}
 }
 
@@ -411,15 +411,15 @@ func (c *connector) control(data plugin.DeviceData) {
 		Type:       gateway.WSForControl,
 		DeviceData: data,
 	}); err != nil {
-		helper.Logger.Error("gateway plugin send control payload failed", zap.String("IP", c.conf.IP))
+		driverbox.Log().Error("gateway plugin send control payload failed", zap.String("IP", c.conf.IP))
 	}
 }
 
 func (c *connector) controlRes(payload gateway.WSPayload) error {
 	if payload.Error != "" {
-		helper.Logger.Error("gateway plugin control failed", zap.String("IP", c.conf.IP), zap.String("error", payload.Error))
+		driverbox.Log().Error("gateway plugin control failed", zap.String("IP", c.conf.IP), zap.String("error", payload.Error))
 	} else {
-		helper.Logger.Info("gateway plugin control success", zap.String("IP", c.conf.IP))
+		driverbox.Log().Info("gateway plugin control success", zap.String("IP", c.conf.IP))
 	}
 	return nil
 }

@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
 	"go.uber.org/zap"
@@ -161,7 +160,7 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 
 	ext, err := convToPointExtend(p)
 	if err != nil {
-		helper.Logger.Error("error modbus point config", zap.String("deviceId", deviceId), zap.Any("point", pointData.PointName), zap.Error(err))
+		driverbox.Log().Error("error modbus point config", zap.String("deviceId", deviceId), zap.Any("point", pointData.PointName), zap.Error(err))
 		return writeValue{}, err
 	}
 	var values []uint16
@@ -208,9 +207,9 @@ func (c *connector) getWriteValue(deviceId string, pointData plugin.PointData, w
 				// 如果之前已经写入过，则合并
 				for _, writeVal := range writeValues {
 					if writeVal.Address == ext.Address && writeVal.RegisterType == ext.RegisterType && len(writeVal.Value) == 1 {
-						helper.Logger.Info("merge bits", zap.Uint16("preValue", writeVal.Value[0]), zap.Uint16("bitValue", intoUint16))
+						driverbox.Log().Info("merge bits", zap.Uint16("preValue", writeVal.Value[0]), zap.Uint16("bitValue", intoUint16))
 						writeVal.Value[0] = (writeVal.Value[0] & ^(((1 << ext.BitLen) - 1) << ext.Bit)) | (intoUint16 & (((1 << ext.BitLen) - 1) << ext.Bit))
-						helper.Logger.Info("merge bits result", zap.Uint16("finalVal", writeVal.Value[0]))
+						driverbox.Log().Info("merge bits result", zap.Uint16("finalVal", writeVal.Value[0]))
 						return writeValue{}, nil
 					}
 				}

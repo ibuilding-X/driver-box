@@ -69,12 +69,12 @@ func (c *connector) Send(raw interface{}) (err error) {
 // startServer 启动服务
 func (c *connector) startServer() {
 	if !c.config.Enable {
-		helper.Logger.Warn("websocket connector is not enable", zap.Any("connector", c.config))
+		driverbox.Log().Warn("websocket connector is not enable", zap.Any("connector", c.config))
 		return
 	}
 	//复用driver-box自身服务
 	if c.config.Port == helper.EnvConfig.HttpListen {
-		helper.Logger.Error("websocket connector port is same as driver-box http listen port", zap.Any("connector", c.config))
+		driverbox.Log().Error("websocket connector port is same as driver-box http listen port", zap.Any("connector", c.config))
 		return
 	}
 	//启动新的服务
@@ -87,7 +87,7 @@ func (c *connector) startServer() {
 	go func() {
 		e := c.server.ListenAndServe()
 		if e != nil {
-			helper.Logger.Error("websocket connector start server error", zap.Any("error", e))
+			driverbox.Log().Error("websocket connector start server error", zap.Any("error", e))
 		}
 	}()
 }
@@ -117,7 +117,7 @@ func (c *connector) handleFunc(server *http.ServeMux) {
 				fmt.Println("Failed to read message:", err)
 				break
 			}
-			helper.Logger.Info("Received message", zap.Any("messageType", messageType), zap.Any("payload", string(p)))
+			driverbox.Log().Info("Received message", zap.Any("messageType", messageType), zap.Any("payload", string(p)))
 			decode.Event = "read"
 			decode.Payload = string(p)
 			deviceDatas, err := library.Protocol().Decode(c.config.ProtocolKey, decode)

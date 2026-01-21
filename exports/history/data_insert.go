@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"go.uber.org/zap"
 )
@@ -46,7 +45,7 @@ func (export0 *Export) writeRealTimeData(queue []deviceQueueData) {
 			}
 			pointStr, er := json.Marshal(dataPoint)
 			if er != nil {
-				helper.Logger.Error(fmt.Sprintf("realTime points json marshal error %v", er.Error()))
+				driverbox.Log().Error(fmt.Sprintf("realTime points json marshal error %v", er.Error()))
 			}
 			pointData["point_data"] = string(pointStr)
 		}
@@ -92,13 +91,13 @@ func (export0 *Export) writeDeviceSnapshotData() {
 				}
 				pointStr, er := json.Marshal(dataPoint)
 				if er != nil {
-					helper.Logger.Error(fmt.Sprintf("realTime points json marshal error %v", er.Error()))
+					driverbox.Log().Error(fmt.Sprintf("realTime points json marshal error %v", er.Error()))
 					continue
 				}
 				pointData["point_data"] = string(pointStr)
 			} else {
 				pointData["point_data"] = "{}"
-				//helper.Logger.Info(fmt.Sprintf("device points is empty, device id is %v", device.ID))
+				//driverbox.Log().Info(fmt.Sprintf("device points is empty, device id is %v", device.ID))
 			}
 
 			//记录设备的metadata
@@ -111,7 +110,7 @@ func (export0 *Export) writeDeviceSnapshotData() {
 
 			str, er := json.Marshal(meta)
 			if er != nil {
-				helper.Logger.Error("meta json marshal error", zap.Any("meta", meta), zap.Error(er))
+				driverbox.Log().Error("meta json marshal error", zap.Any("meta", meta), zap.Error(er))
 			} else {
 				pointData["meta"] = str
 			}
@@ -166,11 +165,11 @@ func (export0 *Export) batchInsert(data batchTableData) {
 	// 执行 SQL 查询
 	result, err := export0.db.Exec(query, params...)
 	if err != nil {
-		helper.Logger.Error(err.Error())
+		driverbox.Log().Error(err.Error())
 		return
 	}
 
 	rowsAffected, _ := result.RowsAffected()
-	helper.Logger.Info(fmt.Sprintf("%v data batch insert successful:%d rows", data.TableName, rowsAffected))
+	driverbox.Log().Info(fmt.Sprintf("%v data batch insert successful:%d rows", data.TableName, rowsAffected))
 
 }

@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/exports/basic/restful"
 	"github.com/ibuilding-x/driver-box/exports/basic/restful/route"
@@ -59,13 +58,13 @@ func (s *service) NewService() error {
 		data, err := readBody(request)
 		if err != nil {
 			err = fmt.Errorf("incoming reading ignored. Unable to read request body: %s", err.Error())
-			helper.Logger.Error(err.Error())
+			driverbox.Log().Error(err.Error())
 			return false, err
 		}
 		err = s.Create(data)
 		if err != nil {
 			err = fmt.Errorf("create linkEdge error: %s", err.Error())
-			helper.Logger.Error(err.Error())
+			driverbox.Log().Error(err.Error())
 			return false, err
 		}
 		return true, nil
@@ -88,7 +87,7 @@ func (s *service) NewService() error {
 		err = s.triggerLinkEdge("", 0, config)
 		if err != nil {
 			err = fmt.Errorf("preview linkEdge error: %s", err.Error())
-			helper.Logger.Error(err.Error())
+			driverbox.Log().Error(err.Error())
 			return false, err
 		}
 		return true, nil
@@ -102,14 +101,14 @@ func (s *service) NewService() error {
 
 	//触发联动场景
 	restful.HandleFunc(http.MethodPost, route.LinkEdgeTrigger, func(request *http.Request) (any, error) {
-		helper.Logger.Info(fmt.Sprintf("trigger linkEdge:%s from: %s", request.FormValue("id"), request.FormValue("source")))
+		driverbox.Log().Info(fmt.Sprintf("trigger linkEdge:%s from: %s", request.FormValue("id"), request.FormValue("source")))
 		err := s.TriggerLinkEdge(request.FormValue("id"))
 		return err != nil, err
 	})
 
 	//查看场景联动
 	restful.HandleFunc(http.MethodPost, route.LinkEdgeGet, func(request *http.Request) (any, error) {
-		helper.Logger.Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
+		driverbox.Log().Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
 		return s.getLinkEdge(request.FormValue("id"))
 	})
 
@@ -144,7 +143,7 @@ func (s *service) NewService() error {
 
 	//更新场景联动状态
 	restful.HandleFunc(http.MethodPost, route.LinkEdgeStatus, func(request *http.Request) (any, error) {
-		helper.Logger.Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
+		driverbox.Log().Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
 		config, err := s.getLinkEdge(request.FormValue("id"))
 		if err != nil {
 			return false, fmt.Errorf("unable to find link edge: %s", err)
@@ -252,7 +251,7 @@ func (s *service) registerTrigger(id string) error {
 			if e != nil {
 				return e
 			} else {
-				helper.Logger.Info(fmt.Sprintf("add schedule trigger:%v", trigger.Cron))
+				driverbox.Log().Info(fmt.Sprintf("add schedule trigger:%v", trigger.Cron))
 			}
 			break
 		case TriggerTypeDevicePoint:
@@ -271,7 +270,7 @@ func (s *service) registerTrigger(id string) error {
 			break
 		default:
 			bs, _ := json.Marshal(trigger)
-			helper.Logger.Error(fmt.Sprintf("unsupport trigger type:%s", string(bs)))
+			driverbox.Log().Error(fmt.Sprintf("unsupport trigger type:%s", string(bs)))
 		}
 	}
 	return nil
@@ -282,7 +281,7 @@ func (s *service) Delete(id string) error {
 	if len(id) == 0 {
 		return errors.New("id is nil")
 	}
-	helper.Logger.Info(fmt.Sprintf("delete linkEdge:%v", id))
+	driverbox.Log().Info(fmt.Sprintf("delete linkEdge:%v", id))
 
 	//删除配置
 	delete(s.configs, id)
@@ -294,7 +293,7 @@ func (s *service) Delete(id string) error {
 	}
 
 	// 清理当前场景ID的所有时间表触发器
-	helper.Logger.Info(fmt.Sprintf("clear schedule trigger..."))
+	driverbox.Log().Info(fmt.Sprintf("clear schedule trigger..."))
 	task, exists := s.schedules[id]
 	if exists {
 		task.Stop()
@@ -328,7 +327,7 @@ func (s *service) TriggerLinkEdge(id string) error {
 	//记录场景执行记录
 	e := s.triggerLinkEdge(id, 0)
 	if e != nil {
-		helper.Logger.Error(fmt.Sprintf("linkEdge:%s trigger", e.Error()))
+		driverbox.Log().Error(fmt.Sprintf("linkEdge:%s trigger", e.Error()))
 		return e
 	}
 	//缓存场景联动执行时间
@@ -356,7 +355,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...Config) error {
 			driverbox.TriggerEvents(event.UnknownLinkEdge, "id", id)
 			return errors.New("get linkEdge error: " + e.Error())
 		}
-		//helper.Logger.Info(fmt.Sprintf("linkEdge:%v", config))
+		//driverbox.Log().Info(fmt.Sprintf("linkEdge:%v", config))
 	}
 
 	if !config.Enable {
@@ -417,7 +416,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...Config) error {
 			go s.triggerLinkEdge(action.ID, depth+1)
 		default:
 			bytes, _ := json.Marshal(action)
-			helper.Logger.Error(fmt.Sprintf("unsupport action:%s", string(bytes)))
+			driverbox.Log().Error(fmt.Sprintf("unsupport action:%s", string(bytes)))
 		}
 
 		//场景执行后休眠指定时长
@@ -439,7 +438,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...Config) error {
 		}
 		device, ok := driverbox.CoreCache().GetDevice(deviceId)
 		if !ok {
-			helper.Logger.Error("get device error", zap.String("deviceId", deviceId))
+			driverbox.Log().Error("get device error", zap.String("deviceId", deviceId))
 			continue
 		}
 		group, ok := connectGroup[device.ConnectionKey]
@@ -458,16 +457,16 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...Config) error {
 				// 跳过离线设备，避免阻塞场景执行
 				device, ok := driverbox.Shadow().GetDevice(deviceId)
 				if !ok || !device.Online {
-					helper.Logger.Error("device offline, skip action", zap.String("deviceId", deviceId), zap.String("linkedge", id))
+					driverbox.Log().Error("device offline, skip action", zap.String("deviceId", deviceId), zap.String("linkedge", id))
 					continue
 				}
 				err := driverbox.WritePoints(deviceId, points)
 				if err != nil {
-					helper.Logger.Error("execute linkEdge error", zap.String("linkEdge", id),
+					driverbox.Log().Error("execute linkEdge error", zap.String("linkEdge", id),
 						zap.String("deviceId", deviceId), zap.Any("points", points), zap.Error(err))
 				} else {
 					sucCount = sucCount + len(points)
-					helper.Logger.Info(fmt.Sprintf("execute linkEdge:%s action", id))
+					driverbox.Log().Info(fmt.Sprintf("execute linkEdge:%s action", id))
 				}
 			}
 		}(devices)
@@ -496,7 +495,7 @@ func (s *service) checkConditions(conditions []Condition) error {
 	}
 	now := time.Now().UnixMilli()
 	for _, condition := range conditions {
-		helper.Logger.Info(fmt.Sprintf("check condition:%v", condition))
+		driverbox.Log().Info(fmt.Sprintf("check condition:%v", condition))
 		if condition.Type == ConditionTypeLastTime {
 			continue
 		}
@@ -511,7 +510,7 @@ func (s *service) checkConditions(conditions []Condition) error {
 			if err != nil {
 				return fmt.Errorf("get device:%v point:%v value error:%v", condition.DeviceID, condition.DevicePoint, err)
 			}
-			//helper.Logger.Info(fmt.Sprintf("point value:%s", point))
+			//driverbox.Log().Info(fmt.Sprintf("point value:%s", point))
 			err = s.checkConditionValue(condition.DevicePointCondition, pointValue)
 			if err != nil {
 				return err
@@ -580,7 +579,7 @@ func (s *service) checkListTimeCondition(conditions []Condition) error {
 }
 
 func (s *service) checkConditionValue(condition DevicePointCondition, pointValue interface{}) error {
-	helper.Logger.Info(fmt.Sprintf("checkConditionValue condition:%v, pointValue:%v", condition, pointValue))
+	driverbox.Log().Info(fmt.Sprintf("checkConditionValue condition:%v, pointValue:%v", condition, pointValue))
 	e := errors.New(fmt.Sprintf("condition check fail. expect %v%v%v ,actual value=%v", condition.DevicePoint, condition.Condition, condition.Value, pointValue))
 	switch pointValue.(type) {
 	case string:
@@ -767,7 +766,7 @@ func (s *service) devicePointTriggerHandler(deviceData plugin.DeviceData, handle
 	for _, pointData := range deviceData.Values {
 		// 循环场景
 		for sceneID, conditions := range s.triggerConditions {
-			helper.Logger.Debug("check linkedge condition ", zap.String("id", sceneID))
+			driverbox.Log().Debug("check linkedge condition ", zap.String("id", sceneID))
 			// 循环条件
 			for i, condition := range conditions {
 				if condition.DeviceID != deviceData.ID || condition.DevicePoint != pointData.PointName {
@@ -817,13 +816,13 @@ func (s *service) devicePointTriggerHandler(deviceData plugin.DeviceData, handle
 
 				// 触发场景
 				go func(linkEdgeId string) {
-					helper.Logger.Info("trigger linkEdge", zap.String("id", linkEdgeId))
+					driverbox.Log().Info("trigger linkEdge", zap.String("id", linkEdgeId))
 					e := s.TriggerLinkEdge(linkEdgeId)
 					if e != nil {
-						helper.Logger.Error("trigger linkEdge error", zap.String("id", linkEdgeId), zap.Error(e))
+						driverbox.Log().Error("trigger linkEdge error", zap.String("id", linkEdgeId), zap.Error(e))
 					}
 				}(sceneID)
-				helper.Logger.Debug("check linkEdge condition success,break", zap.String("id", sceneID))
+				driverbox.Log().Debug("check linkEdge condition success,break", zap.String("id", sceneID))
 			}
 		}
 	}

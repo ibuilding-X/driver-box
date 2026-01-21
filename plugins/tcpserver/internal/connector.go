@@ -7,7 +7,6 @@ import (
 	"net"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/library"
 	"go.uber.org/zap"
@@ -48,18 +47,18 @@ func (c *connector) startServer() (err error) {
 	}
 	// 携程启动，防止阻塞
 	go func(listener net.Listener, addr string) {
-		helper.Logger.Info("Listening and serving TCP", zap.String("addr", addr))
+		driverbox.Log().Info("Listening and serving TCP", zap.String("addr", addr))
 		// 循环接收 TCP Client 连接
 		for {
 			conn, err := listener.Accept()
 			if err != nil {
-				helper.Logger.Error("TCP accept connection error", zap.Error(err))
+				driverbox.Log().Error("TCP accept connection error", zap.Error(err))
 				break
 			}
-			helper.Logger.Debug("tcp client is connected", zap.String("remoteAddr", conn.RemoteAddr().String()))
+			driverbox.Log().Debug("tcp client is connected", zap.String("remoteAddr", conn.RemoteAddr().String()))
 			go c.handelConn(conn)
 		}
-		helper.Logger.Warn("End listening and serving TCP", zap.String("addr", addr))
+		driverbox.Log().Warn("End listening and serving TCP", zap.String("addr", addr))
 	}(listener, addr)
 
 	c.conn = listener
@@ -75,13 +74,13 @@ func (c *connector) handelConn(conn net.Conn) {
 	for {
 		n, err := reader.Read(buf[:])
 		if err != nil {
-			helper.Logger.Error("tcp connection read error", zap.Error(err))
+			driverbox.Log().Error("tcp connection read error", zap.Error(err))
 			break
 		}
 		data := protoData{Raw: string(buf[:n])}
 		// 接收数据，调用回调函数
 		if res, err := c.Decode(data.ToJSON()); err != nil {
-			helper.Logger.Error("tcp_server callback error", zap.Error(err))
+			driverbox.Log().Error("tcp_server callback error", zap.Error(err))
 		} else {
 			driverbox.Export(res)
 		}

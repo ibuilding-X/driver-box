@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
@@ -69,13 +68,13 @@ func (p *Plugin) initNetworks(config config.Config) {
 	for key, connConfig := range config.Connections {
 		connectionConfig := new(ConnectionConfig)
 		if err := convutil.Struct(connConfig, connectionConfig); err != nil {
-			helper.Logger.Error("convert connector config error", zap.Any("connection", connConfig), zap.Error(err))
+			driverbox.Log().Error("convert connector config error", zap.Any("connection", connConfig), zap.Error(err))
 			continue
 		}
 		conn, err := newConnector(p, connectionConfig)
 		conn.config.ConnectionKey = key
 		if err != nil {
-			helper.Logger.Error("init connector error", zap.Any("connection", connConfig), zap.Error(err))
+			driverbox.Log().Error("init connector error", zap.Any("connection", connConfig), zap.Error(err))
 			continue
 		}
 		if conn.virtual {
@@ -96,7 +95,7 @@ func (p *Plugin) initNetworks(config config.Config) {
 		conn.collectTask, err = conn.initCollectTask(connectionConfig)
 		p.connPool[key] = conn
 		if err != nil {
-			helper.Logger.Error("init connector collect task error", zap.Any("connection", connConfig), zap.Error(err))
+			driverbox.Log().Error("init connector collect task error", zap.Any("connection", connConfig), zap.Error(err))
 		}
 	}
 }
@@ -110,7 +109,7 @@ func (p *Plugin) Connector(deviceId string) (conn plugin.Connector, err error) {
 	}
 	c, ok := p.connPool[device.ConnectionKey]
 	if !ok {
-		helper.Logger.Error("not found connection key, key is ", zap.String("key", device.ConnectionKey), zap.Any("connections", p.connPool))
+		driverbox.Log().Error("not found connection key, key is ", zap.String("key", device.ConnectionKey), zap.Any("connections", p.connPool))
 		return nil, errors.New("not found connection key, key is " + device.ConnectionKey)
 	}
 	return c, nil
