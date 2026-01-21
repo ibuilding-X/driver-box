@@ -46,7 +46,6 @@ type CoreCache interface {
 	UpdateDeviceProperty(id string, key string, value string) error // 更新设备属性
 	DeleteDevice(id string)                                         // 删除设备
 	UpdateDeviceDesc(id string, desc string) error                  // 更新设备描述
-	Reset()
 	// AddConnection 新增连接
 	AddConnection(plugin string, key string, conn any) error
 	// GetConnection 获取连接信息
@@ -465,13 +464,13 @@ func (c *cache) UpdateDeviceDesc(id string, desc string) error {
 }
 
 // Reset 重置数据
-func (c *cache) Reset() {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	c.plugins = make(map[string]cachePlugin)
-	c.devices = make(map[string]cacheDevice)
-	c.models = make(map[string]cacheModel)
-	c.connections = make(map[string]cacheConnection)
+func Reset() {
+	instance.mutex.Lock()
+	defer instance.mutex.Unlock()
+	instance.plugins = make(map[string]cachePlugin)
+	instance.devices = make(map[string]cacheDevice)
+	instance.models = make(map[string]cacheModel)
+	instance.connections = make(map[string]cacheConnection)
 }
 
 // AddOrUpdateDevice 添加或更新设备

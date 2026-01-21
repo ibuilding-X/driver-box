@@ -2,14 +2,12 @@ package driverbox
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/internal/export"
 	"github.com/ibuilding-x/driver-box/internal/logger"
-	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/event"
 	"github.com/ibuilding-x/driver-box/pkg/library"
 	"go.uber.org/zap"
@@ -38,30 +36,15 @@ func (m *manager) Register(name string, plugin plugin.Plugin) {
 	m.plugins[name] = plugin
 }
 
-// Get 获取插件实例
-func (m *manager) Get(c config.Config) (p plugin.Plugin, err error) {
-	if raw, ok := m.plugins[c.PluginName]; ok {
-		p = raw.(plugin.Plugin)
-	} else {
-		err = fmt.Errorf("plugin:[%s] not found", c.PluginName)
-	}
-	return
-}
-
-func (m *manager) GetSupportPlugins() []string {
-	keys := make([]string, 0)
-	for key, _ := range m.plugins {
-		keys = append(keys, key)
-	}
-	return keys
-}
-
 func (m *manager) Clear() {
 	m.plugins = make(map[string]plugin.Plugin, 0)
 }
 
 // loadPlugins 加载插件并运行
 func loadPlugins() error {
+	//清空设备驱动库
+	library.Driver().UnloadDeviceDrivers()
+
 	//打印环境配置
 	helper.Logger.Info("driver-box environment config", zap.Any("config", helper.EnvConfig))
 	// 缓存核心配置
@@ -71,9 +54,6 @@ func loadPlugins() error {
 	}
 	// 初始化本地影子服务
 	initDeviceShadow()
-
-	//初始化设备层驱动
-	initDeviceDriver()
 
 	//初始化协议层驱动
 	err = initProtocolDriver()
@@ -95,12 +75,6 @@ func loadPlugins() error {
 	}
 
 	return nil
-}
-
-// 初始化设备层驱动
-func initDeviceDriver() {
-	//清空设备驱动库
-	library.Driver().UnloadDeviceDrivers()
 }
 
 // 初始化协议层驱动
@@ -148,8 +122,6 @@ func initDeviceShadow() {
 	}
 }
 
-var reloadLock sync.Mutex
-
 func destroyPlugins() {
 	for key, p := range plugins.plugins {
 		err := p.Destroy()
@@ -159,22 +131,6 @@ func destroyPlugins() {
 			helper.Logger.Info("stop plugin success", zap.String("plugin", key))
 		}
 	}
-}
-
-func ReloadPlugins() error {
-	reloadLock.Lock()
-	defer reloadLock.Unlock()
-
-	helper.Logger.Info("reload all plugins")
-
-	// 2. 停止运行中的 plugin
-	destroyPlugins()
-	// 3. 停止影子服务设备状态监听、删除影子服务
-	Shadow().StopStatusListener()
-	// 4. 清除核心缓存数据
-	CoreCache().Reset()
-	// 5. 加载 plugins
-	return loadPlugins()
 }
 
 func RegisterPlugin(name string, plugin plugin.Plugin) {

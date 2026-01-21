@@ -69,10 +69,9 @@ func Stop() error {
 	export0.Exports = make([]export.Export, 0)
 	destroyPlugins()
 	plugins.Clear()
-	// 3. 停止影子服务设备状态监听、删除影子服务
-	Shadow().StopStatusListener()
+	shadow.Reset()
 	// 4. 清除核心缓存数据
-	CoreCache().Reset()
+	cache.Reset()
 	return nil
 }
 

@@ -20,7 +20,6 @@ var once = &sync.Once{}
 
 type deviceShadow struct {
 	devices map[string]*device
-	ticker  *crontab.Future
 	mutex   *sync.RWMutex
 }
 
@@ -30,12 +29,19 @@ func Shadow() shadow.DeviceShadow {
 			devices: make(map[string]*device),
 			mutex:   &sync.RWMutex{},
 		}
-		ds.ticker, _ = crontab.Instance().AddFunc("5s", func() {
+		_, e := crontab.Instance().AddFunc("5s", func() {
 			ds.checkOffline()
 		})
+		if e != nil {
+			logger.Logger.Error("add crontab error", zap.Error(e))
+		}
 		instance = ds
 	})
 	return instance
+}
+
+func Reset() {
+	once = &sync.Once{}
 }
 
 func (d *deviceShadow) AddDevice(id string, modelName string, ttl ...time.Duration) {
@@ -210,13 +216,6 @@ func (d *deviceShadow) MayBeOffline(id string) (err error) {
 	}
 
 	return ErrUnknownDevice
-}
-
-func (d *deviceShadow) StopStatusListener() {
-	if d.ticker != nil {
-		d.ticker.Disable()
-		d.ticker = nil
-	}
 }
 
 func (d *deviceShadow) GetDevices() []shadow.Device {

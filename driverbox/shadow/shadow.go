@@ -58,9 +58,6 @@ type DeviceShadow interface {
 	// MayBeOffline 可能离线事件（60秒内超过3次判定离线）
 	MayBeOffline(id string) (err error)
 
-	// StopStatusListener 停止设备状态监听
-	StopStatusListener()
-
 	// GetDevices 获取所有设备
 	GetDevices() []Device
 
