@@ -21,7 +21,7 @@ type Export struct {
 	ready bool
 }
 
-func LoadExport() {
+func EnableExport() {
 	driverbox.RegisterExport(NewExport())
 }
 func (export *Export) Init() error {

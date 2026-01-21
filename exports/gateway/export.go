@@ -8,6 +8,6 @@ import (
 // 功能:
 //
 //	创建并加载gwexport.New()实例
-func LoadExport() {
+func EnableExport() {
 	driverbox.RegisterExport(New())
 }

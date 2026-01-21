@@ -13,9 +13,9 @@ import (
 //
 //	依次调用各个内置Export的加载方法，包括基础Export、场景联动Export等
 func LoadAllExports() {
-	basic.LoadExport()
-	linkedge.LoadExport()
-	mirror.LoadExport()
-	discover.LoadExport()
-	gateway.LoadExport()
+	basic.EnableExport()
+	linkedge.EnableExport()
+	mirror.EnableExport()
+	discover.EnableExport()
+	gateway.EnableExport()
 }

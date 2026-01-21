@@ -1,5 +1,5 @@
 package mcp
 
 //func LoadMcpExport() {
-//	driverbox.Exports.LoadExport(ai.NewExport())
+//	driverbox.Exports.EnableExport(ai.NewExport())
 //}
