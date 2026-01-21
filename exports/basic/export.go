@@ -10,5 +10,5 @@ import (
 //
 //	创建并加载basic.NewExport()实例
 func LoadExport() {
-	driverbox.Exports.LoadExport(internal.NewExport())
+	driverbox.RegisterExport(internal.NewExport())
 }

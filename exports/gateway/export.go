@@ -9,5 +9,5 @@ import (
 //
 //	创建并加载gwexport.New()实例
 func LoadExport() {
-	driverbox.Exports.LoadExport(New())
+	driverbox.RegisterExport(New())
 }

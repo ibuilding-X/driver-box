@@ -22,7 +22,7 @@ type Export struct {
 }
 
 func LoadExport() {
-	driverbox.Exports.LoadExport(NewExport())
+	driverbox.RegisterExport(NewExport())
 }
 func (export *Export) Init() error {
 	if os.Getenv(config.ENV_EXPORT_DISCOVER_ENABLED) == "false" {
