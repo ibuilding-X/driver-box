@@ -19,12 +19,12 @@ type Plugin struct {
 
 // Initialize 初始化日志、配置、接收回调
 func (p *Plugin) Initialize(c config.DeviceConfig) {
-
 	// 初始化连接池
-	if err := p.initConnPool(c); err != nil {
-		driverbox.Log().Error("init mqtt connector error", zap.Error(err))
-	}
-
+	go func() {
+		if err := p.initConnPool(c); err != nil {
+			driverbox.Log().Error("init mqtt connector error", zap.Error(err))
+		}
+	}()
 }
 
 func (p *Plugin) initConnPool(c config.DeviceConfig) error {
