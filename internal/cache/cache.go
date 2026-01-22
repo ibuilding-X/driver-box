@@ -34,6 +34,8 @@ var (
 // coreCache 核心缓存
 type CoreCache interface {
 	GetModel(modelName string) (model config.Model, ok bool) // model info
+	// 删除模型,如果该模型下存在设备则返回error
+	DeleteModel(modelName string) error
 	// 查询指定模型的所有点，并保持该点位在配置文件中的有序性
 	GetPoints(modelName string) ([]config.Point, bool)
 	GetDevice(id string) (device config.Device, ok bool)
@@ -49,6 +51,8 @@ type CoreCache interface {
 	AddConnection(plugin string, key string, conn any) error
 	// GetConnection 获取连接信息
 	GetConnection(key string) any
+	// 删除连接
+	DeleteConnection(key string) error
 	// AddModel 新增模型
 	AddModel(plugin string, model config.Model) error
 	// AddOrUpdateDevice 新增或更新设备
@@ -326,6 +330,23 @@ func (c *cache) GetModel(modelName string) (config.Model, bool) {
 	}
 	return config.Model{}, false
 }
+func (c *cache) DeleteModel(modelName string) error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	model, ok := c.models[modelName]
+	if !ok {
+		return errors.New("model not found")
+	}
+	//模型存在关联设备，不允许直接删除. 考虑到删除属于低频行为，可接受全量设备遍历
+	for _, device := range c.devices {
+		if device.ModelName == modelName {
+			return errors.New("model has devices, delete devices first")
+		}
+	}
+	delete(c.models, modelName)
+	c.flushable(model.pluginName)
+	return nil
+}
 
 func (c *cache) GetPoints(modelName string) ([]config.Point, bool) {
 	c.mutex.RLock()
@@ -434,9 +455,7 @@ func (c *cache) UpdateDeviceProperty(id string, key string, value string) error 
 		dev.Properties = make(map[string]string)
 	}
 	dev.Properties[key] = value
-	cfg := c.plugins[dev.PluginName]
-	cfg.cacheModifyTime = time.Now()
-	c.plugins[dev.PluginName] = cfg
+	c.flushable(dev.PluginName)
 	return nil
 }
 
@@ -457,9 +476,17 @@ func (c *cache) UpdateDeviceDesc(id string, desc string) error {
 		return errors.New("device " + id + " not found")
 	}
 	dev.Description = desc
-	cfg := c.plugins[dev.PluginName]
-	cfg.cacheModifyTime = time.Now()
+	c.flushable(dev.PluginName)
 	return nil
+}
+
+func (c *cache) flushable(pluginName string) {
+	if pluginName == "" {
+		return
+	}
+	cfg := c.plugins[pluginName]
+	cfg.cacheModifyTime = time.Now()
+	c.plugins[pluginName] = cfg
 }
 
 // Reset 重置数据
@@ -520,9 +547,7 @@ func (c *cache) AddOrUpdateDevice(dev config.Device) error {
 	if !shadow.Shadow().HasDevice(dev.ID) {
 		shadow.Shadow().AddDevice(dev.ID, dev.ModelName)
 	}
-	p := c.plugins[model.pluginName]
-	p.cacheModifyTime = time.Now()
-	c.plugins[dev.PluginName] = p
+	c.flushable(model.pluginName)
 	return nil
 }
 
@@ -530,7 +555,7 @@ func (c *cache) AddOrUpdateDevice(dev config.Device) error {
 func (c *cache) AddConnection(plugin string, key string, conn any) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	cfg, ok := c.plugins[plugin]
+	_, ok := c.plugins[plugin]
 	if !ok {
 		return errors.New("plugin " + plugin + " not exists")
 	}
@@ -542,8 +567,7 @@ func (c *cache) AddConnection(plugin string, key string, conn any) error {
 		connection: conn,
 		pluginName: plugin,
 	}
-	cfg.cacheModifyTime = time.Now()
-	c.plugins[plugin] = cfg
+	c.flushable(plugin)
 	return nil
 }
 
@@ -557,11 +581,29 @@ func (c *cache) GetConnection(key string) any {
 	return nil
 }
 
+func (c *cache) DeleteConnection(key string) error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	conn, ok := c.connections[key]
+	if !ok {
+		return errors.New("connection " + key + " not exists")
+	}
+	// 检查设备是否正在使用, 如果正在使用则无法删除.
+	for _, dev := range c.devices {
+		if dev.ConnectionKey == key {
+			return errors.New("device " + dev.ID + " using connection " + key)
+		}
+	}
+	delete(c.connections, key)
+	c.flushable(conn.pluginName)
+	return nil
+}
+
 // AddModel 新增模型
 func (c *cache) AddModel(pluginName string, model config.Model) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	p, exists := c.plugins[pluginName]
+	_, exists := c.plugins[pluginName]
 	if !exists {
 		return errors.New("plugin " + pluginName + " not exists")
 	}
@@ -579,8 +621,7 @@ func (c *cache) AddModel(pluginName string, model config.Model) error {
 		Model:  model,
 		points: points,
 	}
-	p.cacheModifyTime = time.Now()
-	c.plugins[pluginName] = p
+	c.flushable(pluginName)
 	return nil
 }
 

@@ -57,8 +57,6 @@ func (p *Plugin) Initialize(c config.DeviceConfig) {
 	//初始化连接池
 	p.initNetworks(c)
 
-	//注册RestAPI
-	InitRestAPI()
 }
 
 // 初始化Modbus连接池
@@ -83,12 +81,28 @@ func (p *Plugin) initNetworks(config config.DeviceConfig) {
 
 		//生成点位采集组
 		for _, model := range config.DeviceModels {
+			//如果模型不存在关联设备,清理该模型
+			if len(model.Devices) == 0 {
+				e := driverbox.CoreCache().DeleteModel(model.Name)
+				driverbox.Log().Warn("delete model error", zap.Any("model", model), zap.Error(e))
+				continue
+			}
 			for _, dev := range model.Devices {
 				if dev.ConnectionKey != conn.config.ConnectionKey {
 					continue
 				}
 				conn.createPointGroup(connectionConfig, model, dev)
 			}
+		}
+
+		if len(conn.devices) == 0 {
+			err = driverbox.CoreCache().DeleteConnection(conn.config.ConnectionKey)
+			driverbox.Log().Warn("modbus connection has no device to collect,remove it", zap.String("key", key), zap.Error(err))
+			continue
+		}
+		if !connectionConfig.Enable {
+			driverbox.Log().Warn("modbus connection is disabled, ignore collect task", zap.String("key", key))
+			continue
 		}
 
 		//启动采集任务

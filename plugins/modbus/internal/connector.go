@@ -53,14 +53,6 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 }
 
 func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, error) {
-	if !conf.Enable {
-		driverbox.Log().Warn("modbus connection is disabled, ignore collect task", zap.String("key", c.config.ConnectionKey))
-		return nil, nil
-	}
-	if len(c.devices) == 0 {
-		driverbox.Log().Warn("modbus connection has no device to collect", zap.String("key", c.config.ConnectionKey))
-		return nil, nil
-	}
 
 	//注册定时采集任务
 	return driverbox.AddFunc("1s", func() {
