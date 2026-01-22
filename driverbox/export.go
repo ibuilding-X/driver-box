@@ -20,7 +20,24 @@ func init() {
 	EnableExport(base.Get())
 }
 
-// 注册Export至driver-box
+// EnableExport 注册Export至driver-box
+// 该函数将实现了Export接口的模块注册到系统中
+// 如果相同的Export实例已存在，则不会重复注册
+// 参数:
+//   - export: 实现了export.Export接口的导出模块实例
+//
+// 使用示例:
+//
+//	type CustomExport struct{}
+//	
+//	func (c *CustomExport) Init() error { return nil }
+//	func (c *CustomExport) ExportTo(deviceData plugin.DeviceData) {}
+//	func (c *CustomExport) OnEvent(eventCode string, key string, eventValue interface{}) error { return nil }
+//	func (c *CustomExport) IsReady() bool { return true }
+//	func (c *CustomExport) Destroy() error { return nil }
+//	
+//	customExport := &CustomExport{}
+//	driverbox.EnableExport(customExport)
 func EnableExport(export export.Export) {
 	for _, e := range export0.Exports {
 		if e == export {
@@ -30,37 +47,43 @@ func EnableExport(export export.Export) {
 	export0.Exports = append(export0.Exports, export)
 }
 
-// 触发事件
 // TriggerEvents 触发事件通知到所有已加载的Export插件
 // 参数:
-//
-//	eventCode: 事件代码，标识事件类型
-//	key: 事件关联的键值，通常是设备ID或其他标识符
-//	value: 事件携带的数据值，可以是任意类型
+//   - eventCode: 事件代码，标识事件类型
+//   - key: 事件关联的键值，通常是设备ID或其他标识符
+//   - value: 事件携带的数据值，可以是任意类型
 //
 // 功能:
+//   遍历所有已加载的Export插件，调用其OnEvent方法处理事件
+//   如果Export插件未就绪，则跳过该插件
+//   记录事件处理过程中的错误信息
 //
-//	遍历所有已加载的Export插件，调用其OnEvent方法处理事件
-//	如果Export插件未就绪，则跳过该插件
-//	记录事件处理过程中的错误信息
+// 常见事件类型:
+//   - event.EventCodeAddDevice: 设备添加事件
+//   - event.EventCodePluginCallback: 插件回调事件
+//   - event.EventCodeServiceStatus: 服务状态事件
 func TriggerEvents(eventCode string, key string, value interface{}) {
 	export0.TriggerEvents(eventCode, key, value)
 }
 
 // Export 导出设备数据到各个Export插件
+// 这是设备数据导出的核心函数，负责将设备数据分发到所有已注册的Export模块
 // 参数:
+//   - deviceData: 设备数据数组，包含设备ID、数值、事件等信息
 //
-//	deviceData: 设备数据数组，包含设备ID、数值、事件等信息
+// 处理流程:
+//   1. 记录调试日志
+//   2. 触发插件回调事件
+//   3. 遍历每个设备数据:
+//      - 如果设备有事件，则触发事件通知
+//      - 对点位数据进行缓存过滤
+//      - 如果设备没有数值数据则跳过
+//      - 将数据导出到所有已准备好的Export插件
 //
-// 功能:
-//
-//  1. 记录调试日志
-//  2. 触发插件回调事件
-//  3. 遍历每个设备数据:
-//     - 如果设备有事件，则触发事件通知
-//     - 对点位数据进行缓存过滤
-//     - 如果设备没有数值数据则跳过
-//     - 将数据导出到所有已准备好的Export插件
+// 数据过滤机制:
+//   - 根据报告模式过滤不变的点位值(ReportMode_Change)
+//   - 缓存点位值以检测变化
+//   - 触发预处理事件(event.EventCodeWillExportTo)
 func Export(deviceData []plugin.DeviceData) {
 	Log().Debug("export data", zap.Any("data", deviceData))
 	// 产生插件回调事件
@@ -85,10 +108,28 @@ func Export(deviceData []plugin.DeviceData) {
 	}
 }
 
+// BaseExport 获取基础导出模块实例
+// 基础导出模块提供标准的API接口和其他基本导出功能
+// 返回值:
+//   - base.BaseExport: 基础导出模块实例
+//
+// 使用示例:
+//
+//	baseExport := driverbox.BaseExport()
+//	// 注册自定义API接口
+//	// baseExport.RegisterAPI("/custom/api", handler)
 func BaseExport() base.BaseExport {
 	return base.Get()
 }
 
+// pointCacheFilter 对设备数据进行缓存过滤处理
+// 该函数执行以下操作:
+// 1. 对点位值进行预处理(包括驱动解码和类型转换)
+// 2. 根据报告模式过滤点位值(只传递变化的值)
+// 3. 缓存点位值到设备影子服务
+// 4. 触发预导出事件
+// 参数:
+//   - deviceData: 指向设备数据的指针，函数会直接修改该数据
 func pointCacheFilter(deviceData *plugin.DeviceData) {
 	// 设备层驱动，对点位进行预处理
 	err := pointValueProcess(deviceData)
@@ -139,6 +180,16 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 	TriggerEvents(event.EventCodeWillExportTo, deviceData.ID, originalData)
 }
 
+// pointValueProcess 对点位值进行预处理
+// 该函数执行以下处理:
+// 1. 通过设备驱动库对点位值进行解码和加工
+// 2. 执行点位值类型转换
+// 3. 应用精度换算(scale)
+// 4. 应用小数位数保留
+// 参数:
+//   - deviceData: 指向设备数据的指针，函数会直接修改其中的值
+// 返回值:
+//   - error: 处理过程中发生的错误
 func pointValueProcess(deviceData *plugin.DeviceData) error {
 	device, ok := CoreCache().GetDevice(deviceData.ID)
 	if !ok {
@@ -202,6 +253,14 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 	return nil
 }
 
+// multiplyWithFloat64 将任意数值类型与浮点数相乘
+// 该函数处理各种数值类型的乘法运算，并将其结果转换为float64
+// 参数:
+//   - value: 需要相乘的值，支持多种数值类型
+//   - scale: 乘数，浮点数
+// 返回值:
+//   - float64: 相乘结果
+//   - error: 类型不支持时返回错误
 func multiplyWithFloat64(value interface{}, scale float64) (float64, error) {
 	switch v := value.(type) {
 	case float64:
