@@ -67,7 +67,7 @@ func Stop() error {
 	//注册基础Export
 	EnableExport(base.Get())
 	destroyPlugins()
-	plugins.Clear()
+	plugins.clear()
 	shadow.Reset()
 	// 4. 清除核心缓存数据
 	cache.Reset()

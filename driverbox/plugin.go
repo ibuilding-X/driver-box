@@ -26,7 +26,7 @@ type manager struct {
 }
 
 // 注册自定义插件
-func (m *manager) Register(name string, plugin plugin.Plugin) {
+func (m *manager) register(name string, plugin plugin.Plugin) {
 	if _, ok := m.plugins[name]; ok {
 		fmt.Printf("plugin %s already exists, replace it", name)
 	}
@@ -34,7 +34,7 @@ func (m *manager) Register(name string, plugin plugin.Plugin) {
 	m.plugins[name] = plugin
 }
 
-func (m *manager) Clear() {
+func (m *manager) clear() {
 	m.plugins = make(map[string]plugin.Plugin, 0)
 }
 
@@ -96,7 +96,7 @@ func destroyPlugins() {
 
 // 注册插件
 func EnablePlugin(name string, plugin plugin.Plugin) {
-	plugins.Register(name, plugin)
+	plugins.register(name, plugin)
 }
 
 // 插件重启
@@ -105,4 +105,11 @@ func ReloadPlugin(pluginName string) {
 	p := plugins.plugins[pluginName]
 	p.Destroy()
 	p.Initialize(cfg)
+}
+
+// 插件所有重启
+func ReloadPlugins() {
+	for name, _ := range plugins.plugins {
+		ReloadPlugin(name)
+	}
 }
