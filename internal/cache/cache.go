@@ -723,7 +723,9 @@ func (c *cache) Flush(pluginName string) {
 			if err != nil {
 				logger.Logger.Error("remove file error", zap.String("file", p.FilePath), zap.Error(err))
 			}
-
+			//避免重复删除
+			p.FilePath = ""
+			c.plugins[pluginName] = p
 		}
 		return
 	}
