@@ -74,7 +74,7 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 			for i, group := range device.pointGroup {
 				if c.close {
 					driverbox.Log().Warn("modbus connection is closed, ignore collect task!", zap.String("key", c.config.ConnectionKey))
-					break
+					return
 				}
 
 				duration := group.Duration
