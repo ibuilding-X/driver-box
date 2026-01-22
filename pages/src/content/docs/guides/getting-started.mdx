@@ -1,174 +1,266 @@
 ---
 title: 快速开始
+description: 5分钟内完成driver-box的安装和设备接入配置
 sidebar:
-  order: 2
+  order: 1
 ---
+
 import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { Card, CardGrid } from '@astrojs/starlight/components';
+import { Aside } from '@astrojs/starlight/components';
 
-我们将通过一个简单的 demo 来演示 driver-box 的设备接入流程，
-在此之前请确保你已具备以下几项前置条件：
+# 快速开始
 
-- Golang 开发环境，版本要求 >= 1.18。
-- 相应的 IDE 工具，如 VSCode、Goland 等。
-- git 工具。
+欢迎使用 driver-box！这是一款轻量级、配置化的物联网边缘平台。本指南将帮助您在5分钟内完成安装和第一个设备的接入。
 
-> 本次演示的形式是直接基于 driver-box 工程源码展开
+## 工作流程概述
 
-## 初始化工程
+driver-box 的核心工作流程如下：
 
-下载 driver-box 源码至本地，并导入 IDE。
+```mermaid
+flowchart LR
+    A[安装driver-box] --> B[配置设备接入]
+    B --> C[启动服务]
+    C --> D[验证数据收集]
+    D --> E[配置数据导出]
+```
 
-<Tabs>
-    <TabItem label="Gitee" icon="seti:git">
-        ```shell
-        git clone https://gitee.com/iBUILDING-X/driver-box.git
-        ```
-    </TabItem>
-    <TabItem label="Github" icon="github">
-        ```shell
-        git clone https://github.com/ibuilding-X/driver-box.git
-        ```
-    </TabItem>
-</Tabs>
+<Aside type="note" title="适用场景">
+  本指南适用于初次使用 driver-box 的用户，帮助您快速搭建开发环境并接入第一个物联网设备。
+</Aside>
 
+## 准备工作
 
-## 启动程序
-在工程所在目录下执行以下命令下载依赖：
-```shell
+<CardGrid>
+	<Card title="环境要求" icon="computer">
+		<p><strong>Go 1.18+</strong>：编译和运行driver-box</p>
+		<p><strong>Git</strong>：下载源码</p>
+		<p><strong>SQLite3</strong>：数据存储（通常系统已预装）</p>
+	</Card>
+	<Card title="系统要求" icon="server">
+		<p><strong>最低配置</strong>：128MB RAM</p>
+		<p><strong>推荐配置</strong>：256MB RAM以上</p>
+		<p><strong>支持平台</strong>：Linux、Windows、macOS</p>
+	</Card>
+	<Card title="网络要求" icon="globe">
+		<p><strong>设备通信</strong>：Modbus、MQTT等协议端口</p>
+		<p><strong>HTTP API</strong>：默认8081端口</p>
+		<p><strong>数据导出</strong>：根据导出配置的端口</p>
+	</Card>
+</CardGrid>
+
+## 步骤1：获取driver-box
+
+```bash
+# 1. 下载源码
+git clone https://github.com/iBUILDING-X/driver-box.git
+cd driver-box
+
+# 2. 下载依赖
 go mod tidy
 go mod vendor
-```
-并通过 IDE 启动 `main.go`，正常情况下会在终端输出以下内容：
-```text
-start driver-box success. 
-```
-> 倘若启动失败，可能因为内置的演示示例所依赖的端口号（8888、8889）被占用，需要您更换一下。
 
-## 上报设备数据
-在 driver-box 项目的 `/res/driver` 目录下，我们已内置了一个 `http_server` 协议的示例，可以此演示设备接入的效果。
+# 3. 编译
+go build -o driver-box main.go
+
+# 4. 运行
+./driver-box
+```
+
+<Aside type="tip" title="验证安装">
+运行成功后，您将在控制台看到：
+```text
+start driver-box success.
+```
+</Aside>
+
+<Aside type="caution" title="权限要求">
+  在Linux/macOS上，如果遇到权限问题，请使用 `sudo ./driver-box` 或调整文件权限。
+</Aside>
+
+## 步骤2：设备接入配置
+
+driver-box采用JSON配置的方式接入设备。下面以一个Modbus温湿度传感器为例：
+
+### 创建配置目录
+
+```bash
+mkdir -p res/driver/modbus
+```
+
+### 编写配置
 
 <Tabs>
-    <TabItem label="config.json" icon="seti:json">
-        ```json
-        {
-            "deviceModels": [
-                {
-                    "name": "swtich",
-                    "description": "开关",
-                    "devicePoints": [
-                        {
-                            "description": "开关",
-                            "name": "onOff",
-                            "readWrite": "R",
-                            "reportMode": "change",
-                            "valueType": "int"
-                        }
-                    ],
-                    "devices": [
-                        {
-                            "id": "swtich-1",
-                            "description": "1号开关",
-                            "ttl": "5m",
-                            "connectionKey": "8888"
-                        },
-                        {
-                            "id": "swtich-2",
-                            "description": "2号开关",
-                            "ttl": "5m",
-                            "connectionKey": "8889"
-                        }
-                    ]
-                }
-            ],
-            "connections": {
-                "8888": {
-                    "host": "127.0.0.1",
-                    "port": 8888
-                },
-                "8889": {
-                    "host": "",
-                    "port": 8889
-                }
-            },
-            "protocolName": "http_server"
-        }
-        ```
-    </TabItem>
-    <TabItem label="converter.lua" icon="seti:lua">
-        ```lua
-        local json = require("json")
-
-        -- decode 请求数据解码
-        function decode(raw)
-            local data = json.decode(raw)
-            local body= json.decode(data.body)
-            if data.method == "POST" and data.path == "/report" then
-                local devices = {
-                    {
-                        ["id"] = body["id"], -- 设备ID
-                        ["values"] = {
-                            { ["name"] = "onOff", ["value"] = body["onOff"] }, -- 点位解析
-                        }
-                    }
-                }
-                return json.encode(devices)
-            else
-                print("request error")
-                return "[]"
-            end
-        end
-        ```
-    </TabItem>
+	<TabItem label="res/driver/modbus/config.json" icon="seti:json">
+		```json
+		{
+			"deviceModels": [
+				{
+					"name": "温湿度传感器",
+					"description": "Modbus温湿度传感器",
+					"devicePoints": [
+						{
+							"name": "temperature",
+							"description": "温度",
+							"valueType": "float",
+							"readWrite": "R",
+							"primaryTable": "HOLDING_REGISTER",
+							"startAddress": "40001",
+							"rawType": "uint16",
+							"scale": 0.1,
+							"unit": "℃"
+						},
+						{
+							"name": "humidity",
+							"description": "湿度",
+							"valueType": "float",
+							"readWrite": "R",
+							"primaryTable": "HOLDING_REGISTER",
+							"startAddress": "40002",
+							"rawType": "uint16",
+							"scale": 0.1,
+							"unit": "%"
+						}
+					],
+					"devices": [
+						{
+							"id": "sensor-001",
+							"description": "会议室温湿度传感器",
+							"connectionKey": "modbus-tcp-01",
+							"ttl": "30s"
+						}
+					]
+				}
+			],
+			"connections": {
+				"modbus-tcp-01": {
+					"host": "192.168.1.100",
+					"port": 502,
+					"mode": "tcp",
+					"timeout": 5000,
+					"slaveId": 1
+				}
+			},
+			"protocolName": "modbus"
+		}
+		```
+	</TabItem>
+	<TabItem label="目录结构" icon="seti:folder">
+		```
+		res/
+		└── driver/
+		    └── modbus/
+		        └── config.json
+		```
+	</TabItem>
 </Tabs>
 
-`config.json` 定义了一个开关模型，仅有一个 `onOff` 的点位。
-且该模型下关联了两个设备：swtich-1 和 swtich-2。
+<Aside type="tip" title="配置验证">
+  创建配置文件后，建议先使用JSON验证工具检查语法正确性。您也可以参考 `res/library/model/` 目录下的设备模型示例。
+</Aside>
 
-对于 TCP 类协议，还需配套一个 `converter.lua` 文件，用于将请求数据转换为 driver-box 所需的数据格式。
+## 步骤3：验证接入效果
 
+### 查看设备影子
 
-此时，可通过以下命令模拟开关的状态上报：
-```shell
-curl -X POST -H "Content-Type: application/json" -d '{"id":"swtich-2","onOff":1}' http://127.0.0.1:8888/report
-curl -X POST -H "Content-Type: application/json" -d '{"id":"swtich-1","onOff":0}' http://127.0.0.1:8888/report
-```
+启动driver-box后，打开浏览器访问：http://localhost:8081/api/v1/shadow/all
 
-## 查看设备影子
-打开浏览器，访问：http://localhost:8081/api/v1/shadow/all 可直接查看当前接入设备的点位状态。
 ```json
 {
-  "success": true,
-  "errorCode": 200,
-  "errorMsg": "",
-  "data": [
-    {
-      "id": "swtich-1",
-      "points": [
-        {
-          "name": "onOff",
-          "value": 0,
-          "updated_at": "2024-05-21 17:57:14"
-        }
-      ],
-      "online": true,
-      "ttl": "5m0s",
-      "disconnect_times": 0,
-      "updated_at": "2024-05-21 17:57:14"
-    },
-    {
-      "id": "swtich-2",
-      "points": [
-        {
-          "name": "onOff",
-          "value": 1,
-          "updated_at": "2024-05-21 17:57:08"
-        }
-      ],
-      "online": true,
-      "ttl": "5m0s",
-      "disconnect_times": 0,
-      "updated_at": "2024-05-21 17:57:08"
-    }
-  ]
+	"success": true,
+	"errorCode": 200,
+	"data": [
+		{
+			"id": "sensor-001",
+			"points": [
+				{
+					"name": "temperature",
+					"value": 25.5,
+					"updated_at": "2024-01-22 15:30:00"
+				},
+				{
+					"name": "humidity",
+					"value": 65.2,
+					"updated_at": "2024-01-22 15:30:00"
+				}
+			],
+			"online": true,
+			"ttl": "30s"
+		}
+	]
 }
 ```
+
+### 通过API控制设备
+
+<Tabs>
+	<TabItem label="读取数据" icon="right-arrow">
+		```bash
+		curl http://localhost:8081/api/v1/device/readPoint?id=sensor-001&point=temperature
+		```
+	</TabItem>
+	<TabItem label="写入数据" icon="pencil">
+		```bash
+		curl "http://localhost:8081/api/v1/device/writePoint?id=device-001&point=switch&value=1"
+		```
+	</TabItem>
+</Tabs>
+
+## 下一步
+
+🎉 恭喜！您已经成功完成了driver-box的安装和第一个设备的接入。
+
+### 推荐下一步学习：
+- [**架构概述**](/concepts/architecture/) - 深入了解driver-box核心架构
+- [**设备影子**](/concepts/device-shadow/) - 掌握设备数据管理机制
+- [**配置化接入**](/concepts/configuration-driven/) - 学习无代码设备接入方式
+- [**插件机制**](/concepts/plugin-system/) - 扩展更多协议支持
+- [**导出机制**](/concepts/export-system/) - 配置数据导出和系统集成
+- [**配置指南**](/guides/config/) - 详细的配置参数说明
+- [**设备模型库**](/library/models/) - 丰富的预置设备模型
+- [**开发者指南**](/developer/setup/) - 二次开发环境搭建
+
+### 常见问题
+
+#### 编译失败
+**问题**：`go build` 命令执行失败
+**解决方案**：
+- 确认Go版本为1.18或更高：`go version`
+- 检查网络连接，确保能下载依赖包
+- 在企业网络环境下，可能需要配置Go代理：`go env -w GOPROXY=https://goproxy.cn,direct`
+
+#### 设备无法连接
+**问题**：日志显示连接超时或失败
+**解决方案**：
+- 检查设备IP地址和端口是否正确
+- 确认防火墙未阻止相应端口
+- 使用 `telnet <host> <port>` 测试网络连通性
+- 检查Modbus从站ID是否匹配设备配置
+
+#### 数据不更新
+**问题**：设备影子中数据始终不变
+**解决方案**：
+- 验证点位地址（address）是否正确
+- 检查数据类型（valueType）和原始类型（rawType）配置
+- 确认缩放因子（scale）设置正确
+- 查看driver-box日志中的详细错误信息
+
+#### API调用失败
+**问题**：HTTP请求返回错误
+**解决方案**：
+- 确认driver-box服务正在运行：`ps aux | grep driver-box`
+- 检查端口8081是否被占用：`netstat -tlnp | grep 8081`
+- 验证API路径和参数格式是否正确
+- 检查设备ID是否存在于设备影子中
+
+#### 配置语法错误
+**问题**：服务启动失败，提示JSON解析错误
+**解决方案**：
+- 使用在线JSON验证工具检查配置文件
+- 确认所有必需字段都已填写
+- 检查引号、逗号和括号是否配对
+- 参考 `res/library/model/` 中的示例文件
+
+<Aside type="danger" title="重要提醒">
+  如果问题无法解决，请查看控制台日志的详细错误信息，或访问我们的[GitHub Issues](https://github.com/iBUILDING-X/driver-box/issues)寻求帮助。
+</Aside>

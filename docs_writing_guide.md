@@ -8,6 +8,91 @@
 
 ## 写作规范
 
+### 1. 导航结构
+
+```
+📚 文档首页 (index.mdx)
+├── 🚀 快速开始 (guides/getting-started.mdx)
+├── 🏗️ 核心概念 (concepts/)
+│   ├── 架构概述 (architecture.mdx)
+│   ├── 设备影子 (device-shadow.mdx)
+│   ├── 配置化接入 (configuration-driven.mdx)
+│   ├── 🔌 Plugin机制 (plugin-system.mdx)
+│   └── 📤 Export机制 (export-system.mdx)
+├── ⚙️ 配置指南 (guides/)
+│   ├── 接入配置 (config.mdx)
+│   ├── 设备模型 (device-model.mdx)
+│   └── 连接配置 (connection-config.mdx)
+├── 🔌 Plugin系统 (plugins/)
+│   ├── Plugin概述 (index.mdx)
+│   ├── Modbus plugin (modbus.mdx)
+│   ├── Bacnet plugin (bacnet.mdx)
+│   ├── MQTT plugin (mqtt.mdx)
+│   ├── HTTP服务端 plugin (httpserver.mdx)
+│   ├── HTTP客户端 plugin (httpclient.mdx)
+│   ├── WebSocket plugin (websocket.mdx)
+│   ├── TCP服务端 plugin (tcpserver.mdx)
+│   ├── TCP客户端 plugin (tcpclient.mdx)
+│   ├── DL/T645 plugin (dlt645.mdx)
+│   ├── 网关 plugin (gateway.mdx)
+│   └── 镜像 plugin (mirror.mdx)
+├── 📤 Export系统 (exports/)
+│   ├── Export概述 (index.mdx)
+│   ├── 网关 export (gateway.mdx)
+│   ├── MQTT export (mqtt.mdx)
+│   ├── LinkEdge集成 (linkedge.mdx)
+│   ├── 历史数据 export (history.mdx)
+│   ├── Modbus服务器 export (modbusserver.mdx)
+│   ├── MCP export (mcp.mdx)
+│   ├── 镜像 export (mirror.mdx)
+│   └── 设备发现 export (discover.mdx)
+├── 📚 资源库 (library/)
+│   ├── 库概述 (index.mdx)
+│   ├── 设备驱动 (drivers/)
+│   ├── 物模型 (models/)
+│   ├── 协议模板 (protocols/)
+│   └── 联动模板 (linkage-templates/)
+├── 💻 开发者指南 (developer/)
+│   ├── 开发环境搭建 (setup.mdx)
+│   ├── API集成 (api-integration.mdx)
+│   ├── 🔌 自定义 plugin 开发 (custom-plugin.mdx)
+│   ├── 📤 自定义 export 开发 (custom-export.mdx)
+│   └── 调试与测试 (debugging.mdx)
+├── 🎯 最佳实践 (best-practices/)
+│   ├── 部署指南 (deployment.mdx)
+│   ├── 性能优化 (performance.mdx)
+│   ├── 故障排除 (troubleshooting.mdx)
+│   └── 安全配置 (security.mdx)
+└── 📖 参考资料 (reference/)
+    ├── REST API (api-reference.mdx)
+    ├── 配置参数 (config-reference.mdx)
+    ├── 错误码 (error-codes.mdx)
+    └── 更新日志 (changelog.mdx)
+```
+
+### 2. 文档类型定义
+
+#### 2.1 概述类文档
+- **目标读者**：新用户、决策者
+- **内容重点**：产品特性、架构优势、使用场景
+- **写作风格**：简洁明了，配以图表和示例
+
+#### 2.2 指南类文档
+- **目标读者**：开发者、运维人员
+- **内容重点**：步骤化指导、配置示例、常见问题
+- **写作风格**：任务导向，包含前后对比
+
+#### 2.3 参考类文档
+- **目标读者**：高级用户、开发者
+- **内容重点**：API详情、参数说明、错误处理
+- **写作风格**：精确详细，结构化表格
+
+#### 2.4 开发类文档（核心）
+- **目标读者**：二次开发工程师
+- **内容重点**：🔌 **plugin开发机制**、📤 **export开发机制**、自定义扩展
+- **写作风格**：实战导向，包含完整示例和最佳实践
+- **重要性**：driver-box框架的主要价值体现，需作为文档建设的重点
+- 
 ### 3. 视觉化内容设计
 
 #### 3.1 架构图规范
@@ -31,6 +116,30 @@
 **状态图：**
 - 使用stateDiagram展示plugin生命周期
 - 标注状态转换条件和异常处理
+
+#### 3.2 Mermaid图表设计原则
+
+为确保Mermaid生成的图表清晰易懂、能够有效传达主要信息，需遵循以下设计原则：
+
+**简洁性原则：**
+- **节点数量限制**：单个图表节点数量不超过15个，避免信息过载
+- **层次简化**：使用subgraph合理分组，控制子图嵌套不超过2层
+- **箭头优化**：尽量避免箭头交叉，箭头数量应与节点数量成比例（建议箭头数 ≤ 节点数 × 1.5）
+
+**清晰性原则：**
+- **文字精炼**：节点和边标签文字简洁明了，单个标签不超过10个字符
+- **颜色适度**：使用颜色区分不同类别，但不超过3种主要颜色
+- **布局逻辑**：图表布局应从左到右或从上到下符合阅读习惯
+
+**重点突出原则：**
+- **主线明确**：突出主要数据流和核心组件，次要信息使用虚线或浅色表示
+- **信息分层**：重要信息放在图表中心位置，辅助信息置于边缘
+- **避免冗余**：不重复展示相同信息，相同概念使用一致的节点样式
+
+**一致性原则：**
+- **风格统一**：在同一文档系列中保持图表风格一致
+- **命名规范**：节点和边命名使用统一术语，首次出现时可添加注释说明
+- **格式标准化**：使用统一的缩进和换行，代码块格式整齐
 
 #### 3.3 图表制作标准
 
@@ -190,6 +299,33 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 严重警告，可能导致数据丢失
 :::
 ```
+
+**Aside 组件使用：**
+Aside 组件用于显示简洁的侧边栏提示信息，适合突出显示重要信息而不打断文档流。
+
+```mdx
+import { Aside } from '@astrojs/starlight/components';
+
+<Aside type="tip" title="小贴士">
+  这是一个简洁的提示信息。
+</Aside>
+
+<Aside type="note" title="注意事项">
+  需要特别关注的信息。
+</Aside>
+
+<Aside type="caution" title="警告">
+  可能导致问题的操作提示。
+</Aside>
+
+<Aside type="danger" title="危险">
+  严重警告信息。
+</Aside>
+```
+
+**Aside vs Admonitions：**
+- **Admonitions**：适合较长的解释性内容，会创建明显的视觉分隔
+- **Aside**：适合简短的提示信息，显示为侧边栏样式，不打断阅读流
 
 ### 4. 内容写作规范
 
