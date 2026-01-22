@@ -2,7 +2,7 @@ package internal
 
 import (
 	"fmt"
-	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
@@ -98,12 +98,6 @@ func (export *Export) IsReady() bool {
 // 初始化场景联动环境配置
 func initLinkEdgeEnvConfig() (EnvConfig, error) {
 	var envConfig = EnvConfig{}
-	//驱动配置文件存放目录
-	dir := os.Getenv(config.ENV_LINKEDGE_CONFIG_PATH)
-	if dir == "" {
-		envConfig.ConfigPath = LinkConfigPath
-	} else {
-		envConfig.ConfigPath = dir
-	}
+	envConfig.ConfigPath = filepath.Join(config.ResourcePath, "linkedge")
 	return envConfig, nil
 }
