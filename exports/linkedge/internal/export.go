@@ -60,9 +60,7 @@ func (export *Export) Destroy() error {
 func NewExport() *Export {
 	once.Do(func() {
 		driverInstance = &Export{
-			EnvConfig: EnvConfig{
-				ConfigPath: LinkConfigPath,
-			},
+			EnvConfig: EnvConfig{},
 		}
 	})
 	return driverInstance

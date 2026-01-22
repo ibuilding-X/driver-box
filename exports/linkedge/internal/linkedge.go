@@ -33,10 +33,6 @@ const (
 	ExecuteResultAllFail = "fail"
 )
 
-const (
-	LinkConfigPath = "./config/linkedge" // 场景联动配置路径
-)
-
 // ErrActionListIsEmpty action 列表为空错误
 var ErrActionListIsEmpty = errors.New("linkEdge action list cannot be empty")
 
