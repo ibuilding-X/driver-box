@@ -313,7 +313,7 @@ func checkPoint(model *config.Model, point *config.Point) {
 		logger.Logger.Error("point reportMode config error , valid config is: realTime change period", zap.Any("point", point), zap.String("model", model.Name))
 	}
 	//存在精度换算时，点位类型要求float
-	if point.Scale() != 0 && valueType != config.ValueType_Float {
+	if point.Scale() != 0 && point.Scale() != 1 && valueType != config.ValueType_Float {
 		logger.Logger.Error("point scale config error , valid config is: float", zap.Any("point", point), zap.String("model", model.Name))
 	}
 }
