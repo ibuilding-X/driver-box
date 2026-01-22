@@ -725,6 +725,7 @@ func (c *cache) Flush(pluginName string) {
 			}
 			//避免重复删除
 			p.FilePath = ""
+			p.fileModifyTime = time.Now()
 			c.plugins[pluginName] = p
 		}
 		return
