@@ -23,7 +23,7 @@ type Plugin struct {
 }
 
 func EnablePlugin() {
-	driverbox.RegisterPlugin(ProtocolName, NewPlugin())
+	driverbox.EnablePlugin(ProtocolName, NewPlugin())
 }
 
 func NewPlugin() *Plugin {

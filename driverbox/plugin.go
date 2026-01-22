@@ -95,7 +95,7 @@ func destroyPlugins() {
 }
 
 // 注册插件
-func RegisterPlugin(name string, plugin plugin.Plugin) {
+func EnablePlugin(name string, plugin plugin.Plugin) {
 	plugins.Register(name, plugin)
 }
 

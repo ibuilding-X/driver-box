@@ -65,7 +65,7 @@ func Stop() error {
 	}
 	export0.Exports = make([]export.Export, 0)
 	//注册基础Export
-	RegisterExport(base.Get())
+	EnableExport(base.Get())
 	destroyPlugins()
 	plugins.Clear()
 	shadow.Reset()

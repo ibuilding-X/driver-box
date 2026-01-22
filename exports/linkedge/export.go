@@ -10,5 +10,5 @@ import (
 //
 //	创建并加载linkedge.NewExport()实例
 func EnableExport() {
-	driverbox.RegisterExport(internal.NewExport())
+	driverbox.EnableExport(internal.NewExport())
 }

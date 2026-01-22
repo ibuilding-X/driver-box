@@ -17,11 +17,11 @@ import (
 )
 
 func init() {
-	RegisterExport(base.Get())
+	EnableExport(base.Get())
 }
 
 // 注册Export至driver-box
-func RegisterExport(export export.Export) {
+func EnableExport(export export.Export) {
 	for _, e := range export0.Exports {
 		if e == export {
 			return

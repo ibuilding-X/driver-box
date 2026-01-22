@@ -6,5 +6,5 @@ import (
 )
 
 func EnablePlugin() {
-	driverbox.RegisterPlugin(internal.ProtocolName, internal.New())
+	driverbox.EnablePlugin(internal.ProtocolName, internal.New())
 }
