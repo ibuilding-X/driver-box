@@ -37,14 +37,14 @@ graph BT
     end
 
     subgraph "core层"
-        PointConvert[设备数据加工]
+        PointConvert[物模型数据]
         Shadow[设备影子]
         ExportTo[设备数据推送]
         OnEvent[事件]
-        DeviceDriver[物模型数据]
+        DeviceDriver["设备驱动(lua)"]
     end
 
-    subgraph "plugin层"
+    subgraph plugin["plugin层"]
 
         Modbus[Modbus设备]
         MQTT[MQTT设备]
@@ -52,14 +52,12 @@ graph BT
         OtherDev[其他协议设备]
     end
 
-    Modbus --> DeviceDriver
-    MQTT --> DeviceDriver
-    HTTP --> DeviceDriver
-    OtherDev --> DeviceDriver
+    plugin --> DeviceDriver
 
     DeviceDriver --> PointConvert
     PointConvert --> Shadow
     Shadow --> ExportTo
+    Shadow -."在线/离线".-> OnEvent
     DeviceDriver --> OnEvent
 
     OnEvent --> exportlayer
