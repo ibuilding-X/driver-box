@@ -166,12 +166,13 @@ func CallLuaEncodeConverter(L *lua.LState, deviceSn string, raw interface{}) (st
 
 // 关闭Lua虚拟机
 func Close(L *lua.LState) {
-	if L == nil {
+	if L == nil || L.IsClosed() {
 		return
 	}
-	if !L.IsClosed() {
+	lock, ok := luaLocks.LoadAndDelete(L)
+	if ok {
+		lock.(*sync.Mutex).Lock()
+		defer lock.(*sync.Mutex).Unlock()
 		L.Close()
 	}
-
-	luaLocks.Delete(L)
 }
