@@ -1,4 +1,4 @@
-package internal
+package base
 
 import (
 	"encoding/json"
@@ -8,12 +8,15 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/shadow"
-	"github.com/ibuilding-x/driver-box/exports/basic/internal/restful"
-	"github.com/ibuilding-x/driver-box/exports/basic/internal/restful/request"
-	"github.com/ibuilding-x/driver-box/exports/basic/internal/restful/route"
+	"github.com/ibuilding-x/driver-box/internal/cache"
+	"github.com/ibuilding-x/driver-box/internal/core"
+	"github.com/ibuilding-x/driver-box/internal/export/base/restful"
+	"github.com/ibuilding-x/driver-box/internal/export/base/restful/request"
+	"github.com/ibuilding-x/driver-box/internal/export/base/restful/route"
+	"github.com/ibuilding-x/driver-box/internal/logger"
+	shadow0 "github.com/ibuilding-x/driver-box/internal/shadow"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/library"
 	"go.uber.org/zap"
@@ -79,7 +82,7 @@ func (export *Export) registerApi() {
 		srv = &http.Server{Addr: ":" + export.httpListen, Handler: restful.HttpRouter}
 		e := srv.ListenAndServe()
 		if e != nil {
-			driverbox.Log().Error("start rest server error", zap.Error(e))
+			logger.Logger.Error("start rest server error", zap.Error(e))
 		}
 	}()
 }
@@ -94,7 +97,7 @@ var (
 
 // All 获取影子所有设备数据
 func getAllDevices(_ *http.Request) (any, error) {
-	devices := driverbox.Shadow().GetDevices()
+	devices := shadow0.Shadow().GetDevices()
 	//按DeviceID排序
 	sort.Slice(devices, func(i, j int) bool {
 		return devices[i].ID < devices[j].ID
@@ -190,7 +193,7 @@ func getDevicePoint(r *http.Request) (any, error) {
 
 // queryDevice 查询设备数据
 func queryDevice(sn string) (any, error) {
-	device, ok := driverbox.Shadow().GetDevice(sn)
+	device, ok := shadow0.Shadow().GetDevice(sn)
 	if !ok {
 		return nil, errors.New("unknown device")
 	}
@@ -199,7 +202,7 @@ func queryDevice(sn string) (any, error) {
 
 // queryDevicePoint 查询指定点位数据
 func queryDevicePoint(sn string, point string) (any, error) {
-	p, err := driverbox.Shadow().GetDevicePointDetails(sn, point)
+	p, err := shadow0.Shadow().GetDevicePointDetails(sn, point)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +212,7 @@ func queryDevicePoint(sn string, point string) (any, error) {
 // updateDevice 更新设备影子数据
 func updateDevice(data request.UpdateDeviceReq) error {
 	for i, _ := range data {
-		err := driverbox.Shadow().SetDevicePoint(data[i].ID, data[i].Name, data[i].Value)
+		err := shadow0.Shadow().SetDevicePoint(data[i].ID, data[i].Name, data[i].Value)
 		if err != nil {
 			return err
 		}
@@ -222,7 +225,7 @@ func writePoint(r *http.Request) (any, error) {
 	sn := r.URL.Query().Get("id")
 	point := r.URL.Query().Get("point")
 	value := r.URL.Query().Get("value")
-	return nil, driverbox.WritePoint(sn, plugin.PointData{
+	return nil, core.SendSinglePoint(sn, plugin.WriteMode, plugin.PointData{
 		PointName: point,
 		Value:     value,
 	})
@@ -246,18 +249,20 @@ func writePoints(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nil, driverbox.WritePoints(data.ID, data.Values)
+	return nil, core.SendBatchWrite(data.ID, data.Values)
 }
 
 // 读取某个设备点位
 func readPoint(r *http.Request) (any, error) {
 	sn := r.URL.Query().Get("id")
 	point := r.URL.Query().Get("point")
-	e := driverbox.ReadPoint(sn, point)
+	e := core.SendSinglePoint(sn, plugin.ReadMode, plugin.PointData{
+		PointName: point,
+	})
 	if e != nil {
 		return nil, e
 	}
-	return driverbox.Shadow().GetDevicePoint(sn, point)
+	return shadow0.Shadow().GetDevicePoint(sn, point)
 }
 
 // 获取设备列表
@@ -267,8 +272,8 @@ func deviceList(r *http.Request) (any, error) {
 		Points []config.Point `json:"points"`
 	}
 	devices := make([]Device, 0)
-	for _, device := range driverbox.CoreCache().Devices() {
-		points, _ := driverbox.CoreCache().GetPoints(device.ModelName)
+	for _, device := range cache.Get().Devices() {
+		points, _ := cache.Get().GetPoints(device.ModelName)
 		devices = append(devices, Device{
 			Device: device,
 			Points: points,
@@ -280,7 +285,7 @@ func deviceList(r *http.Request) (any, error) {
 // 获取设备信息
 func deviceGet(r *http.Request) (any, error) {
 	sn := r.URL.Query().Get("id")
-	device, ok := driverbox.CoreCache().GetDevice(sn)
+	device, ok := cache.Get().GetDevice(sn)
 	if !ok {
 		return nil, errors.New("device not found")
 	}

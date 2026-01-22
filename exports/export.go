@@ -1,7 +1,6 @@
 package exports
 
 import (
-	"github.com/ibuilding-x/driver-box/exports/basic"
 	"github.com/ibuilding-x/driver-box/exports/discover"
 	"github.com/ibuilding-x/driver-box/exports/gateway"
 	"github.com/ibuilding-x/driver-box/exports/linkedge"
@@ -13,7 +12,6 @@ import (
 //
 //	依次调用各个内置Export的加载方法，包括基础Export、场景联动Export等
 func EnableAll() {
-	basic.EnableExport()
 	linkedge.EnableExport()
 	mirror.EnableExport()
 	discover.EnableExport()

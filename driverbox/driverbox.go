@@ -6,10 +6,10 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	shadow0 "github.com/ibuilding-x/driver-box/driverbox/shadow"
 	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/internal/core"
 	export0 "github.com/ibuilding-x/driver-box/internal/export"
+	"github.com/ibuilding-x/driver-box/internal/export/base"
 	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/internal/shadow"
 	"github.com/ibuilding-x/driver-box/pkg/config"
@@ -64,6 +64,8 @@ func Stop() error {
 		}
 	}
 	export0.Exports = make([]export.Export, 0)
+	//注册基础Export
+	RegisterExport(base.Get())
 	destroyPlugins()
 	plugins.Clear()
 	shadow.Reset()
@@ -123,12 +125,6 @@ func GetMetadata() config.Metadata {
 // 提供对系统核心缓存的访问，用于存储和检索运行时数据
 func CoreCache() cache.CoreCache {
 	return cache.Get()
-}
-
-// Shadow 获取设备影子服务实例
-// 设备影子服务用于维护设备状态，提供状态同步和监控功能
-func Shadow() shadow0.DeviceShadow {
-	return shadow.Shadow()
 }
 
 func AddFunc(s string, f func()) (*crontab.Future, error) {

@@ -12,7 +12,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/exports/basic"
 	"github.com/ibuilding-x/driver-box/exports/gateway"
 	"go.uber.org/zap"
 )
@@ -117,7 +116,7 @@ func (c *connector) Release() (err error) {
 // * 会阻塞进程，需携程处理
 // * 需要实现重连机制
 func (c *connector) connect() {
-	url := fmt.Sprintf("ws://%s:%s%s", c.conf.IP, basic.Get().HttpListen(), gateway.WebSocketPath)
+	url := fmt.Sprintf("ws://%s:%s%s", c.conf.IP, driverbox.BaseExport().HttpListen(), gateway.WebSocketPath)
 	dialer := &websocket.Dialer{
 		Proxy:            http.ProxyFromEnvironment,
 		HandshakeTimeout: c.conf.timeout,

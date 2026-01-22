@@ -8,12 +8,17 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	export0 "github.com/ibuilding-x/driver-box/internal/export"
+	"github.com/ibuilding-x/driver-box/internal/export/base"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/pkg/event"
 	"github.com/ibuilding-x/driver-box/pkg/library"
 	"go.uber.org/zap"
 )
+
+func init() {
+	RegisterExport(base.Get())
+}
 
 // 注册Export至driver-box
 func RegisterExport(export export.Export) {
@@ -79,6 +84,11 @@ func Export(deviceData []plugin.DeviceData) {
 		}
 	}
 }
+
+func BaseExport() base.BaseExport {
+	return base.Get()
+}
+
 func pointCacheFilter(deviceData *plugin.DeviceData) {
 	// 设备层驱动，对点位进行预处理
 	err := pointValueProcess(deviceData)

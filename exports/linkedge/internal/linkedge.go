@@ -18,7 +18,6 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/exports/basic"
 	"github.com/ibuilding-x/driver-box/exports/linkedge/restful"
 	"github.com/ibuilding-x/driver-box/pkg/event"
 	"github.com/robfig/cron/v3"
@@ -54,7 +53,7 @@ type service struct {
 
 func (s *service) NewService() error {
 	// 创建联动场景
-	basic.Get().HandleFunc(http.MethodPost, restful.LinkEdgeCreate, func(request *http.Request) (any, error) {
+	driverbox.BaseExport().HandleFunc(http.MethodPost, restful.LinkEdgeCreate, func(request *http.Request) (any, error) {
 		data, err := readBody(request)
 		if err != nil {
 			err = fmt.Errorf("incoming reading ignored. Unable to read request body: %s", err.Error())
@@ -71,7 +70,7 @@ func (s *service) NewService() error {
 	})
 
 	// 预览联动场景
-	basic.Get().HandleFunc(http.MethodPost, restful.LinkEdgeTryTrigger, func(request *http.Request) (any, error) {
+	driverbox.BaseExport().HandleFunc(http.MethodPost, restful.LinkEdgeTryTrigger, func(request *http.Request) (any, error) {
 		// 读取请求参数
 		data, err := readBody(request)
 		if err != nil {
@@ -94,32 +93,32 @@ func (s *service) NewService() error {
 	})
 
 	//删除联动场景
-	basic.Get().HandleFunc(http.MethodPost, restful.LinkEdgeDelete, func(request *http.Request) (any, error) {
+	driverbox.BaseExport().HandleFunc(http.MethodPost, restful.LinkEdgeDelete, func(request *http.Request) (any, error) {
 		err := s.Delete(request.FormValue("id"))
 		return err != nil, err
 	})
 
 	//触发联动场景
-	basic.Get().HandleFunc(http.MethodPost, restful.LinkEdgeTrigger, func(request *http.Request) (any, error) {
+	driverbox.BaseExport().HandleFunc(http.MethodPost, restful.LinkEdgeTrigger, func(request *http.Request) (any, error) {
 		driverbox.Log().Info(fmt.Sprintf("trigger linkEdge:%s from: %s", request.FormValue("id"), request.FormValue("source")))
 		err := s.TriggerLinkEdge(request.FormValue("id"))
 		return err != nil, err
 	})
 
 	//查看场景联动
-	basic.Get().HandleFunc(http.MethodPost, restful.LinkEdgeGet, func(request *http.Request) (any, error) {
+	driverbox.BaseExport().HandleFunc(http.MethodPost, restful.LinkEdgeGet, func(request *http.Request) (any, error) {
 		driverbox.Log().Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
 		return s.getLinkEdge(request.FormValue("id"))
 	})
 
 	// 查看场景联动列表
-	basic.Get().HandleFunc(http.MethodGet, restful.LinkEdgeList, func(request *http.Request) (any, error) {
+	driverbox.BaseExport().HandleFunc(http.MethodGet, restful.LinkEdgeList, func(request *http.Request) (any, error) {
 		// 获取查询参数
 		tag := request.URL.Query().Get("tag")
 		return s.GetList(tag)
 	})
 
-	basic.Get().HandleFunc(http.MethodPost, restful.LinkEdgeUpdate, func(request *http.Request) (any, error) {
+	driverbox.BaseExport().HandleFunc(http.MethodPost, restful.LinkEdgeUpdate, func(request *http.Request) (any, error) {
 		body, err := readBody(request)
 		if err != nil {
 			return false, err
@@ -142,7 +141,7 @@ func (s *service) NewService() error {
 	})
 
 	//更新场景联动状态
-	basic.Get().HandleFunc(http.MethodPost, restful.LinkEdgeStatus, func(request *http.Request) (any, error) {
+	driverbox.BaseExport().HandleFunc(http.MethodPost, restful.LinkEdgeStatus, func(request *http.Request) (any, error) {
 		driverbox.Log().Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
 		config, err := s.getLinkEdge(request.FormValue("id"))
 		if err != nil {
@@ -169,7 +168,7 @@ func (s *service) NewService() error {
 	})
 
 	// 获取最后一次执行的场景信息
-	basic.Get().HandleFunc(http.MethodGet, restful.LinkEdgeGetLast, func(r *http.Request) (any, error) {
+	driverbox.BaseExport().HandleFunc(http.MethodGet, restful.LinkEdgeGetLast, func(r *http.Request) (any, error) {
 		return s.GetLast()
 	})
 

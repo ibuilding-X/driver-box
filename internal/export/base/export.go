@@ -1,4 +1,4 @@
-package internal
+package base
 
 import (
 	"context"
@@ -9,9 +9,9 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/exports/basic/internal/restful"
+	"github.com/ibuilding-x/driver-box/internal/core"
+	"github.com/ibuilding-x/driver-box/internal/export/base/restful"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/julienschmidt/httprouter"
 )
@@ -37,18 +37,14 @@ func (export *Export) Init() error {
 		if err != nil {
 			return fmt.Errorf("failed to read unique code file: %v", err)
 		}
-		driverbox.UpdateMetadata(func(m *config.Metadata) {
-			m.SerialNo = string(content)
-		})
+		core.Metadata.SerialNo = string(content)
 	} else if os.IsNotExist(err) {
 		// 生成UUID作为唯一码
 		uniqueCode := uuid.New().String()
 		if err := os.WriteFile(uniqueCodeFile, []byte(uniqueCode), 0644); err != nil {
 			return fmt.Errorf("failed to write unique code file: %v", err)
 		}
-		driverbox.UpdateMetadata(func(m *config.Metadata) {
-			m.SerialNo = uniqueCode
-		})
+		core.Metadata.SerialNo = uniqueCode
 	}
 	//http服务绑定host
 	httpListen := os.Getenv(config.ENV_HTTP_LISTEN)
@@ -76,7 +72,7 @@ func (export *Export) Destroy() error {
 	}
 	return nil
 }
-func NewExport() *Export {
+func Get() *Export {
 	once.Do(func() {
 		driverInstance = &Export{}
 	})

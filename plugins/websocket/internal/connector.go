@@ -9,7 +9,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/exports/basic"
 	"github.com/ibuilding-x/driver-box/pkg/library"
 	"go.uber.org/zap"
 )
@@ -73,7 +72,7 @@ func (c *connector) startServer() {
 		return
 	}
 	//复用driver-box自身服务
-	if c.config.Port == basic.Get().HttpListen() {
+	if c.config.Port == driverbox.BaseExport().HttpListen() {
 		driverbox.Log().Error("websocket connector port is same as driver-box http listen port", zap.Any("connector", c.config))
 		return
 	}

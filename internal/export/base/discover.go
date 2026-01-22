@@ -1,4 +1,4 @@
-package internal
+package base
 
 import (
 	"encoding/json"
@@ -6,7 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/internal/core"
+	"github.com/ibuilding-x/driver-box/internal/logger"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
 	"go.uber.org/zap"
@@ -19,7 +20,7 @@ func (export *Export) udpDiscover() {
 	if httpListen != "" {
 		p, e := convutil.Int64(httpListen)
 		if e != nil {
-			driverbox.Log().Error("udp discover listen port error", zap.String(config.ENV_UDP_DISCOVER_LISTEN, httpListen), zap.Error(e))
+			logger.Logger.Error("udp discover listen port error", zap.String(config.ENV_UDP_DISCOVER_LISTEN, httpListen), zap.Error(e))
 		} else {
 			port = int(p)
 		}
@@ -31,26 +32,26 @@ func (export *Export) udpDiscover() {
 	var err error
 	export.discoverConn, err = net.ListenUDP("udp", &addr)
 	if err != nil {
-		driverbox.Log().Error("UDP监听失败", zap.Error(err))
+		logger.Logger.Error("UDP监听失败", zap.Error(err))
 		return
 	}
 
-	driverbox.Log().Info("UDP服务已启动.", zap.Int("port", port))
+	logger.Logger.Info("UDP服务已启动.", zap.Int("port", port))
 
 	buffer := make([]byte, 1024)
 	for export.discoverEnable {
 		n, remoteAddr, err := export.discoverConn.ReadFromUDP(buffer)
 		if err != nil {
-			driverbox.Log().Error("读取UDP数据失败", zap.Error(err))
+			logger.Logger.Error("读取UDP数据失败", zap.Error(err))
 			continue
 		}
 
 		data := string(buffer[:n])
-		driverbox.Log().Info("收到UDP数据", zap.String("data", data), zap.String("remoteAddr", remoteAddr.String()))
+		logger.Logger.Info("收到UDP数据", zap.String("data", data), zap.String("remoteAddr", remoteAddr.String()))
 
 		// 基础验证
 		if !validateRequest(data) {
-			driverbox.Log().Error("验证失败", zap.String("data", data))
+			logger.Logger.Error("验证失败", zap.String("data", data))
 			continue
 		}
 
@@ -59,20 +60,20 @@ func (export *Export) udpDiscover() {
 			Port string `json:"port"`
 		}
 		resp := Resp{
-			Metadata: driverbox.GetMetadata(),
+			Metadata: core.Metadata,
 			Port:     export.httpListen,
 		}
 		// 获取网关Metadata信息
 		response, err := json.Marshal(resp)
 		if err != nil {
-			driverbox.Log().Error("JSON编码失败", zap.Error(err))
+			logger.Logger.Error("JSON编码失败", zap.Error(err))
 			continue
 		}
 
 		// 返回响应
 		_, err = export.discoverConn.WriteToUDP(response, remoteAddr)
 		if err != nil {
-			driverbox.Log().Error("发送响应失败", zap.Error(err))
+			logger.Logger.Error("发送响应失败", zap.Error(err))
 		}
 	}
 }
@@ -80,7 +81,7 @@ func (export *Export) udpDiscover() {
 func (export *Export) stopDiscover() {
 	export.discoverEnable = false
 	export.discoverConn.Close()
-	driverbox.Log().Info("UDP服务已停止.")
+	logger.Logger.Info("UDP服务已停止.")
 }
 
 // 验证请求数据
