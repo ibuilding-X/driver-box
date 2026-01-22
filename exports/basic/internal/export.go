@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"sync"
@@ -10,7 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/exports/basic/restful"
+	"github.com/ibuilding-x/driver-box/exports/basic/internal/restful"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/julienschmidt/httprouter"
 )
@@ -21,8 +22,10 @@ var srv *http.Server
 
 // 设备自动发现插件
 type Export struct {
-	discover *Discover
-	ready    bool
+	discoverConn   *net.UDPConn
+	discoverEnable bool
+	ready          bool
+	httpListen     string
 }
 
 func (export *Export) Init() error {
@@ -47,17 +50,24 @@ func (export *Export) Init() error {
 			m.SerialNo = uniqueCode
 		})
 	}
+	//http服务绑定host
+	httpListen := os.Getenv(config.ENV_HTTP_LISTEN)
+	if httpListen != "" {
+		export.httpListen = httpListen
+	} else {
+		export.httpListen = "8081"
+	}
 
 	export.ready = true
-	export.discover = NewDiscover()
-	registerApi()
-	go export.discover.udpDiscover()
+	export.discoverEnable = true
+	export.registerApi()
+	go export.udpDiscover()
 	return nil
 }
 
 func (export *Export) Destroy() error {
 	export.ready = false
-	export.discover.stopDiscover()
+	export.stopDiscover()
 	if srv != nil {
 		_ = srv.Shutdown(context.Background())
 		srv = nil

@@ -9,18 +9,17 @@ import (
 	"time"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/driverbox/shadow"
-	"github.com/ibuilding-x/driver-box/exports/basic/restful"
-	"github.com/ibuilding-x/driver-box/exports/basic/restful/request"
-	"github.com/ibuilding-x/driver-box/exports/basic/restful/route"
+	"github.com/ibuilding-x/driver-box/exports/basic/internal/restful"
+	"github.com/ibuilding-x/driver-box/exports/basic/internal/restful/request"
+	"github.com/ibuilding-x/driver-box/exports/basic/internal/restful/route"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/library"
 	"go.uber.org/zap"
 )
 
-func registerApi() {
+func (export *Export) registerApi() {
 	restful.HandleFunc(http.MethodGet, route.V1Prefix+"ok", func(h *http.Request) (any, error) {
 		return true, nil
 	})
@@ -77,7 +76,7 @@ func registerApi() {
 	//})
 	// 第五步：启动 REST 服务
 	go func() {
-		srv = &http.Server{Addr: ":" + helper.EnvConfig.HttpListen, Handler: restful.HttpRouter}
+		srv = &http.Server{Addr: ":" + export.httpListen, Handler: restful.HttpRouter}
 		e := srv.ListenAndServe()
 		if e != nil {
 			driverbox.Log().Error("start rest server error", zap.Error(e))

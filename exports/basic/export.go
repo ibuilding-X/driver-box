@@ -12,3 +12,7 @@ import (
 func EnableExport() {
 	driverbox.RegisterExport(internal.NewExport())
 }
+
+func Get() internal.Api {
+	return internal.NewExport()
+}

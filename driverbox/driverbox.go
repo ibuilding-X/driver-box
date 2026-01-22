@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/ibuilding-x/driver-box/driverbox/export"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	shadow0 "github.com/ibuilding-x/driver-box/driverbox/shadow"
 	"github.com/ibuilding-x/driver-box/internal/cache"
@@ -74,19 +73,11 @@ func Stop() error {
 }
 
 func initEnvConfig() error {
-	helper.EnvConfig = config.EnvConfig{}
 	dir := os.Getenv(config.ENV_RESOURCE_PATH)
 	if dir == "" {
 		config.ResourcePath = "./res"
 	} else {
 		config.ResourcePath = dir
-	}
-	//http服务绑定host
-	httpListen := os.Getenv(config.ENV_HTTP_LISTEN)
-	if httpListen != "" {
-		helper.EnvConfig.HttpListen = httpListen
-	} else {
-		helper.EnvConfig.HttpListen = "8081"
 	}
 
 	return nil

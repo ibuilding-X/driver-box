@@ -3,7 +3,6 @@ package driverbox
 import (
 	"fmt"
 
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/internal/export"
@@ -46,8 +45,6 @@ func loadPlugins() error {
 	//清空设备驱动库
 	library.Protocol().UnloadDeviceDrivers()
 
-	//打印环境配置
-	Log().Info("driver-box environment config", zap.Any("config", helper.EnvConfig))
 	// 缓存核心配置
 	_, err := cache.InitCoreCache(plugins.plugins)
 	if err != nil {

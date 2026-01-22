@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/exports/basic/restful/response"
+	"github.com/ibuilding-x/driver-box/exports/basic/internal/restful/response"
 	"github.com/julienschmidt/httprouter"
 	"go.uber.org/zap"
 )

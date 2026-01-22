@@ -7,7 +7,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/shadow"
-	"github.com/ibuilding-x/driver-box/exports/basic/restful"
+	"github.com/ibuilding-x/driver-box/exports/basic"
 	"github.com/ibuilding-x/driver-box/exports/discover"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
@@ -43,7 +43,7 @@ type websocketService struct {
 // Start 启动 websocket 服务
 func (wss *websocketService) Start() {
 	// 启动 websocket 服务，复用框架 http 服务
-	restful.HttpRouter.HandlerFunc(http.MethodGet, WebSocketPath, wss.handler)
+	basic.Get().HandlerFunc(http.MethodGet, WebSocketPath, wss.handler)
 }
 
 // handler 处理连接

@@ -7,24 +7,12 @@ import (
 	"strings"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
 	"go.uber.org/zap"
 )
 
-type Discover struct {
-	conn   *net.UDPConn
-	enable bool
-}
-
-func NewDiscover() *Discover {
-	return &Discover{
-		enable: true,
-	}
-}
-
-func (discover *Discover) udpDiscover() {
+func (export *Export) udpDiscover() {
 	// 监听UDP端口
 	port := 9090
 	httpListen := os.Getenv(config.ENV_UDP_DISCOVER_LISTEN)
@@ -41,7 +29,7 @@ func (discover *Discover) udpDiscover() {
 		IP:   net.IPv4(0, 0, 0, 0),
 	}
 	var err error
-	discover.conn, err = net.ListenUDP("udp", &addr)
+	export.discoverConn, err = net.ListenUDP("udp", &addr)
 	if err != nil {
 		driverbox.Log().Error("UDP监听失败", zap.Error(err))
 		return
@@ -50,8 +38,8 @@ func (discover *Discover) udpDiscover() {
 	driverbox.Log().Info("UDP服务已启动.", zap.Int("port", port))
 
 	buffer := make([]byte, 1024)
-	for discover.enable {
-		n, remoteAddr, err := discover.conn.ReadFromUDP(buffer)
+	for export.discoverEnable {
+		n, remoteAddr, err := export.discoverConn.ReadFromUDP(buffer)
 		if err != nil {
 			driverbox.Log().Error("读取UDP数据失败", zap.Error(err))
 			continue
@@ -72,7 +60,7 @@ func (discover *Discover) udpDiscover() {
 		}
 		resp := Resp{
 			Metadata: driverbox.GetMetadata(),
-			Port:     helper.EnvConfig.HttpListen,
+			Port:     export.httpListen,
 		}
 		// 获取网关Metadata信息
 		response, err := json.Marshal(resp)
@@ -82,16 +70,16 @@ func (discover *Discover) udpDiscover() {
 		}
 
 		// 返回响应
-		_, err = discover.conn.WriteToUDP(response, remoteAddr)
+		_, err = export.discoverConn.WriteToUDP(response, remoteAddr)
 		if err != nil {
 			driverbox.Log().Error("发送响应失败", zap.Error(err))
 		}
 	}
 }
 
-func (discover *Discover) stopDiscover() {
-	discover.enable = false
-	discover.conn.Close()
+func (export *Export) stopDiscover() {
+	export.discoverEnable = false
+	export.discoverConn.Close()
 	driverbox.Log().Info("UDP服务已停止.")
 }
 
