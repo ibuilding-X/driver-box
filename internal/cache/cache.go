@@ -31,38 +31,99 @@ var (
 	ErrConfigEmpty = errors.New("config is empty")
 )
 
-// coreCache 核心缓存
+// CoreCache 核心缓存接口，提供对设备模型、设备实例、连接等配置的缓存管理功能
+// 该接口封装了对设备配置的增删改查操作，并支持将配置持久化到文件系统
 type CoreCache interface {
-	GetModel(modelName string) (model config.Model, ok bool) // model info
-	// 删除模型,如果该模型下存在设备则返回error
+	// GetModel 根据模型名称获取设备模型信息
+	// 参数: modelName - 模型名称
+	// 返回: model - 模型结构体, ok - 是否找到模型
+	GetModel(modelName string) (model config.Model, ok bool)
+
+	// DeleteModel 删除指定的设备模型
+	// 注意: 如果该模型下存在关联的设备，则会返回错误
+	// 参数: modelName - 要删除的模型名称
+	// 返回: error - 删除过程中可能发生的错误
 	DeleteModel(modelName string) error
-	// 查询指定模型的所有点，并保持该点位在配置文件中的有序性
+
+	// GetPoints 查询指定模型的所有点位，并保持点位在配置文件中的有序性
+	// 参数: modelName - 模型名称
+	// 返回: []config.Point - 点位数组, bool - 是否查询成功
 	GetPoints(modelName string) ([]config.Point, bool)
+
+	// GetDevice 根据设备ID获取设备信息
+	// 参数: id - 设备ID
+	// 返回: device - 设备结构体, ok - 是否找到设备
 	GetDevice(id string) (device config.Device, ok bool)
-	GetPointByModel(modelName string, pointName string) (point config.Point, ok bool) // search point by model
-	GetPointByDevice(id string, pointName string) (point config.Point, ok bool)       // search point by device
-	Models() (models []config.Model)                                                  // all model
+
+	// GetPointByModel 根据模型名称和点位名称查询点位信息
+	// 参数: modelName - 模型名称, pointName - 点位名称
+	// 返回: point - 点位结构体, ok - 是否找到点位
+	GetPointByModel(modelName string, pointName string) (point config.Point, ok bool)
+
+	// GetPointByDevice 根据设备ID和点位名称查询点位信息
+	// 参数: id - 设备ID, pointName - 点位名称
+	// 返回: point - 点位结构体, ok - 是否找到点位
+	GetPointByDevice(id string, pointName string) (point config.Point, ok bool)
+
+	// Models 获取所有设备模型列表
+	// 返回: []config.Model - 所有模型的数组
+	Models() (models []config.Model)
+
+	// Devices 获取所有设备列表
+	// 返回: []config.Device - 所有设备的数组
 	Devices() (devices []config.Device)
 
-	UpdateDeviceProperty(id string, key string, value string) error // 更新设备属性
-	DeleteDevice(id string)                                         // 删除设备
-	UpdateDeviceDesc(id string, desc string) error                  // 更新设备描述
-	// AddConnection 新增连接
+	// UpdateDeviceProperty 更新指定设备的属性
+	// 参数: id - 设备ID, key - 属性键名, value - 属性值
+	// 返回: error - 更新过程中可能发生的错误
+	UpdateDeviceProperty(id string, key string, value string) error
+
+	// DeleteDevice 删除指定设备
+	// 参数: id - 设备ID
+	DeleteDevice(id string)
+
+	// UpdateDeviceDesc 更新设备描述
+	// 参数: id - 设备ID, desc - 新的描述信息
+	// 返回: error - 更新过程中可能发生的错误
+	UpdateDeviceDesc(id string, desc string) error
+
+	// AddConnection 新增连接到指定插件
+	// 参数: plugin - 插件名称, key - 连接标识键, conn - 连接实例
+	// 返回: error - 添加过程中可能发生的错误
 	AddConnection(plugin string, key string, conn any) error
-	// GetConnection 获取连接信息
+
+	// GetConnection 根据连接键获取连接实例
+	// 参数: key - 连接标识键
+	// 返回: any - 连接实例，如果不存在则返回nil
 	GetConnection(key string) any
-	// 删除连接
+
+	// DeleteConnection 删除指定连接
+	// 注意: 如果有设备正在使用该连接，则无法删除
+	// 参数: key - 连接标识键
+	// 返回: error - 删除过程中可能发生的错误
 	DeleteConnection(key string) error
-	// AddModel 新增模型
+
+	// AddModel 为指定插件新增设备模型
+	// 参数: plugin - 插件名称, model - 模型结构体
+	// 返回: error - 添加过程中可能发生的错误
 	AddModel(plugin string, model config.Model) error
+
 	// AddOrUpdateDevice 新增或更新设备
+	// 功能包括: 更新核心缓存设备、设备影子、持久化文件
+	// 参数: device - 设备结构体
+	// 返回: error - 操作过程中可能发生的错误
 	AddOrUpdateDevice(device config.Device) error
+
 	// BatchRemoveDevice 批量删除设备
+	// 参数: ids - 要删除的设备ID列表
+	// 返回: error - 删除过程中可能发生的错误
 	BatchRemoveDevice(ids []string) error
 
-	//将指定插件的配置进行持久化刷新
+	// Flush 将指定插件的配置进行持久化刷新
+	// 参数: pluginName - 插件名称
 	Flush(pluginName string)
-	// 将所有插件的配置进行持久化刷新
+
+	// FlushAll 将所有插件的配置进行持久化刷新
 	FlushAll()
 }
 
