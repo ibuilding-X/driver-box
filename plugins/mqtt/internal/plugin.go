@@ -35,6 +35,17 @@ func (p *Plugin) initConnPool(c config.DeviceConfig) error {
 			driverbox.Log().Error(fmt.Sprintf("unmarshal mqtt config error: %s", err.Error()))
 			continue
 		}
+		// 删除不支持自动发现，且未关联设备得连接
+		if !connectConfig.Discover && !config.HasDevice(k, c) {
+			err := driverbox.CoreCache().DeleteConnection(k)
+			if err != nil {
+				driverbox.Log().Error("delete connection error", zap.Any("connection", connectConfig), zap.Error(err))
+			} else {
+				driverbox.Log().Warn("delete connection success", zap.Any("connection", connectConfig))
+			}
+			continue
+		}
+
 		if !connectConfig.Enable {
 			driverbox.Log().Warn("mqtt connection is disable", zap.String("connectionKey", k))
 			continue

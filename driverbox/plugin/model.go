@@ -75,6 +75,9 @@ type BaseConnection struct {
 	// Enable 是否启用此连接
 	Enable bool `json:"enable"`
 
+	//是否支持设备发现
+	Discover bool `json:"discover"`
+
 	// Virtual 是否为虚拟设备，虚拟设备不需要实际的物理连接
 	Virtual bool `json:"virtual"`
 }

@@ -16,3 +16,15 @@ type DeviceModel struct {
 	// 设备列表
 	Devices []Device `json:"devices" validate:"required"`
 }
+
+// HasDevice 判断是否存在关联该链接的设备
+func HasDevice(connectionKey string, config DeviceConfig) bool {
+	for _, model := range config.DeviceModels {
+		for _, device := range model.Devices {
+			if device.ConnectionKey == connectionKey {
+				return true
+			}
+		}
+	}
+	return false
+}
