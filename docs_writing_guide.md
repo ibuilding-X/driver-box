@@ -281,77 +281,76 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 [完整的使用示例]
 
-## 常见问题
+## 常见问题（可选）
 
 [FAQ]
 ```
 
-### 2. API 文档模板
-```mdx
----
-title: [API名称]
-description: [API功能描述]
-sidebar:
-  order: [序号]
----
 
-# [API名称]
-
-[API功能详细描述]
-
-## 请求信息
-
-**请求方式：** [GET/POST/PUT/DELETE]
-**请求路径：** [API路径]
-**认证方式：** [认证说明]
-
-## 请求参数
-
-| 字段名 | 字段类型 | 是否必填 | 字段描述 |
-|--------|----------|----------|----------|
-| param1 | string | 是 | 参数说明 |
-
-## 响应参数
-
-| 字段名 | 字段类型 | 字段描述 |
-|--------|----------|----------|
-| data | object | 响应数据 |
-
-## 请求示例
-
-[Tabs with request/response examples]
-
-## 错误码
-
-[错误码说明表格]
-```
-
-### 3. Plugin文档完整模板
+### 2. Export文档模板
 
 ```mdx
 ---
-title: [插件名称] plugin
-description: [插件名称] 协议 plugin 的完整使用指南
+title: [导出插件名称] export
+description: [导出插件名称] 数据导出插件的使用指南
 sidebar:
   order: [序号]
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-# [插件名称] plugin
+# [导出插件名称] export
+
+[Export插件简介和适用场景]
+
+## 功能特性
+
+- 特性1
+- 特性2
+- 特性3
 
 ## 架构概述
 
-[Plugin的简要介绍，说明其用途和适用场景。1-2段文字。]
+[Export的简要介绍，说明其用途和适用场景。1-2段文字。]
 
 ### 工作原理
 
-[Plugin工作原理的流程图]
+[Export工作原理的流程图]
 
-```mermaid
-graph LR
-    A[设备连接] --> B[协议解析]
-    B --> C[数据转换]
-    C --> D[影子更新]
-    D --> E[数据导出]
+    ```mermaid
+    graph LR
+        A[设备影子] --> B[数据路由]
+        B --> C[格式转换]
+        C --> D[协议导出]
+        D --> E[目标系统]
+    ```
+
+## 配置说明
+
+### 基本配置
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| enable | boolean | 是 | 是否启用导出插件 |
+| url | string | 否 | 目标地址（如适用） |
+| timeout | number | 否 | 超时时间（毫秒） |
+
+
+## 使用示例（可选）
+
+[完整的使用示例，包含配置和测试]
+
+## 常见问题（可选）
+
+[FAQ]
+
+## 性能优化（可选）
+
+- 优化建议1
+- 优化建议2
+
+## 相关链接（可选）
+
+- [**导出机制**](/concepts/export-system/) - 导出系统详解
+- [**配置指南**](/guides/config/) - 详细配置说明
 ```
