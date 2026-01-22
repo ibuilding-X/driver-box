@@ -263,6 +263,11 @@ sidebar:
 
 #### 3.3 组件使用规范
 
+**禁用组件：**
+- ❌ **CardGrid组件**：禁止使用 `CardGrid` 和 `Card` 组件，所有信息应使用标准markdown格式展示
+
+**允许组件：**
+
 **Tabs 组件使用：**
 ```mdx
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -281,28 +286,16 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 </Tabs>
 ```
 
-**Admonitions 使用：**
-```mdx
-:::tip[提示]
-重要提示信息
-:::
-
-:::note[注意]
-需要特别注意的事项
-:::
-
-:::caution[警告]
-可能导致问题的操作
-:::
-
-:::danger[危险]
-严重警告，可能导致数据丢失
-:::
-```
-
-**Aside 组件使用：**
+**Aside 组件使用规范：**
 Aside 组件用于显示简洁的侧边栏提示信息，适合突出显示重要信息而不打断文档流。
 
+**使用场景：**
+- 简短的提示信息（建议不超过3行）
+- 重要的注意事项或警告
+- 关键配置提醒
+- 最佳实践建议
+
+**语法规范：**
 ```mdx
 import { Aside } from '@astrojs/starlight/components';
 
@@ -311,7 +304,7 @@ import { Aside } from '@astrojs/starlight/components';
 </Aside>
 
 <Aside type="note" title="注意事项">
-  需要特别关注的信息。
+  需要特别关注的信息点。
 </Aside>
 
 <Aside type="caution" title="警告">
@@ -323,9 +316,12 @@ import { Aside } from '@astrojs/starlight/components';
 </Aside>
 ```
 
-**Aside vs Admonitions：**
-- **Admonitions**：适合较长的解释性内容，会创建明显的视觉分隔
-- **Aside**：适合简短的提示信息，显示为侧边栏样式，不打断阅读流
+**最佳实践：**
+- **标题精炼**：title属性应简短明了（建议2-5个字符）
+- **内容简洁**：正文内容应控制在1-3句话内
+- **类型选择**：根据信息重要程度选择合适的type
+- **位置合理**：放置在相关内容的附近，避免过度分散注意力
+
 
 ### 4. 内容写作规范
 
