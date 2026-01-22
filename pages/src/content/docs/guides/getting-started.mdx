@@ -6,7 +6,6 @@ sidebar:
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
-import { Card, CardGrid } from '@astrojs/starlight/components';
 import { Aside } from '@astrojs/starlight/components';
 
 # 快速开始
@@ -31,23 +30,22 @@ flowchart LR
 
 ## 准备工作
 
-<CardGrid>
-	<Card title="环境要求" icon="computer">
-		<p><strong>Go 1.18+</strong>：编译和运行driver-box</p>
-		<p><strong>Git</strong>：下载源码</p>
-		<p><strong>SQLite3</strong>：数据存储（通常系统已预装）</p>
-	</Card>
-	<Card title="系统要求" icon="server">
-		<p><strong>最低配置</strong>：128MB RAM</p>
-		<p><strong>推荐配置</strong>：256MB RAM以上</p>
-		<p><strong>支持平台</strong>：Linux、Windows、macOS</p>
-	</Card>
-	<Card title="网络要求" icon="globe">
-		<p><strong>设备通信</strong>：Modbus、MQTT等协议端口</p>
-		<p><strong>HTTP API</strong>：默认8081端口</p>
-		<p><strong>数据导出</strong>：根据导出配置的端口</p>
-	</Card>
-</CardGrid>
+在开始之前，请确保您的环境满足以下要求：
+
+### 环境要求
+- **Go 1.18+**：编译和运行driver-box
+- **Git**：下载源码
+- **SQLite3**：数据存储（通常系统已预装）
+
+### 系统要求
+- **最低配置**：128MB RAM
+- **推荐配置**：256MB RAM以上
+- **支持平台**：Linux、Windows、macOS
+
+### 网络要求
+- **设备通信**：Modbus、MQTT等协议端口
+- **HTTP API**：默认8081端口
+- **数据导出**：根据导出配置的端口
 
 ## 步骤1：获取driver-box
 
