@@ -84,7 +84,11 @@ func (p *Plugin) initNetworks(config config.DeviceConfig) {
 			//如果模型不存在关联设备,清理该模型
 			if len(model.Devices) == 0 {
 				e := driverbox.CoreCache().DeleteModel(model.Name)
-				driverbox.Log().Warn("delete model error", zap.Any("model", model), zap.Error(e))
+				if e != nil {
+					driverbox.Log().Error("delete model error", zap.Any("model", model), zap.Error(e))
+				} else {
+					driverbox.Log().Warn("delete idle model", zap.Any("model", model))
+				}
 				continue
 			}
 			for _, dev := range model.Devices {
@@ -97,7 +101,11 @@ func (p *Plugin) initNetworks(config config.DeviceConfig) {
 
 		if len(conn.devices) == 0 {
 			err = driverbox.CoreCache().DeleteConnection(conn.config.ConnectionKey)
-			driverbox.Log().Warn("modbus connection has no device to collect,remove it", zap.String("key", key), zap.Error(err))
+			if err != nil {
+				driverbox.Log().Error("delete connection error", zap.Any("connection", connConfig), zap.Error(err))
+			} else {
+				driverbox.Log().Warn("delete idle connection", zap.Any("connection", connConfig))
+			}
 			continue
 		}
 		if !connectionConfig.Enable {
