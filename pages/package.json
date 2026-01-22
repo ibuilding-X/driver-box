@@ -12,6 +12,10 @@
   "dependencies": {
     "@astrojs/starlight": "^0.22.4",
     "astro": "^4.3.5",
+    "astro-expressive-code": "^0.41.6",
+    "mermaid": "^11.12.2",
+    "playwright": "^1.57.0",
+    "remark-mermaidjs": "^7.0.0",
     "sharp": "^0.32.5"
   }
 }
