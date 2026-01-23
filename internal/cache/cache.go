@@ -94,8 +94,9 @@ type CoreCache interface {
 
 	// GetConnection 根据连接键获取连接实例
 	// 参数: key - 连接标识键
+	// 返回: string - 关联插件名称
 	// 返回: any - 连接实例，如果不存在则返回nil
-	GetConnection(key string) any
+	GetConnection(key string) (string, any)
 
 	// DeleteConnection 删除指定连接
 	// 注意: 如果有设备正在使用该连接，则无法删除
@@ -633,13 +634,13 @@ func (c *cache) AddConnection(plugin string, key string, conn any) error {
 }
 
 // GetConnection 获取连接信息
-func (c *cache) GetConnection(key string) any {
+func (c *cache) GetConnection(key string) (string, any) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	if conn, ok := c.connections[key]; ok {
-		return conn.connection
+		return conn.pluginName, conn.connection
 	}
-	return nil
+	return "", nil
 }
 
 func (c *cache) DeleteConnection(key string) error {
