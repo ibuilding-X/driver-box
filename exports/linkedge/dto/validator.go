@@ -1,6 +1,8 @@
-package internal
+package dto
 
-import "time"
+import (
+	"time"
+)
 
 // intInSlice 检查数字是否在切片中
 func intInSlice(num int, nums []int) bool {

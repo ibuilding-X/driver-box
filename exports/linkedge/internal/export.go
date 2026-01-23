@@ -7,6 +7,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/exports/linkedge/dto"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/event"
 	"github.com/robfig/cron/v3"
@@ -36,8 +37,8 @@ func (export *Export) Init() error {
 
 	//启动场景联动服务
 	export.linkEdge = service{
-		triggerConditions: make(map[string][]DevicePointCondition),
-		configs:           make(map[string]Config),
+		triggerConditions: make(map[string][]dto.DevicePointCondition),
+		configs:           make(map[string]dto.Config),
 		schedules:         make(map[string]*cron.Cron),
 		envConfig:         export.EnvConfig,
 	}

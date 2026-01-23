@@ -18,6 +18,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/exports/linkedge/dto"
 	"github.com/ibuilding-x/driver-box/exports/linkedge/restful"
 	"github.com/ibuilding-x/driver-box/pkg/event"
 	"github.com/robfig/cron/v3"
@@ -38,11 +39,11 @@ var ErrActionListIsEmpty = errors.New("linkEdge action list cannot be empty")
 
 type service struct {
 	// 场景联动配置缓存
-	configs map[string]Config
+	configs map[string]dto.Config
 	// 定时任务
 	schedules map[string]*cron.Cron
 	//点位触发器
-	triggerConditions map[string][]DevicePointCondition
+	triggerConditions map[string][]dto.DevicePointCondition
 
 	envConfig EnvConfig
 }
@@ -73,7 +74,7 @@ func (s *service) NewService() error {
 			return false, err
 		}
 		// 解析数据
-		var config Config
+		var config dto.Config
 		err = json.Unmarshal(data, &config)
 		if err != nil {
 			return false, err
@@ -119,7 +120,7 @@ func (s *service) NewService() error {
 		if err != nil {
 			return false, err
 		}
-		var model Config
+		var model dto.Config
 		err = json.Unmarshal(body, &model)
 		if err != nil {
 			return false, err
@@ -185,7 +186,7 @@ func (s *service) NewService() error {
 
 // Create 创建场景联动规则
 func (s *service) Create(bytes []byte) error {
-	var model Config
+	var model dto.Config
 	e := json.Unmarshal(bytes, &model)
 	if e != nil {
 		return e
@@ -233,7 +234,7 @@ func (s *service) registerTrigger(id string) error {
 	//注册触发器
 	for _, trigger := range model.Trigger {
 		switch trigger.Type {
-		case TriggerTypeSchedule:
+		case dto.TriggerTypeSchedule:
 			schedule, exists := s.schedules[model.ID]
 			if !exists {
 				schedule = cron.New()
@@ -249,7 +250,7 @@ func (s *service) registerTrigger(id string) error {
 				driverbox.Log().Info(fmt.Sprintf("add schedule trigger:%v", trigger.Cron))
 			}
 			break
-		case TriggerTypeDevicePoint:
+		case dto.TriggerTypeDevicePoint:
 			//注册eKuiper监听设备点位状态
 			if len(trigger.DeviceID) == 0 || len(trigger.DevicePoint) == 0 || len(trigger.Condition) == 0 || len(trigger.Value) == 0 {
 				bs, _ := json.Marshal(trigger.DevicePointTrigger)
@@ -261,7 +262,7 @@ func (s *service) registerTrigger(id string) error {
 			triggers = append(triggers, trigger.DevicePointCondition)
 			s.triggerConditions[id] = triggers
 			break
-		case TriggerTypeDeviceEvent:
+		case dto.TriggerTypeDeviceEvent:
 			break
 		default:
 			bs, _ := json.Marshal(trigger)
@@ -299,7 +300,7 @@ func (s *service) Delete(id string) error {
 
 // Update UpdateLinkEdgeStatus 调整联动规则状态,用于启停控制
 func (s *service) Update(bytes []byte) error {
-	var model Config
+	var model dto.Config
 	e := json.Unmarshal(bytes, &model)
 	if e != nil {
 		return e
@@ -335,11 +336,11 @@ func (s *service) TriggerLinkEdge(id string) error {
 }
 
 // depth:联动深度
-func (s *service) triggerLinkEdge(id string, depth int, conf ...Config) error {
+func (s *service) triggerLinkEdge(id string, depth int, conf ...dto.Config) error {
 	if depth > 10 {
 		return errors.New("execute level is too deep, max deep:" + strconv.Itoa(depth))
 	}
-	var config Config
+	var config dto.Config
 	var e error
 	if len(conf) > 0 {
 		config = conf[0]
@@ -383,7 +384,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...Config) error {
 
 		switch action.Type {
 		// 设置设备点位
-		case ActionTypeDevicePoint:
+		case dto.ActionTypeDevicePoint:
 			deviceID := action.DeviceID
 			if _, ok := actions[deviceID]; !ok {
 				actions[deviceID] = make([]plugin.PointData, 0)
@@ -406,7 +407,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...Config) error {
 					})
 				}
 			}
-		case ActionTypeLinkEdge:
+		case dto.ActionTypeLinkEdge:
 			sucCount++
 			go s.triggerLinkEdge(action.ID, depth+1)
 		default:
@@ -482,7 +483,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...Config) error {
 	return nil
 }
 
-func (s *service) checkConditions(conditions []Condition) error {
+func (s *service) checkConditions(conditions []dto.Condition) error {
 	//优先执行点位持续时间条件校验
 	err := s.checkListTimeCondition(conditions)
 	if err != nil {
@@ -491,11 +492,11 @@ func (s *service) checkConditions(conditions []Condition) error {
 	now := time.Now().UnixMilli()
 	for _, condition := range conditions {
 		driverbox.Log().Info(fmt.Sprintf("check condition:%v", condition))
-		if condition.Type == ConditionTypeLastTime {
+		if condition.Type == dto.ConditionTypeLastTime {
 			continue
 		}
 		switch condition.Type {
-		case ConditionTypeDevicePoint:
+		case dto.ConditionTypeDevicePoint:
 			//注册eKuiper监听设备点位状态
 			if len(condition.DeviceID) == 0 || len(condition.DevicePoint) == 0 || len(condition.Condition) == 0 || len(condition.Value) == 0 {
 				bytes, _ := json.Marshal(condition.DevicePointCondition)
@@ -510,14 +511,14 @@ func (s *service) checkConditions(conditions []Condition) error {
 			if err != nil {
 				return err
 			}
-		case ConditionTypeExecuteTime:
+		case dto.ConditionTypeExecuteTime:
 			if condition.Begin > now {
 				return errors.New("execution time has not started")
 			}
 			if condition.End < now {
 				return errors.New("execution time has expired")
 			}
-		case ConditionTypeDateInterval:
+		case dto.ConditionTypeDateInterval:
 			if condition.BeginDate == "" || condition.EndDate == "" {
 				return nil
 			}
@@ -543,23 +544,23 @@ func (s *service) checkConditions(conditions []Condition) error {
 			}
 
 			return errors.New("execution time is not yet available")
-		case ConditionTypeYears:
+		case dto.ConditionTypeYears:
 			if !condition.YearsCondition.Verify(time.Now().Year()) {
 				return errors.New("mismatch years condition")
 			}
-		case ConditionTypeMonths:
+		case dto.ConditionTypeMonths:
 			if !condition.MonthsCondition.Verify(int(time.Now().Month())) {
 				return errors.New("mismatch months condition")
 			}
-		case ConditionTypeDays:
+		case dto.ConditionTypeDays:
 			if !condition.DaysCondition.Verify(time.Now().Day()) {
 				return errors.New("mismatch days condition")
 			}
-		case ConditionTypeWeeks:
+		case dto.ConditionTypeWeeks:
 			if !condition.WeeksCondition.Verify(int(time.Now().Weekday())) {
 				return errors.New("mismatch weeks condition")
 			}
-		case ConditionTypeTimes:
+		case dto.ConditionTypeTimes:
 			if !condition.TimesCondition.Verify(time.Now()) {
 				return errors.New("mismatch times condition")
 			}
@@ -568,23 +569,23 @@ func (s *service) checkConditions(conditions []Condition) error {
 	return nil
 }
 
-func (s *service) checkListTimeCondition(conditions []Condition) error {
+func (s *service) checkListTimeCondition(conditions []dto.Condition) error {
 	//return errors.New("功能未迁移...")
 	return nil
 }
 
-func (s *service) checkConditionValue(condition DevicePointCondition, pointValue interface{}) error {
+func (s *service) checkConditionValue(condition dto.DevicePointCondition, pointValue interface{}) error {
 	driverbox.Log().Info(fmt.Sprintf("checkConditionValue condition:%v, pointValue:%v", condition, pointValue))
 	e := errors.New(fmt.Sprintf("condition check fail. expect %v%v%v ,actual value=%v", condition.DevicePoint, condition.Condition, condition.Value, pointValue))
 	switch pointValue.(type) {
 	case string:
 		switch condition.Condition {
-		case ConditionEq:
+		case dto.ConditionEq:
 			if condition.Value != pointValue {
 				return e
 			}
 			break
-		case ConditionNe:
+		case dto.ConditionNe:
 			if condition.Value == pointValue {
 				return e
 			}
@@ -604,32 +605,32 @@ func (s *service) checkConditionValue(condition DevicePointCondition, pointValue
 		}
 
 		switch condition.Condition {
-		case ConditionEq:
+		case dto.ConditionEq:
 			if conditionValue != pointValue {
 				return e
 			}
 			break
-		case ConditionNe:
+		case dto.ConditionNe:
 			if conditionValue == pointValue {
 				return e
 			}
 			break
-		case ConditionGt:
+		case dto.ConditionGt:
 			if conditionValue >= pointValue {
 				return e
 			}
 			break
-		case ConditionGe:
+		case dto.ConditionGe:
 			if conditionValue > pointValue {
 				return e
 			}
 			break
-		case ConditionLt:
+		case dto.ConditionLt:
 			if conditionValue <= pointValue {
 				return e
 			}
 			break
-		case ConditionLe:
+		case dto.ConditionLe:
 			if conditionValue < pointValue {
 				return e
 			}
@@ -640,13 +641,13 @@ func (s *service) checkConditionValue(condition DevicePointCondition, pointValue
 	return nil
 }
 
-func (s *service) getLinkEdge(id string) (Config, error) {
+func (s *service) getLinkEdge(id string) (dto.Config, error) {
 	config, exists := s.configs[id]
 	if exists {
 		return config, nil
 	}
 
-	config = Config{}
+	config = dto.Config{}
 	fileName := filepath.Join(s.envConfig.ConfigPath, id+".json")
 	f, err := os.Open(fileName)
 	if err != nil {
@@ -663,7 +664,7 @@ func (s *service) getLinkEdge(id string) (Config, error) {
 	return config, err
 }
 
-func (s *service) GetList(tag ...string) ([]Config, error) {
+func (s *service) GetList(tag ...string) ([]dto.Config, error) {
 	files := make([]string, 0)
 	//若目录不存在，则自动创建
 	_, err := os.Stat(s.envConfig.ConfigPath)
@@ -684,7 +685,7 @@ func (s *service) GetList(tag ...string) ([]Config, error) {
 		return nil
 	})
 
-	var configs []Config
+	var configs []dto.Config
 
 	for _, key := range files {
 		id := strings.TrimSuffix(key, ".json")
@@ -706,7 +707,7 @@ func (s *service) GetList(tag ...string) ([]Config, error) {
 }
 
 // GetLast 获取最后一次执行的场景信息
-func (s *service) GetLast() (c Config, err error) {
+func (s *service) GetLast() (c dto.Config, err error) {
 	defaultTime := time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC)
 	configs, err := s.GetList()
 	if err != nil {
@@ -720,7 +721,7 @@ func (s *service) GetLast() (c Config, err error) {
 	}
 	// 判断执行时间，若执行时间为空，则返回空
 	if c.ExecuteTime.IsZero() {
-		return Config{}, nil
+		return dto.Config{}, nil
 	}
 	return
 }
@@ -751,7 +752,7 @@ func (s *service) parseDate(d string) (time.Time, error) {
 
 // Preview 预览场景
 // 提示：不真实创建场景，仅看执行效果使用
-func (s *service) Preview(config Config) error {
+func (s *service) Preview(config dto.Config) error {
 	// 记录场景执行记录
 	return s.triggerLinkEdge("", 0, config)
 }
