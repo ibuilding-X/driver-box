@@ -5,7 +5,7 @@ description: A reference page in my new Starlight docs site.
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-镜像模版是对实现 [镜像设备](/driver-box/export/mirror/) 的一种提效手段。
+镜像模版是对实现 [镜像设备](/driver-box/exports/mirror/) 的一种提效手段。
 通过预定义镜像模版，并在需要时引用模块key，实现镜像设备配置的自动化生产。
 
 <Tabs>
@@ -15,7 +15,7 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
         | modelId                            | string | 可选 | 云平台定义的物模型 ID           |
         | description                        | string | 可选 | 物模型描述           |
         | driverKey         | array | 必填 | 生成镜像设备引用的设备驱动key             |
-        | points | array | 必填 | [设备点表配置](/driver-box/export/mirror/#第一步配置文件)           |
+        | points | array | 必填 | [设备点表配置](/driver-box/exports/mirror/#第一步配置文件)           |
     </TabItem>
     <TabItem label="example.json" icon="seti:json">
         ```json5
