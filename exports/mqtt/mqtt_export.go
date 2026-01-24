@@ -70,7 +70,7 @@ func (export *MqttExport) ExportTo(deviceData plugin.DeviceData) {
 }
 
 // 继承Export OnEvent接口
-func (export *MqttExport) OnEvent(eventCode string, key string, eventValue interface{}) error {
+func (export *MqttExport) OnEvent(eventCode event.EventCode, key string, eventValue interface{}) error {
 	if event.EventCodeDeviceStatus == eventCode {
 		export.client.Publish("/driverbox/event/"+export.ClientID, 0, false, map[string]any{"deviceId": key, "online": eventValue})
 	}

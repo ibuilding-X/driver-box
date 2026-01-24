@@ -13,6 +13,7 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/core"
 	"github.com/ibuilding-x/driver-box/internal/export/base/restful"
 	"github.com/ibuilding-x/driver-box/pkg/config"
+	"github.com/ibuilding-x/driver-box/pkg/event"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -85,7 +86,7 @@ func (export *Export) ExportTo(deviceData plugin.DeviceData) {
 }
 
 // 继承Export OnEvent接口
-func (export *Export) OnEvent(eventCode string, key string, eventValue interface{}) error {
+func (export *Export) OnEvent(eventCode event.EventCode, key string, eventValue interface{}) error {
 	return nil
 }
 

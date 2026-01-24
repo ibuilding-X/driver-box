@@ -88,9 +88,9 @@ func (export *export) ExportTo(deviceData plugin.DeviceData) {
 }
 
 // 继承Export OnEvent接口
-func (export *export) OnEvent(eventCode string, key string, eventValue interface{}) error {
+func (export *export) OnEvent(eventCode event.EventCode, key string, eventValue interface{}) error {
 	switch eventCode {
-	case EVT_Trigger:
+	case EVT_TRIGGER:
 		driverbox.Log().Info("trigger linkEdge", zap.String("id", key), zap.Any("result", eventValue))
 	case event.EventCodePluginCallback:
 		data, ok := eventValue.([]plugin.DeviceData)

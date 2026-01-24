@@ -12,6 +12,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/crontab"
+	"github.com/ibuilding-x/driver-box/pkg/event"
 	"go.uber.org/zap"
 )
 
@@ -83,7 +84,7 @@ func (export0 *Export) Init() error {
 	if realTimeCycle == "" {
 		realTimeCycle = "5s"
 	}
-	export0.realTask, e = driverbox.Crontab().AddFunc(realTimeCycle, func() {
+	export0.realTask, e = driverbox.AddFunc(realTimeCycle, func() {
 		if len(export0.realTimeDataQueue) == 0 {
 			return
 		}
@@ -101,7 +102,7 @@ func (export0 *Export) Init() error {
 	if snapshotDataCycle == "" {
 		snapshotDataCycle = "60s"
 	}
-	export0.snapshotTask, e = driverbox.Crontab().AddFunc(snapshotDataCycle, func() {
+	export0.snapshotTask, e = driverbox.AddFunc(snapshotDataCycle, func() {
 		export0.writeDeviceSnapshotData()
 	})
 	if e != nil {
@@ -116,7 +117,7 @@ func (export0 *Export) Init() error {
 		value, _ := strconv.ParseInt(duration, 10, 64)
 		defaultDuration = int(value)
 	}
-	export0.clearTask, e = driverbox.Crontab().AddFunc("1h", func() {
+	export0.clearTask, e = driverbox.AddFunc("1h", func() {
 		export0.clearExpiredData(defaultDuration)
 	})
 	if e != nil {
@@ -152,7 +153,7 @@ func (export0 *Export) ExportTo(deviceData plugin.DeviceData) {
 }
 
 // OnEvent 接收事件数据
-func (export0 *Export) OnEvent(eventCode string, key string, eventValue interface{}) error {
+func (export0 *Export) OnEvent(eventCode event.EventCode, key string, eventValue interface{}) error {
 	// 暂时不处理任何事件
 	return nil
 }

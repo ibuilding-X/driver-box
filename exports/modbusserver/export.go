@@ -8,6 +8,7 @@ import (
 	"github.com/ibuilding-x/driver-box/exports/modbusserver/mbserver"
 	"github.com/ibuilding-x/driver-box/exports/modbusserver/mbserver/modbus"
 	"github.com/ibuilding-x/driver-box/pkg/config"
+	"github.com/ibuilding-x/driver-box/pkg/event"
 	"go.uber.org/zap"
 )
 
@@ -49,7 +50,7 @@ func (e *Export) ExportTo(deviceData plugin.DeviceData) {
 	}
 }
 
-func (e *Export) OnEvent(eventCode string, key string, eventValue interface{}) error {
+func (e *Export) OnEvent(eventCode event.EventCode, key string, eventValue interface{}) error {
 	return nil
 }
 

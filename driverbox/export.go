@@ -29,13 +29,13 @@ func init() {
 // 使用示例:
 //
 //	type CustomExport struct{}
-//	
+//
 //	func (c *CustomExport) Init() error { return nil }
 //	func (c *CustomExport) ExportTo(deviceData plugin.DeviceData) {}
 //	func (c *CustomExport) OnEvent(eventCode string, key string, eventValue interface{}) error { return nil }
 //	func (c *CustomExport) IsReady() bool { return true }
 //	func (c *CustomExport) Destroy() error { return nil }
-//	
+//
 //	customExport := &CustomExport{}
 //	driverbox.EnableExport(customExport)
 func EnableExport(export export.Export) {
@@ -54,15 +54,16 @@ func EnableExport(export export.Export) {
 //   - value: 事件携带的数据值，可以是任意类型
 //
 // 功能:
-//   遍历所有已加载的Export插件，调用其OnEvent方法处理事件
-//   如果Export插件未就绪，则跳过该插件
-//   记录事件处理过程中的错误信息
+//
+//	遍历所有已加载的Export插件，调用其OnEvent方法处理事件
+//	如果Export插件未就绪，则跳过该插件
+//	记录事件处理过程中的错误信息
 //
 // 常见事件类型:
 //   - event.EventCodeAddDevice: 设备添加事件
 //   - event.EventCodePluginCallback: 插件回调事件
 //   - event.EventCodeServiceStatus: 服务状态事件
-func TriggerEvents(eventCode string, key string, value interface{}) {
+func TriggerEvents(eventCode event.EventCode, key string, value interface{}) {
 	export0.TriggerEvents(eventCode, key, value)
 }
 
@@ -72,13 +73,13 @@ func TriggerEvents(eventCode string, key string, value interface{}) {
 //   - deviceData: 设备数据数组，包含设备ID、数值、事件等信息
 //
 // 处理流程:
-//   1. 记录调试日志
-//   2. 触发插件回调事件
-//   3. 遍历每个设备数据:
-//      - 如果设备有事件，则触发事件通知
-//      - 对点位数据进行缓存过滤
-//      - 如果设备没有数值数据则跳过
-//      - 将数据导出到所有已准备好的Export插件
+//  1. 记录调试日志
+//  2. 触发插件回调事件
+//  3. 遍历每个设备数据:
+//     - 如果设备有事件，则触发事件通知
+//     - 对点位数据进行缓存过滤
+//     - 如果设备没有数值数据则跳过
+//     - 将数据导出到所有已准备好的Export插件
 //
 // 数据过滤机制:
 //   - 根据报告模式过滤不变的点位值(ReportMode_Change)
@@ -92,8 +93,8 @@ func Export(deviceData []plugin.DeviceData) {
 	for _, data := range deviceData {
 		//触发事件通知
 		if len(data.Events) > 0 {
-			for _, event := range data.Events {
-				TriggerEvents(event.Code, data.ID, event.Value)
+			for _, evt := range data.Events {
+				TriggerEvents(event.EventCode(evt.Code), data.ID, evt.Value)
 			}
 		}
 		pointCacheFilter(&data)
@@ -188,6 +189,7 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 // 4. 应用小数位数保留
 // 参数:
 //   - deviceData: 指向设备数据的指针，函数会直接修改其中的值
+//
 // 返回值:
 //   - error: 处理过程中发生的错误
 func pointValueProcess(deviceData *plugin.DeviceData) error {
@@ -209,7 +211,7 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 			//驱动产生的事件
 			if len(result.Events) > 0 {
 				for _, e := range result.Events {
-					TriggerEvents(e.Code, deviceData.ID, e.Value)
+					TriggerEvents(event.EventCode(e.Code), deviceData.ID, e.Value)
 				}
 			}
 		}
@@ -258,6 +260,7 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 // 参数:
 //   - value: 需要相乘的值，支持多种数值类型
 //   - scale: 乘数，浮点数
+//
 // 返回值:
 //   - float64: 相乘结果
 //   - error: 类型不支持时返回错误

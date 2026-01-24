@@ -3,6 +3,7 @@ package gateway
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/pkg/event"
 )
 
 type gatewayExport struct {
@@ -25,7 +26,7 @@ func (g *gatewayExport) ExportTo(deviceData plugin.DeviceData) {
 }
 
 // OnEvent 接收事件数据
-func (g *gatewayExport) OnEvent(eventCode string, key string, eventValue interface{}) error {
+func (g *gatewayExport) OnEvent(eventCode event.EventCode, key string, eventValue interface{}) error {
 	// 暂时不处理任何事件
 	return nil
 }

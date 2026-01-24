@@ -2,6 +2,7 @@ package export
 
 import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/pkg/event"
 )
 
 // Export 定义了驱动数据导出的标准接口
@@ -45,7 +46,7 @@ type Export interface {
 	// 功能:
 	//   处理特定事件触发的业务逻辑
 	//   实现时应根据eventCode进行不同处理
-	OnEvent(eventCode string, key string, eventValue interface{}) error
+	OnEvent(eventCode event.EventCode, key string, eventValue interface{}) error
 
 	// IsReady 检查导出模块是否就绪
 	// 该方法用于检查导出模块是否已完成初始化并准备好处理数据

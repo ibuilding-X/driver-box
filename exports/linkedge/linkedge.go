@@ -326,11 +326,11 @@ func (s *export) triggerLinkEdge(id string, depth int, conf ...model.Config) err
 	if id != "" {
 		// value:全部成功\部分成功\全部失败
 		if sucCount == len(config.Action) {
-			driverbox.TriggerEvents(EVT_Trigger, id, ExecuteResultAllSuccess)
+			driverbox.TriggerEvents(EVT_TRIGGER, id, ExecuteResultAllSuccess)
 		} else if sucCount == 0 {
-			driverbox.TriggerEvents(EVT_Trigger, id, ExecuteResultAllFail)
+			driverbox.TriggerEvents(EVT_TRIGGER, id, ExecuteResultAllFail)
 		} else {
-			driverbox.TriggerEvents(EVT_Trigger, id, ExecuteResultPartSuccess)
+			driverbox.TriggerEvents(EVT_TRIGGER, id, ExecuteResultPartSuccess)
 		}
 	}
 

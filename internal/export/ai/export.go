@@ -13,6 +13,7 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/internal/export/ai/mcp/tools"
 	"github.com/ibuilding-x/driver-box/pkg/config"
+	"github.com/ibuilding-x/driver-box/pkg/event"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/tmc/langchaingo/llms"
@@ -87,7 +88,7 @@ func (export *Export) ExportTo(deviceData plugin.DeviceData) {
 }
 
 // 继承Export OnEvent接口
-func (export *Export) OnEvent(eventCode string, key string, eventValue interface{}) error {
+func (export *Export) OnEvent(eventCode event.EventCode, key string, eventValue interface{}) error {
 	return nil
 }
 

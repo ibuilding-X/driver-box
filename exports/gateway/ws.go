@@ -250,7 +250,7 @@ func (wss *websocketService) sendDeviceData(data plugin.DeviceData) {
 	if len(data.Events) > 0 {
 		var events []event.Data
 		for _, e := range data.Events {
-			switch e.Code {
+			switch event.EventCode(e.Code) {
 			case event.EventCodeDeviceStatus: // 设备状态
 				// todo 事件定义暂时无法获取设备 ID
 			case event.EventDeviceDiscover: // 设备发现
