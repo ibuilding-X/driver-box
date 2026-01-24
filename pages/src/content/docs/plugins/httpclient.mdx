@@ -1,0 +1,151 @@
+---
+title: HTTP Client 插件
+description: HTTP Client 插件，用于通过 HTTP 请求主动获取数据
+---
+
+# HTTP Client 插件
+
+HTTP Client 插件用于通过 HTTP 请求主动从远程服务器获取数据，支持定时轮询和自定义请求配置。
+
+## 功能特性
+
+- **HTTP/HTTPS**：支持 HTTP 和 HTTPS 协议
+- **定时轮询**：支持自定义轮询间隔
+- **自定义请求**：支持配置 URL、方法、头部、认证等
+- **数据解析**：通过设备层驱动解析 HTTP 响应为设备数据
+- **错误处理**：支持请求失败重试和错误处理
+- **并发安全**：线程安全的 HTTP 客户端
+
+## 连接配置
+
+连接配置位于 `config.json` 的 `connections` 字段下：
+
+### HTTP Client 配置示例
+
+```json
+{
+  "plugin": "http_client",
+  "connections": {
+    "weather-api": {
+      "url": "https://api.weather.com/v1/current",
+      "method": "GET",
+      "headers": {
+        "Authorization": "Bearer token123",
+        "Content-Type": "application/json"
+      },
+      "timeout": 5000,
+      "interval": "60s",
+      "enable": true
+    }
+  }
+}
+```
+
+### 配置参数说明
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| url | string | - | 请求 URL（支持占位符，如 `{deviceId}`） |
+| method | string | GET | HTTP 方法（GET、POST、PUT、DELETE 等） |
+| headers | object | {} | 请求头部键值对 |
+| timeout | int | 5000 | 请求超时时间（毫秒） |
+| interval | string | 60s | 轮询间隔（如 `30s`、`1m`） |
+| enable | bool | true | 是否启用此连接 |
+
+## 点位配置
+
+点位配置基于通用点位定义，HTTP Client 插件本身不直接定义点位扩展参数，而是通过设备层驱动进行数据解析。
+
+### 通用点位参数
+
+点位的基础参数请参考[设备配置指南](/guides/device-config/#点位point)。
+
+### URL 占位符
+
+URL 中可以使用以下占位符：
+
+| 占位符 | 说明 |
+|--------|------|
+| `{deviceId}` | 替换为设备 ID |
+| `{pointName}` | 替换为点位名称 |
+| `{timestamp}` | 替换为当前时间戳 |
+
+示例：
+
+```json
+{
+  "name": "temperature",
+  "url": "https://api.example.com/devices/{deviceId}/temperature",
+  "method": "GET"
+}
+```
+
+### 设备属性说明
+
+HTTP Client 设备需要在 `properties` 中配置协议相关参数：
+
+| 属性 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| protocolKey | string | 是 | 设备层驱动协议键 |
+
+## 数据流向
+
+### 数据获取流程
+
+1. 定时触发轮询任务
+2. 根据配置构造 HTTP 请求
+3. 发送请求到远程服务器
+4. 接收响应数据
+5. 调用设备层驱动解析响应
+6. 触发数据导出
+
+### 请求构造
+
+插件会根据配置自动构造 HTTP 请求：
+
+- **URL**：替换占位符后的完整 URL
+- **方法**：配置的 HTTP 方法
+- **头部**：配置的请求头部
+- **认证**：支持 Basic Auth、Bearer Token 等
+
+## 轮询机制
+
+- 每个连接独立维护轮询定时器
+- 支持不同的轮询间隔
+- 请求失败时自动重试
+- 网络异常时触发设备离线
+
+## 错误处理
+
+- 请求超时：记录错误并重试
+- HTTP 错误状态码：记录错误并触发离线
+- 解析失败：记录错误但不影响其他点位
+- 网络异常：触发设备离线检测
+
+## 默认值
+
+以下参数未配置时使用默认值：
+
+- `timeout`：5000 毫秒
+- `interval`：60 秒
+- `method`：GET
+- `enable`：true
+
+## 使用场景
+
+- 从 REST API 获取设备数据
+- 轮询第三方云服务
+- 集成 Web 服务和 IoT 平台
+- 获取天气、位置等外部数据
+
+## 注意事项
+
+- URL 中的占位符会在运行时动态替换
+- 确保网络连接稳定，避免频繁超时
+- 合理设置轮询间隔，避免对服务器造成压力
+- 敏感信息（如认证令牌）建议通过环境变量配置
+
+## 相关代码
+
+- 插件入口：`plugins/httpclient/plugin.go`
+- 核心实现：`plugins/httpclient/internal/plugin.go`

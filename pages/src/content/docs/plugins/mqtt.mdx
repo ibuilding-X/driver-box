@@ -1,0 +1,112 @@
+---
+title: MQTT 插件
+description: MQTT 协议插件，用于连接 MQTT Broker 进行数据收发
+---
+
+# MQTT 插件
+
+MQTT 插件用于连接 MQTT Broker，支持从 MQTT 主题订阅数据并解析为设备点位，或将设备点位编码后发布到 MQTT 主题。
+
+## 功能特性
+
+- **MQTT 3.1.1/5.0**：支持标准 MQTT 协议
+- **自动重连**：连接断开后自动重连
+- **主题订阅**：支持订阅多个主题（逗号分隔）
+- **协议解码**：通过设备层驱动解析 MQTT 消息为设备数据
+- **自动发现**：支持自动添加设备
+- **QoS 支持**：支持 MQTT QoS 等级
+
+## 连接配置
+
+连接配置位于 `config.json` 的 `connections` 字段下：
+
+```json
+{
+  "plugin": "mqtt",
+  "connections": {
+    "mqtt-broker-1": {
+      "clientId": "driver-box-001",
+      "broker": "tcp://192.168.1.100:1883",
+      "username": "user",
+      "password": "pass",
+      "topics": "device/+/data,device/+/status"
+    }
+  }
+}
+```
+
+### 配置参数说明
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| clientId | string | - | MQTT 客户端 ID |
+| broker | string | - | MQTT Broker 地址（如 `tcp://192.168.1.100:1883`） |
+| username | string | - | 认证用户名（可选） |
+| password | string | - | 认证密码（可选） |
+| topics | string | - | 订阅主题列表，多个主题用逗号分隔 |
+| enable | bool | true | 是否启用此连接 |
+| discover | bool | false | 是否允许自动发现设备 |
+
+## 点位配置
+
+点位配置基于通用点位定义，并添加 MQTT 协议扩展参数。
+
+### 通用点位参数
+
+点位的基础参数请参考[设备配置指南](/guides/device-config/#点位point)。
+
+### MQTT 扩展参数
+
+MQTT 插件本身不直接定义点位扩展参数，而是通过设备层驱动进行协议解析。点位配置示例如下：
+
+```json
+{
+  "name": "temperature",
+  "description": "温度",
+  "valueType": "float",
+  "readWrite": "R",
+  "topic": "device/{deviceId}/temperature",
+  "qos": 1,
+  "retain": false
+}
+```
+
+其中 `topic`、`qos`、`retain` 等参数通常由设备层驱动使用，用于定义数据发布格式。
+
+### 设备属性说明
+
+MQTT 设备需要在 `properties` 中配置协议相关参数：
+
+| 属性 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| protocolKey | string | 是 | 设备层驱动协议键 |
+
+## 数据流向
+
+### 数据接收流程
+
+1. MQTT 客户端连接到 Broker
+2. 订阅配置的主题
+3. 收到消息后调用设备层驱动解码
+4. 自动发现设备（如启用）
+5. 触发数据导出
+
+### 数据发送流程
+
+1. 调用 `Export()` 导出数据
+2. 通过设备层驱动编码为 MQTT 消息格式
+3. 发布到指定主题
+
+## 自动发现
+
+当 `discover` 设置为 `true` 时，插件会在收到消息时自动创建设备：
+
+- 通过设备层驱动的 `Decode` 方法解析设备 ID
+- 自动在 CoreCache 中注册设备
+- 关联对应的连接配置
+
+## 相关代码
+
+- 插件入口：`plugins/mqtt/plugin.go`
+- 核心实现：`plugins/mqtt/internal/plugin.go`
+- 连接器：`plugins/mqtt/internal/connector.go`

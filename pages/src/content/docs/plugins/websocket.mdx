@@ -1,0 +1,123 @@
+---
+title: WebSocket 插件
+description: WebSocket 插件，提供 WebSocket 服务端功能
+---
+
+# WebSocket 插件
+
+WebSocket 插件提供了 WebSocket 服务端功能，支持客户端通过 WebSocket 连接进行双向通信。
+
+## 功能特性
+
+- **WebSocket 协议**：支持 RFC 6455 WebSocket 协议
+- **服务端模式**：作为 WebSocket 服务端监听连接
+- **多客户端支持**：支持多个客户端同时连接
+- **双向通信**：支持接收客户端消息和向客户端推送消息
+- **自动重连**：客户端断线自动清理资源
+- **协议解析**：通过设备层驱动解析 WebSocket 消息
+
+## 连接配置
+
+连接配置位于 `config.json` 的 `connections` 字段下：
+
+### WebSocket 服务端配置示例
+
+```json
+{
+  "plugin": "websocket",
+  "connections": {
+    "ws-server-1": {
+      "host": "0.0.0.0",
+      "port": 8080,
+      "path": "/ws",
+      "enable": true
+    }
+  }
+}
+```
+
+### 配置参数说明
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| host | string | 0.0.0.0 | 监听主机地址 |
+| port | int | - | 监听端口号 |
+| path | string | /ws | WebSocket 连接路径 |
+| enable | bool | true | 是否启用此连接 |
+
+## 点位配置
+
+点位配置基于通用点位定义，WebSocket 插件本身不直接定义点位扩展参数，而是通过设备层驱动进行消息解析。
+
+### 通用点位参数
+
+点位的基础参数请参考[设备配置指南](/guides/device-config/#点位point)。
+
+### 设备属性说明
+
+WebSocket 设备需要在 `properties` 中配置协议相关参数：
+
+| 属性 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| protocolKey | string | 是 | 设备层驱动协议键 |
+| clientId | string | 否 | 客户端标识（用于区分不同客户端） |
+
+## 数据流向
+
+### 数据接收流程
+
+1. WebSocket 客户端连接到服务端
+2. 服务端接收客户端消息
+3. 调用设备层驱动解析消息为设备数据
+4. 自动发现设备（如启用）
+5. 触发数据导出
+
+### 数据发送流程
+
+1. 调用 `Export()` 导出数据
+2. 通过设备层驱动编码为 WebSocket 消息格式
+3. 推送到对应的 WebSocket 客户端
+
+## 客户端管理
+
+插件维护客户端与设备的映射关系：
+
+- **deviceMappingConn**：设备 ID 到连接的映射
+- **connMappingDevice**：连接到设备 ID 的映射
+- 支持一个客户端对应多个设备
+- 客户端断开时自动清理映射关系
+
+## 消息协议
+
+WebSocket 插件本身不定义消息格式，完全依赖设备层驱动进行编解码：
+
+- **接收**：设备层驱动负责解析客户端消息
+- **发送**：设备层驱动负责编码服务端响应
+- 支持 JSON、二进制等任意格式
+
+## 使用场景
+
+- 实时数据推送（如监控大屏）
+- 双向控制系统（如远程控制面板）
+- 实时消息通知
+- Web 应用与 IoT 平台集成
+
+## 注意事项
+
+- 确保监听端口未被占用
+- 合理配置防火墙规则
+- 考虑并发连接数的限制
+- 消息格式需要与设备层驱动匹配
+
+## 默认值
+
+以下参数未配置时使用默认值：
+
+- `host`：0.0.0.0
+- `path`：/ws
+- `enable`：true
+
+## 相关代码
+
+- 插件入口：`plugins/websocket/plugin.go`
+- 核心实现：`plugins/websocket/internal/plugin.go`

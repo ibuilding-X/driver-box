@@ -50,9 +50,13 @@ flowchart LR
 ## 步骤1：获取driver-box
 
 ```bash
-# 1. 下载源码
-git clone https://github.com/iBUILDING-X/driver-box.git
-cd driver-box
+# 1. 获取源码
+# 方式一：从本地项目目录（推荐）
+cd /path/to/your/driver-box/project
+
+# 方式二：从Git仓库（如果需要）
+# git clone https://github.com/iBUILDING-X/driver-box.git
+# cd driver-box
 
 # 2. 下载依赖
 go mod tidy
@@ -209,12 +213,12 @@ mkdir -p res/driver/modbus
 🎉 恭喜！您已经成功完成了driver-box的安装和第一个设备的接入。
 
 ### 推荐下一步学习：
+- [**设备配置指南**](/guides/device-config/) - 详细了解设备配置参数和格式
 - [**架构概述**](/concepts/architecture/) - 深入了解driver-box核心架构
 - [**设备影子**](/concepts/device-shadow/) - 掌握设备数据管理机制
 - [**配置化接入**](/concepts/configuration-driven/) - 学习无代码设备接入方式
 - [**插件机制**](/concepts/plugin-system/) - 扩展更多协议支持
 - [**导出机制**](/concepts/export-system/) - 配置数据导出和系统集成
-- [**配置指南**](/guides/config/) - 详细的配置参数说明
 - [**设备模型库**](/library/models/) - 丰富的预置设备模型
 - [**开发者指南**](/developer/setup/) - 二次开发环境搭建
 
@@ -260,5 +264,5 @@ mkdir -p res/driver/modbus
 - 参考 `res/library/model/` 中的示例文件
 
 <Aside type="danger" title="重要提醒">
-  如果问题无法解决，请查看控制台日志的详细错误信息，或访问我们的[GitHub Issues](https://github.com/iBUILDING-X/driver-box/issues)寻求帮助。
+  如果问题无法解决，请查看控制台日志的详细错误信息，或参考项目中的文档和示例代码。
 </Aside>

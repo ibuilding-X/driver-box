@@ -1,0 +1,300 @@
+---
+title: 资源库(Library)
+description: driver-box 资源库系统详解
+sidebar:
+  order: 5
+---
+
+# Library
+
+Library 是 driver-box 的资源库系统,提供设备模型、设备驱动、协议驱动和镜像模板的统一管理,实现配置驱动的灵活扩展。
+
+## 资源库概述
+
+driver-box 通过四大资源库实现配置驱动的架构:
+
+| 资源库 | 配置路径 | 功能说明 |
+|--------|---------|---------|
+| Model Library | `res/library/model/` | 设备模型定义和管理 |
+| Driver Library | `res/library/driver/` | Lua 脚本驱动,实现灵活的数据转换 |
+| Protocol Library | `res/library/protocol/` | 协议层驱动定义 |
+| Mirror Library | `res/library/mirror_tpl/` | 镜像模板配置 |
+
+## Model Library
+
+Model Library 负责设备模型的定义和管理。
+
+### 模型结构
+
+```json
+{
+  "name": "sensor",
+  "modelId": "sensor_001",
+  "description": "温湿度传感器",
+  "attributes": {
+    "manufacturer": "xxx",
+    "version": "1.0"
+  },
+  "devicePoints": [
+    {
+      "name": "temperature",
+      "description": "温度",
+      "valueType": "float",
+      "readWrite": "r",
+      "reportMode": "change",
+      "scale": 0.1,
+      "decimals": 2,
+      "unit": "℃"
+    }
+  ]
+}
+```
+
+### 核心字段说明
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | 必填 | 模型名称,全局唯一 |
+| modelId | string | 必填 | 云端模型 ID |
+| description | string | 可选 | 模型描述 |
+| attributes | object | 可选 | 模型扩展属性 |
+| devicePoints | array | 必填 | 设备点位列表 |
+
+### 点位配置
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | 必填 | 点位名称 |
+| description | string | 可选 | 点位描述 |
+| valueType | string | 必填 | 值类型: int、float、bool、string |
+| readWrite | string | 必填 | 读写类型: R(只读)、W(只写)、RW(读写) |
+| reportMode | string | 必填 | 上报模式: realTime(实时)、change(变化)、period(周期) |
+| scale | float | 可选 | 缩放系数,用于值转换 |
+| decimals | int | 可选 | 小数位数,仅 float 类型有效 |
+| unit | string | 可选 | 点位单位 |
+
+## Driver Library
+
+Driver Library 通过 Lua 脚本实现设备层的数据编解码,提供灵活的数据转换能力。
+
+### 编码函数 (Write 操作)
+
+编码函数在写操作时被调用,用于将点位值转换为设备可接收的格式。
+
+```lua
+-- encode.lua
+function encode(deviceId, mode, points)
+    -- deviceId: 设备 ID
+    -- mode: 操作模式 (ReadMode/WriteMode)
+    -- points: 点位数组
+
+    local result = {}
+
+    for _, point in ipairs(points) do
+        -- 点位值加工
+        local value = point.value * point.scale
+
+        -- 类型转换
+        if point.valueType == "int" then
+            value = math.floor(value)
+        end
+
+        table.insert(result, {
+            name = point.name,
+            value = value
+        })
+    end
+
+    return result
+end
+```
+
+### 解码函数 (Read 操作)
+
+解码函数在读操作时被调用,用于将设备返回的原始数据转换为标准格式。
+
+```lua
+-- decode.lua
+function decode(deviceId, points)
+    -- deviceId: 设备 ID
+    -- points: 设备返回的原始点位数组
+
+    local result = {}
+    local events = {}
+
+    for _, point in ipairs(points) do
+        -- 值转换
+        local value = point.value / point.scale
+
+        -- 小数处理
+        if point.decimals then
+            value = tonumber(string.format("%." .. point.decimals .. "f", value))
+        end
+
+        table.insert(result, {
+            name = point.name,
+            value = value
+        })
+
+        -- 事件生成
+        if point.value > threshold then
+            table.insert(events, {
+                code = "alarm",
+                value = {
+                    level = "high",
+                    value = point.value
+                }
+            })
+        end
+    end
+
+    return result, events
+end
+```
+
+### Lua 脚本特性
+
+- **动态加载**: 首次使用时从文件系统加载
+- **缓存机制**: 加载后的 Lua 虚拟机缓存,避免重复加载
+- **错误隔离**: 脚本执行错误不影响其他脚本
+- **热更新**: 支持运行时重新加载脚本
+
+### 常用场景
+
+| 场景 | 说明 | 示例 |
+|------|------|------|
+| 单位转换 | 转换设备单位到标准单位 | 0.1°C → 实际温度 |
+| 位操作 | 解析位寄存器中的多个点位 | Bit0-Bit7 → 8 个开关状态 |
+| 复杂计算 | 根据多个点位值计算衍生值 | 温度 + 湿度 → 体感温度 |
+| 事件触发 | 基于点位值变化触发事件 | 温度 > 30°C → 高温告警 |
+
+## Protocol Library
+
+Protocol Library 定义协议层的驱动配置,为不同协议提供统一的配置接口。
+
+### 协议驱动结构
+
+```json
+{
+  "name": "modbus_tcp",
+  "description": "Modbus TCP 协议驱动",
+  "version": "1.0",
+  "capabilities": [
+    "read_holding_registers",
+    "write_single_register",
+    "write_multiple_registers"
+  ],
+  "configSchema": {
+    "host": { "type": "string", "required": true },
+    "port": { "type": "number", "required": true, "default": 502 },
+    "timeout": { "type": "number", "required": false, "default": 3000 }
+  }
+}
+```
+
+## Mirror Library
+
+Mirror Library 提供镜像模板配置,用于设备镜像功能的模板管理。
+
+### 镜像模板结构
+
+```json
+{
+  "name": "mirror_sensor",
+  "description": "传感器镜像模板",
+  "sourceDevice": {
+    "plugin": "modbus",
+    "deviceId": "sensor_001"
+  },
+  "targetDevice": {
+    "plugin": "modbus_server",
+    "deviceId": "mirror_sensor"
+  },
+  "pointMappings": [
+    {
+      "sourcePoint": "temperature",
+      "targetPoint": "mirror_temperature",
+      "transform": "value * 0.1"
+    }
+  ]
+}
+```
+
+## 资源库管理
+
+### 资源加载
+
+资源库采用懒加载策略:
+
+```go
+// 首次使用时加载
+driver, err := library.Driver().Load("sensor_driver")
+
+// 缓存复用
+driver, _ := library.Driver().Get("sensor_driver")
+```
+
+### 资源缓存
+
+所有加载的资源都缓存在内存中:
+
+```go
+// 清空驱动库缓存
+library.Driver().UnloadDeviceDrivers()
+
+// 清空协议库缓存
+library.Protocol().UnloadDeviceDrivers()
+```
+
+### 资源验证
+
+资源加载时进行完整性验证:
+
+- 文件存在性检查
+- 脚本语法验证 (Lua)
+- 配置结构验证 (JSON)
+- 依赖关系检查
+
+## 最佳实践
+
+### 模型设计
+
+1. **命名规范**: 使用小写字母和下划线,如 `temperature_sensor`
+2. **模块化**: 将复杂模型拆分为多个子模型
+3. **版本管理**: 使用 `modelId` 管理模型版本
+4. **扩展属性**: 使用 `attributes` 存储自定义信息
+
+### 驱动开发
+
+1. **错误处理**: 使用 `pcall` 捕获 Lua 脚本错误
+2. **性能优化**: 避免在 Lua 脚本中进行复杂计算
+3. **日志记录**: 使用 `log.info` 输出调试信息
+4. **单元测试**: 编写测试用例验证驱动逻辑
+
+### 资源组织
+
+```
+res/library/
+├── model/
+│   ├── sensor/
+│   │   ├── temperature_sensor.json
+│   │   └── humidity_sensor.json
+│   └── actuator/
+│       └── relay.json
+├── driver/
+│   ├── common/
+│   │   └── base_converter.lua
+│   └── sensor/
+│       └── sensor_driver.lua
+├── protocol/
+│   └── modbus.json
+└── mirror_tpl/
+    └── sensor_mirror.json
+```
+
+## 相关文档
+
+- [配置化接入](/concepts/configuration-driven/) - 了解配置文件结构和编写规范
+- [Plugin 机制](/concepts/plugin-system/) - 了解插件如何使用资源库
+- [Model 库](/library/model/) - 查看模型库详细文档
+- [Driver 库](/library/driver/) - 查看驱动库详细文档

@@ -1,321 +1,394 @@
 ---
 title: 架构概述
-description: driver-box的核心架构和工作原理
+description: driver-box的核心架构设计和实现原理
 sidebar:
   order: 1
 ---
 
-# driver-box架构概述
+# 架构概述
 
-本文档介绍 driver-box 的核心架构设计和工作原理。作为一款基于插件机制的轻量级物联网边缘平台，driver-box采用了微内核+插件的架构，能够高效实现设备数据接入和输出。
+driver-box 是一款基于 Go 语言开发的轻量级物联网边缘计算平台,采用微内核 + 插件的架构设计,专注于解决设备数据接入、协议适配和数据输出的核心问题。
 
-## 适用场景
+## 设计理念
 
-本文档适用于以下读者：
-- 架构师：了解系统整体设计和技术选型
-- 开发者：理解核心组件和工作流程
-- 运维人员：掌握部署架构和性能指标
+driver-box 的架构设计遵循以下核心原则:
+
+- **可扩展性**: 插件机制支持任意协议快速接入,无需修改核心代码
+- **配置驱动**: 纯配置文件管理设备和模型,Lua 脚本实现灵活的数据转换
+- **事件驱动**: 松耦合的事件系统实现数据在组件间的灵活流转
+- **高内聚低耦合**: 各层职责清晰,接口标准化,易于维护和扩展
 
 ## 整体架构
 
-driver-box采用分层架构设计，从下到上分为三个层次：
+driver-box 采用微内核 + 插件的分层架构,分为三层:
 
-1. **plugin层**：负责设备接入和数据收集，包括插件管理器和各类物联网设备
-2. **core层**：核心组件，如设备影子、数据转换器等；配置管理主要在启动时提供插件初始化参数，运行时为采集数据提供加工规则
-3. **export层**：数据输出系统，包括REST API、WebSocket、定时任务等应用接口，以及MQTT导出、历史数据等数据导出插件
+| 层次 | 职责 | 关键组件 |
+|------|------|---------|
+| **Export 层** | 数据输出到业务系统 | Gateway Export、Mirror Export、LinkEdge Export、History Export |
+| **核心平台层** | 数据处理和状态管理 | 配置服务、日志服务、设备影子、事件服务、资源库 |
+| **Plugin 层** | 协议适配和设备接入 | Modbus Plugin、MQTT Plugin、HTTP Plugin、TCP Plugin、Gateway Plugin |
 
-```mermaid
-graph BT
-    subgraph exportlayer["export层"]
-        REST[REST API]
-        WebSocket[WebSocket]
-        Scheduled[定时任务]
-        MQTT_Export[MQTT导出]
-        HTTP_Export[HTTP导出]
-        History[历史数据]
-        OtherExp[其他导出]
-    end
+**核心服务依赖关系**:
+- 配置服务 → 设备影子、事件服务、日志服务、资源库
+- 日志服务 → 配置服务、设备影子、事件服务(日志记录)
+- 事件服务 → Export 模块(事件通知)
+- 设备影子 → Export 模块(状态同步)
 
-    subgraph "core层"
-        PointConvert[物模型数据]
-        Shadow[设备影子]
-        ExportTo[设备数据推送]
-        OnEvent[事件]
-        DeviceDriver["设备驱动(lua)"]
-    end
+### 架构层次
 
-    subgraph plugin["plugin层"]
+| 层次 | 职责 | 关键组件 |
+|------|------|---------|
+| **Export 层** | 数据输出到业务系统 | Gateway Export、Mirror Export、LinkEdge Export、History Export |
+| **核心平台层** | 数据处理和状态管理 | 配置服务、日志服务、设备影子、事件服务、资源库 |
+| **Plugin 层** | 协议适配和设备接入 | Modbus Plugin、MQTT Plugin、HTTP Plugin、TCP Plugin、Gateway Plugin |
 
-        Modbus[Modbus设备]
-        MQTT[MQTT设备]
-        HTTP[HTTP设备]
-        OtherDev[其他协议设备]
-    end
+### 设计模式
 
-    plugin --> DeviceDriver
+| 设计模式 | 应用场景 | 价值 |
+|---------|---------|------|
+| 插件模式 | 协议插件的可扩展性 | 支持热插拔、易于扩展、隔离性好 |
+| 适配器模式 | 统一不同协议的数据格式 | 上层调用无需关心底层协议细节 |
+| 观察者模式 | 事件通知机制 | 松耦合、易于扩展事件处理逻辑 |
+| 策略模式 | 灵活的数据处理策略 | 支持Lua脚本自定义编解码逻辑 |
+| 单例模式 | 全局唯一实例管理 | 资源管理集中、状态一致 |
 
-    DeviceDriver --> PointConvert
-    PointConvert --> Shadow
-    Shadow --> ExportTo
-    Shadow -."在线/离线".-> OnEvent
-    DeviceDriver --> OnEvent
+## 启动流程
 
-    OnEvent --> exportlayer
-    ExportTo --> exportlayer
-```
-
-## 核心组件
-
-### 插件系统 (Plugin System)
-
-插件系统是driver-box架构的核心创新，通过标准化接口实现设备协议的无限扩展。
-
-**主要特性：**
-- 支持Modbus、MQTT、HTTP、WebSocket等多种通信协议
-- 通过标准接口实现协议适配，无需修改核心代码
-- 支持热插拔和动态加载，提高系统灵活性
-- 开发者可自定义协议插件，满足特定场景需求
-- 统一的插件生命周期管理，确保系统稳定性
-- 配置化插件启用和禁用，便于运维管理
-
-**数据转换机制：**
-- 内置Lua脚本引擎，支持灵活的数据处理逻辑
-- 支持协议数据到标准格式的双向转换
-- 转换脚本可配置化，支持动态更新
-
-### 导出系统 (Export System)
-
-导出系统负责将设备数据以多种协议和格式输出到不同平台和系统。
-
-**主要特性：**
-- 支持MQTT、HTTP、WebSocket等多种导出协议
-- 可同时启用多个导出插件，实现数据多路分发
-- 灵活的数据路由配置，支持条件过滤和目标选择
-- 支持数据过滤、转换和格式化处理
-- 内置历史数据存储，支持时序数据查询
-- 实时数据流处理，低延迟数据传输
-
-**集成友好性：**
-- 标准REST API接口，便于第三方系统集成
-- WebSocket实时推送，支持双向通信
-- 多种数据格式支持（JSON、InfluxDB Line Protocol等）
-
-### 设备影子 (Device Shadow)
-
-设备影子是driver-box内存中的设备状态缓存，提供高效的数据访问和管理能力。
-
-**主要特性：**
-- 内存缓存设备最新状态，毫秒级访问延迟
-- 支持设备在线状态检测和自动清理机制
-- TTL（生存时间）机制，自动清理过期数据
-- 实时同步设备数据变更，保证数据一致性
-- 支持变化上报和定时上报两种模式
-- 线程安全的读写操作，支持高并发访问
-- 支持批量数据操作，提高处理效率
-- 高效的内存管理，优化资源使用
-
-## 工作流程
-
-### 设备接入流程
-
-设备数据接入的完整流程如下：
-
-1. **设备发送数据**：各类物联网设备通过各自协议发送原始数据
-2. **协议插件接收**：对应的协议插件接收并初步解析原始数据
-3. **数据转换处理**：数据转换器使用Lua脚本进行格式标准化转换
-4. **影子状态更新**：设备影子存储最新的标准化数据状态
-5. **事件通知触发**：系统触发数据变更事件，通知相关组件
-6. **数据导出执行**：导出插件将数据发送到配置的目标系统
+系统启动遵循严格的初始化顺序:
 
 ```mermaid
 sequenceDiagram
-    participant Device as 设备
-    participant Plugin as 协议插件
-    participant Converter as 数据转换器
-    participant Shadow as 设备影子
-    participant Export as 导出插件
-    participant Target as 目标系统
+    participant Main as main.go
+    participant PM as 插件管理器
+    participant EM as 导出管理器
+    participant Core as 核心服务
+    participant Cache as Core Cache
+    participant Shadow as Device Shadow
 
-    Device->>Plugin: 发送原始数据
-    Plugin->>Converter: 传递原始数据
-    Converter->>Converter: Lua脚本转换
-    Converter->>Shadow: 标准化数据
-    Shadow->>Shadow: 更新状态缓存
-    Shadow->>Export: 触发数据变更事件
-    Export->>Target: 数据导出传输
+    Main->>PM: EnableAll()
+    Note over PM: 注册所有协议插件
+
+    Main->>EM: EnableAll()
+    Note over EM: 注册所有导出模块
+
+    Main->>Core: Start()
+    Core->>EM: Init()
+    Note over EM: 初始化所有导出模块
+
+    Core->>Cache: InitCoreCache(plugins)
+    Note over Cache: 加载 res/driver 配置<br/>验证配置合法性
+
+    Core->>Shadow: initDeviceShadow()
+    Note over Shadow: 创建设备影子实例
+
+    Core->>PM: Initialize(config)
+    Note over PM: 启动所有插件<br/>建立设备连接
+
+    Core->>EM: TriggerEvents(DeviceAdded)
+    Note over EM: 通知导出模块设备上线
+
+    Core-->>Main: 系统启动完成
 ```
 
-### 配置加载流程
+### 启动关键步骤
 
-系统启动时的配置加载流程：
+1. **插件注册**: 扫描并注册所有协议插件到插件管理器
+2. **Export 注册**: 扫描并注册所有 Export 模块
+3. **缓存初始化**: 加载 `res/driver` 目录下的配置文件,构建设备模型缓存
+4. **影子服务启动**: 创建设备影子实例,初始化状态管理
+5. **插件启动**: 调用各插件的 `Initialize()` 方法,建立设备连接
+6. **事件触发**: 触发 `DeviceAdded` 事件,通知 Export 模块设备上线
 
-1. **启动系统**：driver-box进程启动，读取命令行参数和环境变量
-2. **加载配置文件**：解析JSON格式的设备模型和连接配置
-3. **验证配置**：检查配置文件的语法正确性和业务逻辑合理性
-4. **初始化连接**：根据配置建立与设备的网络连接
-5. **加载插件**：根据协议配置启用相应的协议插件
-6. **初始化导出**：配置并启动数据导出通道
-7. **启动监听**：开始监听设备数据变更
-8. **系统就绪**：所有组件初始化完成，进入运行状态
+## 核心组件
 
-## 核心特性
+### 插件系统
 
-### 高性能设计
+插件系统是 driver-box 可扩展性的基石,通过标准化接口实现协议的无缝接入。
 
-**轻量化架构：**
-- 最小128MB内存即可运行，适合资源受限的环境
-- 优化的数据结构和算法，减少CPU占用
-- 异步I/O处理，提高并发处理能力
+```go
+type Plugin interface {
+    Initialize(c config.DeviceConfig)              // 使用配置初始化插件
+    Connector(deviceId string) (Connector, error)   // 获取设备连接器
+    Destroy() error                                 // 销毁插件并释放资源
+}
 
-**低延迟处理：**
-- 毫秒级数据处理延迟，满足实时性要求
-- 内存缓存机制，避免磁盘I/O开销
-- 高效的数据路由和转换算法
-
-**高并发支持：**
-- 支持数千设备同时接入，满足大规模物联网场景
-- 线程池和连接池优化，并发性能卓越
-- 可扩展的架构设计，支持水平扩展
-
-### 可扩展性
-
-**插件化扩展：**
-- 无限扩展新的协议和导出方式，无需修改核心代码
-- 标准化插件接口，降低开发门槛
-- 热插拔机制，支持运行时动态加载
-
-**配置化驱动：**
-- 纯配置文件驱动，无需编程即可适配新需求
-- 灵活的配置模板，支持批量部署
-- 运行时配置热更新，提高运维效率
-
-**模块化设计：**
-- 核心组件独立部署，可按需选择
-- 松耦合架构，便于功能定制
-- API标准化，支持微服务集成
-
-### 高可用性
-
-**容错设计：**
-- 单点故障不影响整体系统运行
-- 插件隔离机制，避免级联故障
-- 自动降级策略，确保核心功能可用
-
-**自动恢复：**
-- 网络异常自动重连机制
-- 数据缓冲和重发，保证数据不丢失
-- 健康检查和自动修复功能
-
-**监控预警：**
-- 实时监控设备和系统状态
-- 性能指标收集和告警机制
-- 日志追踪和问题诊断工具
-
-### 易集成性
-
-**标准API：**
-- RESTful API设计，符合行业标准
-- OpenAPI规范，支持自动生成文档
-- 多语言SDK，便于不同技术栈集成
-
-**多语言支持：**
-- Go语言原生实现，性能优异
-- 通过标准API支持其他编程语言
-- 跨平台兼容，Windows/Linux/macOS全支持
-
-**轻量部署：**
-- 单二进制文件部署，无复杂依赖
-- Docker容器化，支持云原生部署
-- 支持多种部署模式：单机、分布式、边缘计算
-
-## 部署架构
-
-### 单机部署架构
-
-最简单的部署方式，适合开发测试和小型应用场景：
-
-```
-物联网设备网络 <--> driver-box单实例 <--> 应用系统/云平台
+type Connector interface {
+    Encode(deviceId string, mode EncodeMode, values ...PointData) (interface{}, error)
+    Send(data interface{}) error
+    Release() error
+}
 ```
 
-**适用场景：**
-- 开发和测试环境
-- 小型物联网项目（设备数&lt;100）
-- 单点故障影响可接受的场景
+**核心机制**:
+- 插件注册: 系统启动时,各协议插件通过 `EnablePlugin()` 注册到插件管理器
+- 连接器获取: 核心服务通过 `Connector(deviceId)` 获取指定设备的连接器
+- 编解码处理: `Encode()` 将点位数据编码为协议报文,`Send()` 发送至设备
+- 资源释放: `Release()` 释放连接器占用的网络资源
 
-### 分布式部署架构
+**内置协议插件**: Modbus (TCP/RTU)、MQTT (3.1.1/5.0)、HTTP Server、TCP Server、Gateway
 
-支持多实例部署，适合大规模生产环境：
+### 核心缓存
+
+核心缓存是系统的配置中心,管理所有设备、模型和连接配置。
+
+**核心能力**:
+- **模型管理**: `GetModel`、`AddModel`、`DeleteModel`
+- **设备管理**: `GetDevice`、`AddOrUpdateDevice`、`DeleteDevice`
+- **点位管理**: `GetPointByModel`、`GetPointByDevice`、`GetPoints`
+- **连接管理**: `AddConnection`、`GetConnection`、`DeleteConnection`
+- **持久化**: `Flush(pluginName)`、`FlushAll()`
+
+**关键特性**:
+- 配置热加载: 监控 `res/driver` 目录变化,自动重新加载配置
+- 自动持久化: 配置变更后每 5 秒自动写入磁盘
+- 线程安全: 使用读写锁保护并发访问
+
+### 设备影子
+
+设备影子是设备状态的实时镜像,提供设备在线状态检测和点位值缓存。
+
+**核心能力**:
+- **点位值管理**: `SetDevicePoint`、`GetDevicePoint`、`GetDevicePoints`
+- **写入指令管理**: `SetWritePointValue`、`GetWritePointValue`
+- **状态管理**: `GetDeviceStatus`、`SetOnline`、`SetOffline`、`MayBeOffline`
+
+**在线状态判定**:
+1. **TTL 机制**: 超过配置的 TTL 时间未收到数据,判定为离线
+2. **失败计数**: 60 秒内断开次数超过 3 次,判定为离线
+
+**缓存机制**:
+- 点位值缓存: 存储设备所有点位的最新值,支持快速查询
+- 写入值缓存: 记录下发的控制指令,用于写后读验证
+- 事件触发: 状态变化时触发 `ShadowOnline`/`ShadowOffline` 事件
+
+### Export 系统
+
+Export 系统负责将设备数据分发到不同的目标系统。
+
+```go
+type Export interface {
+    Init() error                                                      // 初始化模块
+    ExportTo(deviceData plugin.DeviceData)                            // 导出数据
+    OnEvent(eventCode event.EventCode, key string, value interface{}) error  // 事件回调
+    IsReady() bool                                                    // 就绪检查
+    Destroy() error                                                   // 销毁模块
+}
+```
+
+**内置 Export 模块**:
+- **Gateway Export**: WebSocket 实时推送,支持前端实时监控
+- **Mirror Export**: 创建镜像设备,实现设备虚拟化和协议转换
+- **LinkEdge Export**: 场景联动引擎,支持自动化控制
+- **History Export**: 历史数据存储,支持数据分析和报表
+
+**上报模式**:
+- **周期上报** (`period`): 按固定周期上报所有点位
+- **变化上报** (`change`): 仅上报值发生变化的点位
+- **实时上报** (`realtime`): 每次采集都上报
+
+**点位缓存过滤**:
+
+```go
+// 变化上报模式: 比较影子中的缓存值
+if point.ReportMode() == config.ReportMode_Change {
+    shadowValue, _ := Shadow().GetDevicePoint(deviceId, pointName)
+    if shadowValue == newValue {
+        continue  // 值未变化,跳过导出
+    }
+}
+```
+
+### 资源库系统
+
+资源库系统提供设备模型、设备驱动、协议驱动和镜像模板的统一管理。
+
+| 资源库 | 配置路径 | 功能 |
+|--------|---------|------|
+| Model | `res/library/model/` | 设备模型定义和验证 |
+| Driver | `res/library/driver/` | Lua 脚本驱动,实现灵活的数据转换 |
+| Protocol | `res/library/protocol/` | 协议层驱动定义 |
+| Mirror | `res/library/mirror_tpl/` | 镜像模板配置 |
+
+**Lua 脚本驱动示例**:
+
+```lua
+-- 编码: Write 操作
+function encode(deviceId, mode, points)
+    local result = {}
+    for _, point in ipairs(points) do
+        result[#result + 1] = {
+            name = point.name,
+            value = point.value * point.scale
+        }
+    end
+    return result
+end
+
+-- 解码: Read 操作
+function decode(deviceId, points)
+    local result = {}
+    local events = {}
+    for _, point in ipairs(points) do
+        result[#result + 1] = {
+            name = point.name,
+            value = point.value / point.scale
+        }
+        -- 事件生成
+        if point.value > threshold then
+            events[#events + 1] = { code = "alarm", value = point.value }
+        end
+    end
+    return result, events
+end
+```
+
+### 事件系统
+
+事件系统实现松耦合的组件间通信,支持事件订阅和广播。
+
+**核心事件类型**:
+- `ServiceStatus`: 服务状态变更
+- `DeviceAdded` / `DeviceDeleted`: 设备添加/删除
+- `ShadowOnline` / `ShadowOffline`: 设备上线/离线
+- `DoExport` / `Exporting`: 导出操作
+
+**事件机制**:
+- 事件触发: `TriggerEvents(eventCode, key, value)` 广播事件到所有订阅者
+- 事件订阅: 导出模块通过 `OnEvent()` 方法订阅感兴趣的事件
+- 异步处理: 事件回调异步执行,避免阻塞主流程
+
+## 数据流转
+
+### 读操作流程
+
+```mermaid
+graph LR
+    A[定时采集/API 请求] --> B[core.SendSinglePoint]
+    B --> C[获取设备配置]
+    C --> D[设备驱动层编码]
+    D --> E[获取连接器]
+    E --> F[协议层编码]
+    F --> G[发送指令]
+    G --> H[协议层解码]
+    H --> I[设备驱动层解码]
+    I --> J[driverbox.Export]
+    J --> K[更新设备影子]
+    K --> L[分发到 Export 模块]
+```
+
+### 写操作流程
+
+```mermaid
+graph LR
+    A[API 控制请求] --> B[core.SendSinglePoint]
+    B --> C[存储写入值]
+    C --> D[设备驱动层编码]
+    D --> E[获取连接器]
+    E --> F[协议层编码]
+    F --> G[发送指令]
+    G --> H[自动读回验证]
+    H --> I[更新实际值到影子]
+    I --> J[触发导出事件]
+```
+
+### 事件驱动流程
+
+```mermaid
+graph TB
+    A[设备状态变化/数据上报] --> B[触发事件]
+    B --> C{事件类型}
+    C -->|DeviceAdded| D[通知 Export 模块<br/>创建镜像设备]
+    C -->|ShadowOffline| E[通知 Export 模块<br/>暂停数据推送]
+    C -->|DoExport| F[执行数据导出<br/>触发所有 Export 模块]
+    C -->|ShadowOnline| G[通知 Export 模块<br/>恢复数据推送]
+```
+
+## 配置系统
+
+### 配置目录结构
 
 ```
-[设备集群A] <--> [driver-box实例1] <--> [负载均衡器] <--> [应用系统]
-[设备集群B] <--> [driver-box实例2] <--> [             ]
+res/
+├── driver/                          # 协议插件配置
+│   ├── modbus/
+│   │   └── config.json
+│   ├── mqtt/
+│   │   └── config.json
+│   └── ...
+└── library/                         # 资源库
+    ├── model/                       # 设备模型
+    │   └── sensor_model.json
+    ├── driver/                      # 设备驱动 (Lua)
+    │   ├── encode.lua
+    │   └── decode.lua
+    ├── protocol/                    # 协议驱动
+    └── mirror_tpl/                  # 镜像模板
 ```
 
-**适用场景：**
-- 大规模物联网项目（设备数>1000）
-- 高可用性要求的生产环境
-- 需要水平扩展的业务场景
+### 设备配置示例
 
-### 边缘计算部署架构
-
-部署在边缘网关，实现就近数据处理和实时响应：
-
+```json
+{
+  "pluginName": "modbus",
+  "deviceModels": [
+    {
+      "name": "sensor",
+      "modelId": "sensor_001",
+      "description": "温湿度传感器",
+      "devicePoints": [
+        {
+          "name": "temperature",
+          "description": "温度",
+          "valueType": "float",
+          "readWrite": "r",
+          "reportMode": "change",
+          "scale": 0.1,
+          "address": 40001,
+          "registerType": "holding"
+        }
+      ],
+      "devices": [
+        {
+          "id": "sensor_001",
+          "description": "1号传感器",
+          "connectionKey": "conn_1",
+          "driverKey": "sensor_driver",
+          "ttl": "60s"
+        }
+      ]
+    }
+  ],
+  "connections": {
+    "conn_1": {
+      "host": "192.168.1.100",
+      "port": 502,
+      "mode": "tcp"
+    }
+  }
+}
 ```
-[工业设备/传感器] <--> [边缘网关] <--> [driver-box] <--> [云平台/数据中心]
-[现场网络]             [Linux系统]     [本地部署]      [远程处理]
-```
 
-**适用场景：**
-- 工业互联网和智能制造
-- 远程监控和现场控制
-- 网络条件较差的边缘环境
+### 环境变量
 
+| 变量名 | 说明 | 默认值 |
+|-------|------|--------|
+| `DRIVERBOX_RESOURCE_PATH` | 资源目录路径 | `./res` |
+| `DRIVERBOX_HTTP_LISTEN` | HTTP 服务监听地址 | `:8080` |
+| `DRIVERBOX_LOG_PATH` | 日志目录路径 | `./logs` |
+| `LOG_LEVEL` | 日志级别 | `info` |
 
-## 常见问题
+## 关键特性
 
-### 架构设计问题
+- **高性能**: 核心内存占用 50-128MB,单点数据处理延迟 < 10ms,支持数千设备同时接入
+- **可靠性**: 自动重连机制、TTL + 失败计数双重离线检测、数据缓存保证一致性、插件异常隔离
+- **易用性**: 纯 JSON 配置文件、Lua 脚本灵活扩展、配置热加载无需重启、RESTful API + WebSocket 接口
 
-**Q: driver-box为什么采用微内核+插件架构？**
+## 相关文档
 
-A: 微内核+插件架构具有以下优势：
-- 核心系统轻量化，专注于基础功能
-- 插件独立开发和部署，提高开发效率
-- 支持热插拔和动态扩展，无需重启系统
-- 插件隔离机制，提高系统稳定性和安全性
-
-**Q: 如何保证插件间的兼容性？**
-
-A: 通过标准化接口和版本管理保证兼容性：
-- 定义明确的插件接口契约
-- 插件版本管理和兼容性检查
-- 提供插件兼容性测试工具
-- 文档化插件开发规范和最佳实践
-
-### 性能调优问题
-
-**Q: 如何优化大数据量场景下的性能？**
-
-A: 可以从以下几个方面进行优化：
-- 使用批量API减少网络往返次数
-- 启用数据压缩减少传输带宽
-- 配置合适的数据缓冲区大小
-- 使用连接池复用网络连接
-- 合理设置缓存策略和TTL值
-
-**Q: 内存使用过高的处理方法？**
-
-A: 内存优化策略包括：
-- 调整设备影子TTL，及时清理过期数据
-- 优化缓存策略，避免内存泄漏
-- 监控内存使用情况，设置合理的阈值
-- 使用内存分析工具定位问题代码
-- 考虑分布式部署分散内存压力
-
-## 相关链接
-
-- [**插件机制**](/concepts/plugin-system/) - 详细了解插件系统的开发和使用
-- [**导出机制**](/concepts/export-system/) - 掌握数据导出系统的配置和扩展
-- [**设备影子**](/concepts/device-shadow/) - 深入理解设备状态管理和数据缓存
-- [**配置化接入**](/concepts/configuration-driven/) - 了解配置驱动的设备接入方式
-- [**快速开始**](/guides/getting-started/) - 立即开始使用driver-box
+- [Plugin 机制](/concepts/plugin-system/) - 了解如何开发和集成协议插件
+- [Export 机制](/concepts/export-system/) - 掌握数据 Export 模块的使用和扩展
+- [CoreCache](/concepts/corecache/) - 深入理解核心缓存系统
+- [Library](/concepts/library/) - 了解资源库系统
+- [设备影子](/concepts/device-shadow/) - 深入理解设备状态管理和数据缓存
+- [配置化接入](/concepts/configuration-driven/) - 了解配置驱动的设备接入方式
+- [快速开始](/guides/getting-started/) - 立即开始使用 driver-box

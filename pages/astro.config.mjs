@@ -26,10 +26,22 @@ export default defineConfig({
                 (function() {
                   var hm = document.createElement("script");
                   hm.src = "https://hm.baidu.com/hm.js?81f653be99c4697c95cedbdacc3023b4";
-                  var s = document.getElementsByTagName("script")[0]; 
+                  var s = document.getElementsByTagName("script")[0];
                   s.parentNode.insertBefore(hm, s);
                 })();
           `
+        }, {
+            tag: 'link',
+            attrs: {
+                rel: 'stylesheet',
+                href: '/styles/mermaid.css'
+            }
+        }, {
+            tag: 'link',
+            attrs: {
+                rel: 'stylesheet',
+                href: '/styles/global.css'
+            }
         }],
         sidebar: [{
             label: '使用指南',
@@ -46,24 +58,19 @@ export default defineConfig({
                 directory: 'concepts'
             }
         }, {
-            label: '插件',
+            label: '应用组件(Export)',
+            autogenerate: {
+                directory: 'exports'
+            }
+        }, {
+            label: '通信插件(Plugin)',
             autogenerate: {
                 directory: 'plugins'
             }
         }, {
-            label: 'Export',
-            autogenerate: {
-                directory: 'export'
-            }
-        }, {
-            label: '资产库',
+            label: '资源库(Library)',
             autogenerate: {
                 directory: 'library'
-            }
-        }, {
-            label: '开发指南',
-            autogenerate: {
-                directory: 'developer'
             }
         }]
     })]

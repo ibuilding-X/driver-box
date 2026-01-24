@@ -1,0 +1,328 @@
+---
+title: 设备配置指南
+description: 详细说明driver-box的设备配置格式和参数
+sidebar:
+  order: 2
+---
+
+# 设备配置指南
+
+driver-box 采用 JSON 格式进行设备配置，所有配置文件位于 `res/driver/<plugin>/` 目录下。
+
+## 配置文件结构
+
+完整的配置文件包含以下结构：
+
+```json
+{
+  "deviceModels": [
+    {
+      "name": "模型名称",
+      "description": "模型描述",
+      "modelId": "云端模型ID",
+      "attributes": {},
+      "devicePoints": [],
+      "devices": []
+    }
+  ],
+  "connections": {},
+  "protocolName": "插件名称"
+}
+```
+
+## 顶层配置参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| deviceModels | array | 是 | 设备模型数组 |
+| connections | object | 是 | 连接配置对象 |
+| protocolName | string | 是 | 协议插件名称（如 `modbus`、`mqtt`） |
+
+## 设备模型（DeviceModel）
+
+```json
+{
+  "name": "温湿度传感器",
+  "description": "Modbus温湿度传感器",
+  "modelId": "model-001",
+  "attributes": {
+    "manufacturer": "Example Corp",
+    "version": "1.0"
+  },
+  "devicePoints": [...],
+  "devices": [...]
+}
+```
+
+### 模型配置参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | 是 | 模型名称（同一配置内唯一） |
+| description | string | 是 | 模型描述 |
+| modelId | string | 是 | 云端模型ID（用于云同步） |
+| attributes | object | 否 | 扩展属性，自定义键值对 |
+| devicePoints | array | 是 | 模型点位定义 |
+| devices | array | 是 | 该模型下的设备实例 |
+
+## 设备（Device）
+
+```json
+{
+  "id": "device-001",
+  "description": "会议室传感器",
+  "connectionKey": "modbus-tcp-01",
+  "ttl": "30s",
+  "properties": {
+    "unitID": "1"
+  },
+  "driverKey": ""
+}
+```
+
+### 设备配置参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| id | string | 是 | 设备唯一标识符（全局唯一） |
+| description | string | 是 | 设备描述 |
+| connectionKey | string | 是 | 关联的连接配置键（对应 `connections` 中的键名） |
+| ttl | string | 否 | 设备离线阈值（如 `30s`），超过该时长无数据则标记离线 |
+| properties | object | 否 | 设备属性（协议相关，如 Modbus 的 `unitID`） |
+| driverKey | string | 否 | 设备层驱动引用 |
+
+## 点位（Point）
+
+点位是设备模型中的最小数据单元，用于定义采集和控制的参数。
+
+```json
+{
+  "name": "temperature",
+  "description": "温度",
+  "valueType": "float",
+  "readWrite": "R",
+  "reportMode": "realTime",
+  "scale": 0.1,
+  "decimals": 1,
+  "min": -40,
+  "max": 120,
+  "unit": "℃"
+}
+```
+
+### 基础点位参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | 是 | 点位名称（模型内唯一） |
+| description | string | 否 | 点位描述 |
+| valueType | string | 是 | 数据类型（见下方说明） |
+| readWrite | string | 是 | 读写权限（`R`、`W`、`RW`） |
+| reportMode | string | 否 | 上报模式（`realTime`、`change`） |
+| scale | number | 否 | 缩放因子（用于数值转换） |
+| decimals | number | 否 | 小数位数保留 |
+| min | number | 否 | 最小值 |
+| max | number | 否 | 最大值 |
+| unit | string | 否 | 单位 |
+
+### 数据类型（valueType）
+
+| 类型 | 说明 |
+|------|------|
+| bool | 布尔值 |
+| int | 整数 |
+| float | 浮点数 |
+| string | 字符串 |
+
+### 读写模式（readWrite）
+
+| 值 | 说明 |
+|----|------|
+| R | 只读 |
+| W | 只写 |
+| RW | 读写 |
+
+### 上报模式（reportMode）
+
+| 值 | 说明 |
+|----|------|
+| realTime | 实时上报（读到数据即触发导出） |
+| change | 变化上报（与影子中值不一致才触发） |
+
+### 枚举配置
+
+点位可以定义枚举值，用于界面展示和值映射：
+
+```json
+{
+  "name": "switch",
+  "description": "开关状态",
+  "valueType": "int",
+  "readWrite": "RW",
+  "enums": [
+    {"name": "关闭", "value": 0, "icon": "off"},
+    {"name": "开启", "value": 1, "icon": "on"}
+  ]
+}
+```
+
+### 枚举参数
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| name | string | 枚举名称 |
+| value | any | 枚举值 |
+| icon | string | 枚举图标（可选） |
+
+## 连接配置（connections）
+
+连接配置定义了与设备通讯的参数，具体格式由协议插件决定。
+
+### 通用连接结构
+
+```json
+{
+  "connections": {
+    "connection-name": {
+      // 协议特定参数
+    }
+  }
+}
+```
+
+各协议插件的连接配置参数请参考对应的插件文档：
+- [Modbus 插件](/plugins/modbus/#连接配置)
+- [MQTT 插件](/plugins/mqtt/#连接配置)
+- [BACnet 插件](/plugins/bacnet/#连接配置)
+- [DL/T 645 插件](/plugins/dlt645/#连接配置)
+
+## 协议扩展参数
+
+协议插件可以在点位中添加扩展参数，用于定义协议特定的配置。这些扩展参数直接定义在点位对象中，无需嵌套在 `properties` 字段。
+
+### Modbus 扩展示例
+
+```json
+{
+  "name": "temperature",
+  "startAddress": "40001",
+  "primaryTable": "HOLDING_REGISTER",
+  "rawType": "Float32",
+  "duration": "5s",
+  "byteSwap": false,
+  "wordSwap": false
+}
+```
+
+### MQTT 扩展示例
+
+```json
+{
+  "name": "temperature",
+  "topic": "device/temperature",
+  "qos": 1,
+  "retain": false
+}
+```
+
+**注意**：不同协议插件的扩展参数不同，具体请参考对应插件的文档。
+
+## 配置示例
+
+### 完整示例
+
+```json
+{
+  "deviceModels": [
+    {
+      "name": "温湿度传感器",
+      "description": "Modbus温湿度传感器",
+      "modelId": "modbus-001",
+      "attributes": {
+        "manufacturer": "Example",
+        "version": "1.0"
+      },
+      "devicePoints": [
+        {
+          "name": "temperature",
+          "description": "温度",
+          "valueType": "float",
+          "readWrite": "R",
+          "reportMode": "realTime",
+          "scale": 0.1,
+          "decimals": 1,
+          "unit": "℃",
+          "startAddress": "40001",
+          "primaryTable": "HOLDING_REGISTER",
+          "rawType": "Float32",
+          "duration": "5s"
+        },
+        {
+          "name": "humidity",
+          "description": "湿度",
+          "valueType": "float",
+          "readWrite": "R",
+          "scale": 0.1,
+          "decimals": 1,
+          "unit": "%",
+          "startAddress": "40002",
+          "primaryTable": "HOLDING_REGISTER",
+          "rawType": "Float32",
+          "duration": "5s"
+        }
+      ],
+      "devices": [
+        {
+          "id": "sensor-001",
+          "description": "会议室传感器",
+          "connectionKey": "modbus-tcp-01",
+          "ttl": "30s",
+          "properties": {
+            "unitID": "1"
+          }
+        }
+      ]
+    }
+  ],
+  "connections": {
+    "modbus-tcp-01": {
+      "address": "192.168.1.100:502",
+      "mode": "tcp",
+      "timeout": 5000,
+      "retry": 3,
+      "minInterval": 100
+    }
+  },
+  "protocolName": "modbus"
+}
+```
+
+## 配置验证
+
+创建配置文件后，建议进行以下检查：
+
+1. **JSON 语法验证**：使用在线 JSON 验证工具
+2. **必需字段检查**：确保所有标记为"必填"的字段都已填写
+3. **引用完整性**：确保 `connectionKey` 在 `connections` 中存在
+4. **设备 ID 唯一性**：确保设备 ID 全局唯一
+
+## 配置文件放置
+
+配置文件应放置在对应协议插件的目录下：
+
+```
+res/
+├── driver/
+│   ├── modbus/
+│   │   └── config.json
+│   ├── mqtt/
+│   │   └── config.json
+│   └── bacnet/
+│       └── config.json
+```
+
+## 参考资源
+
+- [设备模型库](/library/models/) - 预置的设备模型示例
+- [快速开始](/guides/getting-started/) - 5分钟快速接入指南
+- [配置化接入](/concepts/configuration-driven/) - 配置化接入原理
