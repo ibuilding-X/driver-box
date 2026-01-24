@@ -339,7 +339,7 @@ func (c *connector) syncDevices(payload gateway.WSPayload) error {
 			if localDevice, ok := driverbox.CoreCache().GetDevice(device.ID); ok {
 				// 优先使用本地设备信息
 				device.Description = localDevice.Description
-				device.Tags = localDevice.Tags
+				//device.Tags = localDevice.Tags
 				device.Properties = localDevice.Properties
 			}
 

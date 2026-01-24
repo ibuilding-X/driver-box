@@ -199,8 +199,8 @@ func (wss *websocketService) syncDevices() {
 			ID:            wss.genGatewayDeviceID(device.ID),
 			Description:   device.Description,
 			ConnectionKey: wss.genGatewayModelName(device.ModelName),
-			Tags:          device.Tags,
-			Properties:    device.Properties,
+			//Tags:          device.Tags,
+			Properties: device.Properties,
 		}
 	}
 

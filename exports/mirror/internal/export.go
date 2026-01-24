@@ -127,11 +127,11 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	mirrorDevice := config.Device{
 		ID:          "mirror_" + deviceId,
 		Description: device.Description,
-		Ttl:         device.Ttl,
-		Tags:        device.Tags,
-		Properties:  properties,
-		DriverKey:   mirrorConfig.DriverKey,
-		ModelName:   rawModel.Name + "_mirror_" + deviceId,
+		//Ttl:         device.Ttl,
+		//Tags:        device.Tags,
+		Properties: properties,
+		DriverKey:  mirrorConfig.DriverKey,
+		ModelName:  rawModel.Name + "_mirror_" + deviceId,
 	}
 
 	driverbox.CoreCache().UpdateDeviceProperty(deviceId, PropertyKeyAutoMirrorTo, mirrorDevice.ID)
