@@ -5,172 +5,188 @@ sidebar:
   order: 2
 ---
 
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
 driver-box 采用 JSON 格式进行设备配置，所有配置文件位于 `res/driver/<plugin>/` 目录下。
 
-## 配置文件结构
+## 配置文件放置
 
-完整的配置文件包含以下结构：
+配置文件应放置在对应协议插件的目录下：
 
-```json title="config.json"
-{
-  "deviceModels": [
-    {
-      "name": "模型名称",
-      "description": "模型描述",
-      "modelId": "云端模型ID",
-      "attributes": {},
-      "devicePoints": [],
-      "devices": []
-    }
-  ],
-  "connections": {},
-  "protocolName": "插件名称"
-}
+```
+res/
+├── driver/
+│   ├── modbus/
+│   │   └── config.json
+│   ├── mqtt/
+│   │   └── config.json
+│   └── bacnet/
+│       └── config.json
 ```
 
-## 顶层配置参数
+### 配置代码结构
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| deviceModels | array | 是 | 设备模型数组 |
-| connections | object | 是 | 连接配置对象 |
-| protocolName | string | 是 | 协议插件名称（如 `modbus`、`mqtt`） |
+配置对应的 Go 结构体定义位于 [`pkg/config/device_config.go`](https://github.com/your-repo/blob/master/pkg/config/device_config.go)
+
+## 顶层配置
+
+<Tabs>
+  <TabItem label="配置结构">
+    ### 配置文件结构
+
+    完整的配置文件包含以下结构：
+
+    ```json title="config.json"
+    {
+      "deviceModels": [
+        {
+          "name": "模型名称",
+          "description": "模型描述",
+          "modelId": "云端模型ID",
+          "attributes": {},
+          "devicePoints": [],
+          "devices": []
+        }
+      ],
+      "connections": {},
+      "protocolName": "插件名称"
+    }
+    ```
+  </TabItem>
+
+  <TabItem label="配置参数">
+    ### 顶层配置参数
+
+    | 参数 | 类型 | 必填 | 说明 |
+    |------|------|------|------|
+    | deviceModels | array | 是 | 设备模型数组 |
+    | connections | object | 是 | 连接配置对象 |
+    | protocolName | string | 是 | 协议插件名称（如 `modbus`、`mqtt`） |
+  </TabItem>
+</Tabs>
 
 ## 设备模型（DeviceModel）
 
-```json
-{
-  "name": "温湿度传感器",
-  "description": "Modbus温湿度传感器",
-  "modelId": "model-001",
-  "attributes": {
-    "manufacturer": "Example Corp",
-    "version": "1.0"
-  },
-  "devicePoints": [...],
-  "devices": [...]
-}
-```
+配置对应的 Go 结构体定义位于 [`pkg/config/device_config_model.go`](https://github.com/your-repo/blob/master/pkg/config/device_config_model.go)
 
-### 模型配置参数
+<Tabs>
+  <TabItem label="结构示例">
+    ```json
+    {
+      "name": "温湿度传感器",
+      "description": "Modbus温湿度传感器",
+      "modelId": "model-001",
+      "attributes": {
+        "manufacturer": "Example Corp",
+        "version": "1.0"
+      },
+      "devicePoints": [...],
+      "devices": [...]
+    }
+    ```
+  </TabItem>
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| name | string | 是 | 模型名称（同一配置内唯一） |
-| description | string | 是 | 模型描述 |
-| modelId | string | 是 | 云端模型ID（用于云同步） |
-| attributes | object | 否 | 扩展属性，自定义键值对 |
-| devicePoints | array | 是 | 模型点位定义 |
-| devices | array | 是 | 该模型下的设备实例 |
+  <TabItem label="参数说明">
+    ### 模型配置参数
+
+    | 参数 | 类型 | 必填 | 说明 |
+    |------|------|------|------|
+    | name | string | 是 | 模型名称（同一配置内唯一） |
+    | description | string | 是 | 模型描述 |
+    | modelId | string | 是 | 云端模型ID（用于云同步） |
+    | attributes | object | 否 | 扩展属性，自定义键值对 |
+    | devicePoints | array | 是 | 模型点位定义 |
+    | devices | array | 是 | 该模型下的设备实例 |
+  </TabItem>
+</Tabs>
 
 ## 设备（Device）
 
-```json
-{
-  "id": "device-001",
-  "description": "会议室传感器",
-  "connectionKey": "modbus-tcp-01",
-  "ttl": "30s",
-  "properties": {
-    "unitID": "1"
-  },
-  "driverKey": ""
-}
-```
+配置对应的 Go 结构体定义位于 [`pkg/config/device_config_device.go`](https://github.com/your-repo/blob/master/pkg/config/device_config_device.go)
 
-### 设备配置参数
+<Tabs>
+  <TabItem label="结构示例">
+    ```json
+    {
+      "id": "device-001",
+      "description": "会议室传感器",
+      "connectionKey": "modbus-tcp-01",
+      "ttl": "30s",
+      "properties": {
+        "unitID": "1"
+      },
+      "driverKey": ""
+    }
+    ```
+  </TabItem>
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| id | string | 是 | 设备唯一标识符（全局唯一） |
-| description | string | 是 | 设备描述 |
-| connectionKey | string | 是 | 关联的连接配置键（对应 `connections` 中的键名） |
-| ttl | string | 否 | 设备离线阈值（如 `30s`），超过该时长无数据则标记离线 |
-| properties | object | 否 | 设备属性（协议相关，如 Modbus 的 `unitID`） |
-| driverKey | string | 否 | 设备层驱动引用 |
+  <TabItem label="参数说明">
+    ### 设备配置参数
+
+    | 参数 | 类型 | 必填 | 说明 |
+    |------|------|------|------|
+    | id | string | 是 | 设备唯一标识符（全局唯一） |
+    | description | string | 是 | 设备描述 |
+    | connectionKey | string | 是 | 关联的连接配置键（对应 `connections` 中的键名） |
+    | ttl | string | 否 | 设备离线阈值（如 `30s`），超过该时长无数据则标记离线 |
+    | properties | object | 否 | 设备属性（协议相关，如 Modbus 的 `unitID`） |
+    | driverKey | string | 否 | 设备层驱动引用 |
+  </TabItem>
+</Tabs>
 
 ## 点位（Point）
 
 点位是设备模型中的最小数据单元，用于定义采集和控制的参数。
 
-```json
-{
-  "name": "temperature",
-  "description": "温度",
-  "valueType": "float",
-  "readWrite": "R",
-  "reportMode": "realTime",
-  "scale": 0.1,
-  "decimals": 1,
-  "min": -40,
-  "max": 120,
-  "unit": "℃"
-}
-```
+配置对应的 Go 结构体和方法定义位于 [`pkg/config/device_config_model_point.go`](https://github.com/your-repo/blob/master/pkg/config/device_config_model_point.go)
 
-### 基础点位参数
+<Tabs>
+  <TabItem label="结构示例">
+    ```json
+    {
+      "name": "temperature",
+      "description": "温度",
+      "valueType": "float",
+      "readWrite": "R",
+      "reportMode": "realTime",
+      "scale": 0.1,
+      "decimals": 1,
+      "unit": "℃"
+    }
+    ```
+  </TabItem>
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| name | string | 是 | 点位名称（模型内唯一） |
-| description | string | 否 | 点位描述 |
-| valueType | string | 是 | 数据类型（见下方说明） |
-| readWrite | string | 是 | 读写权限（`R`、`W`、`RW`） |
-| reportMode | string | 否 | 上报模式（`realTime`、`change`） |
-| scale | number | 否 | 缩放因子（用于数值转换） |
-| decimals | number | 否 | 小数位数保留 |
-| min | number | 否 | 最小值 |
-| max | number | 否 | 最大值 |
-| unit | string | 否 | 单位 |
+  <TabItem label="参数说明">
+    ### 基础点位参数
 
-### 数据类型（valueType）
+    | 参数 | 类型 | 必填 | 说明 |
+    |------|------|------|------|
+    | name | string | 是 | 点位名称（模型内唯一） |
+    | description | string | 否 | 点位描述 |
+    | valueType | string | 是 | 数据类型：`int`（整数）、`float`（浮点数）、`string`（字符串）。driver-box只支持这三种数据类型，已能够涵盖所有设备场景。 |
+    | readWrite | string | 是 | 读写权限：`R`（只读）、`W`（只写）、`RW`（读写） |
+    | reportMode | string | 否 | 上报模式：`realTime`（实时上报，读到数据即触发导出）、`change`（变化上报，与影子中值不一致才触发） |
+    | scale | number | 否 | 缩放因子（用于数值转换） |
+    | decimals | number | 否 | 小数位数保留 |
+    | unit | string | 否 | 单位 |
+    | enums | array | 否 | 枚举值数组，用于界面展示和值映射，包含`name`（枚举名称）、`value`（枚举值）、`icon`（枚举图标，可选） |
 
-| 类型 | 说明 |
-|------|------|
-| bool | 布尔值 |
-| int | 整数 |
-| float | 浮点数 |
-| string | 字符串 |
+    ### 枚举配置示例
 
-### 读写模式（readWrite）
-
-| 值 | 说明 |
-|----|------|
-| R | 只读 |
-| W | 只写 |
-| RW | 读写 |
-
-### 上报模式（reportMode）
-
-| 值 | 说明 |
-|----|------|
-| realTime | 实时上报（读到数据即触发导出） |
-| change | 变化上报（与影子中值不一致才触发） |
-
-### 枚举配置
-
-点位可以定义枚举值，用于界面展示和值映射：
-
-```json
-{
-  "name": "switch",
-  "description": "开关状态",
-  "valueType": "int",
-  "readWrite": "RW",
-  "enums": [
-    {"name": "关闭", "value": 0, "icon": "off"},
-    {"name": "开启", "value": 1, "icon": "on"}
-  ]
-}
-```
-
-### 枚举参数
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| name | string | 枚举名称 |
-| value | any | 枚举值 |
-| icon | string | 枚举图标（可选） |
+    ```json
+    {
+      "name": "switch",
+      "description": "开关状态",
+      "valueType": "int",
+      "readWrite": "RW",
+      "enums": [
+        {"name": "关闭", "value": 0, "icon": "off"},
+        {"name": "开启", "value": 1, "icon": "on"}
+      ]
+    }
+    ```
+  </TabItem>
+</Tabs>
 
 ## 连接配置（connections）
 
@@ -304,23 +320,3 @@ driver-box 采用 JSON 格式进行设备配置，所有配置文件位于 `res/
 3. **引用完整性**：确保 `connectionKey` 在 `connections` 中存在
 4. **设备 ID 唯一性**：确保设备 ID 全局唯一
 
-## 配置文件放置
-
-配置文件应放置在对应协议插件的目录下：
-
-```
-res/
-├── driver/
-│   ├── modbus/
-│   │   └── config.json
-│   ├── mqtt/
-│   │   └── config.json
-│   └── bacnet/
-│       └── config.json
-```
-
-## 参考资源
-
-- [设备模型库](/driver-box/library/models/) - 预置的设备模型示例
-- [快速开始](/driver-box/guides/getting-started/) - 5分钟快速接入指南
-- [配置化接入](/driver-box/concepts/configuration-driven/) - 配置化接入原理
