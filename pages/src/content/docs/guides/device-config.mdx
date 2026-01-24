@@ -26,7 +26,7 @@ res/
 
 ### 配置代码结构
 
-配置对应的 Go 结构体定义位于 [`pkg/config/device_config.go`](https://github.com/your-repo/blob/master/pkg/config/device_config.go)
+配置对应的 Go 结构体定义位于 [pkg/config/device_config.go](https://github.com/ibuilding-X/driver-box/blob/master/pkg/config/device_config.go)
 
 ## 顶层配置
 
@@ -67,7 +67,7 @@ res/
 
 ## 设备模型（DeviceModel）
 
-配置对应的 Go 结构体定义位于 [`pkg/config/device_config_model.go`](https://github.com/your-repo/blob/master/pkg/config/device_config_model.go)
+配置对应的 Go 结构体定义位于 [pkg/config/device_config_model.go](https://github.com/ibuilding-X/driver-box/blob/master/pkg/config/device_config_model.go)
 
 <Tabs>
   <TabItem label="结构示例">
@@ -102,7 +102,7 @@ res/
 
 ## 设备（Device）
 
-配置对应的 Go 结构体定义位于 [`pkg/config/device_config_device.go`](https://github.com/your-repo/blob/master/pkg/config/device_config_device.go)
+配置对应的 Go 结构体定义位于 [pkg/config/device_config_device.go](https://github.com/ibuilding-X/driver-box/blob/master/pkg/config/device_config_device.go)
 
 <Tabs>
   <TabItem label="结构示例">
@@ -111,7 +111,6 @@ res/
       "id": "device-001",
       "description": "会议室传感器",
       "connectionKey": "modbus-tcp-01",
-      "ttl": "30s",
       "properties": {
         "unitID": "1"
       },
@@ -128,8 +127,7 @@ res/
     | id | string | 是 | 设备唯一标识符（全局唯一） |
     | description | string | 是 | 设备描述 |
     | connectionKey | string | 是 | 关联的连接配置键（对应 `connections` 中的键名） |
-    | ttl | string | 否 | 设备离线阈值（如 `30s`），超过该时长无数据则标记离线 |
-    | properties | object | 否 | 设备属性（协议相关，如 Modbus 的 `unitID`） |
+    | properties | object | 否 | 设备属性（协议相关，如 Modbus 的 `unitID`），类型为 `map[string]string` |
     | driverKey | string | 否 | 设备层驱动引用 |
   </TabItem>
 </Tabs>
@@ -138,7 +136,7 @@ res/
 
 点位是设备模型中的最小数据单元，用于定义采集和控制的参数。
 
-配置对应的 Go 结构体和方法定义位于 [`pkg/config/device_config_model_point.go`](https://github.com/your-repo/blob/master/pkg/config/device_config_model_point.go)
+配置对应的 Go 结构体和方法定义位于 [pkg/config/device_config_model_point.go](https://github.com/ibuilding-X/driver-box/blob/master/pkg/config/device_config_model_point.go)
 
 <Tabs>
   <TabItem label="结构示例">
@@ -245,6 +243,8 @@ res/
 
 ### 完整示例
 
+以下是一个完整的 Modbus 设备配置示例，包含协议特定扩展参数（如 `startAddress`、`primaryTable` 等）：
+
 ```json
 {
   "deviceModels": [
@@ -290,7 +290,6 @@ res/
           "id": "sensor-001",
           "description": "会议室传感器",
           "connectionKey": "modbus-tcp-01",
-          "ttl": "30s",
           "properties": {
             "unitID": "1"
           }
