@@ -12,3 +12,7 @@ import (
 func EnableExport() {
 	driverbox.EnableExport(internal.NewExport())
 }
+
+func Get() internal.Service {
+	return &internal.NewExport().Service
+}

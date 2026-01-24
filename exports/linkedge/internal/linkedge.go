@@ -1,7 +1,6 @@
 package internal
 
 import (
-	bytes2 "bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,8 +17,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/exports/linkedge/dto"
-	"github.com/ibuilding-x/driver-box/exports/linkedge/restful"
+	"github.com/ibuilding-x/driver-box/exports/linkedge/model"
 	"github.com/ibuilding-x/driver-box/pkg/event"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
@@ -39,135 +37,119 @@ var ErrActionListIsEmpty = errors.New("linkEdge action list cannot be empty")
 
 type service struct {
 	// 场景联动配置缓存
-	configs map[string]dto.Config
+	configs map[string]model.Config
 	// 定时任务
 	schedules map[string]*cron.Cron
 	//点位触发器
-	triggerConditions map[string][]dto.DevicePointCondition
+	triggerConditions map[string][]model.DevicePointCondition
 
 	envConfig EnvConfig
 }
 
 func (s *service) NewService() error {
-	// 创建联动场景
-	driverbox.BaseExport().HandleFunc(http.MethodPost, restful.LinkEdgeCreate, func(request *http.Request) (any, error) {
-		data, err := readBody(request)
-		if err != nil {
-			err = fmt.Errorf("incoming reading ignored. Unable to read request body: %s", err.Error())
-			driverbox.Log().Error(err.Error())
-			return false, err
-		}
-		err = s.Create(data)
-		if err != nil {
-			err = fmt.Errorf("create linkEdge error: %s", err.Error())
-			driverbox.Log().Error(err.Error())
-			return false, err
-		}
-		return true, nil
-	})
 
 	// 预览联动场景
-	driverbox.BaseExport().HandleFunc(http.MethodPost, restful.LinkEdgeTryTrigger, func(request *http.Request) (any, error) {
-		// 读取请求参数
-		data, err := readBody(request)
-		if err != nil {
-			return false, err
-		}
-		// 解析数据
-		var config dto.Config
-		err = json.Unmarshal(data, &config)
-		if err != nil {
-			return false, err
-		}
-		// 执行
-		err = s.triggerLinkEdge("", 0, config)
-		if err != nil {
-			err = fmt.Errorf("preview linkEdge error: %s", err.Error())
-			driverbox.Log().Error(err.Error())
-			return false, err
-		}
-		return true, nil
-	})
-
-	//删除联动场景
-	driverbox.BaseExport().HandleFunc(http.MethodPost, restful.LinkEdgeDelete, func(request *http.Request) (any, error) {
-		err := s.Delete(request.FormValue("id"))
-		return err != nil, err
-	})
-
-	//触发联动场景
-	driverbox.BaseExport().HandleFunc(http.MethodPost, restful.LinkEdgeTrigger, func(request *http.Request) (any, error) {
-		driverbox.Log().Info(fmt.Sprintf("trigger linkEdge:%s from: %s", request.FormValue("id"), request.FormValue("source")))
-		err := s.TriggerLinkEdge(request.FormValue("id"))
-		return err != nil, err
-	})
-
-	//查看场景联动
-	driverbox.BaseExport().HandleFunc(http.MethodPost, restful.LinkEdgeGet, func(request *http.Request) (any, error) {
-		driverbox.Log().Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
-		return s.getLinkEdge(request.FormValue("id"))
-	})
-
-	// 查看场景联动列表
-	driverbox.BaseExport().HandleFunc(http.MethodGet, restful.LinkEdgeList, func(request *http.Request) (any, error) {
-		// 获取查询参数
-		tag := request.URL.Query().Get("tag")
-		return s.GetList(tag)
-	})
-
-	driverbox.BaseExport().HandleFunc(http.MethodPost, restful.LinkEdgeUpdate, func(request *http.Request) (any, error) {
-		body, err := readBody(request)
-		if err != nil {
-			return false, err
-		}
-		var model dto.Config
-		err = json.Unmarshal(body, &model)
-		if err != nil {
-			return false, err
-		}
-		_, err = s.getLinkEdge(model.ID)
-		if err != nil {
-			return false, err
-		}
-		err = s.Update(body)
-		if err != nil {
-			return false, err
-		} else {
-			return true, nil
-		}
-	})
-
-	//更新场景联动状态
-	driverbox.BaseExport().HandleFunc(http.MethodPost, restful.LinkEdgeStatus, func(request *http.Request) (any, error) {
-		driverbox.Log().Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
-		config, err := s.getLinkEdge(request.FormValue("id"))
-		if err != nil {
-			return false, fmt.Errorf("unable to find link edge: %s", err)
-		}
-		enable := request.FormValue("enable")
-		if enable != "true" && enable != "false" {
-			return false, fmt.Errorf("invalid formField[enable] value")
-		}
-		config.Enable = "true" == enable
-
-		bf := bytes2.NewBuffer([]byte{})
-		jsonEncoder := json.NewEncoder(bf)
-		jsonEncoder.SetEscapeHTML(false)
-		err = jsonEncoder.Encode(config)
-		if err != nil {
-			return false, fmt.Errorf("encode %v error: %v", config, err)
-		}
-		if err = s.Update(bf.Bytes()); err == nil {
-			return true, nil
-		} else {
-			return false, fmt.Errorf("update %v error: %v", config, err)
-		}
-	})
-
-	// 获取最后一次执行的场景信息
-	driverbox.BaseExport().HandleFunc(http.MethodGet, restful.LinkEdgeGetLast, func(r *http.Request) (any, error) {
-		return s.GetLast()
-	})
+	//driverbox.BaseExport().HandleFunc(http.MethodPost, LinkEdgeTryTrigger, func(request *http.Request) (any, error) {
+	//	// 读取请求参数
+	//	data, err := readBody(request)
+	//	if err != nil {
+	//		return false, err
+	//	}
+	//	// 解析数据
+	//	var config model.Config
+	//	err = json.Unmarshal(data, &config)
+	//	if err != nil {
+	//		return false, err
+	//	}
+	//	// 执行
+	//	err = s.triggerLinkEdge("", 0, config)
+	//	if err != nil {
+	//		err = fmt.Errorf("preview linkEdge error: %s", err.Error())
+	//		driverbox.Log().Error(err.Error())
+	//		return false, err
+	//	}
+	//	return true, nil
+	//})
+	//
+	////删除联动场景
+	//driverbox.BaseExport().HandleFunc(http.MethodPost, LinkEdgeDelete, func(request *http.Request) (any, error) {
+	//	err := s.Delete(request.FormValue("id"))
+	//	return err != nil, err
+	//})
+	//
+	////触发联动场景
+	//driverbox.BaseExport().HandleFunc(http.MethodPost, LinkEdgeTrigger, func(request *http.Request) (any, error) {
+	//	driverbox.Log().Info(fmt.Sprintf("trigger linkEdge:%s from: %s", request.FormValue("id"), request.FormValue("source")))
+	//	err := s.TriggerLinkEdge(request.FormValue("id"))
+	//	return err != nil, err
+	//})
+	//
+	////查看场景联动
+	//driverbox.BaseExport().HandleFunc(http.MethodPost, LinkEdgeGet, func(request *http.Request) (any, error) {
+	//	driverbox.Log().Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
+	//	return s.getLinkEdge(request.FormValue("id"))
+	//})
+	//
+	//// 查看场景联动列表
+	//driverbox.BaseExport().HandleFunc(http.MethodGet, LinkEdgeList, func(request *http.Request) (any, error) {
+	//	// 获取查询参数
+	//	tag := request.URL.Query().Get("tag")
+	//	return s.GetList(tag)
+	//})
+	//
+	//driverbox.BaseExport().HandleFunc(http.MethodPost, LinkEdgeUpdate, func(request *http.Request) (any, error) {
+	//	body, err := readBody(request)
+	//	if err != nil {
+	//		return false, err
+	//	}
+	//	var model model.Config
+	//	err = json.Unmarshal(body, &model)
+	//	if err != nil {
+	//		return false, err
+	//	}
+	//	_, err = s.getLinkEdge(model.ID)
+	//	if err != nil {
+	//		return false, err
+	//	}
+	//	err = s.Update(body)
+	//	if err != nil {
+	//		return false, err
+	//	} else {
+	//		return true, nil
+	//	}
+	//})
+	//
+	////更新场景联动状态
+	//driverbox.BaseExport().HandleFunc(http.MethodPost, LinkEdgeStatus, func(request *http.Request) (any, error) {
+	//	driverbox.Log().Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
+	//	config, err := s.getLinkEdge(request.FormValue("id"))
+	//	if err != nil {
+	//		return false, fmt.Errorf("unable to find link edge: %s", err)
+	//	}
+	//	enable := request.FormValue("enable")
+	//	if enable != "true" && enable != "false" {
+	//		return false, fmt.Errorf("invalid formField[enable] value")
+	//	}
+	//	config.Enable = "true" == enable
+	//
+	//	bf := bytes2.NewBuffer([]byte{})
+	//	jsonEncoder := json.NewEncoder(bf)
+	//	jsonEncoder.SetEscapeHTML(false)
+	//	err = jsonEncoder.Encode(config)
+	//	if err != nil {
+	//		return false, fmt.Errorf("encode %v error: %v", config, err)
+	//	}
+	//	if err = s.Update(bf.Bytes()); err == nil {
+	//		return true, nil
+	//	} else {
+	//		return false, fmt.Errorf("update %v error: %v", config, err)
+	//	}
+	//})
+	//
+	//// 获取最后一次执行的场景信息
+	//driverbox.BaseExport().HandleFunc(http.MethodGet, LinkEdgeGetLast, func(r *http.Request) (any, error) {
+	//	return s.GetLast()
+	//})
 
 	//启动场景联动
 	configs, e := s.GetList()
@@ -185,12 +167,8 @@ func (s *service) NewService() error {
 }
 
 // Create 创建场景联动规则
-func (s *service) Create(bytes []byte) error {
-	var model dto.Config
-	e := json.Unmarshal(bytes, &model)
-	if e != nil {
-		return e
-	}
+func (s *service) Create(model model.Config) error {
+
 	if _, exists := s.configs[model.ID]; exists {
 		return errors.New("linkEdge id is exists")
 	}
@@ -199,7 +177,10 @@ func (s *service) Create(bytes []byte) error {
 	if len(model.Action) == 0 {
 		return ErrActionListIsEmpty
 	}
-
+	bytes, err := json.Marshal(model)
+	if err != nil {
+		return err
+	}
 	//持久化
 	// fix: 偶现写入的文件内容为空
 	file := path.Join(s.envConfig.ConfigPath, model.ID+".json")
@@ -208,6 +189,7 @@ func (s *service) Create(bytes []byte) error {
 		return err
 	}
 	defer f.Close()
+
 	if _, err = f.Write(bytes); err != nil {
 		return err
 	}
@@ -216,33 +198,33 @@ func (s *service) Create(bytes []byte) error {
 	}
 
 	//启动场景联动
-	e = s.registerTrigger(model.ID)
-	if e != nil {
+	err = s.registerTrigger(model.ID)
+	if err != nil {
 		//注册触发器存在异常,清理脏数据
 		_ = s.Delete(model.ID)
-		return e
+		return err
 	}
 	return nil
 }
 
 // 注册触发器
 func (s *service) registerTrigger(id string) error {
-	model, e := s.getLinkEdge(id)
+	m, e := s.getLinkEdge(id)
 	if e != nil {
 		return e
 	}
 	//注册触发器
-	for _, trigger := range model.Trigger {
+	for _, trigger := range m.Trigger {
 		switch trigger.Type {
-		case dto.TriggerTypeSchedule:
-			schedule, exists := s.schedules[model.ID]
+		case model.TriggerTypeSchedule:
+			schedule, exists := s.schedules[m.ID]
 			if !exists {
 				schedule = cron.New()
-				s.schedules[model.ID] = schedule
+				s.schedules[m.ID] = schedule
 				schedule.Start()
 			}
 			_, e = schedule.AddFunc(trigger.Cron, func() {
-				s.TriggerLinkEdge(model.ID)
+				s.TriggerLinkEdge(m.ID)
 			})
 			if e != nil {
 				return e
@@ -250,7 +232,7 @@ func (s *service) registerTrigger(id string) error {
 				driverbox.Log().Info(fmt.Sprintf("add schedule trigger:%v", trigger.Cron))
 			}
 			break
-		case dto.TriggerTypeDevicePoint:
+		case model.TriggerTypeDevicePoint:
 			//注册eKuiper监听设备点位状态
 			if len(trigger.DeviceID) == 0 || len(trigger.DevicePoint) == 0 || len(trigger.Condition) == 0 || len(trigger.Value) == 0 {
 				bs, _ := json.Marshal(trigger.DevicePointTrigger)
@@ -262,7 +244,7 @@ func (s *service) registerTrigger(id string) error {
 			triggers = append(triggers, trigger.DevicePointCondition)
 			s.triggerConditions[id] = triggers
 			break
-		case dto.TriggerTypeDeviceEvent:
+		case model.TriggerTypeDeviceEvent:
 			break
 		default:
 			bs, _ := json.Marshal(trigger)
@@ -299,21 +281,16 @@ func (s *service) Delete(id string) error {
 }
 
 // Update UpdateLinkEdgeStatus 调整联动规则状态,用于启停控制
-func (s *service) Update(bytes []byte) error {
-	var model dto.Config
-	e := json.Unmarshal(bytes, &model)
-	if e != nil {
-		return e
-	}
+func (s *service) Update(model model.Config) error {
 	// action 为空校验
 	if len(model.Action) <= 0 {
 		return ErrActionListIsEmpty
 	}
-	e = s.Delete(model.ID)
+	e := s.Delete(model.ID)
 	if e != nil {
 		return e
 	}
-	return s.Create(bytes)
+	return s.Create(model)
 }
 
 // TriggerLinkEdge 触发场景联动规则
@@ -336,11 +313,11 @@ func (s *service) TriggerLinkEdge(id string) error {
 }
 
 // depth:联动深度
-func (s *service) triggerLinkEdge(id string, depth int, conf ...dto.Config) error {
+func (s *service) triggerLinkEdge(id string, depth int, conf ...model.Config) error {
 	if depth > 10 {
 		return errors.New("execute level is too deep, max deep:" + strconv.Itoa(depth))
 	}
-	var config dto.Config
+	var config model.Config
 	var e error
 	if len(conf) > 0 {
 		config = conf[0]
@@ -384,7 +361,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...dto.Config) erro
 
 		switch action.Type {
 		// 设置设备点位
-		case dto.ActionTypeDevicePoint:
+		case model.ActionTypeDevicePoint:
 			deviceID := action.DeviceID
 			if _, ok := actions[deviceID]; !ok {
 				actions[deviceID] = make([]plugin.PointData, 0)
@@ -407,7 +384,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...dto.Config) erro
 					})
 				}
 			}
-		case dto.ActionTypeLinkEdge:
+		case model.ActionTypeLinkEdge:
 			sucCount++
 			go s.triggerLinkEdge(action.ID, depth+1)
 		default:
@@ -483,7 +460,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...dto.Config) erro
 	return nil
 }
 
-func (s *service) checkConditions(conditions []dto.Condition) error {
+func (s *service) checkConditions(conditions []model.Condition) error {
 	//优先执行点位持续时间条件校验
 	err := s.checkListTimeCondition(conditions)
 	if err != nil {
@@ -492,11 +469,11 @@ func (s *service) checkConditions(conditions []dto.Condition) error {
 	now := time.Now().UnixMilli()
 	for _, condition := range conditions {
 		driverbox.Log().Info(fmt.Sprintf("check condition:%v", condition))
-		if condition.Type == dto.ConditionTypeLastTime {
+		if condition.Type == model.ConditionTypeLastTime {
 			continue
 		}
 		switch condition.Type {
-		case dto.ConditionTypeDevicePoint:
+		case model.ConditionTypeDevicePoint:
 			//注册eKuiper监听设备点位状态
 			if len(condition.DeviceID) == 0 || len(condition.DevicePoint) == 0 || len(condition.Condition) == 0 || len(condition.Value) == 0 {
 				bytes, _ := json.Marshal(condition.DevicePointCondition)
@@ -511,14 +488,14 @@ func (s *service) checkConditions(conditions []dto.Condition) error {
 			if err != nil {
 				return err
 			}
-		case dto.ConditionTypeExecuteTime:
+		case model.ConditionTypeExecuteTime:
 			if condition.Begin > now {
 				return errors.New("execution time has not started")
 			}
 			if condition.End < now {
 				return errors.New("execution time has expired")
 			}
-		case dto.ConditionTypeDateInterval:
+		case model.ConditionTypeDateInterval:
 			if condition.BeginDate == "" || condition.EndDate == "" {
 				return nil
 			}
@@ -544,23 +521,23 @@ func (s *service) checkConditions(conditions []dto.Condition) error {
 			}
 
 			return errors.New("execution time is not yet available")
-		case dto.ConditionTypeYears:
+		case model.ConditionTypeYears:
 			if !condition.YearsCondition.Verify(time.Now().Year()) {
 				return errors.New("mismatch years condition")
 			}
-		case dto.ConditionTypeMonths:
+		case model.ConditionTypeMonths:
 			if !condition.MonthsCondition.Verify(int(time.Now().Month())) {
 				return errors.New("mismatch months condition")
 			}
-		case dto.ConditionTypeDays:
+		case model.ConditionTypeDays:
 			if !condition.DaysCondition.Verify(time.Now().Day()) {
 				return errors.New("mismatch days condition")
 			}
-		case dto.ConditionTypeWeeks:
+		case model.ConditionTypeWeeks:
 			if !condition.WeeksCondition.Verify(int(time.Now().Weekday())) {
 				return errors.New("mismatch weeks condition")
 			}
-		case dto.ConditionTypeTimes:
+		case model.ConditionTypeTimes:
 			if !condition.TimesCondition.Verify(time.Now()) {
 				return errors.New("mismatch times condition")
 			}
@@ -569,23 +546,23 @@ func (s *service) checkConditions(conditions []dto.Condition) error {
 	return nil
 }
 
-func (s *service) checkListTimeCondition(conditions []dto.Condition) error {
+func (s *service) checkListTimeCondition(conditions []model.Condition) error {
 	//return errors.New("功能未迁移...")
 	return nil
 }
 
-func (s *service) checkConditionValue(condition dto.DevicePointCondition, pointValue interface{}) error {
+func (s *service) checkConditionValue(condition model.DevicePointCondition, pointValue interface{}) error {
 	driverbox.Log().Info(fmt.Sprintf("checkConditionValue condition:%v, pointValue:%v", condition, pointValue))
 	e := errors.New(fmt.Sprintf("condition check fail. expect %v%v%v ,actual value=%v", condition.DevicePoint, condition.Condition, condition.Value, pointValue))
 	switch pointValue.(type) {
 	case string:
 		switch condition.Condition {
-		case dto.ConditionEq:
+		case model.ConditionEq:
 			if condition.Value != pointValue {
 				return e
 			}
 			break
-		case dto.ConditionNe:
+		case model.ConditionNe:
 			if condition.Value == pointValue {
 				return e
 			}
@@ -605,32 +582,32 @@ func (s *service) checkConditionValue(condition dto.DevicePointCondition, pointV
 		}
 
 		switch condition.Condition {
-		case dto.ConditionEq:
+		case model.ConditionEq:
 			if conditionValue != pointValue {
 				return e
 			}
 			break
-		case dto.ConditionNe:
+		case model.ConditionNe:
 			if conditionValue == pointValue {
 				return e
 			}
 			break
-		case dto.ConditionGt:
+		case model.ConditionGt:
 			if conditionValue >= pointValue {
 				return e
 			}
 			break
-		case dto.ConditionGe:
+		case model.ConditionGe:
 			if conditionValue > pointValue {
 				return e
 			}
 			break
-		case dto.ConditionLt:
+		case model.ConditionLt:
 			if conditionValue <= pointValue {
 				return e
 			}
 			break
-		case dto.ConditionLe:
+		case model.ConditionLe:
 			if conditionValue < pointValue {
 				return e
 			}
@@ -641,13 +618,13 @@ func (s *service) checkConditionValue(condition dto.DevicePointCondition, pointV
 	return nil
 }
 
-func (s *service) getLinkEdge(id string) (dto.Config, error) {
+func (s *service) getLinkEdge(id string) (model.Config, error) {
 	config, exists := s.configs[id]
 	if exists {
 		return config, nil
 	}
 
-	config = dto.Config{}
+	config = model.Config{}
 	fileName := filepath.Join(s.envConfig.ConfigPath, id+".json")
 	f, err := os.Open(fileName)
 	if err != nil {
@@ -664,7 +641,7 @@ func (s *service) getLinkEdge(id string) (dto.Config, error) {
 	return config, err
 }
 
-func (s *service) GetList(tag ...string) ([]dto.Config, error) {
+func (s *service) GetList(tag ...string) ([]model.Config, error) {
 	files := make([]string, 0)
 	//若目录不存在，则自动创建
 	_, err := os.Stat(s.envConfig.ConfigPath)
@@ -685,7 +662,7 @@ func (s *service) GetList(tag ...string) ([]dto.Config, error) {
 		return nil
 	})
 
-	var configs []dto.Config
+	var configs []model.Config
 
 	for _, key := range files {
 		id := strings.TrimSuffix(key, ".json")
@@ -707,7 +684,7 @@ func (s *service) GetList(tag ...string) ([]dto.Config, error) {
 }
 
 // GetLast 获取最后一次执行的场景信息
-func (s *service) GetLast() (c dto.Config, err error) {
+func (s *service) GetLast() (c model.Config, err error) {
 	defaultTime := time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC)
 	configs, err := s.GetList()
 	if err != nil {
@@ -721,7 +698,7 @@ func (s *service) GetLast() (c dto.Config, err error) {
 	}
 	// 判断执行时间，若执行时间为空，则返回空
 	if c.ExecuteTime.IsZero() {
-		return dto.Config{}, nil
+		return model.Config{}, nil
 	}
 	return
 }
@@ -752,7 +729,7 @@ func (s *service) parseDate(d string) (time.Time, error) {
 
 // Preview 预览场景
 // 提示：不真实创建场景，仅看执行效果使用
-func (s *service) Preview(config dto.Config) error {
+func (s *service) Preview(config model.Config) error {
 	// 记录场景执行记录
 	return s.triggerLinkEdge("", 0, config)
 }

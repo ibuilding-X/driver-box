@@ -7,7 +7,7 @@ import (
 
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/exports/linkedge/dto"
+	"github.com/ibuilding-x/driver-box/exports/linkedge/model"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/event"
 	"github.com/robfig/cron/v3"
@@ -22,7 +22,7 @@ type EnvConfig struct {
 }
 
 type Export struct {
-	linkEdge  service
+	Service   service
 	ready     bool
 	EnvConfig EnvConfig
 }
@@ -36,13 +36,13 @@ func (export *Export) Init() error {
 	}
 
 	//启动场景联动服务
-	export.linkEdge = service{
-		triggerConditions: make(map[string][]dto.DevicePointCondition),
-		configs:           make(map[string]dto.Config),
+	export.Service = service{
+		triggerConditions: make(map[string][]model.DevicePointCondition),
+		configs:           make(map[string]model.Config),
 		schedules:         make(map[string]*cron.Cron),
 		envConfig:         export.EnvConfig,
 	}
-	err = export.linkEdge.NewService()
+	err = export.Service.NewService()
 	if err != nil {
 		driverbox.Log().Error(fmt.Sprintf("init linkEdge service error:%v", err))
 		return err
@@ -52,7 +52,7 @@ func (export *Export) Init() error {
 }
 func (export *Export) Destroy() error {
 	export.ready = false
-	for key, c := range export.linkEdge.schedules {
+	for key, c := range export.Service.schedules {
 		driverbox.Log().Info("stop linkEdge cron", zap.String("id", key))
 		c.Stop()
 	}
@@ -69,7 +69,7 @@ func NewExport() *Export {
 
 // 点位变化触发场景联动
 func (export *Export) ExportTo(deviceData plugin.DeviceData) {
-	export.linkEdge.devicePointTriggerHandler(deviceData, false)
+	export.Service.devicePointTriggerHandler(deviceData, false)
 }
 
 // 继承Export OnEvent接口
@@ -84,7 +84,7 @@ func (export *Export) OnEvent(eventCode string, key string, eventValue interface
 			return nil
 		}
 		for _, datum := range data {
-			export.linkEdge.devicePointTriggerHandler(datum, true)
+			export.Service.devicePointTriggerHandler(datum, true)
 		}
 	}
 	return nil

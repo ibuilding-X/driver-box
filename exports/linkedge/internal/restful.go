@@ -1,4 +1,4 @@
-package restful
+package internal
 
 // 创建场景联动
 const LinkEdgeCreate = "linkedge/create"

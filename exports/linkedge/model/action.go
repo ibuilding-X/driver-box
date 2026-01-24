@@ -1,4 +1,4 @@
-package dto
+package model
 
 // ActionType 执行动作类型
 type ActionType string
