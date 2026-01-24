@@ -17,8 +17,6 @@ const (
 	//设备自动发现事件
 	EventDeviceDiscover = "deviceDiscover"
 
-	EventCodeLinkEdgeTrigger = "linkEdgeTrigger"
-
 	// EventCodeOnOff 设备开关事件（空调的开关机、灯的开关……）
 	EventCodeOnOff = "onOff"
 
