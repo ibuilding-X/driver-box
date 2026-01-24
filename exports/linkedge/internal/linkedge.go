@@ -224,7 +224,7 @@ func (s *service) registerTrigger(id string) error {
 				schedule.Start()
 			}
 			_, e = schedule.AddFunc(trigger.Cron, func() {
-				s.TriggerLinkEdge(m.ID)
+				s.Trigger(m.ID)
 			})
 			if e != nil {
 				return e
@@ -296,7 +296,7 @@ func (s *service) Update(model model.Config) error {
 // TriggerLinkEdge 触发场景联动规则
 // id: 场景联动ID
 // source: 场景触发来源
-func (s *service) TriggerLinkEdge(id string) error {
+func (s *service) Trigger(id string) error {
 	//记录场景执行记录
 	e := s.triggerLinkEdge(id, 0)
 	if e != nil {
@@ -790,7 +790,7 @@ func (s *service) devicePointTriggerHandler(deviceData plugin.DeviceData, handle
 				// 触发场景
 				go func(linkEdgeId string) {
 					driverbox.Log().Info("trigger linkEdge", zap.String("id", linkEdgeId))
-					e := s.TriggerLinkEdge(linkEdgeId)
+					e := s.Trigger(linkEdgeId)
 					if e != nil {
 						driverbox.Log().Error("trigger linkEdge error", zap.String("id", linkEdgeId), zap.Error(e))
 					}

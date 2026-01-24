@@ -6,4 +6,5 @@ type Service interface {
 	Create(model.Config) error
 	Update(model.Config) error
 	Delete(id string) error
+	Trigger(id string) error
 }
