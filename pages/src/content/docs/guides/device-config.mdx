@@ -9,6 +9,21 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 driver-box 采用 JSON 格式进行设备配置，所有配置文件位于 `res/driver/<plugin>/` 目录下。
 
+本文档详细介绍配置文件的结构、各层级参数说明、以及完整的配置示例。
+
+## 快速导航
+
+- [配置文件放置](#配置文件放置)
+- [配置层级关系](#配置层级关系)
+- [顶层配置](#顶层配置)
+- [设备模型（DeviceModel）](#设备模型devicemodel)
+- [设备（Device）](#设备device)
+- [点位（Point）](#点位point)
+- [连接配置（connections）](#连接配置connections)
+- [协议扩展参数](#协议扩展参数)
+- [配置示例](#配置示例)
+- [配置验证](#配置验证)
+
 ## 配置文件放置
 
 配置文件应放置在对应协议插件的目录下：
@@ -27,6 +42,36 @@ res/
 ### 配置代码结构
 
 配置对应的 Go 结构体定义位于 [pkg/config/device_config.go](https://github.com/ibuilding-X/driver-box/blob/master/pkg/config/device_config.go)
+
+### 配置层级关系
+
+```mermaid
+graph TD
+    A[config.json] --> B[deviceModels]
+    A --> C[connections]
+    A --> D[protocolName]
+
+    B --> E[DeviceModel]
+    E --> F[devicePoints]
+    E --> G[devices]
+
+    F --> H[Point]
+
+    G --> I[Device]
+    I --> J[properties]
+```
+
+**层级说明**：
+- **config.json** - 顶层配置文件
+- **deviceModels** - 设备模型数组，定义设备类型和点位
+- **connections** - 连接配置，定义设备通讯参数
+- **protocolName** - 协议插件名称
+- **DeviceModel** - 设备模型，包含点位列表和设备实例
+- **devicePoints** - 点位定义数组
+- **devices** - 设备实例数组
+- **Point** - 点位，模型的最小数据单元
+- **Device** - 设备实例，引用模型和连接
+- **properties** - 设备属性，协议相关参数
 
 ## 顶层配置
 
@@ -69,6 +114,8 @@ res/
 
 配置对应的 Go 结构体定义位于 [pkg/config/device_config_model.go](https://github.com/ibuilding-X/driver-box/blob/master/pkg/config/device_config_model.go)
 
+设备模型定义了一类设备的数据结构和参数，一个模型可以对应多个设备实例。
+
 <Tabs>
   <TabItem label="结构示例">
     ```json
@@ -103,6 +150,8 @@ res/
 ## 设备（Device）
 
 配置对应的 Go 结构体定义位于 [pkg/config/device_config_device.go](https://github.com/ibuilding-X/driver-box/blob/master/pkg/config/device_config_device.go)
+
+设备是设备模型的具体实例，一个模型可以对应多个设备。
 
 <Tabs>
   <TabItem label="结构示例">
@@ -188,7 +237,7 @@ res/
 
 ## 连接配置（connections）
 
-连接配置定义了与设备通讯的参数，具体格式由协议插件决定。
+连接配置定义了与设备通讯的参数，具体格式由协议插件决定。多个设备可以共用同一个连接配置。
 
 ### 通用连接结构
 
@@ -241,7 +290,8 @@ res/
 
 ## 配置示例
 
-### 完整示例
+<details>
+  <summary>点击查看完整的配置示例</summary>
 
 以下是一个完整的 Modbus 设备配置示例，包含协议特定扩展参数（如 `startAddress`、`primaryTable` 等）：
 
@@ -309,6 +359,7 @@ res/
   "protocolName": "modbus"
 }
 ```
+</details>
 
 ## 配置验证
 
