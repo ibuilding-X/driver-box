@@ -153,16 +153,3 @@ MQTT Export 实现了 `OnEvent` 接口，目前支持：
 - ClientID 必须唯一，避免连接冲突
 - 确保网络和防火墙允许到 Broker 的连接
 
-## 扩展建议
-
-- 添加 QoS 级别配置
-- 实现自动重连机制
-- 支持遗嘱消息（Last Will）
-- 添加消息持久化
-- 改进错误处理策略
-
-## 相关代码
-
-- 实现文件：`exports/mqtt/mqtt_export.go`
-- 依赖库：Eclipse Paho MQTT Go Client
-- 事件定义：`pkg/event/event.go`

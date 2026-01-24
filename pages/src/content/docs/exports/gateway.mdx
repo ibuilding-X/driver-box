@@ -233,16 +233,3 @@ graph TD
 - 大量设备同步时注意内存和网络开销
 - 控制指令仅支持 WriteMode
 
-## 调试技巧
-
-- 开启 Debug 日志查看详细通信过程
-- 监控 WebSocket 连接状态和重连频率
-- 观察设备影子中网关设备的状态变化
-- 使用网络抓包工具分析协议交互
-
-## 相关代码
-
-- 连接器实现：`plugins/gateway/internal/connector.go`
-- 插件核心：`plugins/gateway/internal/gwplugin.go`
-- 协议定义：`exports/gateway/ws.go`
-- 消息结构：`exports/gateway/gwexport.go`

@@ -213,15 +213,7 @@ cache.Flush("modbus")
 cache.FlushAll()
 ```
 
-## 性能优化
-
 - **内存缓存**: 所有配置加载到内存,避免频繁磁盘 I/O
 - **读写锁优化**: 读操作使用读锁,提高并发性能
 - **增量更新**: 配置变更时只更新变化的部分
 - **延迟持久化**: 配置变更后延迟 5 秒持久化,避免频繁写入
-
-## 相关文档
-
-- [配置化接入](/driver-box/concepts/configuration-driven/) - 了解配置文件结构和编写规范
-- [Plugin 机制](/driver-box/concepts/plugin-system/) - 了解插件与 CoreCache 的交互
-- [设备影子](/driver-box/concepts/device-shadow/) - 了解设备影子如何使用 CoreCache

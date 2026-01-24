@@ -255,24 +255,6 @@ library.Protocol().UnloadDeviceDrivers()
 - 配置结构验证 (JSON)
 - 依赖关系检查
 
-## 最佳实践
-
-### 模型设计
-
-1. **命名规范**: 使用小写字母和下划线,如 `temperature_sensor`
-2. **模块化**: 将复杂模型拆分为多个子模型
-3. **版本管理**: 使用 `modelId` 管理模型版本
-4. **扩展属性**: 使用 `attributes` 存储自定义信息
-
-### 驱动开发
-
-1. **错误处理**: 使用 `pcall` 捕获 Lua 脚本错误
-2. **性能优化**: 避免在 Lua 脚本中进行复杂计算
-3. **日志记录**: 使用 `log.info` 输出调试信息
-4. **单元测试**: 编写测试用例验证驱动逻辑
-
-### 资源组织
-
 ```
 res/library/
 ├── model/
@@ -291,10 +273,3 @@ res/library/
 └── mirror_tpl/
     └── sensor_mirror.json
 ```
-
-## 相关文档
-
-- [配置化接入](/driver-box/concepts/configuration-driven/) - 了解配置文件结构和编写规范
-- [Plugin 机制](/driver-box/concepts/plugin-system/) - 了解插件如何使用资源库
-- [Model 库](/driver-box/library/model/) - 查看模型库详细文档
-- [Driver 库](/driver-box/library/driver/) - 查看驱动库详细文档

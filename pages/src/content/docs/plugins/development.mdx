@@ -95,7 +95,7 @@ import (
 const ProtocolName = "your_protocol"
 
 // Plugin 插件主结构
- type Plugin struct {
+type Plugin struct {
 	connPool map[string]*connector // 连接池
 	config   config.DeviceConfig
 	mutex    sync.RWMutex
@@ -173,7 +173,7 @@ import (
 )
 
 // connector 连接器实现
- type connector struct {
+type connector struct {
 	plugin      *Plugin
 	config      *ConnectionConfig
 	client      interface{}           // 协议客户端实例
@@ -302,7 +302,7 @@ package internal
 import "encoding/json"
 
 // ConnectionConfig 连接配置
- type ConnectionConfig struct {
+type ConnectionConfig struct {
 	Host           string        `json:"host"`           // 主机地址
 	Port           int           `json:"port"`           // 端口
 	Timeout        time.Duration `json:"timeout"`        // 超时时间
@@ -414,61 +414,3 @@ func TestConnector_Encode(t *testing.T) {
 }
 ```
 
-## 调试技巧
-
-<Aside type="tip" title="调试建议">
-- 使用driver-box的日志系统记录详细的调试信息
-- 在关键函数中添加性能监控
-- 使用Go的pprof工具分析性能瓶颈
-- 模拟设备响应进行离线测试
-</Aside>
-
-### 常见调试方法
-1. **日志调试**：在关键路径添加详细日志
-2. **模拟测试**：创建模拟设备和服务器
-3. **协议分析**：使用Wireshark等工具分析协议
-4. **断点调试**：使用IDE进行断点调试
-
-## 最佳实践
-
-### 性能优化
-- **连接复用**：使用连接池避免频繁建立连接
-- **并发控制**：合理使用goroutine和channel
-- **内存管理**：及时释放不再使用的资源
-- **超时控制**：为所有IO操作设置合理的超时
-
-### 代码质量
-- **错误处理**：妥善处理所有可能的错误情况
-- **资源管理**：确保资源的正确释放
-- **接口隔离**：遵循单一职责原则
-- **测试覆盖**：为关键逻辑编写充分的测试
-
-### 安全性考虑
-- **输入验证**：严格验证所有外部输入
-- **访问控制**：实现适当的认证和授权
-- **数据加密**：敏感数据需要加密传输
-- **异常防护**：防止恶意输入导致的安全漏洞
-
-## 发布插件
-
-### 插件注册
-确保在插件包中导出 `EnablePlugin` 函数：
-```go
-// 在 plugin.go 中
-func EnablePlugin() {
-    driverbox.EnablePlugin(internal.ProtocolName, new(internal.Plugin))
-}
-```
-
-### 在主程序中启用
-在 `main.go` 或相关配置中启用新插件：
-```go
-import _ "github.com/ibuilding-x/driver-box/plugins/your_protocol"
-```
-
-## 下一步
-
-- [插件配置详解](/driver-box/plugins/configuration/) - 深入了解插件配置选项
-- [设备模型库](/driver-box/library/models/) - 学习如何使用设备模型
-- [API开发指南](/driver-box/developer/api/) - 开发自定义导出功能
-- [贡献指南](/driver-box/contributing/) - 将您的插件贡献给社区

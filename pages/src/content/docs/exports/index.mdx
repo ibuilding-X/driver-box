@@ -510,28 +510,3 @@ if p.ReportMode() == config.ReportMode_Change && shadowValue == point.Value {
 | discover | 设备发现 | ✅ 稳定 | 自动发现设备 | `exports/discover/` |
 | mcp | AI集成 | ✅ 稳定 | MCP模型上下文协议 | `exports/mcp/` |
 
-## 最佳实践
-
-<Aside type="tip" title="异步处理">
-ExportTo 应该异步处理数据，避免阻塞其他导出插件的执行。
-</Aside>
-
-<Aside type="note" title="错误处理">
-导出插件应妥善处理网络异常，避免因单个目标不可用影响其他插件。
-</Aside>
-
-<Aside type="caution" title="性能优化">
-批量写入操作比单条写入效率更高，建议使用缓冲区批量处理。
-</Aside>
-
-<Aside type="danger" title="资源释放">
-Destroy 方法必须正确释放所有资源（连接、协程、定时任务等），避免内存泄漏。
-</Aside>
-
-## 相关文档
-
-- [**插件机制**](/driver-box/plugins/) - 了解数据接入系统
-- [**核心缓存**](/driver-box/concepts/corecache/) - 了解配置管理
-- [**设备影子**](/driver-box/concepts/device-shadow/) - 了解数据缓存机制
-- [**架构设计**](/driver-box/concepts/architecture/) - 了解整体架构
-- [**Export二次开发指南**](/driver-box/exports/development/) - 学习如何开发自定义数据导出功能
