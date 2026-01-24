@@ -312,6 +312,10 @@ func (s *service) Trigger(id string) error {
 	return e
 }
 
+func (s *service) Execute(config model.Config) error {
+	return s.triggerLinkEdge("", 0, config)
+}
+
 // depth:联动深度
 func (s *service) triggerLinkEdge(id string, depth int, conf ...model.Config) error {
 	if depth > 10 {
