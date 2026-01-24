@@ -55,10 +55,6 @@ graph TD
     E --> F[devicePoints]
     E --> G[devices]
 
-    F --> H[Point]
-
-    G --> I[Device]
-    I --> J[properties]
 ```
 
 **层级说明**：
@@ -69,9 +65,6 @@ graph TD
 - **DeviceModel** - 设备模型，包含点位列表和设备实例
 - **devicePoints** - 点位定义数组
 - **devices** - 设备实例数组
-- **Point** - 点位，模型的最小数据单元
-- **Device** - 设备实例，引用模型和连接
-- **properties** - 设备属性，协议相关参数
 
 ## 顶层配置
 
