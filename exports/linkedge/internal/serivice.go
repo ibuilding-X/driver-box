@@ -3,6 +3,9 @@ package internal
 import "github.com/ibuilding-x/driver-box/exports/linkedge/model"
 
 type Service interface {
+	// GetList 获取场景联动列表
+	// 参数: tag - 标签列表
+	GetList(tag ...string) ([]model.Config, error)
 	// Create 创建新的场景联动配置
 	// 参数: config - 场景联动配置对象
 	// 返回: error - 错误信息
