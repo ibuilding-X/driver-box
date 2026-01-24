@@ -1,8 +1,8 @@
-package internal
+package linkedge
 
 import "github.com/ibuilding-x/driver-box/exports/linkedge/model"
 
-type Service interface {
+type IService interface {
 	// GetList 获取场景联动列表
 	// 参数: tag - 标签列表
 	GetList(tag ...string) ([]model.Config, error)

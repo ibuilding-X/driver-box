@@ -1,4 +1,4 @@
-package internal
+package linkedge
 
 import (
 	"encoding/json"
@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -35,139 +34,13 @@ const (
 // ErrActionListIsEmpty action 列表为空错误
 var ErrActionListIsEmpty = errors.New("linkEdge action list cannot be empty")
 
-type service struct {
-	// 场景联动配置缓存
-	configs map[string]model.Config
-	// 定时任务
-	schedules map[string]*cron.Cron
-	//点位触发器
-	triggerConditions map[string][]model.DevicePointCondition
-
-	envConfig EnvConfig
-}
-
-func (s *service) NewService() error {
-
-	// 预览联动场景
-	//driverbox.BaseExport().HandleFunc(http.MethodPost, LinkEdgeTryTrigger, func(request *http.Request) (any, error) {
-	//	// 读取请求参数
-	//	data, err := readBody(request)
-	//	if err != nil {
-	//		return false, err
-	//	}
-	//	// 解析数据
-	//	var config model.Config
-	//	err = json.Unmarshal(data, &config)
-	//	if err != nil {
-	//		return false, err
-	//	}
-	//	// 执行
-	//	err = s.triggerLinkEdge("", 0, config)
-	//	if err != nil {
-	//		err = fmt.Errorf("preview linkEdge error: %s", err.Error())
-	//		driverbox.Log().Error(err.Error())
-	//		return false, err
-	//	}
-	//	return true, nil
-	//})
-	//
-	////删除联动场景
-	//driverbox.BaseExport().HandleFunc(http.MethodPost, LinkEdgeDelete, func(request *http.Request) (any, error) {
-	//	err := s.Delete(request.FormValue("id"))
-	//	return err != nil, err
-	//})
-	//
-	////触发联动场景
-	//driverbox.BaseExport().HandleFunc(http.MethodPost, LinkEdgeTrigger, func(request *http.Request) (any, error) {
-	//	driverbox.Log().Info(fmt.Sprintf("trigger linkEdge:%s from: %s", request.FormValue("id"), request.FormValue("source")))
-	//	err := s.TriggerLinkEdge(request.FormValue("id"))
-	//	return err != nil, err
-	//})
-	//
-	////查看场景联动
-	//driverbox.BaseExport().HandleFunc(http.MethodPost, LinkEdgeGet, func(request *http.Request) (any, error) {
-	//	driverbox.Log().Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
-	//	return s.getLinkEdge(request.FormValue("id"))
-	//})
-	//
-	//// 查看场景联动列表
-	//driverbox.BaseExport().HandleFunc(http.MethodGet, LinkEdgeList, func(request *http.Request) (any, error) {
-	//	// 获取查询参数
-	//	tag := request.URL.Query().Get("tag")
-	//	return s.GetList(tag)
-	//})
-	//
-	//driverbox.BaseExport().HandleFunc(http.MethodPost, LinkEdgeUpdate, func(request *http.Request) (any, error) {
-	//	body, err := readBody(request)
-	//	if err != nil {
-	//		return false, err
-	//	}
-	//	var model model.Config
-	//	err = json.Unmarshal(body, &model)
-	//	if err != nil {
-	//		return false, err
-	//	}
-	//	_, err = s.getLinkEdge(model.ID)
-	//	if err != nil {
-	//		return false, err
-	//	}
-	//	err = s.Update(body)
-	//	if err != nil {
-	//		return false, err
-	//	} else {
-	//		return true, nil
-	//	}
-	//})
-	//
-	////更新场景联动状态
-	//driverbox.BaseExport().HandleFunc(http.MethodPost, LinkEdgeStatus, func(request *http.Request) (any, error) {
-	//	driverbox.Log().Info(fmt.Sprintf("get linkEdge:%s", request.FormValue("id")))
-	//	config, err := s.getLinkEdge(request.FormValue("id"))
-	//	if err != nil {
-	//		return false, fmt.Errorf("unable to find link edge: %s", err)
-	//	}
-	//	enable := request.FormValue("enable")
-	//	if enable != "true" && enable != "false" {
-	//		return false, fmt.Errorf("invalid formField[enable] value")
-	//	}
-	//	config.Enable = "true" == enable
-	//
-	//	bf := bytes2.NewBuffer([]byte{})
-	//	jsonEncoder := json.NewEncoder(bf)
-	//	jsonEncoder.SetEscapeHTML(false)
-	//	err = jsonEncoder.Encode(config)
-	//	if err != nil {
-	//		return false, fmt.Errorf("encode %v error: %v", config, err)
-	//	}
-	//	if err = s.Update(bf.Bytes()); err == nil {
-	//		return true, nil
-	//	} else {
-	//		return false, fmt.Errorf("update %v error: %v", config, err)
-	//	}
-	//})
-	//
-	//// 获取最后一次执行的场景信息
-	//driverbox.BaseExport().HandleFunc(http.MethodGet, LinkEdgeGetLast, func(r *http.Request) (any, error) {
-	//	return s.GetLast()
-	//})
-
-	//启动场景联动
-	configs, e := s.GetList()
-	if e != nil {
-		return e
-	}
-	for _, config := range configs {
-		e = s.registerTrigger(config.ID)
-		if e != nil {
-			return e
-		}
-	}
+func (s *export) NewService() error {
 
 	return nil
 }
 
 // Create 创建场景联动规则
-func (s *service) Create(model model.Config) error {
+func (s *export) Create(model model.Config) error {
 
 	if _, exists := s.configs[model.ID]; exists {
 		return errors.New("linkEdge id is exists")
@@ -183,7 +56,7 @@ func (s *service) Create(model model.Config) error {
 	}
 	//持久化
 	// fix: 偶现写入的文件内容为空
-	file := path.Join(s.envConfig.ConfigPath, model.ID+".json")
+	file := path.Join(s.ConfigPath, model.ID+".json")
 	f, err := os.Create(file)
 	if err != nil {
 		return err
@@ -208,7 +81,7 @@ func (s *service) Create(model model.Config) error {
 }
 
 // 注册触发器
-func (s *service) registerTrigger(id string) error {
+func (s *export) registerTrigger(id string) error {
 	m, e := s.getLinkEdge(id)
 	if e != nil {
 		return e
@@ -255,7 +128,7 @@ func (s *service) registerTrigger(id string) error {
 }
 
 // Delete 删除场景联动规则
-func (s *service) Delete(id string) error {
+func (s *export) Delete(id string) error {
 	if len(id) == 0 {
 		return errors.New("id is nil")
 	}
@@ -264,7 +137,7 @@ func (s *service) Delete(id string) error {
 	//删除配置
 	delete(s.configs, id)
 	delete(s.triggerConditions, id)
-	file := path.Join(s.envConfig.ConfigPath, id+".json")
+	file := path.Join(s.ConfigPath, id+".json")
 	e := os.Remove(file)
 	if e != nil {
 		return e
@@ -281,7 +154,7 @@ func (s *service) Delete(id string) error {
 }
 
 // Update UpdateLinkEdgeStatus 调整联动规则状态,用于启停控制
-func (s *service) Update(model model.Config) error {
+func (s *export) Update(model model.Config) error {
 	// action 为空校验
 	if len(model.Action) <= 0 {
 		return ErrActionListIsEmpty
@@ -296,7 +169,7 @@ func (s *service) Update(model model.Config) error {
 // TriggerLinkEdge 触发场景联动规则
 // id: 场景联动ID
 // source: 场景触发来源
-func (s *service) Trigger(id string) error {
+func (s *export) Trigger(id string) error {
 	//记录场景执行记录
 	e := s.triggerLinkEdge(id, 0)
 	if e != nil {
@@ -312,12 +185,12 @@ func (s *service) Trigger(id string) error {
 	return e
 }
 
-func (s *service) Execute(config model.Config) error {
+func (s *export) Execute(config model.Config) error {
 	return s.triggerLinkEdge("", 0, config)
 }
 
 // depth:联动深度
-func (s *service) triggerLinkEdge(id string, depth int, conf ...model.Config) error {
+func (s *export) triggerLinkEdge(id string, depth int, conf ...model.Config) error {
 	if depth > 10 {
 		return errors.New("execute level is too deep, max deep:" + strconv.Itoa(depth))
 	}
@@ -464,7 +337,7 @@ func (s *service) triggerLinkEdge(id string, depth int, conf ...model.Config) er
 	return nil
 }
 
-func (s *service) checkConditions(conditions []model.Condition) error {
+func (s *export) checkConditions(conditions []model.Condition) error {
 	//优先执行点位持续时间条件校验
 	err := s.checkListTimeCondition(conditions)
 	if err != nil {
@@ -550,12 +423,12 @@ func (s *service) checkConditions(conditions []model.Condition) error {
 	return nil
 }
 
-func (s *service) checkListTimeCondition(conditions []model.Condition) error {
+func (s *export) checkListTimeCondition(conditions []model.Condition) error {
 	//return errors.New("功能未迁移...")
 	return nil
 }
 
-func (s *service) checkConditionValue(condition model.DevicePointCondition, pointValue interface{}) error {
+func (s *export) checkConditionValue(condition model.DevicePointCondition, pointValue interface{}) error {
 	driverbox.Log().Info(fmt.Sprintf("checkConditionValue condition:%v, pointValue:%v", condition, pointValue))
 	e := errors.New(fmt.Sprintf("condition check fail. expect %v%v%v ,actual value=%v", condition.DevicePoint, condition.Condition, condition.Value, pointValue))
 	switch pointValue.(type) {
@@ -622,14 +495,14 @@ func (s *service) checkConditionValue(condition model.DevicePointCondition, poin
 	return nil
 }
 
-func (s *service) getLinkEdge(id string) (model.Config, error) {
+func (s *export) getLinkEdge(id string) (model.Config, error) {
 	config, exists := s.configs[id]
 	if exists {
 		return config, nil
 	}
 
 	config = model.Config{}
-	fileName := filepath.Join(s.envConfig.ConfigPath, id+".json")
+	fileName := filepath.Join(s.ConfigPath, id+".json")
 	f, err := os.Open(fileName)
 	if err != nil {
 		return config, err
@@ -645,13 +518,13 @@ func (s *service) getLinkEdge(id string) (model.Config, error) {
 	return config, err
 }
 
-func (s *service) GetList(tag ...string) ([]model.Config, error) {
+func (s *export) GetList(tag ...string) ([]model.Config, error) {
 	files := make([]string, 0)
 	//若目录不存在，则自动创建
-	_, err := os.Stat(s.envConfig.ConfigPath)
+	_, err := os.Stat(s.ConfigPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			err = os.MkdirAll(s.envConfig.ConfigPath, os.ModePerm)
+			err = os.MkdirAll(s.ConfigPath, os.ModePerm)
 			if err != nil {
 				return nil, err
 			}
@@ -659,7 +532,7 @@ func (s *service) GetList(tag ...string) ([]model.Config, error) {
 			return nil, err
 		}
 	}
-	filepath.Walk(s.envConfig.ConfigPath, func(path string, d fs.FileInfo, err error) error {
+	filepath.Walk(s.ConfigPath, func(path string, d fs.FileInfo, err error) error {
 		if !d.IsDir() {
 			files = append(files, d.Name())
 		}
@@ -688,7 +561,7 @@ func (s *service) GetList(tag ...string) ([]model.Config, error) {
 }
 
 // GetLast 获取最后一次执行的场景信息
-func (s *service) GetLast() (c model.Config, err error) {
+func (s *export) GetLast() (c model.Config, err error) {
 	defaultTime := time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC)
 	configs, err := s.GetList()
 	if err != nil {
@@ -707,23 +580,9 @@ func (s *service) GetLast() (c model.Config, err error) {
 	return
 }
 
-func readBody(request *http.Request) ([]byte, error) {
-	defer request.Body.Close()
-	body, err := io.ReadAll(request.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(body) == 0 {
-		return nil, fmt.Errorf("no request body provided")
-	}
-
-	return body, nil
-}
-
 // parseDate 解析日期
 // 修复：02-29 问题
-func (s *service) parseDate(d string) (time.Time, error) {
+func (s *export) parseDate(d string) (time.Time, error) {
 	year := time.Now().Year()
 	if d == "02-29" && (year%4 != 0) {
 		d = "02-28"
@@ -733,12 +592,12 @@ func (s *service) parseDate(d string) (time.Time, error) {
 
 // Preview 预览场景
 // 提示：不真实创建场景，仅看执行效果使用
-func (s *service) Preview(config model.Config) error {
+func (s *export) Preview(config model.Config) error {
 	// 记录场景执行记录
 	return s.triggerLinkEdge("", 0, config)
 }
 
-func (s *service) devicePointTriggerHandler(deviceData plugin.DeviceData, handleDuration bool) {
+func (s *export) devicePointTriggerHandler(deviceData plugin.DeviceData, handleDuration bool) {
 	// 循环点位
 	for _, pointData := range deviceData.Values {
 		// 循环场景
