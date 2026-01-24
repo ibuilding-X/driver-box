@@ -58,9 +58,9 @@ func Start() error {
 	}
 
 	if err != nil {
-		TriggerEvents(event.EventCodeServiceStatus, GetMetadata().SerialNo, event.ServiceStatusError)
+		TriggerEvents(event.ServiceStatus, GetMetadata().SerialNo, event.ServiceStatusError)
 	} else {
-		TriggerEvents(event.EventCodeServiceStatus, GetMetadata().SerialNo, event.ServiceStatusHealthy)
+		TriggerEvents(event.ServiceStatus, GetMetadata().SerialNo, event.ServiceStatusHealthy)
 	}
 
 	Log().Info("start driver-box success.")
@@ -124,6 +124,7 @@ func initEnvConfig() error {
 // 参数:
 //   - deviceId: 设备唯一标识符
 //   - pointName: 需要读取的点位名称
+//
 // 返回值:
 //   - error: 操作过程中发生的错误
 //
@@ -144,6 +145,7 @@ func ReadPoint(deviceId string, pointName string) error {
 // 参数:
 //   - deviceId: 设备唯一标识符
 //   - pointData: 包含点位名称和值的结构体
+//
 // 返回值:
 //   - error: 操作过程中发生的错误
 //
@@ -166,6 +168,7 @@ func WritePoint(deviceId string, pointData plugin.PointData) error {
 // 参数:
 //   - deviceId: 设备唯一标识符
 //   - pointData: 包含多个点位名称和值的数组
+//
 // 返回值:
 //   - error: 操作过程中发生的错误
 //
@@ -188,6 +191,7 @@ func WritePoints(deviceId string, pointData []plugin.PointData) error {
 // 参数:
 //   - deviceId: 设备唯一标识符
 //   - pointData: 包含多个点位名称的数组
+//
 // 返回值:
 //   - error: 操作过程中发生的错误
 //
@@ -253,6 +257,7 @@ func CoreCache() cache.CoreCache {
 // 参数:
 //   - s: cron表达式，定义任务执行的时间计划
 //   - f: 需要执行的任务函数
+//
 // 返回值:
 //   - *crontab.Future: 定时任务的Future对象，可用于取消任务
 //   - error: 操作过程中发生的错误

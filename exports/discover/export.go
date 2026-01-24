@@ -56,7 +56,7 @@ func (export *Export) ExportTo(deviceData plugin.DeviceData) {
 // 继承Export OnEvent接口
 func (export *Export) OnEvent(eventCode event.EventCode, key string, eventValue interface{}) error {
 	switch eventCode {
-	case event.EventDeviceDiscover:
+	case event.DeviceDiscover:
 		return export.deviceAutoDiscover(key, eventValue)
 	}
 	return nil

@@ -60,9 +60,6 @@ func EnableExport(export export.Export) {
 //	记录事件处理过程中的错误信息
 //
 // 常见事件类型:
-//   - event.EventCodeAddDevice: 设备添加事件
-//   - event.EventCodePluginCallback: 插件回调事件
-//   - event.EventCodeServiceStatus: 服务状态事件
 func TriggerEvents(eventCode event.EventCode, key string, value interface{}) {
 	export0.TriggerEvents(eventCode, key, value)
 }
@@ -84,11 +81,11 @@ func TriggerEvents(eventCode event.EventCode, key string, value interface{}) {
 // 数据过滤机制:
 //   - 根据报告模式过滤不变的点位值(ReportMode_Change)
 //   - 缓存点位值以检测变化
-//   - 触发预处理事件(event.EventCodeWillExportTo)
+//   - 触发预处理事件(event.Exporting)
 func Export(deviceData []plugin.DeviceData) {
 	Log().Debug("export data", zap.Any("data", deviceData))
 	// 产生插件回调事件
-	TriggerEvents(event.EventCodePluginCallback, "", deviceData)
+	TriggerEvents(event.DoExport, "", deviceData)
 	// 写入消息总线
 	for _, data := range deviceData {
 		//触发事件通知
@@ -178,7 +175,7 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 	deviceData.Values = points
 	deviceData.ExportType = plugin.RealTimeExport
 
-	TriggerEvents(event.EventCodeWillExportTo, deviceData.ID, originalData)
+	TriggerEvents(event.Exporting, deviceData.ID, originalData)
 }
 
 // pointValueProcess 对点位值进行预处理

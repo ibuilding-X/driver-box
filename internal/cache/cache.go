@@ -298,6 +298,11 @@ func (c *cache) loadConfig(plugins map[string]plugin.Plugin) error {
 			}
 			//释放内存
 			model.Devices = nil
+			m, ok := c.models[model.Name]
+			if ok {
+				logger.Logger.Error("model exists！", zap.Any("model", m))
+				return errors.New("model " + model.Name + " already exists")
+			}
 			c.models[model.Name] = cacheModel{
 				Model:      model.Model,
 				pluginName: cfg.PluginName,
@@ -599,7 +604,7 @@ func (c *cache) AddOrUpdateDevice(dev config.Device) error {
 				dev.ModelName, storedDeviceBase.ModelName)
 		}
 	} else {
-		defer export.TriggerEvents(event.EventCodeAddDevice, dev.ID, nil)
+		defer export.TriggerEvents(event.DeviceAdded, dev.ID, nil)
 	}
 	c.devices[dev.ID] = cacheDevice{
 		Device: dev,
@@ -696,7 +701,7 @@ func (c *cache) BatchRemoveDevice(ids []string) error {
 		if dev, ok := c.devices[id]; ok {
 			plugins[dev.PluginName] = dev.PluginName
 		}
-		export.TriggerEvents(event.EventCodeWillDeleteDevice, id, nil)
+		export.TriggerEvents(event.DeviceDeleting, id, nil)
 		delete(c.devices, id)
 	}
 	nowUnix := time.Now()

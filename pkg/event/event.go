@@ -5,31 +5,23 @@ type EventCode string
 
 const (
 	//设备在离线状态事件
-	EventCodeDeviceStatus = "deviceStatus"
+	ShadowOnline = EventCode("driverbox.shadow.online")
 	//driver-box服务状态
-	EventCodeServiceStatus = "serviceStatus"
+	ServiceStatus = EventCode("driverbox.status")
 	//添加设备
-	EventCodeAddDevice = "addDevice"
+	DeviceAdded = EventCode("driverbox.device.added")
 	//即将删除设备,在该事件中依旧可以查询设备信息
-	EventCodeWillDeleteDevice = "willDeleteDevice"
+	DeviceDeleting = EventCode("driverbox.device.deleting")
 	//即将执行ExportTo
-	EventCodeWillExportTo = "willExportTo"
+	Exporting = EventCode("driverbox.exporting")
 	//设备自动发现事件
-	EventDeviceDiscover = "deviceDiscover"
+	DeviceDiscover = EventCode("driverbox.device.discover")
 
 	// EventCodeOnOff 设备开关事件（空调的开关机、灯的开关……）
-	EventCodeOnOff = "onOff"
+	DeviceOnOff = EventCode("driverbox.device.onOff")
 
-	// EventCodePluginCallback 插件回调事件
-	EventCodePluginCallback = "pluginCallback"
-)
-
-// 场景相关事件
-const (
-	// UnknownDevice 未知设备
-	UnknownDevice = "unknownDevice"
-	// UnknownLinkEdge 未知场景
-	UnknownLinkEdge = "unknownLinkEdge"
+	// DoExport 插件回调事件
+	DoExport = EventCode("driverbox.export")
 )
 
 const (
@@ -41,6 +33,6 @@ const (
 
 // Data 设备事件模型
 type Data struct {
-	Code  string      `json:"code"` //事件Code
+	Code  EventCode   `json:"code"` //事件Code
 	Value interface{} `json:"value"`
 }

@@ -17,7 +17,6 @@ import (
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/exports/linkedge/model"
-	"github.com/ibuilding-x/driver-box/pkg/event"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 )
@@ -202,7 +201,7 @@ func (s *export) triggerLinkEdge(id string, depth int, conf ...model.Config) err
 		// 核对触发器
 		config, e = s.Get(id)
 		if e != nil {
-			driverbox.TriggerEvents(event.UnknownLinkEdge, "id", id)
+			//driverbox.TriggerEvents(event.UnknownLinkEdge, "id", id)
 			return errors.New("get linkEdge error: " + e.Error())
 		}
 		//driverbox.Log().Info(fmt.Sprintf("linkEdge:%v", config))
@@ -283,7 +282,8 @@ func (s *export) triggerLinkEdge(id string, depth int, conf ...model.Config) err
 		// 跳过未知设备
 		if !driverbox.Shadow().HasDevice(deviceId) {
 			// 事件信息：场景ID、设备ID
-			driverbox.TriggerEvents(event.UnknownDevice, id, deviceId)
+			driverbox.Log().Error("unknown device", zap.String("deviceId", deviceId), zap.String("linkEdge", id))
+			//driverbox.TriggerEvents(event.UnknownDevice, id, deviceId)
 			continue
 		}
 		device, ok := driverbox.CoreCache().GetDevice(deviceId)

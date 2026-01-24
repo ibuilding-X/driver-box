@@ -101,7 +101,7 @@ type Connector interface {
 //
 // 功能:
 //   - 遍历设备数据中的事件
-//   - 仅处理设备发现事件(event.EventDeviceDiscover)
+//   - 仅处理设备发现事件(event.DeviceDiscover)
 //   - 为事件数据补充connectionKey和protocolName字段
 func WrapperDiscoverEvent(devicesData []DeviceData, connectionKey string, protocolName string) {
 	for _, device := range devicesData {
@@ -110,7 +110,7 @@ func WrapperDiscoverEvent(devicesData []DeviceData, connectionKey string, protoc
 		}
 		for _, eventData := range device.Events {
 			//补充信息要素
-			if eventData.Code != event.EventDeviceDiscover {
+			if eventData.Code != event.DeviceDiscover {
 				continue
 			}
 			value := eventData.Value.(map[string]interface{})

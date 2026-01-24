@@ -151,7 +151,7 @@ func (device *DeviceDriver) DeviceDecode(driverKey string, req DeviceDecodeReque
 		if eventLValue != glua.LNil {
 			valueMap := convertLuaValue(unit.RawGetString("value"))
 			events = append(events, event.Data{
-				Code:  glua.LVAsString(eventLValue),
+				Code:  event.EventCode(glua.LVAsString(eventLValue)),
 				Value: valueMap,
 			})
 		}

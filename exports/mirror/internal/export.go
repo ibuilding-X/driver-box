@@ -62,16 +62,16 @@ func (export *Export) ExportTo(deviceData plugin.DeviceData) {
 // 继承Export OnEvent接口
 func (export *Export) OnEvent(eventCode event.EventCode, key string, eventValue interface{}) error {
 	switch eventCode {
-	case event.EventCodeAddDevice:
+	case event.DeviceAdded:
 		return export.autoCreateMirrorDevice(key)
-	case event.EventCodeWillExportTo:
+	case event.Exporting:
 		deviceData := eventValue.(plugin.DeviceData)
 		res, err := export.plugin.Decode(deviceData)
 		if err != nil {
 			return err
 		}
 		driverbox.Export(res)
-	case event.EventCodeDeviceStatus:
+	case event.ShadowOnline:
 		// 设备状态变更事件
 		mirrorDeviceID := "mirror_" + key
 		if driverbox.Shadow().HasDevice(mirrorDeviceID) {

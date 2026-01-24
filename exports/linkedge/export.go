@@ -92,7 +92,7 @@ func (export *export) OnEvent(eventCode event.EventCode, key string, eventValue 
 	switch eventCode {
 	case EVT_TRIGGER:
 		driverbox.Log().Info("trigger linkEdge", zap.String("id", key), zap.Any("result", eventValue))
-	case event.EventCodePluginCallback:
+	case event.DoExport:
 		data, ok := eventValue.([]plugin.DeviceData)
 		if !ok {
 			driverbox.Log().Error("plugin callback data error", zap.Any("eventValue", eventValue))

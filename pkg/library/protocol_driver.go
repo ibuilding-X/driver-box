@@ -197,7 +197,7 @@ func (device *ProtocolDriver) DecodeV2(protocolKey string, param func(L *glua.LS
 			events.(*glua.LTable).ForEach(func(key, value glua.LValue) {
 				devEvent := value.(*glua.LTable)
 				deviceData.Events = append(deviceData.Events, event.Data{
-					Code:  glua.LVAsString(devEvent.RawGetString("event")),
+					Code:  event.EventCode(glua.LVAsString(devEvent.RawGetString("event"))),
 					Value: convertLuaValue(devEvent.RawGetString("value")),
 				})
 			})

@@ -77,7 +77,7 @@ func loadPlugins() error {
 
 	//完成初始化后触发设备添加事件通知
 	for _, device := range cache.Get().Devices() {
-		export.TriggerEvents(event.EventCodeAddDevice, device.ID, nil)
+		export.TriggerEvents(event.DeviceAdded, device.ID, nil)
 	}
 
 	return nil
