@@ -10,14 +10,85 @@ import { Aside } from '@astrojs/starlight/components';
 
 # 设备影子详解
 
-设备影子（Device Shadow）是driver-box的核心数据存储组件，提供高效、可靠的设备状态管理和数据访问能力。本文档详细介绍设备影子的设计理念、数据结构、工作机制和最佳实践。
+设备影子（Device Shadow）是driver-box的核心数据存储组件，提供高效、可靠的设备状态管理和数据访问能力。
 
-## 适用场景
+## 设备状态机
 
-本文档适用于以下读者：
-- 开发者：理解设备影子数据模型和API使用
-- 架构师：掌握影子系统的存储架构和性能优化
-- 运维人员：学习影子监控、故障恢复和性能调优
+```mermaid
+stateDiagram-v2
+    [*] --> Offline: 设备初始化
+    Offline --> Initializing: 首次数据到达
+    Initializing --> Online: setPointValue()
+    
+    Online --> Online: 正常数据更新
+    Online --> Checking: TTL检查周期
+    Checking --> Online: 数据未过期
+    Checking --> MaybeOffline: disconnectTimes < 3
+    
+    MaybeOffline --> Offline: 超过60秒且失败>=3次
+    MaybeOffline --> Online: 重试成功
+    
+    Online --> Refreshing: refreshStatus()
+    Refreshing --> Online: TTL未到期
+    Refreshing --> Offline: TTL已到期
+```
+
+## 数据更新流程
+
+```mermaid
+sequenceDiagram
+    participant API as External API
+    participant Core as Core Layer
+    participant Shadow as Device Shadow
+    participant Device as Device Instance
+
+    API->>Core: ReadPoint(deviceId, pointName)
+    Core->>Shadow: GetPointValue(deviceId, pointName)
+    Shadow->>Shadow: 检查online状态
+    Shadow->>Shadow: 检查TTL有效性
+    alt online && 有效
+        Shadow-->>Core: value, true
+    else
+        Shadow-->>Core: nil, false
+    end
+
+    API->>Core: WritePoint(deviceId, pointData)
+    Core->>Shadow: SetWritePointValue(deviceId, name, value)
+    Shadow->>Device: setWritePointValue(name, value)
+    Note over Device: 存储待写值
+
+    Note over Shadow: WritePoint完成后<br/>立即触发读验证
+    Core->>Core: tryReadNewValues()
+    Core->>Device: 发送读指令
+    Device-->>Core: 实际值
+    Core->>Shadow: SetPointValue(deviceId, name, actualValue)
+    Note over Shadow: 更新为实际读取值
+```
+
+## 在线状态判定机制
+
+```mermaid
+flowchart TD
+    A[设备数据到达] --> B[更新updatedAt<br/>当前时间]
+    B --> C[重置disconnectTimes<br/>= 0]
+    C --> D[设置online = true]
+    D --> E{发送/读取操作}
+    
+    E -->|成功| F[保持online=true<br/>disconnectTimes=0]
+    E -->|失败| G{disconnectTimes统计}
+    
+    G -->|< 3次<br/>&&> 60秒| H[设置online=false<br/>设备离线]
+    G -->|>= 3次| H
+    G -->|< 3次| I[disconnectTimes++]
+    
+    H --> J[触发ShadowOffline事件]
+    
+    subgraph TTL检查周期
+        K[定时检查] --> L{时间差 > TTL?}
+        L -->|是| M[设置online=false]
+        L -->|否| N[保持online=true]
+    end
+```
 
 ## 影子系统架构
 

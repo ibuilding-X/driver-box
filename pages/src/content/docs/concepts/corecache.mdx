@@ -9,6 +9,27 @@ sidebar:
 
 CoreCache 是 driver-box 的核心缓存系统,负责管理所有设备、模型和连接配置,是整个平台的配置中心。
 
+## 配置加载流程
+
+```mermaid
+flowchart TD
+    A[启动driver-box] --> B[读取res/driver目录]
+    B --> C{扫描协议目录}
+    C -->|modbus| D[加载modbus/config.json]
+    C -->|mqtt| E[加载mqtt/config.json]
+    C -->|httpserver| F[加载httpserver/config.json]
+    D --> G[解析DeviceConfig]
+    E --> G
+    F --> G
+    G --> H[验证配置合法性]
+    H --> I{验证通过?}
+    I -->|通过| J[构建内存缓存]
+    I -->|失败| K[记录错误日志]
+    J --> L[models/devices/points/connections]
+    L --> M[初始化插件]
+    M --> N[设备就绪]
+```
+
 ## 核心职责
 
 CoreCache 承担以下核心职责:

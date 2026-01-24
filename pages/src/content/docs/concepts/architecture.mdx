@@ -57,6 +57,26 @@ driver-box 采用微内核 + 插件的分层架构,分为三层:
 系统启动遵循严格的初始化顺序:
 
 ```mermaid
+flowchart TD
+    A[main.go] --> B[initEnvConfig<br/>设置资源路径]
+    B --> C[logger.InitLogger<br/>初始化日志记录器]
+    C --> D[export0.Exports<br/>启动所有Export模块]
+    D --> E[loadPlugins<br/>加载和启动所有插件]
+    E --> F[TriggerEvents<br/>触发服务状态事件]
+    F --> G{启动成功?}
+    G -->|成功| H[Log.Info<br/>start driver-box success]
+    G -->|失败| I[Log.Error<br/>记录错误信息]
+```
+
+### 启动关键步骤
+
+1. **环境初始化**: 加载资源配置路径，默认为`./res`
+2. **日志初始化**: 初始化日志记录器，设置日志路径和级别
+3. **Export启动**: 遍历并初始化所有Export模块
+4. **插件加载**: 加载插件配置，创建连接池
+5. **事件触发**: 触发`ServiceStatus`事件通知系统状态
+
+```mermaid
 sequenceDiagram
     participant Main as main.go
     participant PM as 插件管理器
@@ -104,6 +124,46 @@ sequenceDiagram
 ### 插件系统
 
 插件系统是 driver-box 可扩展性的基石,通过标准化接口实现协议的无缝接入。
+
+### 插件生命周期
+
+```mermaid
+stateDiagram-v2
+    [*] --> Registered: EnablePlugin()
+    Registered --> Initializing: plugins.EnableAll()
+    Initializing --> Ready: Initialize()完成
+    Ready --> Active: 首次Connector调用
+    Active --> Processing: 编码和发送数据
+    Processing --> Active: 操作完成
+    Active --> Destroying: Stop()调用
+    Destroying --> [*]: Destroy()完成
+```
+
+### 连接器工作流程
+
+```mermaid
+sequenceDiagram
+    participant API as driverbox API
+    participant Core as Core Layer
+    participant Plugin as Plugin
+    participant Connector as Connector
+    participant Device as Physical Device
+
+    API->>Core: ReadPoint(deviceId, pointName)
+    Core->>Core: SetWritePointValue()
+    Core->>Plugin: Connector(deviceId)
+    Plugin-->>Core: Connector实例
+    Core->>Connector: Encode(ReadMode, pointData)
+    Connector->>Connector: encodeRead()
+    Connector-->>Core: 编码后的数据
+    Core->>Connector: Send(data)
+    Connector->>Device: 发送协议报文
+    Device-->>Connector: 返回数据
+    Connector-->>Core: 解析后的数据
+    Core->>Core: SetPointValue()
+    Core->>Plugin: Release()
+    Plugin->>Plugin: 关闭连接
+```
 
 ```go
 type Plugin interface {
@@ -164,6 +224,28 @@ type Connector interface {
 ### Export 系统
 
 Export 系统负责将设备数据分发到不同的目标系统。
+
+### Export数据处理流程
+
+```mermaid
+flowchart LR
+    A[设备数据变化] --> B[core.SendSinglePoint]
+    B --> C[shadow.SetPointValue<br/>更新影子]
+    C --> D{设备配置<br/>ExportMode?}
+    D -->|实时上报| E[TriggerEvents]
+    D -->|变化上报| F{值是否变化?}
+    F -->|变化| E
+    F -->|未变化| G[跳过导出]
+    E --> H[遍历所有Export模块]
+    H --> I[export.IsReady?]
+    I -->|就绪| J[export.ExportTo]
+    I -->|未就绪| K[跳过此Export]
+    J --> L[数据处理与转换]
+    L --> M[发送到外部系统]
+    M --> N{发送成功?}
+    N -->|成功| O[记录成功指标]
+    N -->|失败| P[记录错误并重试]
+```
 
 ```go
 type Export interface {
@@ -262,18 +344,37 @@ end
 ### 读操作流程
 
 ```mermaid
-graph LR
-    A[定时采集/API 请求] --> B[core.SendSinglePoint]
-    B --> C[获取设备配置]
-    C --> D[设备驱动层编码]
-    D --> E[获取连接器]
-    E --> F[协议层编码]
-    F --> G[发送指令]
-    G --> H[协议层解码]
-    H --> I[设备驱动层解码]
-    I --> J[driverbox.Export]
-    J --> K[更新设备影子]
-    K --> L[分发到 Export 模块]
+flowchart LR
+    A[API请求<br/>driverbox.ReadPoint] --> B[core.SendSinglePoint<br/>单点发送]
+    B --> C[shadow.SetWritePoint<br/>存储写入值]
+    C --> D[deviceDriverProcess<br/>设备驱动层处理]
+    D --> E[cache.GetPointByDevice<br/>获取点位配置]
+    E --> F[getConnector<br/>获取设备连接器]
+    F --> G[conn.Encode<br/>协议层编码]
+    G --> H[conn.Send<br/>发送指令到设备]
+    H --> I[数据解析与处理]
+    I --> J[shadow.SetPointValue<br/>更新影子]
+    J --> K[TriggerEvents<br/>触发Export事件]
+    K --> L[ExportTo<br/>分发到Export模块]
+```
+
+### 写操作流程
+
+```mermaid
+flowchart LR
+    A[API请求<br/>driverbox.WritePoint] --> B[core.SendSinglePoint<br/>单点写入]
+    B --> C[shadow.SetWritePoint<br/>存储写入值]
+    C --> D[deviceDriverProcess<br/>设备驱动层处理]
+    D --> E[cache.GetPointByDevice<br/>获取点位配置]
+    E --> F[getConnector<br/>获取设备连接器]
+    F --> G[conn.Encode<br/>协议层编码]
+    G --> H[conn.Send<br/>发送指令到设备]
+    H --> I{发送成功?}
+    I -->|成功| J[tryReadNewValues<br/>立即读回验证]
+    I -->|失败| K[shadow.MayBeOffline<br/>标记可能离线]
+    J --> L[单点读取流程]
+    L --> M[更新影子]
+    M --> N[触发Export事件]
 ```
 
 ### 写操作流程
