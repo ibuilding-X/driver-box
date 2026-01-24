@@ -3,6 +3,7 @@ package linkedge
 import "github.com/ibuilding-x/driver-box/exports/linkedge/model"
 
 type IService interface {
+	Get(id string) (model.Config, error)
 	// GetList 获取场景联动列表
 	// 参数: tag - 标签列表
 	GetList(tag ...string) ([]model.Config, error)

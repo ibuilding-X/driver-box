@@ -82,7 +82,7 @@ func (s *export) Create(model model.Config) error {
 
 // 注册触发器
 func (s *export) registerTrigger(id string) error {
-	m, e := s.getLinkEdge(id)
+	m, e := s.Get(id)
 	if e != nil {
 		return e
 	}
@@ -177,7 +177,7 @@ func (s *export) Trigger(id string) error {
 		return e
 	}
 	//缓存场景联动执行时间
-	config, e := s.getLinkEdge(id)
+	config, e := s.Get(id)
 	if e == nil {
 		config.ExecuteTime = time.Now()
 		s.configs[id] = config
@@ -200,7 +200,7 @@ func (s *export) triggerLinkEdge(id string, depth int, conf ...model.Config) err
 		config = conf[0]
 	} else {
 		// 核对触发器
-		config, e = s.getLinkEdge(id)
+		config, e = s.Get(id)
 		if e != nil {
 			driverbox.TriggerEvents(event.UnknownLinkEdge, "id", id)
 			return errors.New("get linkEdge error: " + e.Error())
@@ -495,7 +495,7 @@ func (s *export) checkConditionValue(condition model.DevicePointCondition, point
 	return nil
 }
 
-func (s *export) getLinkEdge(id string) (model.Config, error) {
+func (s *export) Get(id string) (model.Config, error) {
 	config, exists := s.configs[id]
 	if exists {
 		return config, nil
@@ -543,7 +543,7 @@ func (s *export) GetList(tag ...string) ([]model.Config, error) {
 
 	for _, key := range files {
 		id := strings.TrimSuffix(key, ".json")
-		config, err := s.getLinkEdge(id)
+		config, err := s.Get(id)
 		if err != nil {
 			return configs, err
 		} else {
