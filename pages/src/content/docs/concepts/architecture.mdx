@@ -7,9 +7,57 @@ sidebar:
 
 # 架构概述
 
-driver-box 是一款基于 Go 语言开发的轻量级物联网边缘计算平台,采用微内核 + 插件的架构设计,专注于解决设备数据接入、协议适配和数据输出的核心问题。
+driver-box 是一款基于 Go 语言开发的轻量级物联网边缘计算平台,采用**微内核 + 插件**的架构设计,专注于解决**设备数据接入、协议适配和数据输出**三大核心问题。
 
-## 设计理念
+## 架构总览
+
+driver-box 采用三层分层架构,各层职责明确、相互解耦:
+
+```mermaid
+flowchart BT
+    subgraph Export["数据输出层"]
+        E1[Gateway Export<br/>WebSocket实时推送]
+        E2[Mirror Export<br/>设备虚拟化]
+        E3[LinkEdge Export<br/>场景联动]
+        E4[History Export<br/>历史数据存储]
+    end
+
+    subgraph Core["核心平台层"]
+        C1[配置服务<br/>设备模型管理]
+        C2[设备影子<br/>状态缓存与同步]
+        C3[事件服务<br/>松耦合通信]
+        C4[资源库<br/>Lua脚本驱动]
+    end
+
+    subgraph Plugin["协议接入层"]
+        P1[Modbus Plugin]
+        P2[MQTT Plugin]
+        P3[HTTP Plugin]
+        P4[TCP Plugin]
+    end
+
+    P1 --> C1
+    P2 --> C1
+    P3 --> C1
+    P4 --> C1
+
+    C1 --> C2
+    C2 --> C3
+    C3 --> E1
+    C3 --> E2
+    C3 --> E3
+    C3 --> E4
+```
+
+**三层架构职责**:
+
+| 层次 | 职责 | 关键组件 |
+|------|------|---------|
+| **协议接入层 (Plugin)** | 负责与物理设备通信,实现各种工业协议的适配 | Modbus、MQTT、HTTP、TCP 等协议插件 |
+| **核心平台层 (Core)** | 设备配置管理、状态缓存、事件调度,是系统的核心中枢 | 配置服务、设备影子、事件服务、资源库 |
+| **数据输出层 (Export)** | 将设备数据分发到不同的目标系统 | Gateway、Mirror、LinkEdge、History Export |
+
+## 核心设计理念
 
 driver-box 的架构设计遵循以下核心原则:
 
@@ -18,31 +66,7 @@ driver-box 的架构设计遵循以下核心原则:
 - **事件驱动**: 松耦合的事件系统实现数据在组件间的灵活流转
 - **高内聚低耦合**: 各层职责清晰,接口标准化,易于维护和扩展
 
-## 整体架构
-
-driver-box 采用微内核 + 插件的分层架构,分为三层:
-
-| 层次 | 职责 | 关键组件 |
-|------|------|---------|
-| **Export 层** | 数据输出到业务系统 | Gateway Export、Mirror Export、LinkEdge Export、History Export |
-| **核心平台层** | 数据处理和状态管理 | 配置服务、日志服务、设备影子、事件服务、资源库 |
-| **Plugin 层** | 协议适配和设备接入 | Modbus Plugin、MQTT Plugin、HTTP Plugin、TCP Plugin、Gateway Plugin |
-
-**核心服务依赖关系**:
-- 配置服务 → 设备影子、事件服务、日志服务、资源库
-- 日志服务 → 配置服务、设备影子、事件服务(日志记录)
-- 事件服务 → Export 模块(事件通知)
-- 设备影子 → Export 模块(状态同步)
-
-### 架构层次
-
-| 层次 | 职责 | 关键组件 |
-|------|------|---------|
-| **Export 层** | 数据输出到业务系统 | Gateway Export、Mirror Export、LinkEdge Export、History Export |
-| **核心平台层** | 数据处理和状态管理 | 配置服务、日志服务、设备影子、事件服务、资源库 |
-| **Plugin 层** | 协议适配和设备接入 | Modbus Plugin、MQTT Plugin、HTTP Plugin、TCP Plugin、Gateway Plugin |
-
-### 设计模式
+## 设计模式
 
 | 设计模式 | 应用场景 | 价值 |
 |---------|---------|------|
@@ -58,23 +82,19 @@ driver-box 采用微内核 + 插件的分层架构,分为三层:
 
 ```mermaid
 flowchart TD
-    A[main.go] --> B[initEnvConfig<br/>设置资源路径]
-    B --> C[logger.InitLogger<br/>初始化日志记录器]
-    C --> D[export0.Exports<br/>启动所有Export模块]
-    D --> E[loadPlugins<br/>加载和启动所有插件]
-    E --> F[TriggerEvents<br/>触发服务状态事件]
-    F --> G{启动成功?}
-    G -->|成功| H[Log.Info<br/>start driver-box success]
-    G -->|失败| I[Log.Error<br/>记录错误信息]
+    A[main.go 启动] --> B[1. 注册所有插件和Export]
+    B --> C[2. 初始化Export模块]
+    C --> D[3. 加载设备配置]
+    D --> E[4. 启动设备影子]
+    E --> F[5. 初始化插件并建立连接]
+    F --> G[6. 触发DeviceAdded事件]
+    G --> H[系统就绪]
+
+    style A fill:#e1f5ff
+    style H fill:#d4edda
 ```
 
-### 启动关键步骤
-
-1. **环境初始化**: 加载资源配置路径，默认为`./res`
-2. **日志初始化**: 初始化日志记录器，设置日志路径和级别
-3. **Export启动**: 遍历并初始化所有Export模块
-4. **插件加载**: 加载插件配置，创建连接池
-5. **事件触发**: 触发`ServiceStatus`事件通知系统状态
+### 启动详细流程
 
 ```mermaid
 sequenceDiagram
@@ -83,41 +103,30 @@ sequenceDiagram
     participant EM as 导出管理器
     participant Core as 核心服务
     participant Cache as Core Cache
-    participant Shadow as Device Shadow
-
-    Main->>PM: EnableAll()
-    Note over PM: 注册所有协议插件
-
-    Main->>EM: EnableAll()
-    Note over EM: 注册所有导出模块
-
-    Main->>Core: Start()
-    Core->>EM: Init()
+    participant Shadow as 设备影子
+    Plugin->>PM: 注册所有协议插件<br/>(Modbus/MQTT/HTTP等)
+    Export->>EM: 注册所有导出模块<br/>(Gateway/Mirror/LinkEdge等)
+    Main->>EM: Init()
     Note over EM: 初始化所有导出模块
-
-    Core->>Cache: InitCoreCache(plugins)
+    Main->>Cache: InitCoreCache(plugins)
     Note over Cache: 加载 res/driver 配置<br/>验证配置合法性
-
-    Core->>Shadow: initDeviceShadow()
+    Main->>Shadow: initDeviceShadow()
     Note over Shadow: 创建设备影子实例
-
-    Core->>PM: Initialize(config)
+    Main->>PM: Initialize(config)
     Note over PM: 启动所有插件<br/>建立设备连接
-
-    Core->>EM: TriggerEvents(DeviceAdded)
+    Main->>EM: TriggerEvents(DeviceAdded)
     Note over EM: 通知导出模块设备上线
-
-    Core-->>Main: 系统启动完成
+    Main-->>X: 系统启动完成
 ```
 
-### 启动关键步骤
+**启动关键步骤**:
 
-1. **插件注册**: 扫描并注册所有协议插件到插件管理器
-2. **Export 注册**: 扫描并注册所有 Export 模块
-3. **缓存初始化**: 加载 `res/driver` 目录下的配置文件,构建设备模型缓存
-4. **影子服务启动**: 创建设备影子实例,初始化状态管理
-5. **插件启动**: 调用各插件的 `Initialize()` 方法,建立设备连接
-6. **事件触发**: 触发 `DeviceAdded` 事件,通知 Export 模块设备上线
+1. **插件注册** - 扫描并注册所有协议插件和导出模块
+2. **Export 初始化** - 初始化所有导出模块,准备接收数据
+3. **配置加载** - 加载 `res/driver` 目录下的配置文件,构建设备模型缓存
+4. **影子启动** - 创建设备影子实例,初始化状态管理
+5. **插件启动** - 调用各插件的 `Initialize()` 方法,建立设备连接
+6. **事件触发** - 触发 `DeviceAdded` 事件,通知 Export 模块设备上线
 
 ## 核心组件
 
@@ -125,7 +134,7 @@ sequenceDiagram
 
 插件系统是 driver-box 可扩展性的基石,通过标准化接口实现协议的无缝接入。
 
-### 插件生命周期
+#### 插件生命周期
 
 ```mermaid
 stateDiagram-v2
@@ -139,7 +148,7 @@ stateDiagram-v2
     Destroying --> [*]: Destroy()完成
 ```
 
-### 连接器工作流程
+#### 连接器工作流程
 
 ```mermaid
 sequenceDiagram
@@ -150,9 +159,8 @@ sequenceDiagram
     participant Device as Physical Device
 
     API->>Core: ReadPoint(deviceId, pointName)
-    Core->>Core: SetWritePointValue()
     Core->>Plugin: Connector(deviceId)
-    Plugin-->>Core: Connector实例
+    Plugin-->>Core: 返回Connector实例
     Core->>Connector: Encode(ReadMode, pointData)
     Connector->>Connector: encodeRead()
     Connector-->>Core: 编码后的数据
@@ -160,18 +168,21 @@ sequenceDiagram
     Connector->>Device: 发送协议报文
     Device-->>Connector: 返回数据
     Connector-->>Core: 解析后的数据
-    Core->>Core: SetPointValue()
     Core->>Plugin: Release()
-    Plugin->>Plugin: 关闭连接
+    Plugin->>Plugin: 释放连接
 ```
 
+#### 核心接口
+
 ```go
+// 插件接口 - 协议插件必须实现
 type Plugin interface {
     Initialize(c config.DeviceConfig)              // 使用配置初始化插件
     Connector(deviceId string) (Connector, error)   // 获取设备连接器
     Destroy() error                                 // 销毁插件并释放资源
 }
 
+// 连接器接口 - 设备通信的具体实现
 type Connector interface {
     Encode(deviceId string, mode EncodeMode, values ...PointData) (interface{}, error)
     Send(data interface{}) error
@@ -180,10 +191,10 @@ type Connector interface {
 ```
 
 **核心机制**:
-- 插件注册: 系统启动时,各协议插件通过 `EnablePlugin()` 注册到插件管理器
-- 连接器获取: 核心服务通过 `Connector(deviceId)` 获取指定设备的连接器
-- 编解码处理: `Encode()` 将点位数据编码为协议报文,`Send()` 发送至设备
-- 资源释放: `Release()` 释放连接器占用的网络资源
+- **插件注册**: 系统启动时,各协议插件通过 `EnablePlugin()` 注册到插件管理器
+- **连接器获取**: 核心服务通过 `Connector(deviceId)` 获取指定设备的连接器
+- **编解码处理**: `Encode()` 将点位数据编码为协议报文,`Send()` 发送至设备
+- **资源释放**: `Release()` 释放连接器占用的网络资源
 
 **内置协议插件**: Modbus (TCP/RTU)、MQTT (3.1.1/5.0)、HTTP Server、TCP Server、Gateway
 
@@ -199,9 +210,9 @@ type Connector interface {
 - **持久化**: `Flush(pluginName)`、`FlushAll()`
 
 **关键特性**:
-- 配置热加载: 监控 `res/driver` 目录变化,自动重新加载配置
-- 自动持久化: 配置变更后每 5 秒自动写入磁盘
-- 线程安全: 使用读写锁保护并发访问
+- **配置热加载**: 监控 `res/driver` 目录变化,自动重新加载配置
+- **自动持久化**: 配置变更后每 5 秒自动写入磁盘
+- **线程安全**: 使用读写锁保护并发访问
 
 ### 设备影子
 
@@ -217,21 +228,21 @@ type Connector interface {
 2. **失败计数**: 60 秒内断开次数超过 3 次,判定为离线
 
 **缓存机制**:
-- 点位值缓存: 存储设备所有点位的最新值,支持快速查询
-- 写入值缓存: 记录下发的控制指令,用于写后读验证
-- 事件触发: 状态变化时触发 `ShadowOnline`/`ShadowOffline` 事件
+- **点位值缓存**: 存储设备所有点位的最新值,支持快速查询
+- **写入值缓存**: 记录下发的控制指令,用于写后读验证
+- **事件触发**: 状态变化时触发 `ShadowOnline`/`ShadowOffline` 事件
 
 ### Export 系统
 
 Export 系统负责将设备数据分发到不同的目标系统。
 
-### Export数据处理流程
+#### 数据处理流程
 
 ```mermaid
 flowchart LR
     A[设备数据变化] --> B[core.SendSinglePoint]
     B --> C[shadow.SetPointValue<br/>更新影子]
-    C --> D{设备配置<br/>ExportMode?}
+    C --> D{上报模式?}
     D -->|实时上报| E[TriggerEvents]
     D -->|变化上报| F{值是否变化?}
     F -->|变化| E
@@ -246,6 +257,8 @@ flowchart LR
     N -->|成功| O[记录成功指标]
     N -->|失败| P[记录错误并重试]
 ```
+
+#### 核心接口
 
 ```go
 type Export interface {
@@ -345,51 +358,32 @@ end
 
 ```mermaid
 flowchart LR
-    A[API请求<br/>driverbox.ReadPoint] --> B[core.SendSinglePoint<br/>单点发送]
-    B --> C[shadow.SetWritePoint<br/>存储写入值]
-    C --> D[deviceDriverProcess<br/>设备驱动层处理]
-    D --> E[cache.GetPointByDevice<br/>获取点位配置]
-    E --> F[getConnector<br/>获取设备连接器]
-    F --> G[conn.Encode<br/>协议层编码]
-    G --> H[conn.Send<br/>发送指令到设备]
-    H --> I[数据解析与处理]
-    I --> J[shadow.SetPointValue<br/>更新影子]
-    J --> K[TriggerEvents<br/>触发Export事件]
-    K --> L[ExportTo<br/>分发到Export模块]
+    A[API请求<br/>driverbox.ReadPoint] --> B[core.SendSinglePoint<br/>单点读取]
+    B --> C[deviceDriverProcess<br/>设备驱动层处理]
+    C --> D[cache.GetPointByDevice<br/>获取点位配置]
+    D --> E[getConnector<br/>获取设备连接器]
+    E --> F[conn.Encode<br/>协议层编码]
+    F --> G[conn.Send<br/>发送指令到设备]
+    G --> H[数据解析与处理]
+    H --> I[shadow.SetPointValue<br/>更新影子]
+    I --> J[TriggerEvents<br/>触发Export事件]
+    J --> K[ExportTo<br/>分发到Export模块]
 ```
 
 ### 写操作流程
 
 ```mermaid
 flowchart LR
-    A[API请求<br/>driverbox.WritePoint] --> B[core.SendSinglePoint<br/>单点写入]
-    B --> C[shadow.SetWritePoint<br/>存储写入值]
-    C --> D[deviceDriverProcess<br/>设备驱动层处理]
-    D --> E[cache.GetPointByDevice<br/>获取点位配置]
-    E --> F[getConnector<br/>获取设备连接器]
-    F --> G[conn.Encode<br/>协议层编码]
-    G --> H[conn.Send<br/>发送指令到设备]
-    H --> I{发送成功?}
-    I -->|成功| J[tryReadNewValues<br/>立即读回验证]
-    I -->|失败| K[shadow.MayBeOffline<br/>标记可能离线]
-    J --> L[单点读取流程]
-    L --> M[更新影子]
-    M --> N[触发Export事件]
-```
-
-### 写操作流程
-
-```mermaid
-graph LR
-    A[API 控制请求] --> B[core.SendSinglePoint]
-    B --> C[存储写入值]
-    C --> D[设备驱动层编码]
-    D --> E[获取连接器]
-    E --> F[协议层编码]
-    F --> G[发送指令]
-    G --> H[自动读回验证]
-    H --> I[更新实际值到影子]
-    I --> J[触发导出事件]
+    A[API请求<br/>driverbox.WritePoint] --> B[shadow.SetWritePoint<br/>存储写入值]
+    B --> C[deviceDriverProcess<br/>设备驱动层处理]
+    C --> D[getConnector<br/>获取设备连接器]
+    D --> E[conn.Encode<br/>协议层编码]
+    E --> F[conn.Send<br/>发送指令到设备]
+    F --> G{发送成功?}
+    G -->|成功| H[tryReadNewValues<br/>立即读回验证]
+    G -->|失败| I[shadow.MayBeOffline<br/>标记可能离线]
+    H --> J[更新影子]
+    J --> K[触发Export事件]
 ```
 
 ### 事件驱动流程
