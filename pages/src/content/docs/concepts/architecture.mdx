@@ -107,5 +107,19 @@ sequenceDiagram
 | `LOG_LEVEL` | 日志级别 | `info` |
 
 
-## driver-box接口
+## driver-box API
 
+driver-box 提供了完整的 Go SDK API,支持设备管理、数据读写、配置管理、事件处理等核心功能。开发者可以通过 Go 代码直接调用这些接口,实现与 driver-box 框架的深度集成。
+
+详细的 API 文档请参考: [SDK API](/driver-box/concepts/sdk_api/)
+
+driver-box 的 Go SDK 主要包含以下模块:
+
+- **设备操作 API**: 设备点位的读取和写入
+- **核心缓存 API**: 设备模型、设备实例、连接的查询和管理
+- **设备影子 API**: 设备实时状态和点位值的缓存管理
+- **事件处理 API**: 系统事件的触发和监听
+- **定时任务 API**: 基于 cron 表达式的任务调度
+- **服务管理 API**: 服务元数据和控制
+- **日志 API**: 统一的日志记录接口
+- **组件管理 API**: Plugin 和 Export 模块的注册和管理

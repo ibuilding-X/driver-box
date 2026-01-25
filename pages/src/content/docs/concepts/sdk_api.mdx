@@ -1,0 +1,620 @@
+---
+title: SDK API
+description: driver-box 提供的 Go SDK API 接口文档
+sidebar:
+  order: 2
+---
+
+# driver-box API
+
+driver-box 提供了完整的 Go SDK API,支持设备管理、数据读写、配置管理、事件处理等核心功能。开发者可以通过 Go 代码直接调用这些接口,实现与 driver-box 框架的深度集成。
+
+## 快速开始
+
+```go
+import "github.com/ibuilding-x/driver-box/driverbox"
+
+func main() {
+    // 启动 driver-box 服务
+    err := driverbox.Start()
+    if err != nil {
+        panic(err)
+    }
+}
+```
+
+## 设备操作 API
+
+### 读取设备点位
+
+主动读取指定设备的点位值。
+
+```go
+import "github.com/ibuilding-x/driver-box/driverbox"
+
+// 读取单个点位
+err := driverbox.ReadPoint("device-001", "temperature")
+if err != nil {
+    // 处理错误
+    driverbox.Log().Error("Read point failed", err)
+}
+```
+
+**参数说明:**
+- `deviceId`: 设备唯一标识符
+- `pointName`: 点位名称
+
+**返回值:**
+- `error`: 操作过程中发生的错误
+
+### 写入设备点位
+
+向指定设备的点位写入控制值,支持单个写入和批量写入。
+
+```go
+import "github.com/ibuilding-x/driver-box/driverbox"
+import "github.com/ibuilding-x/driver-box/driverbox/plugin"
+
+// 写入单个点位
+err := driverbox.WritePoint("device-001", plugin.PointData{
+    PointName: "switch",
+    Value:     true,
+})
+if err != nil {
+    driverbox.Log().Error("Write point failed", err)
+}
+
+// 批量写入点位
+points := []plugin.PointData{
+    {PointName: "switch1", Value: true},
+    {PointName: "switch2", Value: false},
+    {PointName: "temperature_set", Value: 25.5},
+}
+err = driverbox.WritePoints("device-001", points)
+if err != nil {
+    driverbox.Log().Error("Batch write points failed", err)
+}
+```
+
+**参数说明:**
+- `deviceId`: 设备唯一标识符
+- `pointData`: 点位数据结构,包含点位名称和值
+
+**返回值:**
+- `error`: 操作过程中发生的错误
+
+### 批量读取设备点位
+
+```go
+import "github.com/ibuilding-x/driver-box/driverbox"
+import "github.com/ibuilding-x/driver-box/driverbox/plugin"
+
+// 批量读取点位
+points := []plugin.PointData{
+    {PointName: "temperature"},
+    {PointName: "humidity"},
+}
+err := driverbox.ReadPoints("device-001", points)
+if err != nil {
+    driverbox.Log().Error("Batch read points failed", err)
+}
+```
+
+**参数说明:**
+- `deviceId`: 设备唯一标识符
+- `pointData`: 点位数据结构数组
+
+**返回值:**
+- `error`: 操作过程中发生的错误
+
+## 核心缓存 API
+
+核心缓存提供了对设备模型、设备实例、连接等配置的查询和管理功能。
+
+### 获取核心缓存实例
+
+```go
+cache := driverbox.CoreCache()
+```
+
+### 设备查询
+
+```go
+// 获取所有设备列表
+devices := cache.Devices()
+for _, device := range devices {
+    fmt.Printf("设备ID: %s, 模型: %s, 描述: %s\n",
+        device.ID, device.ModelName, device.Description)
+}
+
+// 获取指定设备
+device, ok := cache.GetDevice("device-001")
+if ok {
+    fmt.Printf("设备属性: %+v\n", device.Properties)
+}
+
+// 判断设备是否存在
+if cache.HasDevice("device-001") {
+    fmt.Println("设备存在")
+}
+```
+
+### 点位查询
+
+```go
+// 获取指定模型的所有点位
+points, ok := cache.GetPoints("modbus-device")
+if ok {
+    for _, point := range points {
+        fmt.Printf("点位: %s, 类型: %s, 描述: %s\n",
+            point.Name(), point.ValueType(), point.Description())
+    }
+}
+
+// 根据设备ID查询点位
+point, ok := cache.GetPointByDevice("device-001", "temperature")
+if ok {
+    fmt.Printf("点位配置: %+v\n", point)
+}
+
+// 根据模型查询点位
+point, ok := cache.GetPointByModel("modbus-device", "temperature")
+if ok {
+    fmt.Printf("点位配置: %+v\n", point)
+}
+```
+
+### 模型查询
+
+```go
+// 获取所有模型
+models := cache.Models()
+for _, model := range models {
+    fmt.Printf("模型: %s, ID: %s, 描述: %s\n",
+        model.Name, model.ModelID, model.Description)
+}
+
+// 获取指定模型
+model, ok := cache.GetModel("modbus-device")
+if ok {
+    fmt.Printf("模型详情: %+v\n", model)
+}
+```
+
+### 设备管理
+
+```go
+// 更新设备属性
+err := cache.UpdateDeviceProperty("device-001", "unitID", "2")
+if err != nil {
+    driverbox.Log().Error("Update device property failed", err)
+}
+
+// 更新设备描述
+err := cache.UpdateDeviceDesc("device-001", "更新后的描述信息")
+if err != nil {
+    driverbox.Log().Error("Update device desc failed", err)
+}
+
+// 删除设备
+cache.DeleteDevice("device-001")
+
+// 批量删除设备
+ids := []string{"device-001", "device-002"}
+err := cache.BatchRemoveDevice(ids)
+if err != nil {
+    driverbox.Log().Error("Batch remove devices failed", err)
+}
+
+// 添加或更新设备
+newDevice := config.Device{
+    ID:          "device-003",
+    ModelName:   "modbus-device",
+    ConnectionKey: "conn-001",
+    Description: "新增设备",
+    Properties: map[string]string{
+        "unitID": "1",
+    },
+}
+err := cache.AddOrUpdateDevice(newDevice)
+if err != nil {
+    driverbox.Log().Error("Add or update device failed", err)
+}
+```
+
+### 连接管理
+
+```go
+// 获取连接信息
+pluginName, connection := cache.GetConnection("conn-001")
+if connection != nil {
+    fmt.Printf("连接所属插件: %s\n", pluginName)
+}
+
+// 删除连接(如果无设备使用)
+err := cache.DeleteConnection("conn-001")
+if err != nil {
+    driverbox.Log().Error("Delete connection failed", err)
+}
+```
+
+### 模型管理
+
+```go
+// 添加新模型
+newModel := config.Model{
+    Name:        "new-model",
+    ModelID:     "model-001",
+    Description: "新设备模型",
+    DevicePoints: []config.Point{
+        // 点位配置...
+    },
+}
+err := cache.AddModel("modbus", newModel)
+if err != nil {
+    driverbox.Log().Error("Add model failed", err)
+}
+
+// 删除模型(需先删除关联设备)
+err := cache.DeleteModel("old-model")
+if err != nil {
+    driverbox.Log().Error("Delete model failed", err)
+}
+```
+
+### 配置持久化
+
+```go
+// 刷新指定插件的配置到文件
+cache.Flush("modbus")
+
+// 刷新所有插件的配置到文件
+cache.FlushAll()
+```
+
+## 设备影子 API
+
+设备影子提供了设备的实时状态和最新数据缓存,支持设备在线状态管理和点位值存储。
+
+### 获取设备影子实例
+
+```go
+shadow := driverbox.Shadow()
+```
+
+### 设备状态管理
+
+```go
+// 获取所有设备及其状态
+devices := shadow.GetDevices()
+for _, device := range devices {
+    fmt.Printf("设备: %s, 在线: %v, 断连次数: %d\n",
+        device.ID, device.Online, device.DisconnectTimes)
+}
+
+// 获取指定设备
+device, ok := shadow.GetDevice("device-001")
+if ok {
+    fmt.Printf("设备最后更新: %s\n", device.UpdatedAt)
+}
+
+// 判断设备是否存在
+if shadow.HasDevice("device-001") {
+    fmt.Println("设备已注册")
+}
+
+// 获取设备在线状态
+online, err := shadow.GetDeviceStatus("device-001")
+if err == nil {
+    if online {
+        fmt.Println("设备在线")
+    } else {
+        fmt.Println("设备离线")
+    }
+}
+
+// 设置设备在线状态
+err = shadow.SetOnline("device-001")
+
+// 设置设备离线状态
+err = shadow.SetOffline("device-001")
+
+// 标记设备可能离线(60秒内超过3次通信失败判定离线)
+err = shadow.MayBeOffline("device-001")
+
+// 添加设备到影子
+shadow.AddDevice("device-004", "modbus-device", 5*time.Minute)
+
+// 删除设备
+err = shadow.DeleteDevice("device-001", "device-002")
+```
+
+### 点位值操作
+
+```go
+// 获取设备点位值
+value, err := shadow.GetDevicePoint("device-001", "temperature")
+if err == nil {
+    fmt.Printf("温度: %v\n", value)
+}
+
+// 设置设备点位值
+err = shadow.SetDevicePoint("device-001", "temperature", 25.6)
+if err != nil {
+    driverbox.Log().Error("Set device point failed", err)
+}
+
+// 获取设备所有点位
+points, err := shadow.GetDevicePoints("device-001")
+if err == nil {
+    for pointName, point := range points {
+        fmt.Printf("%s: %v (更新时间: %s)\n",
+            pointName, point.Value, point.UpdatedAt)
+    }
+}
+
+// 获取点位详细信息(包含更新时间和写入值)
+pointDetail, err := shadow.GetDevicePointDetails("device-001", "temperature")
+if err == nil {
+    fmt.Printf("点位值: %v, 写入值: %v\n",
+        pointDetail.Value, pointDetail.WriteValue)
+    fmt.Printf("更新时间: %s, 写入时间: %s\n",
+        pointDetail.UpdatedAt, pointDetail.WriteAt)
+}
+
+// 存储下发的控制值
+err = shadow.SetWritePointValue("device-001", "switch", true)
+
+// 获取下发的控制值
+writeValue, err := shadow.GetWritePointValue("device-001", "switch")
+```
+
+### 设备更新时间
+
+```go
+// 获取设备最后更新时间
+updatedAt, err := shadow.GetDeviceUpdateAt("device-001")
+if err == nil {
+    fmt.Printf("设备最后更新: %s\n", updatedAt)
+}
+```
+
+## 事件处理 API
+
+driver-box 通过事件系统实现了各组件间的松耦合通信,开发者可以触发和监听各种系统事件。
+
+### 触发事件
+
+```go
+import "github.com/ibuilding-x/driver-box/pkg/event"
+
+// 设备上线事件
+driverbox.TriggerEvents(event.DeviceAdded, "device-001", nil)
+
+// 设备删除事件
+driverbox.TriggerEvents(event.DeviceDeleting, "device-001", nil)
+
+// 设备开关事件
+driverbox.TriggerEvents(event.DeviceOnOff, "device-001", true)
+
+// 设备发现事件
+discoverData := map[string]interface{}{
+    "connectionKey": "conn-001",
+    "protocolName": "modbus",
+    "deviceInfo": map[string]interface{}{
+        "unitID": 1,
+    },
+}
+driverbox.TriggerEvents(event.DeviceDiscover, "", discoverData)
+
+// 服务状态事件
+driverbox.TriggerEvents(event.ServiceStatus, "driver-box", "healthy")
+
+// 数据导出前事件
+driverbox.TriggerEvents(event.Exporting, "device-001", nil)
+
+// 插件回调事件
+deviceData := []plugin.DeviceData{...}
+driverbox.TriggerEvents(event.DoExport, "", deviceData)
+```
+
+### 内置事件类型
+
+- `DeviceAdded`: 设备添加事件
+- `DeviceDeleting`: 设备删除事件
+- `DeviceDiscover`: 设备自动发现事件
+- `DeviceOnOff`: 设备开关事件
+- `ServiceStatus`: 服务状态事件
+- `Exporting`: 数据导出前事件
+- `DoExport`: 插件回调事件
+- `ShadowOnline`: 设备在离线状态事件
+
+## 定时任务 API
+
+driver-box 提供了定时任务管理功能,支持基于 cron 表达式的任务调度。
+
+### 添加定时任务
+
+```go
+// 添加定时任务(使用 cron 表达式)
+future, err := driverbox.AddFunc("*/5 * * * *", func() {
+    // 每 5 分钟执行一次
+    fmt.Println("定时任务执行")
+})
+if err != nil {
+    driverbox.Log().Error("Add cron task failed", err)
+}
+```
+
+### Cron 表达式格式
+
+格式: `秒 分 时 日 月 周`
+
+常用示例:
+- `*/5 * * * *`: 每 5 分钟执行
+- `0 */1 * * *`: 每 1 小时执行
+- `0 0 * * *`: 每天 0 点执行
+- `0 0 * * 1`: 每周一 0 点执行
+- `0 0 1 * *`: 每月 1 号 0 点执行
+
+### 管理定时任务
+
+```go
+// 取消定时任务
+future.Disable()
+
+// 重新启用定时任务
+future.Enable()
+
+// 判断任务是否启用
+if future.IsActive() {
+    fmt.Println("任务正在运行")
+}
+```
+
+## 服务管理 API
+
+### 服务元数据
+
+```go
+// 获取服务元数据
+metadata := driverbox.GetMetadata()
+fmt.Printf("序列号: %s, 型号: %s, 厂商: %s\n",
+    metadata.SerialNo, metadata.Model, metadata.Vendor)
+
+// 更新服务元数据
+driverbox.UpdateMetadata(func(metadata *config.Metadata) {
+    metadata.SerialNo = "new-serial-no"
+})
+```
+
+### 服务控制
+
+```go
+// 停止服务
+err := driverbox.Stop()
+if err != nil {
+    driverbox.Log().Error("Stop service failed", err)
+}
+```
+
+## 日志 API
+
+driver-box 提供了统一的日志接口。
+
+```go
+import "go.uber.org/zap"
+
+// 获取日志实例
+logger := driverbox.Log()
+
+// 记录日志
+logger.Info("信息日志",
+    zap.String("device", "device-001"),
+    zap.Any("data", data))
+
+logger.Warn("警告日志", zap.Error(err))
+
+logger.Error("错误日志", zap.Error(err))
+
+logger.Debug("调试日志", zap.String("detail", "debug info"))
+```
+
+## 插件和导出管理 API
+
+### 插件管理
+
+```go
+// 注册新插件
+myPlugin := &MyPlugin{}
+driverbox.EnablePlugin("my-protocol", myPlugin)
+
+// 重启指定插件
+driverbox.ReloadPlugin("modbus")
+
+// 重启所有插件
+driverbox.ReloadPlugins()
+```
+
+### 导出管理
+
+```go
+// 注册新的导出模块
+myExport := &MyExport{}
+driverbox.EnableExport(myExport)
+
+// 获取基础导出模块(用于注册自定义 API)
+baseExport := driverbox.BaseExport()
+```
+
+## 自定义 Export 开发
+
+开发者可以通过实现 `Export` 接口来扩展数据导出功能。
+
+```go
+package main
+
+import (
+    "github.com/ibuilding-x/driver-box/driverbox/export"
+    "github.com/ibuilding-x/driver-box/driverbox/plugin"
+    "github.com/ibuilding-x/driver-box/pkg/event"
+)
+
+type MyExport struct{}
+
+func (m *MyExport) Init() error {
+    // 初始化导出模块
+    return nil
+}
+
+func (m *MyExport) ExportTo(deviceData plugin.DeviceData) {
+    // 处理设备数据
+    for _, point := range deviceData.Values {
+        fmt.Printf("设备 %s 点位 %s 值: %v\n",
+            deviceData.ID, point.PointName, point.Value)
+    }
+}
+
+func (m *MyExport) OnEvent(eventCode event.EventCode, key string, eventValue interface{}) error {
+    // 处理系统事件
+    return nil
+}
+
+func (m *MyExport) IsReady() bool {
+    // 检查模块是否就绪
+    return true
+}
+
+func (m *MyExport) Destroy() error {
+    // 清理资源
+    return nil
+}
+
+// 注册导出模块
+func init() {
+    driverbox.EnableExport(&MyExport{})
+}
+```
+
+## API 使用最佳实践
+
+### 错误处理
+- 所有 API 调用都应该检查错误返回值
+- 使用 `driverbox.Log()` 记录关键错误信息
+
+### 资源管理
+- 使用 `defer` 确保资源正确释放
+- 定时任务在不使用时应调用 `Disable()` 释放
+
+### 性能优化
+- 优先使用设备影子 API 获取实时数据,减少主动读取
+- 批量操作优于多次单个操作
+- 合理设置点位上报模式(`realTime` vs `change`)
+
+### 并发安全
+- 设备影子 API 是并发安全的,可以在多个 goroutine 中调用
+- 核心缓存的查询操作也是并发安全的
+
+### 事件处理
+- 在 Export 模块中实现 `OnEvent` 方法来响应系统事件
+- 使用 `TriggerEvents` 触发自定义事件
