@@ -167,7 +167,7 @@ func (d *deviceShadow) GetDeviceUpdateAt(id string) (time.Time, error) {
 	return time.Time{}, ErrUnknownDevice
 }
 
-func (d *deviceShadow) GetDeviceStatus(id string) (online bool, err error) {
+func (d *deviceShadow) IsOnline(id string) (online bool, err error) {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 

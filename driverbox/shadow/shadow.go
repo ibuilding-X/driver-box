@@ -45,11 +45,8 @@ type DeviceShadow interface {
 	// GetDevicePointDetails 获取设备点位详情
 	GetDevicePointDetails(id, pointName string) (point DevicePoint, err error)
 
-	// GetDeviceUpdateAt 获取设备最后更新时间
-	GetDeviceUpdateAt(id string) (time.Time, error)
-	// GetDeviceStatus 获取设备在离线状态
-	GetDeviceStatus(id string) (online bool, err error)
-
+	// IsOnline 获取设备在离线状态
+	IsOnline(id string) (online bool, err error)
 	// SetOnline 设置设备为在线状态
 	SetOnline(id string) (err error)
 	// SetOffline 设置设备为离线状态

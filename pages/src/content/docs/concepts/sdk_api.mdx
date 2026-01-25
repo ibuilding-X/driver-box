@@ -324,261 +324,68 @@ if err != nil {
 
 核心缓存提供了对设备模型、设备实例、连接等配置的查询和管理功能。
 
-### 设备查询
+**设备查询：**
+- `Devices()` - 获取设备列表
+- `GetDevice()` - 查询指定设备
+- `HasDevice()` - 判断设备是否存在
 
-```go
-// 获取所有设备列表
-devices := driverbox.CoreCache().Devices()
-for _, device := range devices {
-    fmt.Printf("设备ID: %s, 模型: %s, 描述: %s\n",
-        device.ID, device.ModelName, device.Description)
-}
+**点位查询：**
+- `GetPoints()` - 获取模型点位
+- `GetPointByDevice()` - 根据设备ID查询点位
+- `GetPointByModel()` - 根据模型查询点位
 
-// 获取指定设备
-device, ok := driverbox.CoreCache().GetDevice("device-001")
-if ok {
-    fmt.Printf("设备属性: %+v\n", device.Properties)
-}
+**模型查询：**
+- `Models()` - 获取所有模型
+- `GetModel()` - 查询指定模型
 
-// 判断设备是否存在
-if driverbox.CoreCache().HasDevice("device-001") {
-    fmt.Println("设备存在")
-}
-```
+**设备管理：**
+- `UpdateDeviceProperty()` - 更新设备属性
+- `UpdateDeviceDesc()` - 更新设备描述
+- `DeleteDevice()` - 删除设备
+- `BatchRemoveDevice()` - 批量删除设备
+- `AddOrUpdateDevice()` - 添加或更新设备
 
-### 点位查询
+**连接管理：**
+- `GetConnection()` - 获取连接信息
+- `DeleteConnection()` - 删除连接
 
-```go
-// 获取指定模型的所有点位
-points, ok := driverbox.CoreCache().GetPoints("modbus-device")
-if ok {
-    for _, point := range points {
-        fmt.Printf("点位: %s, 类型: %s, 描述: %s\n",
-            point.Name(), point.ValueType(), point.Description())
-    }
-}
+**模型管理：**
+- `AddModel()` - 添加新模型
+- `DeleteModel()` - 删除模型
 
-// 根据设备ID查询点位
-point, ok := driverbox.CoreCache().GetPointByDevice("device-001", "temperature")
-if ok {
-    fmt.Printf("点位配置: %+v\n", point)
-}
+**配置持久化：**
+- `Flush()` - 刷新指定插件配置到文件
+- `FlushAll()` - 刷新所有配置到文件
 
-// 根据模型查询点位
-point, ok := driverbox.CoreCache().GetPointByModel("modbus-device", "temperature")
-if ok {
-    fmt.Printf("点位配置: %+v\n", point)
-}
-```
-
-### 模型查询
-
-```go
-// 获取所有模型
-models := driverbox.CoreCache().Models()
-for _, model := range models {
-    fmt.Printf("模型: %s, ID: %s, 描述: %s\n",
-        model.Name, model.ModelID, model.Description)
-}
-
-// 获取指定模型
-model, ok := driverbox.CoreCache().GetModel("modbus-device")
-if ok {
-    fmt.Printf("模型详情: %+v\n", model)
-}
-```
-
-### 设备管理
-
-```go
-// 更新设备属性
-err := driverbox.CoreCache().UpdateDeviceProperty("device-001", "unitID", "2")
-if err != nil {
-    driverbox.Log().Error("Update device property failed", err)
-}
-
-// 更新设备描述
-err := driverbox.CoreCache().UpdateDeviceDesc("device-001", "更新后的描述信息")
-if err != nil {
-    driverbox.Log().Error("Update device desc failed", err)
-}
-
-// 删除设备
-driverbox.CoreCache().DeleteDevice("device-001")
-
-// 批量删除设备
-ids := []string{"device-001", "device-002"}
-err := driverbox.CoreCache().BatchRemoveDevice(ids)
-if err != nil {
-    driverbox.Log().Error("Batch remove devices failed", err)
-}
-
-// 添加或更新设备
-newDevice := config.Device{
-    ID:          "device-003",
-    ModelName:   "modbus-device",
-    ConnectionKey: "conn-001",
-    Description: "新增设备",
-    Properties: map[string]string{
-        "unitID": "1",
-    },
-}
-err := driverbox.CoreCache().AddOrUpdateDevice(newDevice)
-if err != nil {
-    driverbox.Log().Error("Add or update device failed", err)
-}
-```
-
-### 连接管理
-
-```go
-// 获取连接信息
-pluginName, connection := driverbox.CoreCache().GetConnection("conn-001")
-if connection != nil {
-    fmt.Printf("连接所属插件: %s\n", pluginName)
-}
-
-// 删除连接(如果无设备使用)
-err := driverbox.CoreCache().DeleteConnection("conn-001")
-if err != nil {
-    driverbox.Log().Error("Delete connection failed", err)
-}
-```
-
-### 模型管理
-
-```go
-// 添加新模型
-newModel := config.Model{
-    Name:        "new-model",
-    ModelID:     "model-001",
-    Description: "新设备模型",
-    DevicePoints: []config.Point{
-        // 点位配置...
-    },
-}
-err := driverbox.CoreCache().AddModel("modbus", newModel)
-if err != nil {
-    driverbox.Log().Error("Add model failed", err)
-}
-
-// 删除模型(需先删除关联设备)
-err := driverbox.CoreCache().DeleteModel("old-model")
-if err != nil {
-    driverbox.Log().Error("Delete model failed", err)
-}
-```
-
-### 配置持久化
-
-```go
-// 刷新指定插件的配置到文件
-driverbox.CoreCache().Flush("modbus")
-
-// 刷新所有插件的配置到文件
-driverbox.CoreCache().FlushAll()
-```
+> 详细的 API 文档和示例请参考 [核心缓存 API](/driver-box/concepts/corecache/)
 
 ## 设备影子 API
 
 设备影子提供了设备的实时状态和最新数据缓存,支持设备在线状态管理和点位值存储。
 
-### 设备状态管理
+**设备状态管理：**
+- `GetDevices()` - 获取设备列表
+- `GetDevice()` - 查询设备
+- `HasDevice()` - 判断设备是否存在
+- `GetDeviceStatus()` - 获取设备在线状态
+- `SetOnline()` - 设置设备在线
+- `SetOffline()` - 设置设备离线
+- `MayBeOffline()` - 标记设备可能离线
+- `AddDevice()` - 添加设备到影子
+- `DeleteDevice()` - 删除设备
 
-```go
-// 获取所有设备及其状态
-devices := driverbox.Shadow().GetDevices()
-for _, device := range devices {
-    fmt.Printf("设备: %s, 在线: %v, 断连次数: %d\n",
-        device.ID, device.Online, device.DisconnectTimes)
-}
+**点位值操作：**
+- `GetDevicePoint()` - 获取设备点位值
+- `SetDevicePoint()` - 设置设备点位值
+- `GetDevicePoints()` - 获取设备所有点位
+- `GetDevicePointDetails()` - 获取点位详细信息
+- `SetWritePointValue()` - 存储下发的控制值
+- `GetWritePointValue()` - 获取下发的控制值
 
-// 获取指定设备
-device, ok := driverbox.Shadow().GetDevice("device-001")
-if ok {
-    fmt.Printf("设备最后更新: %s\n", device.UpdatedAt)
-}
+**设备更新时间：**
+- `GetDeviceUpdateAt()` - 获取设备最后更新时间
 
-// 判断设备是否存在
-if driverbox.Shadow().HasDevice("device-001") {
-    fmt.Println("设备已注册")
-}
-
-// 获取设备在线状态
-online, err := driverbox.Shadow().GetDeviceStatus("device-001")
-if err == nil {
-    if online {
-        fmt.Println("设备在线")
-    } else {
-        fmt.Println("设备离线")
-    }
-}
-
-// 设置设备在线状态
-err = driverbox.Shadow().SetOnline("device-001")
-
-// 设置设备离线状态
-err = driverbox.Shadow().SetOffline("device-001")
-
-// 标记设备可能离线(60秒内超过3次通信失败判定离线)
-err = driverbox.Shadow().MayBeOffline("device-001")
-
-// 添加设备到影子
-driverbox.Shadow().AddDevice("device-004", "modbus-device", 5*time.Minute)
-
-// 删除设备
-err = driverbox.Shadow().DeleteDevice("device-001", "device-002")
-```
-
-### 点位值操作
-
-```go
-// 获取设备点位值
-value, err := driverbox.Shadow().GetDevicePoint("device-001", "temperature")
-if err == nil {
-    fmt.Printf("温度: %v\n", value)
-}
-
-// 设置设备点位值
-err = driverbox.Shadow().SetDevicePoint("device-001", "temperature", 25.6)
-if err != nil {
-    driverbox.Log().Error("Set device point failed", err)
-}
-
-// 获取设备所有点位
-points, err := driverbox.Shadow().GetDevicePoints("device-001")
-if err == nil {
-    for pointName, point := range points {
-        fmt.Printf("%s: %v (更新时间: %s)\n",
-            pointName, point.Value, point.UpdatedAt)
-    }
-}
-
-// 获取点位详细信息(包含更新时间和写入值)
-pointDetail, err := driverbox.Shadow().GetDevicePointDetails("device-001", "temperature")
-if err == nil {
-    fmt.Printf("点位值: %v, 写入值: %v\n",
-        pointDetail.Value, pointDetail.WriteValue)
-    fmt.Printf("更新时间: %s, 写入时间: %s\n",
-        pointDetail.UpdatedAt, pointDetail.WriteAt)
-}
-
-// 存储下发的控制值
-err = driverbox.Shadow().SetWritePointValue("device-001", "switch", true)
-
-// 获取下发的控制值
-writeValue, err := driverbox.Shadow().GetWritePointValue("device-001", "switch")
-```
-
-### 设备更新时间
-
-```go
-// 获取设备最后更新时间
-updatedAt, err := driverbox.Shadow().GetDeviceUpdateAt("device-001")
-if err == nil {
-    fmt.Printf("设备最后更新: %s\n", updatedAt)
-}
-```
+> 详细的 API 文档和示例请参考 [设备影子 API](/driver-box/concepts/shadow/)
 
 ## 事件处理 API
 

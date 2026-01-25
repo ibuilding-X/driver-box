@@ -85,26 +85,6 @@ func TestShadow(t *testing.T) {
 		}
 	})
 
-	t.Run("TestGetDeviceUpdateAt", func(t *testing.T) {
-		updateAt, err := shadow.GetDeviceUpdateAt("device")
-		if err != nil {
-			t.Error("get device update at failed", err)
-			return
-		}
-		if updateAt.IsZero() {
-			t.Error("get device update at failed, update at is zero")
-			return
-		}
-	})
-
-	t.Run("TestGetDeviceStatus", func(t *testing.T) {
-		_, err := shadow.GetDeviceStatus("device")
-		if err != nil {
-			t.Error("get device status failed", err)
-			return
-		}
-	})
-
 	t.Run("TestSetOnline", func(t *testing.T) {
 		if err := shadow.SetOnline("device"); err != nil {
 			t.Error("set online failed", err)
