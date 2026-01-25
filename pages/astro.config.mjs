@@ -1,8 +1,6 @@
 import {defineConfig} from 'astro/config';
 import starlight from '@astrojs/starlight';
-import remarkMermaid from 'remark-mermaidjs'
-import mdx from '@astrojs/mdx';
-import expressiveCode from "astro-expressive-code";
+import mermaid from 'astro-mermaid';
 
 
 // https://astro.build/config
@@ -10,11 +8,8 @@ export default defineConfig({
     site: 'https://ibuilding-X.github.io/',
     base: '/driver-box',
     trailingSlash: "always",
-    markdown: {
-        // Applied to .md and .mdx files
-        remarkPlugins: [remarkMermaid],
-    },
-    integrations: [expressiveCode(), mdx(),starlight({
+    integrations: [mermaid()
+        ,starlight({
         title: 'driver-box',
         social: {
             github: 'https://github.com/ibuilding-X/driver-box'
