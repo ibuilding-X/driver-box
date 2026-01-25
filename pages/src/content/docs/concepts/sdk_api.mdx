@@ -9,19 +9,232 @@ sidebar:
 
 driver-box 提供了完整的 Go SDK API,支持设备管理、数据读写、配置管理、事件处理等核心功能。开发者可以通过 Go 代码直接调用这些接口,实现与 driver-box 框架的深度集成。
 
-## 快速开始
+## 应用启动与生命周期
 
-```go
-import "github.com/ibuilding-x/driver-box/driverbox"
+### 完整启动流程
 
+一个完整的 driver-box 应用启动流程包括:启用Plugin、启用Export模块、启动服务。
+
+```go title="main.go"
+package main
+import (
+    "github.com/ibuilding-x/driver-box/driverbox"
+    "github.com/ibuilding-x/driver-box/plugins"
+    "github.com/ibuilding-x/driver-box/exports"
+)
 func main() {
-    // 启动 driver-box 服务
+    // 第一步: 启用内置Plugin
+    // 可选: plugins.EnableAll() 启用所有内置Plugin
+    // 或单独启用: 导入对应Plugin包,如 modbus.EnablePlugin()
+    plugins.EnableAll()
+    // 第二步: 启用Export模块
+    // 可选: exports.EnableAll() 启用所有内置Export模块
+    // 或单独启用: 导入对应Export包,如 gateway.EnableExport()
+    exports.EnableAll()
+    // 第三步: 启动 driver-box 服务
+    // 1. 初始化环境配置
+    // 2. 初始化日志记录器
+    // 3. 启动所有 Export
+    // 4. 启动所有 Plugin
+    // 5. 触发服务状态事件
     err := driverbox.Start()
     if err != nil {
         panic(err)
     }
+    // 第四步: 阻塞主线程
+    // driver-box 服务会在后台运行
+    select {}
 }
 ```
+### Plugin
+#### 内置Plugin
+
+如果只需要启用特定的内置 Plugin,需要导入对应 Plugin 包并调用其 `EnablePlugin` 方法。
+
+**内置Plugin列表:**
+
+| Plugin名称 | 导入路径 | 启用方法 |
+|---------|---------|---------|
+| Modbus | `github.com/ibuilding-x/driver-box/plugins/modbus` | `modbus.EnablePlugin()` |
+| BACnet | `github.com/ibuilding-x/driver-box/plugins/bacnet` | `bacnet.EnablePlugin()` |
+| HTTP Server | `github.com/ibuilding-x/driver-box/plugins/httpserver` | `httpserver.EnablePlugin()` |
+| HTTP Client | `github.com/ibuilding-x/driver-box/plugins/httpclient` | `httpclient.EnablePlugin()` |
+| WebSocket | `github.com/ibuilding-x/driver-box/plugins/websocket` | `websocket.EnablePlugin()` |
+| TCP Server | `github.com/ibuilding-x/driver-box/plugins/tcpserver` | `tcpserver.EnablePlugin()` |
+| MQTT | `github.com/ibuilding-x/driver-box/plugins/mqtt` | `mqtt.EnablePlugin()` |
+| Mirror | `github.com/ibuilding-x/driver-box/plugins/mirror` | `mirror.EnablePlugin()` |
+| DLT645 | `github.com/ibuilding-x/driver-box/plugins/dlt645` | `dlt645.EnablePlugin()` |
+| Gateway | `github.com/ibuilding-x/driver-box/plugins/gateway` | `gateway.EnablePlugin()` |
+
+**使用示例:**
+
+```go title="main.go"
+import (
+    "github.com/ibuilding-x/driver-box/driverbox"
+    "github.com/ibuilding-x/driver-box/plugins/modbus"
+    "github.com/ibuilding-x/driver-box/plugins/bacnet"
+)
+func main() {
+    // 只启用 modbus Plugin
+    modbus.EnablePlugin()
+    // 只启用 bacnet Plugin
+    bacnet.EnablePlugin()
+    // 启动服务
+    err := driverbox.Start()
+    if err != nil {
+        panic(err)
+    }
+    select {}
+}
+```
+
+#### 自定义Plugin
+
+如果需要注册自定义Plugin,需要使用 `driverbox.EnablePlugin` 方法。
+
+```go title="main.go"
+import (
+    "github.com/ibuilding-x/driver-box/driverbox"
+    myplugin "github.com/your-org/my-driver-box-plugin"
+)
+func main() {
+    // 启用内置Plugin(可选)
+    modbus.EnablePlugin()
+    // 注册自定义Plugin
+    driverbox.EnablePlugin("my-protocol", new(myplugin.MyPlugin))
+    // 启动服务
+    err := driverbox.Start()
+    if err != nil {
+        panic(err)
+    }
+    select {}
+}
+```
+#### 重启 Plugin
+
+在服务运行期间,可以通过ReloadPlugin对插件进行重启，这通常在设备接入或删除时使用。
+
+```go
+// 重启指定Plugin
+driverbox.ReloadPlugin("modbus")
+// 重启所有Plugin
+driverbox.ReloadPlugins()
+
+```
+
+### Export
+#### 内置Export
+
+如果只需要启用特定Export模块,需要导入对应Export模块包并调用其 `EnableExport` 方法。
+
+**内置Export模块列表:**
+
+| Export模块名称 | 导入路径 | 启用方法 |
+|------------|---------|---------|
+| LinkEdge | `github.com/ibuilding-x/driver-box/exports/linkedge` | `linkedge.EnableExport()` |
+| Mirror | `github.com/ibuilding-x/driver-box/exports/mirror` | `mirror.EnableExport()` |
+| Discover | `github.com/ibuilding-x/driver-box/exports/discover` | `discover.EnableExport()` |
+| Gateway | `github.com/ibuilding-x/driver-box/exports/gateway` | `gateway.EnableExport()` |
+
+**使用示例:**
+
+```go
+import (
+    "github.com/ibuilding-x/driver-box/driverbox"
+    "github.com/ibuilding-x/driver-box/plugins/modbus"
+    "github.com/ibuilding-x/driver-box/exports/gateway"
+    "github.com/ibuilding-x/driver-box/exports/linkedge"
+)
+func main() {
+    // 启用Plugin
+    modbus.EnablePlugin()
+    // 只启用 gateway Export模块
+    gateway.EnableExport()
+    // 只启用 linkedge Export模块
+    linkedge.EnableExport()
+    // 启动服务
+    err := driverbox.Start()
+    if err != nil {
+        panic(err)
+    }
+    select {}
+}
+```
+
+#### 自定义Export
+
+如果需要注册自定义Export模块,需要使用 `driverbox.EnableExport` 方法。
+
+```go
+import (
+    "github.com/ibuilding-x/driver-box/driverbox"
+    myexport "github.com/your-org/my-driver-box-export"
+)
+func main() {
+    // 启用内置Plugin(可选)
+    modbus.EnablePlugin()
+    // 启用内置Export模块(可选)
+    exports.gateway.EnableExport()
+    // 注册自定义Export模块
+    driverbox.EnableExport(new(myexport.MyExport))
+    // 启动服务
+    err := driverbox.Start()
+    if err != nil {
+        panic(err)
+    }
+    select {}
+}
+```
+
+### 服务停止
+
+在程序退出前,建议优雅地停止 driver-box 服务。
+
+```go
+func gracefulShutdown() {
+    // 停止 driver-box 服务
+    // 执行以下操作:
+    // 1. 清理所有定时器任务
+    // 2. 销毁所有 Export 模块
+    // 3. 销毁所有 Plugin Plugin
+    // 4. 重置影子服务
+    // 5. 清除核心缓存数据
+    err := driverbox.Stop()
+    if err != nil {
+        driverbox.Log().Error("Stop service failed", err)
+    }
+}
+// 使用信号处理实现优雅退出
+func main() {
+    // ... 启动代码 ...
+
+    // 监听中断信号
+    sigChan := make(chan os.Signal, 1)
+    signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+    <-sigChan
+
+    gracefulShutdown()
+}
+```
+
+
+
+
+## SDK API 总览
+
+driver-box 的 Go SDK 主要包含以下模块:
+
+| 模块 | 功能说明 | 主要接口 |
+|------|---------|---------|
+| **设备操作 API** | 设备点位的读取和写入 | `ReadPoint`, `WritePoint`, `WritePoints`, `ReadPoints` |
+| **核心缓存 API** | 设备模型、设备实例、连接的查询和管理 | `CoreCache()`, `GetDevice`, `GetModel`, `AddOrUpdateDevice` |
+| **设备影子 API** | 设备实时状态和点位值的缓存管理 | `Shadow()`, `GetDevicePoint`, `SetDevicePoint`, `GetDeviceStatus` |
+| **事件处理 API** | 系统事件的触发和监听 | `TriggerEvents`, `DeviceAdded`, `DeviceDeleting` |
+| **定时任务 API** | 基于 cron 表达式的任务调度 | `AddFunc`, `Future` |
+| **服务管理 API** | 服务元数据和控制 | `Start`, `Stop`, `GetMetadata`, `UpdateMetadata` |
+| **日志 API** | 统一的日志记录接口 | `Log()` |
+| **Plugin管理 API** | Plugin的注册和管理 | `EnablePlugin`, `ReloadPlugin`, `ReloadPlugins` |
+| **Export管理 API** | Export模块的注册和管理 | `EnableExport` |
 
 ## 设备操作 API
 
@@ -228,7 +441,7 @@ if err != nil {
 // 获取连接信息
 pluginName, connection := cache.GetConnection("conn-001")
 if connection != nil {
-    fmt.Printf("连接所属插件: %s\n", pluginName)
+    fmt.Printf("连接所属Plugin: %s\n", pluginName)
 }
 
 // 删除连接(如果无设备使用)
@@ -265,10 +478,10 @@ if err != nil {
 ### 配置持久化
 
 ```go
-// 刷新指定插件的配置到文件
+// 刷新指定Plugin的配置到文件
 cache.Flush("modbus")
 
-// 刷新所有插件的配置到文件
+// 刷新所有Plugin的配置到文件
 cache.FlushAll()
 ```
 
@@ -410,10 +623,10 @@ driverbox.TriggerEvents(event.DeviceDiscover, "", discoverData)
 // 服务状态事件
 driverbox.TriggerEvents(event.ServiceStatus, "driver-box", "healthy")
 
-// 数据导出前事件
+// 数据Export前事件
 driverbox.TriggerEvents(event.Exporting, "device-001", nil)
 
-// 插件回调事件
+// Plugin回调事件
 deviceData := []plugin.DeviceData{...}
 driverbox.TriggerEvents(event.DoExport, "", deviceData)
 ```
@@ -425,8 +638,8 @@ driverbox.TriggerEvents(event.DoExport, "", deviceData)
 - `DeviceDiscover`: 设备自动发现事件
 - `DeviceOnOff`: 设备开关事件
 - `ServiceStatus`: 服务状态事件
-- `Exporting`: 数据导出前事件
-- `DoExport`: 插件回调事件
+- `Exporting`: 数据Export前事件
+- `DoExport`: Plugin回调事件
 - `ShadowOnline`: 设备在离线状态事件
 
 ## 定时任务 API
@@ -520,36 +733,36 @@ logger.Error("错误日志", zap.Error(err))
 logger.Debug("调试日志", zap.String("detail", "debug info"))
 ```
 
-## 插件和导出管理 API
+## Plugin和Export管理 API
 
-### 插件管理
+### Plugin管理
 
 ```go
-// 注册新插件
+// 注册新Plugin
 myPlugin := &MyPlugin{}
 driverbox.EnablePlugin("my-protocol", myPlugin)
 
-// 重启指定插件
+// 重启指定Plugin
 driverbox.ReloadPlugin("modbus")
 
-// 重启所有插件
+// 重启所有Plugin
 driverbox.ReloadPlugins()
 ```
 
-### 导出管理
+### Export管理
 
 ```go
-// 注册新的导出模块
+// 注册新的Export模块
 myExport := &MyExport{}
 driverbox.EnableExport(myExport)
 
-// 获取基础导出模块(用于注册自定义 API)
+// 获取基础Export模块(用于注册自定义 API)
 baseExport := driverbox.BaseExport()
 ```
 
 ## 自定义 Export 开发
 
-开发者可以通过实现 `Export` 接口来扩展数据导出功能。
+开发者可以通过实现 `Export` 接口来扩展数据Export功能。
 
 ```go
 package main
@@ -563,7 +776,7 @@ import (
 type MyExport struct{}
 
 func (m *MyExport) Init() error {
-    // 初始化导出模块
+    // 初始化Export模块
     return nil
 }
 
@@ -590,7 +803,7 @@ func (m *MyExport) Destroy() error {
     return nil
 }
 
-// 注册导出模块
+// 注册Export模块
 func init() {
     driverbox.EnableExport(&MyExport{})
 }
