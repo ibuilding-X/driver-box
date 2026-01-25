@@ -200,7 +200,7 @@ graph TD
       "reportMode": "realTime",
       "scale": 0.1,
       "decimals": 1,
-      "unit": "℃"
+      "units": "℃"
     }
     ```
   </TabItem>
@@ -217,7 +217,7 @@ graph TD
     | reportMode | string | 否 | 上报模式：`realTime`（实时上报，读到数据即触发导出）、`change`（变化上报，与影子中值不一致才触发） |
     | scale | number | 否 | 缩放因子（用于数值转换） |
     | decimals | number | 否 | 小数位数保留 |
-    | unit | string | 否 | 单位 |
+    | units | string | 否 | 单位 |
     | enums | array | 否 | 枚举值数组，用于界面展示和值映射，包含`name`（枚举名称）、`value`（枚举值）、`icon`（枚举图标，可选） |
 
     ### 枚举配置示例
@@ -317,7 +317,7 @@ graph TD
           "reportMode": "realTime",
           "scale": 0.1,
           "decimals": 1,
-          "unit": "℃",
+          "units": "℃",
           "startAddress": "40001",
           "primaryTable": "HOLDING_REGISTER",
           "rawType": "Float32",
@@ -330,7 +330,7 @@ graph TD
           "readWrite": "R",
           "scale": 0.1,
           "decimals": 1,
-          "unit": "%",
+          "units": "%",
           "startAddress": "40002",
           "primaryTable": "HOLDING_REGISTER",
           "rawType": "Float32",
