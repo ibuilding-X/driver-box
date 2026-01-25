@@ -387,55 +387,25 @@ if err != nil {
 
 > 详细的 API 文档和示例请参考 [设备影子 API](/driver-box/concepts/shadow/)
 
-## 事件处理 API
+## 事件总线 API
 
 driver-box 通过事件系统实现了各组件间的松耦合通信,开发者可以触发和监听各种系统事件。
 
-### 触发事件
-
 ```go
-import "github.com/ibuilding-x/driver-box/pkg/event"
-
-// 设备上线事件
 driverbox.TriggerEvents(event.DeviceAdded, "device-001", nil)
-
-// 设备删除事件
-driverbox.TriggerEvents(event.DeviceDeleting, "device-001", nil)
-
-// 设备开关事件
-driverbox.TriggerEvents(event.DeviceOnOff, "device-001", true)
-
-// 设备发现事件
-discoverData := map[string]interface{}{
-    "connectionKey": "conn-001",
-    "protocolName": "modbus",
-    "deviceInfo": map[string]interface{}{
-        "unitID": 1,
-    },
-}
-driverbox.TriggerEvents(event.DeviceDiscover, "", discoverData)
-
-// 服务状态事件
-driverbox.TriggerEvents(event.ServiceStatus, "driver-box", "healthy")
-
-// 数据Export前事件
-driverbox.TriggerEvents(event.Exporting, "device-001", nil)
-
-// Plugin回调事件
-deviceData := []plugin.DeviceData{...}
-driverbox.TriggerEvents(event.DoExport, "", deviceData)
 ```
 
-### 内置事件类型
+**内置事件类型：**
+- `DeviceAdded` - 设备添加事件
+- `DeviceDeleting` - 设备删除事件
+- `DeviceDiscover` - 设备自动发现事件
+- `DeviceOnOff` - 设备开关事件
+- `ServiceStatus` - 服务状态事件
+- `Exporting` - 数据导出前事件
+- `DoExport` - 插件回调事件
+- `ShadowOnline` - 设备在线状态事件
 
-- `DeviceAdded`: 设备添加事件
-- `DeviceDeleting`: 设备删除事件
-- `DeviceDiscover`: 设备自动发现事件
-- `DeviceOnOff`: 设备开关事件
-- `ServiceStatus`: 服务状态事件
-- `Exporting`: 数据Export前事件
-- `DoExport`: Plugin回调事件
-- `ShadowOnline`: 设备在离线状态事件
+> 详细的事件机制说明、使用示例和最佳实践请参考 [事件总线](/driver-box/concepts/event-bus/)
 
 ## 定时任务 API
 
@@ -515,9 +485,7 @@ future.Disable()
 // 任务被禁用后无法重新启用,需要重新创建任务
 ```
 
-## 服务管理 API
-
-### 服务元数据
+## 服务元数据
 
 ```go
 // 获取服务元数据
@@ -529,16 +497,6 @@ fmt.Printf("序列号: %s, 型号: %s, 厂商: %s\n",
 driverbox.UpdateMetadata(func(metadata *config.Metadata) {
     metadata.SerialNo = "new-serial-no"
 })
-```
-
-### 服务控制
-
-```go
-// 停止服务
-err := driverbox.Stop()
-if err != nil {
-    driverbox.Log().Error("Stop service failed", err)
-}
 ```
 
 ## 日志 API
