@@ -264,7 +264,7 @@ func (d *deviceShadow) handlerCallback(id string, online bool) {
 		logger.Logger.Warn("device offline...", zap.String("deviceId", id))
 	}
 	//触发设备在离线事件
-	go export.TriggerEvents(event.ShadowOnline, id, online)
+	go export.TriggerEvents(event.DeviceOnline, id, online)
 }
 
 func (d *deviceShadow) checkOffline() {

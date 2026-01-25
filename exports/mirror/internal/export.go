@@ -71,7 +71,7 @@ func (export *Export) OnEvent(eventCode event.EventCode, key string, eventValue 
 			return err
 		}
 		driverbox.Export(res)
-	case event.ShadowOnline:
+	case event.DeviceOnline:
 		// 设备状态变更事件
 		mirrorDeviceID := "mirror_" + key
 		if driverbox.Shadow().HasDevice(mirrorDeviceID) {

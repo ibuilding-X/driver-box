@@ -5,23 +5,20 @@ type EventCode string
 
 const (
 	//设备在离线状态事件
-	ShadowOnline = EventCode("driverbox.shadow.online")
+	DeviceOnline = EventCode("deviceOnline")
 	//driver-box服务状态
-	ServiceStatus = EventCode("driverbox.status")
+	ServiceStatus = EventCode("serviceStatus")
 	//添加设备
-	DeviceAdded = EventCode("driverbox.device.added")
+	DeviceAdded = EventCode("deviceAdded")
 	//即将删除设备,在该事件中依旧可以查询设备信息
-	DeviceDeleting = EventCode("driverbox.device.deleting")
+	DeviceDeleting = EventCode("deviceDeleting")
 	//即将执行ExportTo
-	Exporting = EventCode("driverbox.exporting")
+	Exporting = EventCode("exporting")
 	//设备自动发现事件
-	DeviceDiscover = EventCode("driverbox.device.discover")
-
-	// EventCodeOnOff 设备开关事件（空调的开关机、灯的开关……）
-	DeviceOnOff = EventCode("driverbox.device.onOff")
+	DeviceDiscover = EventCode("deviceDiscover")
 
 	// DoExport 插件回调事件
-	DoExport = EventCode("driverbox.export")
+	DoExport = EventCode("export")
 )
 
 const (

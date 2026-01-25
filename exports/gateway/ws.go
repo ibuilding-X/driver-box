@@ -251,7 +251,7 @@ func (wss *websocketService) sendDeviceData(data plugin.DeviceData) {
 		var events []event.Data
 		for _, e := range data.Events {
 			switch event.EventCode(e.Code) {
-			case event.ShadowOnline: // 设备状态
+			case event.DeviceOnline: // 设备状态
 				// todo 事件定义暂时无法获取设备 ID
 			case event.DeviceDiscover: // 设备发现
 				var deviceDiscover discover.DeviceDiscover
