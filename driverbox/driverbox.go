@@ -59,11 +59,13 @@ func Start() error {
 
 	if err != nil {
 		TriggerEvents(event.ServiceStatus, GetMetadata().SerialNo, event.ServiceStatusError)
+		Log().Info("start driver-box error.")
+		_ = Stop()
 	} else {
 		TriggerEvents(event.ServiceStatus, GetMetadata().SerialNo, event.ServiceStatusHealthy)
+		Log().Info("start driver-box success.")
 	}
 
-	Log().Info("start driver-box success.")
 	return err
 }
 
