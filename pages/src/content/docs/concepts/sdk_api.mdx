@@ -439,9 +439,13 @@ driverbox.TriggerEvents(event.DoExport, "", deviceData)
 
 ## 定时任务 API
 
-driver-box 提供了定时任务管理功能,支持基于 cron 表达式的任务调度。
+driver-box 提供了定时任务管理功能,支持两种时间格式:cron 表达式和 Go 的 `time.Duration` 格式。
 
 ### 添加定时任务
+
+`AddFunc` 方法支持两种时间格式:
+
+**1. Cron 表达式格式**
 
 ```go
 // 添加定时任务(使用 cron 表达式)
@@ -454,9 +458,7 @@ if err != nil {
 }
 ```
 
-### Cron 表达式格式
-
-格式: `秒 分 时 日 月 周`
+Cron 表达式格式: `秒 分 时 日 月 周`
 
 常用示例:
 - `*/5 * * * *`: 每 5 分钟执行
@@ -465,19 +467,52 @@ if err != nil {
 - `0 0 * * 1`: 每周一 0 点执行
 - `0 0 1 * *`: 每月 1 号 0 点执行
 
-### 管理定时任务
+**2. time.Duration 格式**
 
 ```go
-// 取消定时任务
+// 添加定时任务(使用 time.Duration 格式)
+future, err := driverbox.AddFunc("5s", func() {
+    // 每 5 秒执行一次
+    fmt.Println("定时任务执行")
+})
+if err != nil {
+    driverbox.Log().Error("Add cron task failed", err)
+}
+```
+
+time.Duration 格式支持:
+- `ns`: 纳秒
+- `us` / `µs`: 微秒
+- `ms`: 毫秒
+- `s`: 秒
+- `m`: 分钟
+- `h`: 小时
+
+常用示例:
+- `"1s"`: 每 1 秒执行
+- `"5s"`: 每 5 秒执行
+- `"1m"`: 每 1 分钟执行
+- `"10m"`: 每 10 分钟执行
+- `"1h"`: 每 1 小时执行
+- `"24h"`: 每 24 小时执行
+
+### 管理定时任务
+
+通过返回的 `Future` 对象管理定时任务:
+
+```go
+future, err := driverbox.AddFunc("5s", func() {
+    fmt.Println("定时任务执行")
+})
+if err != nil {
+    driverbox.Log().Error("Add cron task failed", err)
+}
+
+// 禁用定时任务
 future.Disable()
 
-// 重新启用定时任务
-future.Enable()
-
-// 判断任务是否启用
-if future.IsActive() {
-    fmt.Println("任务正在运行")
-}
+// 注意: Future 对象没有 Enable() 方法
+// 任务被禁用后无法重新启用,需要重新创建任务
 ```
 
 ## 服务管理 API
