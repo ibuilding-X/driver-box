@@ -2,14 +2,16 @@ package mirror
 
 import "github.com/ibuilding-x/driver-box/driverbox/plugin"
 
-type EncodeModel struct {
+const MirrorConnectionKey = "mirror_connection_key"
+
+type encodeModel struct {
 	deviceId string
 	points   []plugin.PointData
 	mode     plugin.EncodeMode
 }
 
-// Device 原始设备
-type Device struct {
+// rawDevice 原始设备
+type rawDevice struct {
 	deviceId  string
 	pointName string
 }

@@ -12,7 +12,7 @@ type connector struct {
 	plugin *Plugin
 	//镜像设备与真实设备的映射关系，镜像设备ID：{镜像点位:原始设备点位}
 	//镜像设备的点位只会指向唯一的原始设备点位
-	mirrors map[string]map[string]Device
+	mirrors map[string]map[string]rawDevice
 	//真实设备点位与镜像设备的映射关系, rawDeviceId:{rawPointName:{mirrorDevice:[mirrorPoint]}}
 	//原始设备点位可能指向多个镜像设备和多个点位
 	//------------原始设备ID   原始点位    镜像点位------------
@@ -27,7 +27,7 @@ func (c *connector) Release() (err error) {
 // Send 发送请求
 func (c *connector) Send(raw interface{}) (err error) {
 	var e error
-	models := raw.([]EncodeModel)
+	models := raw.([]encodeModel)
 	for _, encodeModel := range models {
 		switch encodeModel.mode {
 		case plugin.WriteMode:
@@ -48,7 +48,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 // Encode 编码数据
 func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
 	//本次操作的点位可能涉及到多个通讯设备，要先进行归类
-	group := make(map[string]EncodeModel)
+	group := make(map[string]encodeModel)
 	for _, point := range values {
 		//匹配镜像设备
 		mirrorDevice, ok := c.mirrors[deviceId]
@@ -70,14 +70,14 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 			PointName: rawDevice.pointName,
 			Value:     point.Value,
 		})
-		group[rawDevice.deviceId] = EncodeModel{
+		group[rawDevice.deviceId] = encodeModel{
 			deviceId: rawDevice.deviceId,
 			points:   points,
 			mode:     mode,
 		}
 	}
 	//group转数组
-	models := make([]EncodeModel, 0)
+	models := make([]encodeModel, 0)
 	for _, model := range group {
 		models = append(models, model)
 	}

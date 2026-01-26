@@ -129,9 +129,10 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 		Description: device.Description,
 		//Ttl:         device.Ttl,
 		//Tags:        device.Tags,
-		Properties: properties,
-		DriverKey:  mirrorConfig.DriverKey,
-		ModelName:  rawModel.Name + "_mirror_" + deviceId,
+		Properties:    properties,
+		DriverKey:     mirrorConfig.DriverKey,
+		ModelName:     rawModel.Name + "_mirror_" + deviceId,
+		ConnectionKey: mirror.MirrorConnectionKey,
 	}
 
 	driverbox.CoreCache().UpdateDeviceProperty(deviceId, PropertyKeyAutoMirrorTo, mirrorDevice.ID)
@@ -182,6 +183,13 @@ func (export *Export) autoCreateMirrorDevice(deviceId string) error {
 	if e != nil {
 		driverbox.Log().Error("add mirror model error", zap.Error(e))
 		return e
+	}
+	p, c := driverbox.CoreCache().GetConnection(mirror.MirrorConnectionKey)
+	if c == nil {
+		driverbox.CoreCache().AddConnection(mirror.ProtocolName, mirror.MirrorConnectionKey, make(map[string]string))
+	} else if p != mirror.ProtocolName {
+		driverbox.Log().Error("mirror connection key already exists")
+		return errors.New("mirror connection key already exists")
 	}
 	//ready为false，说明不存在mirror目录
 	if export.plugin.IsReady() {

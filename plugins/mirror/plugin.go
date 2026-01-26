@@ -32,7 +32,7 @@ func NewPlugin() *Plugin {
 		instance.mutex = &sync.Mutex{}
 		instance.connector = &connector{
 			plugin:     instance,
-			mirrors:    make(map[string]map[string]Device),
+			mirrors:    make(map[string]map[string]rawDevice),
 			rawMapping: make(map[string]map[string][]plugin.DeviceData),
 		}
 	})
@@ -44,6 +44,8 @@ func (p *Plugin) Initialize(c config.DeviceConfig) {
 	for _, model := range c.DeviceModels {
 		deviceCount := len(model.Devices)
 		if deviceCount == 0 {
+			_ = driverbox.CoreCache().DeleteModel(model.Name)
+			driverbox.Log().Warn("delete model because of none device", zap.Any("model", model))
 			continue
 		}
 		if deviceCount > 1 {
@@ -54,6 +56,10 @@ func (p *Plugin) Initialize(c config.DeviceConfig) {
 		if err != nil {
 			driverbox.Log().Error("update mirror mapping failed", zap.Error(err))
 		}
+	}
+	//删除无用的连接
+	if len(c.DeviceModels) == 0 {
+		_ = driverbox.CoreCache().DeleteConnection(MirrorConnectionKey)
 	}
 	p.ready = true
 }
@@ -70,7 +76,7 @@ func (p *Plugin) UpdateMirrorMapping(model config.Model, device config.Device) e
 		return errors.New("mirror device id must be unique")
 	}
 
-	p.connector.mirrors[device.ID] = make(map[string]Device)
+	p.connector.mirrors[device.ID] = make(map[string]rawDevice)
 	for _, point := range model.DevicePoints {
 		//原始设备
 		rawD, ok1 := point.FieldValue("rawDevice")
@@ -80,21 +86,21 @@ func (p *Plugin) UpdateMirrorMapping(model config.Model, device config.Device) e
 			return errors.New("mirror point must have rawDevice and rawPoint")
 		}
 
-		rawDevice := rawD.(string)
+		raw := rawD.(string)
 
 		rawPoint := rawP.(string)
 		//创建镜像设备与原始设备的映射关系
-		p.connector.mirrors[device.ID][point.Name()] = Device{
-			deviceId:  rawDevice,
+		p.connector.mirrors[device.ID][point.Name()] = rawDevice{
+			deviceId:  raw,
 			pointName: rawPoint,
 		}
 
 		//真实设备点位与镜像设备的映射关系
-		if _, ok := p.connector.rawMapping[rawDevice]; !ok {
+		if _, ok := p.connector.rawMapping[raw]; !ok {
 			//初始化设备映射
-			p.connector.rawMapping[rawDevice] = make(map[string][]plugin.DeviceData)
+			p.connector.rawMapping[raw] = make(map[string][]plugin.DeviceData)
 		}
-		rawPointMapping := p.connector.rawMapping[rawDevice]
+		rawPointMapping := p.connector.rawMapping[raw]
 		if _, ok := rawPointMapping[rawPoint]; !ok {
 			//初始化点位映射
 			rawPointMapping[rawPoint] = make([]plugin.DeviceData, 0)
@@ -134,7 +140,7 @@ func (p *Plugin) IsReady() bool {
 }
 
 func (p *Plugin) Destroy() error {
-	p.connector.mirrors = make(map[string]map[string]Device)
+	p.connector.mirrors = make(map[string]map[string]rawDevice)
 	p.connector.rawMapping = make(map[string]map[string][]plugin.DeviceData)
 	p.ready = false
 	return nil
