@@ -1,4 +1,4 @@
-package mirror
+package plugin
 
 import "github.com/ibuilding-x/driver-box/driverbox/plugin"
 

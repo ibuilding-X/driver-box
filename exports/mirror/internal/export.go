@@ -2,16 +2,15 @@ package internal
 
 import (
 	"errors"
-	"os"
 	"sync"
 
 	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	mirror "github.com/ibuilding-x/driver-box/exports/mirror/internal/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/config"
 	"github.com/ibuilding-x/driver-box/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/pkg/event"
 	"github.com/ibuilding-x/driver-box/pkg/library"
-	"github.com/ibuilding-x/driver-box/plugins/mirror"
 	"go.uber.org/zap"
 )
 
@@ -29,10 +28,6 @@ type Export struct {
 }
 
 func (export *Export) Init() error {
-	if os.Getenv(config.ENV_EXPORT_MIRROR_ENABLED) == "false" {
-		driverbox.Log().Warn("mirror export is disabled")
-		return nil
-	}
 	//注册镜像插件
 	export.plugin = mirror.NewPlugin()
 
