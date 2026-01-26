@@ -1,48 +1,55 @@
 ---
-title: Gateway 网关
+title: 分布式网关
 ---
 
-# Gateway 网关
-
-Gateway 是 driver-box 提供的分布式网关功能，通过 WebSocket 长连接实现主网关与子网关之间的双向通信和数据同步。Gateway 功能由 **Gateway 插件** 和 **Gateway Export** 协同工作，实现设备数据的集中管理和远程控制。
-
-## 概览
-
-### 架构设计
-
-Gateway 功能采用**插件 + Export**的双角色架构：
-
-- **Gateway 插件** - 管理子网关连接，实现数据编解码
-- **Gateway Export** - 提供网关服务，接收子网关连接和数据同步
+Gateway 是 driver-box 提供的分布式网关功能，通过 WebSocket 长连接实现主网关与子网关之间的双向通信和数据同步。Gateway 功能由 **Gateway Plugin** 和 **Gateway Export** 协同工作，实现设备数据的集中管理和远程控制。
 
 ```mermaid
-graph LR
+graph TB
+    subgraph "上位机系统"
+        US[MES/SCADA]
+    end
+
     subgraph "主网关"
-        A[Gateway插件<br/>连接管理]
-        B[Gateway Export<br/>网关服务]
+        direction TB
+        GP[Gateway Plugin<br/>主动连接子网关]
     end
-    
-    subgraph "子网关"
-        C[WebSocket客户端]
+
+    subgraph "子网关1"
+        direction TB
+        SG1[Gateway Export]
+        P1[协议插件<br/>Modbus/OPC UA等]
     end
-    
-    A <-->|WebSocket| C
-    B <-->|WebSocket| C
-    
-    A -->|控制| B
-    B -->|数据| A
+
+    subgraph "子网关N"
+        direction TB
+        SG2[Gateway Export]
+        P2[协议插件]
+    end
+
+    US <-->|数据/控制| 主网关
+
+    GP <-->|注册/心跳/同步<br/>控制/数据上报| 子网关1
+    GP <--> 子网关N
+
+    SG1 -->|控制指令| P1
+    P1 -->|采集数据| SG1
+
+    SG2 --> P2
+    P2 --> SG2
+
+    style GP fill:#e1f5ff
+    style SG1 fill:#fff4e1
+    style SG2 fill:#fff4e1
 ```
 
-### 核心特性
-
-| 特性 | 说明 |
-|------|------|
-| **双向通信** | 支持主网关和子网关之间的双向数据传输 |
-| **自动重连** | 连接断开时自动重连，支持可配置重连间隔 |
-| **数据同步** | 自动同步模型、设备、影子数据 |
-| **远程控制** | 主网关可下发控制指令到子网关设备 |
-| **心跳保活** | 定期心跳检测连接状态 |
-| **并发支持** | 支持同时管理多个子网关 |
+**核心特性**
+- **双向通信**：支持主网关和子网关之间的双向数据传输
+- **自动重连**：连接断开时自动重连，支持可配置重连间隔
+- **数据同步**：自动同步模型、设备、影子数据
+- **远程控制**：主网关可下发控制指令到子网关设备
+- **心跳保活**：定期心跳检测连接状态
+- **并发支持**：支持同时管理多个子网关
 
 ## 快速开始
 
@@ -78,188 +85,125 @@ graph LR
 ### 3. 工作流程
 
 1. 主网关启动，加载连接配置
-2. 主动向子网关发起 WebSocket 连接
-3. 连接成功后发送注册消息
-4. 子网关返回注册响应，建立通信
-5. 开始数据同步和双向通信
+2. 主动向子网关发起 WebSocket 连接并注册
+3. 自动同步模型、设备、影子数据
+4. 开始数据上报和远程控制
+5. 定期心跳保活，断线自动重连
 
 ## 工作原理
 
-### Gateway 插件
+### 核心流程
 
-Gateway 插件负责管理子网关连接，实现数据编解码。
-
-**核心结构**：
-
-```go
-type GatewayPlugin struct {
-    connector *GatewayConnector
-}
-
-type GatewayConnector struct {
-    plugin      *GatewayPlugin
-    deviceId    string
-    gatewayIP   string
-    wsConn      *WebSocketClient
-    msgChan     chan []byte
-    destroyed   bool
-    mutex       sync.Mutex
-}
-```
-
-**编解码实现**：
-
-- **Encode**: 封装点位数据，准备发送
-- **Decode**: 解析 WebSocket 消息，提取设备数据
-
-### Gateway Export
-
-Gateway Export 作为网关服务端，接收子网关连接和数据同步。
-
-**核心结构**：
-
-```go
-type GatewayExport struct {
-    server *WSServer
-}
-
-type WSServer struct {
-    upgrade http.Upgrader
-    mutex  sync.Mutex
-}
-```
-
-**事件处理**：
-
-- **DeviceAdded**: 设备添加时触发
-- **Exporting**: 数据导出时触发
-- **DeviceOnline**: 设备在线状态变化时触发
-
-### 通信协议
-
-#### WebSocket URL 格式
-
-```
-ws://{主网关IP}:{HTTP端口}/gateway
-```
-
-#### 消息类型
-
-| 消息类型 | 方向 | 说明 | 数据结构 |
-|----------|------|------|----------|
-| WSForRegister | 主→子 | 注册请求 | `{type: 1, gatewayKey: string}` |
-| WSForRegisterRes | 子→主 | 注册响应 | `{type: 2, error?: string}` |
-| WSForUnregister | 主→子 | 注销请求 | `{type: 3}` |
-| WSForUnregisterRes | 子→主 | 注销响应 | `{type: 4, error?: string}` |
-| WSForPing | 主→子 | 心跳请求 | `{type: 5}` |
-| WSForPong | 子→主 | 心跳响应 | `{type: 6}` |
-| WSForSyncModels | 子→主 | 模型同步 | `{type: 7, models: Model[]}` |
-| WSForSyncModelsRes | 主→子 | 模型响应 | `{type: 8, error?: string}` |
-| WSForSyncDevices | 子→主 | 设备同步 | `{type: 9, devices: Device[]}` |
-| WSForSyncDevicesRes | 主→子 | 设备响应 | `{type: 10, error?: string}` |
-| WSForSyncShadow | 子→主 | 影子同步 | `{type: 11, shadow: Shadow[]}` |
-| WSForSyncShadowRes | 主→子 | 影子响应 | `{type: 12, error?: string}` |
-| WSForReport | 子→主 | 数据上报 | `{type: 13, deviceData: DeviceData}` |
-| WSForControl | 主→子 | 控制指令 | `{type: 14, deviceData: DeviceData}` |
-| WSForControlRes | 子→主 | 控制响应 | `{type: 15, error?: string}` |
-
-### 连接建立流程
+Gateway 通过主网关与子网关的 WebSocket 长连接实现分布式数据采集和远程控制。整体流程分为连接建立、数据同步、正常运行三个阶段：
 
 ```mermaid
-graph TD
-    A[主网关启动] --> B[读取连接配置]
-    B --> C[创建连接器]
-    C --> D[启动连接协程]
-    D --> E[建立WebSocket连接]
-    E --> F{连接成功?}
-    F -->|否| G[等待重连间隔]
-    G --> D
-    F -->|是| H[发送注册消息]
-    H --> I[子网关验证]
-    I --> J[返回注册响应]
-    J --> K[连接建立完成]
+sequenceDiagram
+    autonumber
+    participant 主网关插件
+    participant 主网关Export
+    participant 子网关Export
+    participant 现场设备
+    participant 上层系统
+
+    Note over 主网关插件,上层系统: 1. 连接建立
+    主网关插件->>子网关Export: WebSocket连接
+    主网关插件->>子网关Export: WSForRegister注册
+    子网关Export-->>主网关插件: WSForRegisterRes
+
+    Note over 主网关插件,上层系统: 2. 数据同步
+    子网关Export->>主网关插件: WSForSyncModels
+    子网关Export->>主网关插件: WSForSyncDevices
+    子网关Export->>主网关插件: WSForSyncShadow
+    主网关插件-->>子网关Export: 响应确认
+
+    Note over 主网关插件,上层系统: 3. 正常运行
+    loop 数据上报
+        现场设备->>子网关Export: 设备数据
+        子网关Export->>主网关插件: WSForReport
+        主网关插件->>上层系统: 导出数据
+    end
+
+    loop 心跳保活
+        主网关插件->>子网关Export: WSForPing
+        子网关Export-->>主网关插件: WSForPong
+    end
+
+    Note over 主网关插件,上层系统: 远程控制
+    上层系统->>主网关插件: 控制指令
+    主网关插件->>子网关Export: WSForControl
+    子网关Export->>现场设备: 执行控制
+    现场设备-->>主网关插件: WSForControlRes
 ```
 
-### 数据同步流程
+### 组件职责
 
-#### 模型同步
+#### Gateway 插件
 
-```mermaid
-graph TD
-    A[子网关启动] --> B[加载本地模型]
-    B --> C[发送WSForSyncModels]
-    C --> D[主网关存储模型]
-    D --> E[返回WSForSyncModelsRes]
-    E --> F[同步完成]
-```
+- **连接管理**：创建并管理多个 `GatewayConnector` 实例，每个管理一个子网关连接
+- **数据编解码**：Encode/Decode WebSocket 消息
+- **数据转发**：在主网关 Export 和子网关之间转发数据和控制指令
 
-#### 设备同步
+#### Gateway Export
 
-```mermaid
-graph TD
-    A[子网关设备列表] --> B[发送WSForSyncDevices]
-    B --> C[主网关合并配置]
-    C --> D[更新连接键为网关IP]
-    D --> E[返回WSForSyncDevicesRes]
-    E --> F[同步完成]
-```
+- **服务端**：接收子网关的 WebSocket 连接请求
+- **注册验证**：验证 gatewayKey，管理已注册连接
+- **消息分发**：根据消息类型分发到对应处理器
+- **事件触发**：DeviceAdded、Exporting、DeviceOnline
 
-#### 影子同步
+### 数据同步
 
-```mermaid
-graph TD
-    A[子网关影子数据] --> B[发送WSForSyncShadow]
-    B --> C[主网关更新影子]
-    C --> D[返回WSForSyncShadowRes]
-    D --> E[同步完成]
-```
+子网关连接成功后，自动同步三类数据：
 
-#### 数据上报
+**模型同步**：加载本地模型定义 → 添加 SerialNo 前缀 → 存储到主网关
 
-```mermaid
-graph TD
-    A[子网关采集数据] --> B[构造DeviceData]
-    B --> C[发送WSForReport]
-    C --> D[主网关解析数据]
-    D --> E[导出到上层系统]
-```
+**设备同步**：加载设备列表 → 添加 SerialNo 前缀 → 重写 ConnectionKey 为 gatewayIP → 合并主网关配置 → 注册到系统
 
-#### 控制下发
-
-```mermaid
-graph TD
-    A[主网关接收写请求] --> B[路由到子网关]
-    B --> C[发送WSForControl]
-    C --> D[子网关执行操作]
-    D --> E[返回WSForControlRes]
-    E --> F[更新设备影子]
-```
+**影子同步**：加载设备影子 → 添加前缀 → 更新主网关影子系统
 
 ### 重连机制
 
-```mermaid
-graph TD
-    A[连接断开] --> B{已销毁?}
-    B -->|是| C[停止重连]
-    B -->|否| D[等待重连间隔]
-    D --> E[重新建立连接]
-    E --> F[重新注册]
-    F -->|失败| D
-    F -->|成功| G[连接恢复]
-```
+连接断开时，主网关自动重连：
 
-**重连特性**：
-- 自动重连，无需人工干预
-- 可配置重连间隔
-- 销毁时优雅停止
-- 指数退避策略
+1. 检测连接断开
+2. 判断是否已销毁
+3. 未销毁则等待 `reconnect_interval`
+4. 重新建立 WebSocket 连接
+5. 成功后重新注册并同步所有数据
+6. 失败则指数退避继续重试
+
+**特性**：自动重连、可配置间隔、指数退避、销毁时优雅停止
 
 ### 心跳保活
 
-- **Ping 间隔**: 主网关定期发送心跳
-- **Pong 响应**: 子网关立即回复
-- **超时检测**: 连续失败触发重连
-- **状态维护**: 通过影子系统维护在线状态
+- **Ping 间隔**：主网关定期发送心跳（默认 30 秒）
+- **Pong 响应**：子网关立即回复
+- **超时检测**：连续失败触发重连
+
+### 通信协议
+
+#### WebSocket 连接
+
+**URL 格式**：`ws://{主网关IP}:{HTTP端口}/gateway`
+
+**示例**：`ws://192.168.1.10:8080/gateway`
+
+#### 消息类型
+
+| 消息类型 | 方向 | 说明 |
+|----------|------|------|
+| WSForRegister | 主→子 | 注册请求 |
+| WSForRegisterRes | 子→主 | 注册响应 |
+| WSForPing | 主→子 | 心跳请求 |
+| WSForPong | 子→主 | 心跳响应 |
+| WSForSyncModels | 子→主 | 模型同步 |
+| WSForSyncModelsRes | 主→子 | 模型响应 |
+| WSForSyncDevices | 子→主 | 设备同步 |
+| WSForSyncDevicesRes | 主→子 | 设备响应 |
+| WSForSyncShadow | 子→主 | 影子同步 |
+| WSForSyncShadowRes | 主→子 | 影子响应 |
+| WSForReport | 子→主 | 数据上报 |
+| WSForControl | 主→子 | 控制指令 |
+| WSForControlRes | 子→主 | 控制响应 |
 
 ## 数据映射
 
