@@ -164,7 +164,7 @@ func InitCoreCache(plugins map[string]plugin.Plugin) (obj CoreCache, err error) 
 			plugin: p,
 		}
 	}
-	err = instance.loadConfig(plugins)
+	err = instance.loadConloadCfig(plugins)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func convertConfig(pluginName string) config.DeviceConfig {
 		PluginName:   pluginName,
 	}
 }
-func (c *cache) loadConfig(plugins map[string]plugin.Plugin) error {
+func (c *cache) loadConloadCfig(plugins map[string]plugin.Plugin) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	driverPath := path.Join(config.ResourcePath, "driver")
@@ -611,7 +611,9 @@ func (c *cache) AddOrUpdateDevice(dev config.Device) error {
 				dev.ModelName, storedDeviceBase.ModelName)
 		}
 	} else {
-		defer export.TriggerEvents(event.DeviceAdded, dev.ID, nil)
+		defer func() {
+			go export.TriggerEvents(event.DeviceAdded, dev.ID, nil)
+		}()
 	}
 	c.devices[dev.ID] = cacheDevice{
 		Device: dev,
