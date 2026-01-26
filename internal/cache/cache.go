@@ -684,7 +684,7 @@ func (c *cache) AddModel(pluginName string, model config.Model) error {
 	old, ok := c.models[model.Name]
 	if ok {
 		if old.pluginName != pluginName {
-			return errors.New("model " + model.Name + " already exists in" + old.pluginName)
+			return errors.New("model " + model.Name + " already exists in " + old.pluginName)
 		}
 		logger.Logger.Info("model already exists, updating...", zap.String("modelName", model.Name))
 	}
@@ -695,8 +695,9 @@ func (c *cache) AddModel(pluginName string, model config.Model) error {
 	//释放模型点位内存空间
 	model.DevicePoints = nil
 	c.models[model.Name] = cacheModel{
-		Model:  model,
-		points: points,
+		pluginName: pluginName,
+		Model:      model,
+		points:     points,
 	}
 	c.flushable(pluginName)
 	return nil
