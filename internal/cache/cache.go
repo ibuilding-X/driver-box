@@ -681,9 +681,12 @@ func (c *cache) AddModel(pluginName string, model config.Model) error {
 	if !exists {
 		return errors.New("plugin " + pluginName + " not exists")
 	}
-	_, ok := c.models[model.Name]
+	old, ok := c.models[model.Name]
 	if ok {
-		return errors.New("model " + model.Name + " already exists")
+		if old.pluginName != pluginName {
+			return errors.New("model " + model.Name + " already exists in" + old.pluginName)
+		}
+		logger.Logger.Info("model already exists, updating...", zap.String("modelName", model.Name))
 	}
 	points := make(map[string]*config.Point)
 	for i, point := range model.DevicePoints {
