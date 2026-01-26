@@ -611,6 +611,7 @@ func (c *cache) AddOrUpdateDevice(dev config.Device) error {
 				dev.ModelName, storedDeviceBase.ModelName)
 		}
 	} else {
+		//协程触发，避免死锁
 		defer func() {
 			go export.TriggerEvents(event.DeviceAdded, dev.ID, nil)
 		}()
