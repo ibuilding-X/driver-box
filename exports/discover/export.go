@@ -13,18 +13,18 @@ import (
 	"go.uber.org/zap"
 )
 
-var driverInstance *Export
+var driverInstance *export
 var once = &sync.Once{}
 
 // 设备自动发现插件
-type Export struct {
+type export struct {
 	ready bool
 }
 
 func EnableExport() {
-	driverbox.EnableExport(NewExport())
+	driverbox.EnableExport(newExport())
 }
-func (export *Export) Init() error {
+func (export *export) Init() error {
 	if os.Getenv(config.ENV_EXPORT_DISCOVER_ENABLED) == "false" {
 		driverbox.Log().Warn("discover export is disabled")
 		return nil
@@ -32,20 +32,20 @@ func (export *Export) Init() error {
 	export.ready = true
 	return nil
 }
-func NewExport() *Export {
+func newExport() *export {
 	once.Do(func() {
-		driverInstance = &Export{}
+		driverInstance = &export{}
 	})
 	return driverInstance
 }
 
-func (export *Export) Destroy() error {
+func (export *export) Destroy() error {
 	export.ready = false
 	return nil
 }
 
 // 点位变化触发场景联动
-func (export *Export) ExportTo(deviceData plugin.DeviceData) {
+func (export *export) ExportTo(deviceData plugin.DeviceData) {
 	//设备点位已通过
 	//if export.plugin.VirtualConnector != nil && len(deviceData.Events) > 0 {
 	//	driverbox.Log().Info("export to virtual connector", zap.Any("deviceData", deviceData))
@@ -54,7 +54,7 @@ func (export *Export) ExportTo(deviceData plugin.DeviceData) {
 }
 
 // 继承Export OnEvent接口
-func (export *Export) OnEvent(eventCode event.EventCode, key string, eventValue interface{}) error {
+func (export *export) OnEvent(eventCode event.EventCode, key string, eventValue interface{}) error {
 	switch eventCode {
 	case event.DeviceDiscover:
 		return export.deviceAutoDiscover(key, eventValue)
@@ -63,7 +63,7 @@ func (export *Export) OnEvent(eventCode event.EventCode, key string, eventValue 
 }
 
 // 设备自动发现
-func (export *Export) deviceAutoDiscover(deviceId string, value interface{}) error {
+func (export *export) deviceAutoDiscover(deviceId string, value interface{}) error {
 	driverbox.Log().Info("device auto discover", zap.Any("deviceId", deviceId), zap.Any("value", value))
 	deviceDiscover := DeviceDiscover{}
 	if err := convutil.Struct(value, &deviceDiscover); err != nil {
@@ -125,6 +125,6 @@ func (export *Export) deviceAutoDiscover(deviceId string, value interface{}) err
 	return nil
 }
 
-func (export *Export) IsReady() bool {
+func (export *export) IsReady() bool {
 	return export.ready
 }
