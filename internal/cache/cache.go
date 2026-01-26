@@ -164,7 +164,7 @@ func InitCoreCache(plugins map[string]plugin.Plugin) (obj CoreCache, err error) 
 			plugin: p,
 		}
 	}
-	err = instance.loadConloadCfig(plugins)
+	err = instance.loadConfig(plugins)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func convertConfig(pluginName string) config.DeviceConfig {
 		PluginName:   pluginName,
 	}
 }
-func (c *cache) loadConloadCfig(plugins map[string]plugin.Plugin) error {
+func (c *cache) loadConfig(plugins map[string]plugin.Plugin) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	driverPath := path.Join(config.ResourcePath, "driver")
