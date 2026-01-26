@@ -692,8 +692,6 @@ func (c *cache) AddModel(pluginName string, model config.Model) error {
 	for i, point := range model.DevicePoints {
 		points[point.Name()] = &model.DevicePoints[i]
 	}
-	//释放模型点位内存空间
-	model.DevicePoints = nil
 	c.models[model.Name] = cacheModel{
 		pluginName: pluginName,
 		Model:      model,
