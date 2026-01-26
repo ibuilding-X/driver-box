@@ -6,16 +6,19 @@ type EventCode string
 const (
 	//设备在离线状态事件
 	DeviceOnline = EventCode("deviceOnline")
-	//driver-box服务状态
-	ServiceStatus = EventCode("serviceStatus")
+	//设备自动发现事件
+	DeviceDiscover = EventCode("deviceDiscover")
+	//设备开关机事件
+	OnOff = EventCode("onOff")
 	//添加设备
 	DeviceAdded = EventCode("deviceAdded")
 	//即将删除设备,在该事件中依旧可以查询设备信息
 	DeviceDeleting = EventCode("deviceDeleting")
+	//driver-box服务状态
+	ServiceStatus = EventCode("serviceStatus")
+
 	//即将执行ExportTo
 	Exporting = EventCode("exporting")
-	//设备自动发现事件
-	DeviceDiscover = EventCode("deviceDiscover")
 
 	// DoExport 插件回调事件
 	DoExport = EventCode("export")
