@@ -196,9 +196,16 @@ func convertConfig(pluginName string) config.DeviceConfig {
 	}
 	models := make([]config.DeviceModel, 0, len(instance.models))
 	for _, model := range instance.models {
+		if model.pluginName != pluginName {
+			continue
+		}
 		devices := make([]config.Device, 0)
 		for _, device := range instance.devices {
 			if device.ModelName == model.Name {
+				//补充校验逻辑，避免存在bug
+				if device.PluginName != pluginName {
+					logger.Logger.Error("device pluginName not equal", zap.Any("device", device))
+				}
 				devices = append(devices, device.Device)
 			}
 		}
@@ -300,7 +307,7 @@ func (c *cache) loadConfig(plugins map[string]plugin.Plugin) error {
 			model.Devices = nil
 			m, ok := c.models[model.Name]
 			if ok {
-				logger.Logger.Error("model exists！", zap.Any("model", m))
+				logger.Logger.Error("model exists！", zap.Any("model", m), zap.String("protocol", m.pluginName))
 				return errors.New("model " + model.Name + " already exists")
 			}
 			c.models[model.Name] = cacheModel{
