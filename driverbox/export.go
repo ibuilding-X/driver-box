@@ -32,7 +32,7 @@ func init() {
 //
 //	func (c *CustomExport) Init() error { return nil }
 //	func (c *CustomExport) ExportTo(deviceData plugin.DeviceData) {}
-//	func (c *CustomExport) OnEvent(eventCode string, key string, eventValue interface{}) error { return nil }
+//	func (c *CustomExport) OnEvent(eventCode event.EventCode, key string, eventValue interface{}) error { return nil }
 //	func (c *CustomExport) IsReady() bool { return true }
 //	func (c *CustomExport) Destroy() error { return nil }
 //
@@ -50,8 +50,10 @@ func EnableExport(export export.Export) {
 // TriggerEvents 触发事件通知到所有已加载的Export插件
 // 参数:
 //   - eventCode: 事件代码，标识事件类型
-//   - key: 事件关联的键值，通常是设备ID或其他标识符
-//   - value: 事件携带的数据值，可以是任意类型
+//     常见事件类型: event.DeviceDiscover(设备发现), event.SceneTrigger(场景触发),
+//     event.ServiceStatus(服务状态变更), event.Exporting(导出前事件)等
+//   - key: 事件关联的键值，通常是设备ID、服务序列号或其他唯一标识
+//   - value: 事件携带的数据值，可以是任意类型的数据
 //
 // 功能:
 //
@@ -59,7 +61,9 @@ func EnableExport(export export.Export) {
 //	如果Export插件未就绪，则跳过该插件
 //	记录事件处理过程中的错误信息
 //
-// 常见事件类型:
+// 注意事项:
+//   - 此函数会并发调用各个Export插件的OnEvent方法
+//   - 单个插件处理失败不影响其他插件的处理
 func TriggerEvents(eventCode event.EventCode, key string, value interface{}) {
 	export0.TriggerEvents(eventCode, key, value)
 }
@@ -68,13 +72,14 @@ func TriggerEvents(eventCode event.EventCode, key string, value interface{}) {
 // 这是设备数据导出的核心函数，负责将设备数据分发到所有已注册的Export模块
 // 参数:
 //   - deviceData: 设备数据数组，包含设备ID、数值、事件等信息
+//     每个DeviceData包含: ID(设备ID), Values(点位值数组), Events(事件数组), ExportType(导出类型)
 //
 // 处理流程:
 //  1. 记录调试日志
-//  2. 触发插件回调事件
+//  2. 触发插件回调事件(event.DoExport)
 //  3. 遍历每个设备数据:
 //     - 如果设备有事件，则触发事件通知
-//     - 对点位数据进行缓存过滤
+//     - 对点位数据进行缓存过滤(根据报告模式过滤不变的点位值)
 //     - 如果设备没有数值数据则跳过
 //     - 将数据导出到所有已准备好的Export插件
 //
@@ -109,13 +114,15 @@ func Export(deviceData []plugin.DeviceData) {
 // BaseExport 获取基础导出模块实例
 // 基础导出模块提供标准的API接口和其他基本导出功能
 // 返回值:
-//   - base.BaseExport: 基础导出模块实例
+//   - base.BaseExport: 基础导出模块实例，可用来注册自定义API、配置服务等
 //
 // 使用示例:
 //
 //	baseExport := driverbox.BaseExport()
 //	// 注册自定义API接口
 //	// baseExport.RegisterAPI("/custom/api", handler)
+//	// 配置HTTP服务器参数
+//	// baseExport.SetHTTPConfig(config)
 func BaseExport() base.BaseExport {
 	return base.Get()
 }
@@ -128,6 +135,11 @@ func BaseExport() base.BaseExport {
 // 4. 触发预导出事件
 // 参数:
 //   - deviceData: 指向设备数据的指针，函数会直接修改该数据
+//
+// 过滤逻辑:
+//   - 如果点位报告模式为ReportMode_Change且值未变化，则过滤掉该点位
+//   - 将处理后的数据缓存到设备影子中
+//   - 触发event.Exporting事件供其他模块处理
 func pointCacheFilter(deviceData *plugin.DeviceData) {
 	// 设备层驱动，对点位进行预处理
 	err := pointValueProcess(deviceData)
@@ -189,6 +201,13 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 //
 // 返回值:
 //   - error: 处理过程中发生的错误
+//
+// 处理流程:
+//   - 检查设备是否存在及是否有驱动配置
+//   - 使用设备驱动对点位值进行解码处理
+//   - 执行类型转换确保值符合点位定义
+//   - 应用缩放因子调整数值精度
+//   - 应用小数位数限制
 func pointValueProcess(deviceData *plugin.DeviceData) error {
 	device, ok := CoreCache().GetDevice(deviceData.ID)
 	if !ok {
@@ -255,12 +274,16 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 // multiplyWithFloat64 将任意数值类型与浮点数相乘
 // 该函数处理各种数值类型的乘法运算，并将其结果转换为float64
 // 参数:
-//   - value: 需要相乘的值，支持多种数值类型
-//   - scale: 乘数，浮点数
+//   - value: 需要相乘的值，支持多种数值类型(int, float, uint等)
+//   - scale: 乘数，浮点数，通常用于精度换算
 //
 // 返回值:
-//   - float64: 相乘结果
+//   - float64: 相乘结果，统一为float64类型
 //   - error: 类型不支持时返回错误
+//
+// 支持的类型:
+//   - 整数类型: int, int16, int32, int64, uint16, uint32, uint64
+//   - 浮点类型: float32, float64
 func multiplyWithFloat64(value interface{}, scale float64) (float64, error) {
 	switch v := value.(type) {
 	case float64:

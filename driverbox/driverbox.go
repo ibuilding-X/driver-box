@@ -26,7 +26,8 @@ import (
 // 4. 启动所有插件
 // 5. 触发服务状态事件
 // 返回值:
-//   - error: 启动过程中发生的任何错误
+//
+//	error: 启动过程中发生的任何错误，如配置加载失败、端口占用等
 //
 // 使用示例:
 //
@@ -77,7 +78,8 @@ func Start() error {
 // 4. 重置影子服务
 // 5. 清除核心缓存数据
 // 返回值:
-//   - error: 停止过程中发生的任何错误(当前总是返回nil)
+//
+//	error: 停止过程中发生的任何错误(当前总是返回nil)
 //
 // 使用示例:
 //
@@ -109,7 +111,8 @@ func Stop() error {
 // initEnvConfig 初始化环境配置
 // 设置资源配置路径，默认为"./res"
 // 返回值:
-//   - error: 初始化过程中发生的错误
+//
+//	error: 初始化过程中发生的错误
 func initEnvConfig() error {
 	dir := os.Getenv(config.ENV_RESOURCE_PATH)
 	if dir == "" {
@@ -124,11 +127,13 @@ func initEnvConfig() error {
 // ReadPoint 触发对指定设备点位的读取操作
 // 该函数会将读取指令下发到驱动层
 // 参数:
-//   - deviceId: 设备唯一标识符
-//   - pointName: 需要读取的点位名称
+//
+//	deviceId: 设备唯一标识符
+//	pointName: 需要读取的点位名称
 //
 // 返回值:
-//   - error: 操作过程中发生的错误
+//
+//	error: 操作过程中发生的错误，如设备不存在、点位不存在、通信失败等
 //
 // 使用示例:
 //
@@ -145,11 +150,13 @@ func ReadPoint(deviceId string, pointName string) error {
 // WritePoint 触发对指定设备点位的写入操作
 // 该函数会将写入指令下发到驱动层
 // 参数:
-//   - deviceId: 设备唯一标识符
-//   - pointData: 包含点位名称和值的结构体
+//
+//	deviceId: 设备唯一标识符
+//	pointData: 包含点位名称和值的结构体
 //
 // 返回值:
-//   - error: 操作过程中发生的错误
+//
+//	error: 操作过程中发生的错误，如设备不存在、点位不存在、值类型错误、通信失败等
 //
 // 使用示例:
 //
@@ -168,11 +175,13 @@ func WritePoint(deviceId string, pointData plugin.PointData) error {
 // WritePoints 批量写入多个设备点位
 // 该函数会将批量写入指令下发到驱动层
 // 参数:
-//   - deviceId: 设备唯一标识符
-//   - pointData: 包含多个点位名称和值的数组
+//
+//	deviceId: 设备唯一标识符
+//	pointData: 包含多个点位名称和值的数组
 //
 // 返回值:
-//   - error: 操作过程中发生的错误
+//
+//	error: 操作过程中发生的错误，如设备不存在、部分点位不存在、值类型错误、通信失败等
 //
 // 使用示例:
 //
@@ -191,11 +200,13 @@ func WritePoints(deviceId string, pointData []plugin.PointData) error {
 // ReadPoints 批量读取多个设备点位
 // 该函数会将批量读取指令下发到驱动层
 // 参数:
-//   - deviceId: 设备唯一标识符
-//   - pointData: 包含多个点位名称的数组
+//
+//	deviceId: 设备唯一标识符
+//	pointData: 包含多个点位名称的数组
 //
 // 返回值:
-//   - error: 操作过程中发生的错误
+//
+//	error: 操作过程中发生的错误，如设备不存在、部分点位不存在、通信失败等
 //
 // 使用示例:
 //

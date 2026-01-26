@@ -10,12 +10,13 @@ import (
 // 该记录器已经过初始化配置，可以直接使用
 //
 // 返回值:
-//   - *zap.Logger: zap日志记录器实例
+//   - *zap.Logger: 预配置的zap日志记录器实例，支持结构化日志记录
 //
 // 使用示例:
 //
 //	driverbox.Log().Info("Service started", zap.String("version", "1.0.0"))
 //	driverbox.Log().Error("Failed to connect", zap.Error(err))
+//	driverbox.Log().Debug("Debug information", zap.Any("data", data))
 func Log() *zap.Logger {
 	return logger.Logger
 }
