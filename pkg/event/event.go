@@ -9,7 +9,7 @@ const (
 	//设备自动发现事件
 	DeviceDiscover = EventCode("deviceDiscover")
 	//设备开关机事件
-	OnOff = EventCode("onOff")
+	DeviceOnOff = EventCode("onOff")
 	//添加设备
 	DeviceAdded = EventCode("deviceAdded")
 	//即将删除设备,在该事件中依旧可以查询设备信息
