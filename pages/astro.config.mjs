@@ -25,18 +25,6 @@ export default defineConfig({
                   s.parentNode.insertBefore(hm, s);
                 })();
           `
-        }, {
-            tag: 'link',
-            attrs: {
-                rel: 'stylesheet',
-                href: '/styles/mermaid.css'
-            }
-        }, {
-            tag: 'link',
-            attrs: {
-                rel: 'stylesheet',
-                href: '/styles/global.css'
-            }
         }],
         sidebar: [{
             label: '使用指南',
