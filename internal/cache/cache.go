@@ -752,6 +752,12 @@ func (c *cache) Flush(pluginName string) {
 		logger.Logger.Error("marshal config error", zap.Error(err))
 		return
 	}
+	// 确保目录存在
+	dir := path.Dir(p.FilePath)
+	if err := createDir(dir); err != nil {
+		logger.Logger.Error("create directory error", zap.String("dir", dir), zap.Error(err))
+		return
+	}
 	err = os.WriteFile(p.FilePath, bytes, 0644)
 	if err != nil {
 		logger.Logger.Error("write config file error", zap.Error(err))
