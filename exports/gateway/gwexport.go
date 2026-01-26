@@ -1,7 +1,6 @@
 package gateway
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/export"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/pkg/event"
 )
@@ -33,10 +32,4 @@ func (g *gatewayExport) OnEvent(eventCode event.EventCode, key string, eventValu
 
 func (g *gatewayExport) IsReady() bool {
 	return true
-}
-
-func New() export.Export {
-	return &gatewayExport{
-		wss: &websocketService{},
-	}
 }

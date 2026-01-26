@@ -3,7 +3,6 @@ package plugins
 import (
 	"github.com/ibuilding-x/driver-box/plugins/bacnet"
 	"github.com/ibuilding-x/driver-box/plugins/dlt645"
-	"github.com/ibuilding-x/driver-box/plugins/gateway"
 	"github.com/ibuilding-x/driver-box/plugins/httpclient"
 	"github.com/ibuilding-x/driver-box/plugins/httpserver"
 	"github.com/ibuilding-x/driver-box/plugins/modbus"
@@ -21,5 +20,4 @@ func EnableAll() {
 	tcpserver.EnablePlugin()
 	mqtt.EnablePlugin()
 	dlt645.EnablePlugin()
-	gateway.EnablePlugin()
 }
