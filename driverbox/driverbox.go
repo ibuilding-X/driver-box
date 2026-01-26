@@ -35,24 +35,24 @@ import (
 //	    driverbox.Log().Fatal("Failed to start driver-box", zap.Error(err))
 //	}
 func Start() error {
-	//第一步：加载配置文件DriverConfig
+	// 第一步：加载配置文件DriverConfig
 	err := initEnvConfig()
 	if err != nil {
 		fmt.Println("init env config error", err)
 		return err
 	}
 
-	//第二步：初始化日志记录器
+	// 第二步：初始化日志记录器
 	logger.InitLogger(os.Getenv(config.ENV_LOG_PATH), os.Getenv(config.ENV_LOG_LEVEL))
 
-	//第四步：启动Export
+	// 第三步：启动Export
 	for _, item := range export0.Exports {
 		if err := item.Init(); err != nil {
 			Log().Error("init export error", zap.Error(err))
 		}
 	}
 
-	//第六步：启动driver-box插件
+	// 第四步：启动driver-box插件
 	err = loadPlugins()
 	if err != nil {
 		Log().Error(err.Error())
@@ -88,9 +88,10 @@ func Start() error {
 //	}
 func Stop() error {
 	var e error
-	//清理存量定时器
+	// 第一步：清理存量定时器
 	crontab.Instance().Clear()
 
+	// 第二步：销毁所有Export模块
 	for _, item := range export0.Exports {
 		e = item.Destroy()
 		if e != nil {
@@ -98,13 +99,19 @@ func Stop() error {
 		}
 	}
 	export0.Exports = make([]export.Export, 0)
-	//注册基础Export
+	// 重新注册基础Export
 	EnableExport(base.Get())
+
+	// 第三步：销毁插件
 	destroyPlugins()
 	plugins.clear()
+
+	// 第四步：重置影子服务
 	shadow.Reset()
-	// 4. 清除核心缓存数据
+
+	// 第五步：清除核心缓存数据
 	cache.Reset()
+
 	return nil
 }
 
@@ -112,7 +119,7 @@ func Stop() error {
 // 设置资源配置路径，默认为"./res"
 // 返回值:
 //
-//	error: 初始化过程中发生的错误
+//	error: 初始化过程中发生的错误，当前实现总是返回nil
 func initEnvConfig() error {
 	dir := os.Getenv(config.ENV_RESOURCE_PATH)
 	if dir == "" {

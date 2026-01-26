@@ -4,24 +4,48 @@ import (
 	"time"
 )
 
-// Device 设备
+// Device 设备影子数据结构
+// 用于存储设备的完整状态信息,包括在线状态、点位值、连接统计等
 type Device struct {
-	ID              string                 `json:"id"`
-	ModelName       string                 `json:"modelName"`
-	Points          map[string]DevicePoint `json:"points"`
-	Online          bool                   `json:"online"`
-	TTL             string                 `json:"ttl"`
-	DisconnectTimes int                    `json:"disconnectTimes"`
-	UpdatedAt       time.Time              `json:"updatedAt"`
+	// ID 设备唯一标识符
+	ID string `json:"id"`
+
+	// ModelName 设备模型名称,对应设备定义的模型类型
+	ModelName string `json:"modelName"`
+
+	// Points 设备点位数据集合,key为点位名称,value为点位详细信息
+	Points map[string]DevicePoint `json:"points"`
+
+	// Online 设备在线状态,true表示在线,false表示离线
+	Online bool `json:"online"`
+
+	// TTL 设备状态存活时间,超过此时间未更新则认为设备可能离线
+	TTL string `json:"ttl"`
+
+	// DisconnectTimes 设备累计断开连接次数,用于监控设备稳定性
+	DisconnectTimes int `json:"disconnectTimes"`
+
+	// UpdatedAt 设备状态最后更新时间
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-// DevicePoint 设备点位
+// DevicePoint 设备点位影子数据结构
+// 用于存储单个点位的值、写入值及时间戳信息
 type DevicePoint struct {
-	Name       string      `json:"name"`
-	Value      interface{} `json:"value"`
+	// Name 点位名称,与设备模型中定义的点位名称一致
+	Name string `json:"name"`
+
+	// Value 点位当前值,表示设备上报的最新值
+	Value interface{} `json:"value"`
+
+	// WriteValue 最近一次下发给设备的控制值
 	WriteValue interface{} `json:"writeValue"`
-	UpdatedAt  time.Time   `json:"updatedAt"`
-	WriteAt    time.Time   `json:"writeAt"`
+
+	// UpdatedAt 点位值最后更新时间
+	UpdatedAt time.Time `json:"updatedAt"`
+
+	// WriteAt 写入值最后更新时间
+	WriteAt time.Time `json:"writeAt"`
 }
 
 // DeviceShadow 设备影子
