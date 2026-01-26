@@ -1,0 +1,465 @@
+/* Mermaid 图表全局样式优化 */
+
+/* 容器样式 */
+.mermaid {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 16px;
+    padding: 28px;
+    margin: 28px 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    overflow-x: auto;
+    position: relative;
+}
+
+.mermaid::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+    border-radius: 16px 16px 0 0;
+}
+
+/* 节点样式 - 优化视觉层次 */
+.mermaid .node rect,
+.mermaid .node circle,
+.mermaid .node ellipse,
+.mermaid .node polygon {
+    stroke-width: 2.5px;
+    rx: 10px;
+    ry: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.05));
+}
+
+.mermaid .node:hover rect,
+.mermaid .node:hover circle,
+.mermaid .node:hover ellipse,
+.mermaid .node:hover polygon {
+    stroke-width: 3px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1)) brightness(1.05);
+    transform: translateY(-2px);
+}
+
+.mermaid .node text {
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* 连接线样式 - 增强可读性 */
+.mermaid .edgePath path {
+    stroke-width: 2.5px;
+    stroke: #64748b;
+    fill: none;
+    transition: all 0.3s ease;
+    stroke-linecap: round;
+}
+
+.mermaid .edgePath:hover path {
+    stroke-width: 3.5px;
+    stroke: #1e293b;
+    filter: drop-shadow(0 0 2px rgba(30, 41, 59, 0.3));
+}
+
+.mermaid .edgePath marker path {
+    fill: #64748b;
+    transition: all 0.3s ease;
+}
+
+.mermaid .edgePath:hover marker path {
+    fill: #1e293b;
+    transform: scale(1.2);
+}
+
+/* 子图样式 - 增强视觉分组 */
+.mermaid .cluster rect {
+    stroke-width: 2.5px;
+    stroke: #94a3b8;
+    fill: #f1f5f9;
+    rx: 12px;
+    ry: 12px;
+    opacity: 0.95;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.05));
+}
+
+.mermaid .cluster text {
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    fill: #0f172a;
+    letter-spacing: 0.6px;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* 序列图特定样式 */
+.mermaid .actor rect {
+    stroke-width: 2.5px;
+    rx: 10px;
+    ry: 10px;
+    fill: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    stroke: #0ea5e9;
+    filter: drop-shadow(0 2px 4px rgba(14, 165, 233, 0.2));
+}
+
+.mermaid .actor text {
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0c4a6e;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.mermaid .note rect {
+    stroke-width: 2px;
+    rx: 8px;
+    ry: 8px;
+    fill: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    stroke: #f59e0b;
+    filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.2));
+}
+
+.mermaid .note text {
+    font-size: 13px;
+    font-weight: 600;
+    fill: #78350f;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* 状态图特定样式 */
+.mermaid .state rect {
+    stroke-width: 2.5px;
+    rx: 10px;
+    ry: 10px;
+    fill: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    stroke: #0ea5e9;
+    filter: drop-shadow(0 2px 4px rgba(14, 165, 233, 0.2));
+}
+
+.mermaid .state text {
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0c4a6e;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* 流程图特定样式 */
+.mermaid .flowchart .node rect {
+    stroke-width: 2.5px;
+    rx: 10px;
+    ry: 10px;
+    fill: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    stroke: #22c55e;
+    filter: drop-shadow(0 2px 4px rgba(34, 197, 94, 0.2));
+}
+
+.mermaid .flowchart .node text {
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    fill: #14532d;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* 深色模式适配 - 增强对比度 */
+@media (prefers-color-scheme: dark) {
+    .mermaid {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        border-color: #334155;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .mermaid::before {
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+    }
+
+    .mermaid .node rect,
+    .mermaid .node circle,
+    .mermaid .node ellipse,
+    .mermaid .node polygon {
+        stroke-width: 2.5px;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    }
+
+    .mermaid .node:hover rect,
+    .mermaid .node:hover circle,
+    .mermaid .node:hover ellipse,
+    .mermaid .node:hover polygon {
+        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4)) brightness(1.1);
+    }
+
+    .mermaid .node text {
+        fill: #f1f5f9;
+        font-weight: 800;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .mermaid .edgePath path {
+        stroke: #94a3b8;
+        stroke-width: 2.5px;
+        stroke-linecap: round;
+    }
+
+    .mermaid .edgePath:hover path {
+        stroke: #e2e8f0;
+        stroke-width: 3.5px;
+        filter: drop-shadow(0 0 3px rgba(226, 232, 240, 0.4));
+    }
+
+    .mermaid .edgePath marker path {
+        fill: #94a3b8;
+        transition: all 0.3s ease;
+    }
+
+    .mermaid .edgePath:hover marker path {
+        fill: #e2e8f0;
+        transform: scale(1.2);
+    }
+
+    .mermaid .cluster rect {
+        stroke: #64748b;
+        fill: #1e293b;
+        opacity: 0.9;
+        filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
+    }
+
+    .mermaid .cluster text {
+        fill: #e2e8f0;
+        font-weight: 800;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .mermaid .actor rect {
+        stroke: #38bdf8;
+        fill: linear-gradient(135deg, #082f49 0%, #0c4a6e 100%);
+        filter: drop-shadow(0 2px 4px rgba(56, 189, 248, 0.3));
+    }
+
+    .mermaid .actor text {
+        fill: #e0f2fe;
+        font-weight: 800;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .mermaid .note rect {
+        stroke: #fbbf24;
+        fill: linear-gradient(135deg, #451a03 0%, #78350f 100%);
+        filter: drop-shadow(0 2px 4px rgba(251, 191, 36, 0.3));
+    }
+
+    .mermaid .note text {
+        fill: #fef3c7;
+        font-weight: 700;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .mermaid .state rect {
+        stroke: #38bdf8;
+        fill: linear-gradient(135deg, #082f49 0%, #0c4a6e 100%);
+        filter: drop-shadow(0 2px 4px rgba(56, 189, 248, 0.3));
+    }
+
+    .mermaid .state text {
+        fill: #e0f2fe;
+        font-weight: 800;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .mermaid .flowchart .node rect {
+        stroke: #4ade80;
+        fill: linear-gradient(135deg, #14532d 0%, #166534 100%);
+        filter: drop-shadow(0 2px 4px rgba(74, 222, 128, 0.3));
+    }
+
+    .mermaid .flowchart .node text {
+        fill: #f0fdf4;
+        font-weight: 800;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+}
+
+/* 响应式设计 - 优化移动端体验 */
+@media (max-width: 768px) {
+    .mermaid {
+        padding: 18px;
+        margin: 18px 0;
+        border-radius: 10px;
+    }
+
+    .mermaid::before {
+        height: 3px;
+        border-radius: 10px 10px 0 0;
+    }
+
+    .mermaid .node text {
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .mermaid .cluster text {
+        font-size: 14px;
+        font-weight: 800;
+    }
+
+    .mermaid .actor text {
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .mermaid .state text {
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .mermaid .flowchart .node text {
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .mermaid .edgePath path {
+        stroke-width: 2px;
+    }
+
+    .mermaid .node rect,
+    .mermaid .node circle,
+    .mermaid .node ellipse,
+    .mermaid .node polygon {
+        rx: 6px;
+        ry: 6px;
+    }
+
+    .mermaid .cluster rect {
+        rx: 8px;
+        ry: 8px;
+    }
+}
+
+/* 打印样式 - 优化打印效果 */
+@media print {
+    .mermaid {
+        box-shadow: none;
+        border: 2px solid #000;
+        page-break-inside: avoid;
+        background: #fff;
+        padding: 20px;
+    }
+
+    .mermaid::before {
+        background: #000;
+        height: 2px;
+    }
+
+    .mermaid .node rect,
+    .mermaid .node circle,
+    .mermaid .node ellipse,
+    .mermaid .node polygon {
+        stroke-width: 2px;
+        stroke: #000;
+        fill: #fff;
+    }
+
+    .mermaid .node text {
+        fill: #000;
+        font-weight: 700;
+        text-shadow: none;
+    }
+
+    .mermaid .edgePath path {
+        stroke: #000;
+        stroke-width: 2px;
+    }
+
+    .mermaid .edgePath marker path {
+        fill: #000;
+    }
+
+    .mermaid .cluster rect {
+        stroke: #000;
+        fill: #f5f5f5;
+    }
+
+    .mermaid .cluster text {
+        fill: #000;
+        font-weight: 800;
+        text-shadow: none;
+    }
+
+    .mermaid .actor rect {
+        stroke: #000;
+        fill: #e0f2fe;
+    }
+
+    .mermaid .actor text {
+        fill: #000;
+        font-weight: 700;
+    }
+
+    .mermaid .note rect {
+        stroke: #000;
+        fill: #fef3c7;
+    }
+
+    .mermaid .note text {
+        fill: #000;
+        font-weight: 600;
+    }
+
+    .mermaid .state rect {
+        stroke: #000;
+        fill: #e0f2fe;
+    }
+
+    .mermaid .state text {
+        fill: #000;
+        font-weight: 700;
+    }
+
+    .mermaid .flowchart .node rect {
+        stroke: #000;
+        fill: #f0fdf4;
+    }
+
+    .mermaid .flowchart .node text {
+        fill: #000;
+        font-weight: 700;
+    }
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+    .mermaid {
+        border-width: 2px;
+    }
+
+    .mermaid .node rect,
+    .mermaid .node circle,
+    .mermaid .node ellipse,
+    .mermaid .node polygon {
+        stroke-width: 3px;
+    }
+
+    .mermaid .edgePath path {
+        stroke-width: 3px;
+    }
+
+    .mermaid .cluster rect {
+        stroke-width: 3px;
+    }
+}
+
+/* 减少动画模式支持 */
+@media (prefers-reduced-motion: reduce) {
+    .mermaid .node rect,
+    .mermaid .node circle,
+    .mermaid .node ellipse,
+    .mermaid .node polygon,
+    .mermaid .edgePath path {
+        transition: none;
+    }
+}

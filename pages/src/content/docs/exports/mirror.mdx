@@ -1,50 +1,54 @@
 ---
-title: Mirror Export
+title: Mirror 数据镜像
 ---
 
-# Mirror Export
+# Mirror 数据镜像
 
-Mirror Export 是 Mirror 插件的配套组件，提供设备自动镜像创建和管理功能。它监听设备添加事件，根据模型配置自动创建镜像设备，实现数据的透明复制和分发。
+Mirror 是 driver-box 提供的数据镜像功能，将一个源设备的数据实时镜像到多个镜像设备，支持双向数据同步。
 
-## 特性
+## 概览
 
-- 自动镜像设备创建
-- 模型配置驱动的镜像规则
-- 双向数据同步支持
-- 设备属性自动关联
-- 事件驱动的镜像管理
-- 与 Mirror 插件无缝集成
+### 架构设计
 
-## 配置说明
+Mirror 功能由两个组件协同工作：
 
-Mirror Export 通过环境变量控制启用状态：
+- **Mirror 插件** - 维护映射表，实现数据镜像和双向同步
+- **Mirror Export** - 监听设备事件，自动创建和管理镜像设备
 
-```bash
-# 启用/禁用镜像导出
-export EXPORT_MIRROR_ENABLED="true"
+```mermaid
+graph LR
+    A[源设备] -->|数据| B[Mirror插件]
+    B --> C[镜像1]
+    B --> D[镜像2]
+    C --> E[MQTT]
+    D --> F[HTTP]
+    E -.写.-> B
+    B -.转发.-> A
 ```
 
-### 环境变量
+### 核心特性
 
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| EXPORT_MIRROR_ENABLED | string | `true` | 设置为 `false` 禁用镜像功能 |
+- **一对多镜像** - 一个源设备的数据可镜像到多个镜像设备
+- **双向同步** - 支持读取和写入操作
+- **自动创建** - 基于配置自动创建镜像设备
+- **防循环依赖** - 防止镜像循环
+- **分组优化** - 写操作时自动合并同源设备的多个点位
 
-## 镜像配置
+## 快速开始
 
-Mirror Export 需要从设备模型的属性中读取镜像配置：
+### 1. 配置镜像设备
 
-### 配置方式 1: 直接配置
-在设备模型属性的 `mirror_tpl` 字段中直接定义：
+在源设备模型中添加镜像配置：
 
 ```json
 {
   "name": "temperature_sensor",
+  "driverKey": "modbus_tcp",
   "attributes": {
     "mirror_tpl": {
       "modelKey": "virtual_device",
-      "description": "温度传感器的镜像设备",
       "driverKey": "",
+      "description": "温度传感器镜像",
       "points": [
         {
           "name": "mirror_temp",
@@ -57,235 +61,225 @@ Mirror Export 需要从设备模型的属性中读取镜像配置：
 }
 ```
 
-### 配置方式 2: 模板引用
-通过 `mirror_tpl_key` 引用模型库中的镜像模板：
+**配置说明**：
+
+| 字段 | 说明 |
+|------|------|
+| modelKey | 镜像设备模型库键名 |
+| points | 点位映射配置 |
+| rawDevice | 源设备 ID（使用 `${deviceId}` 引用当前设备） |
+| rawPoint | 源点位名称 |
+
+### 2. 配置导出规则
+
+为镜像设备配置导出规则：
 
 ```json
 {
-  "name": "temperature_sensor",
-  "attributes": {
-    "mirror_tpl_key": "standard_mirror_template"
-  }
-}
-```
-
-### 镜像配置结构
-
-```go
-type autoMirrorConfig struct {
-    ModelKey    string              `json:"modelKey"`    // 镜像设备模型库键名
-    Description string              `json:"description"` // 镜像设备描述
-    DriverKey   string              `json:"driverKey"`   // 设备驱动键名
-    Points      []map[string]string `json:"points"`      // 点位映射配置
-}
-```
-
-#### 点位映射配置
-
-每个镜像点位需要指定：
-- `name`: 镜像点位名称（必需）
-- `rawDevice`: 源设备 ID（通常使用 `${deviceId}` 变量）
-- `rawPoint`: 源点位名称（必需）
-- 其他 Mirror 点位扩展属性
-
-## 运行原理
-
-### 自动镜像创建流程
-
-```mermaid
-graph TD
-    A[DeviceAdded 事件] --> B[检查设备模型]
-    B --> C{存在镜像配置?}
-    C -->|否| D[跳过处理]
-    C -->|是| E[加载镜像配置]
-    E --> F[生成镜像设备ID]
-    F --> G{镜像设备已存在?}
-    G -->|是| H[跳过创建]
-    G -->|否| I[创建镜像模型]
-    I --> J[创建镜像设备]
-    J --> K[更新设备属性关联]
-    K --> L[注册到 Mirror 插件]
-```
-
-### 数据处理流程
-
-#### 数据导出拦截
-```mermaid
-graph TD
-    A[设备数据到达] --> B{事件类型?}
-    B -->|Exporting| C[调用 Mirror 插件 Decode]
-    C --> D[获取镜像设备数据]
-    D --> E[导出镜像数据]
-    B -->|ShadowOnline| F[更新镜像设备状态]
-```
-
-#### 设备状态同步
-```mermaid
-graph TD
-    A[源设备状态变化] --> B[ShadowOnline 事件]
-    B --> C[构造镜像设备ID]
-    C --> D{镜像设备存在?}
-    D -->|否| E[忽略]
-    D -->|是| F[同步在线状态]
-    F --> G[更新镜像设备影子]
-```
-
-## 设备生命周期管理
-
-### 镜像设备命名规则
-- **设备 ID**: `mirror_{源设备ID}`
-- **模型名称**: `{源模型名称}_mirror_{源设备ID}`
-
-### 设备属性关联
-Mirror Export 在源设备上设置关联属性：
-
-```go
-// 源设备属性
-properties[PropertyKeyAutoMirrorTo] = "mirror_device_id"
-properties[PropertyKeyAutoMirrorFrom] = "original_device_id"
-```
-
-### 属性常量
-```go
-const (
-    PropertyKeyAutoMirrorFrom string = "autoMirrorFrom"
-    PropertyKeyAutoMirrorTo   string = "autoMirrorTo"
-)
-```
-
-## 事件处理
-
-### DeviceAdded 事件
-触发自动镜像设备创建：
-
-1. 验证设备模型存在性
-2. 提取镜像配置
-3. 生成镜像设备规格
-4. 创建镜像模型和点位
-5. 注册到 CoreCache 和 Mirror 插件
-
-### Exporting 事件
-拦截并处理数据导出：
-
-1. 接收源设备数据
-2. 调用 `MirrorPlugin.Decode()` 进行镜像映射
-3. 导出镜像设备数据到下游系统
-
-### ShadowOnline 事件
-同步设备在线状态：
-
-1. 接收源设备状态变化
-2. 查找对应的镜像设备
-3. 更新镜像设备的在线状态
-
-## 点位映射机制
-
-### 映射配置示例
-
-**源设备模型**：
-```json
-{
-  "name": "sensor_v1",
-  "devicePoints": [
-    {"name": "temperature", "rawType": "Float32"},
-    {"name": "humidity", "rawType": "UInt16"}
-  ]
-}
-```
-
-**镜像配置**：
-```json
-{
-  "modelKey": "virtual_device",
-  "points": [
+  "deviceModels": [
     {
-      "name": "room_temp",
-      "rawDevice": "${deviceId}",
-      "rawPoint": "temperature",
-      "rawType": "Float32"
-    },
-    {
-      "name": "room_humidity",
-      "rawDevice": "${deviceId}",
-      "rawPoint": "humidity",
-      "rawType": "UInt16"
+      "name": "virtual_device",
+      "devices": [
+        {
+          "id": "mirror_device_001",
+          "connectionKey": "broker1",
+          "exportTopic": "/driverbox/data/${deviceId}"
+        }
+      ]
     }
   ]
 }
 ```
 
-**生成的镜像模型**：
-```json
-{
-  "name": "sensor_v1_mirror_device_001",
-  "devicePoints": [
-    {
-      "name": "room_temp",
-      "rawType": "Float32",
-      "rawDevice": "device_001",
-      "rawPoint": "temperature"
-    },
-    {
-      "name": "room_humidity", 
-      "rawType": "UInt16",
-      "rawDevice": "device_001",
-      "rawPoint": "humidity"
-    }
-  ]
-}
+## 工作原理
+
+### Mirror 插件
+
+Mirror 插件通过维护双向映射表实现数据镜像：
+
+```go
+// 镜像映射：镜像设备ID → {镜像点位 → 源设备信息}
+mirrors map[string]map[string]rawDevice
+
+// 原始映射：源设备ID → {源点位 → [镜像设备数据]}
+rawMapping map[string]map[string][]plugin.DeviceData
 ```
+
+**数据流向**：
+
+```mermaid
+sequenceDiagram
+    participant Source as 源设备
+    participant Core as 核心
+    participant Mirror as Mirror插件
+    participant Down as 下游系统
+    
+    Source->>Core: 数据上报
+    Core->>Mirror: 查询映射
+    Mirror->>Down: 导出镜像数据
+```
+
+**写入流程**：
+
+```mermaid
+sequenceDiagram
+    participant Client as 客户端
+    participant Mirror as Mirror插件
+    participant Source as 源设备
+    
+    Client->>Mirror: 写镜像设备
+    Mirror->>Mirror: 查找源点位
+    Mirror->>Source: 写入源设备
+    Source-->>Mirror: 返回结果
+```
+
+### Mirror Export
+
+Mirror Export 监听设备事件：
+
+- **DeviceAdded** - 自动创建镜像设备
+- **Exporting** - 数据镜像转换  
+- **DeviceOnline** - 同步在线状态
+
+**设备创建流程**：
+
+```mermaid
+graph TD
+    A[设备添加] --> B{有镜像配置?}
+    B -->|否| Z[跳过]
+    B -->|是| C[加载模板]
+    C --> D[创建镜像设备<br/>ID: mirror_xxx]
+    D --> E[注册到系统]
+    E --> F[更新映射表]
+    F --> G[完成]
+```
+
+**数据镜像流程**：
+
+```mermaid
+graph TD
+    A[源设备数据] --> B[Mirror Export]
+    B --> C{查询映射}
+    C -->|无映射| D[跳过]
+    C -->|有映射| E[构造镜像数据]
+    E --> F{是镜像设备?}
+    F -->|是| D
+    F -->|否| G[导出到下游]
+    G --> H[MQTT/HTTP等]
+```
+
+**镜像设备命名**：
+- 设备ID：`mirror_{源设备ID}`
+- 模型名：`{源模型}_mirror_{源设备ID}`
 
 ## 使用场景
 
 ### 1. 数据分发
-将同一设备数据提供给多个下游系统：
-```
-源设备 → Mirror Export → 镜像设备 1 → 系统 A
-                    ↘ 镜像设备 2 → 系统 B
-                    ↘ 镜像设备 3 → 系统 C
+
+将同一设备数据分发给多个下游系统：
+
+```mermaid
+graph LR
+    A[Modbus 设备] -->|Mirror| B[镜像1]
+    A -->|Mirror| C[镜像2]
+    B --> D[MQTT]
+    C --> E[HTTP]
 ```
 
 ### 2. 协议转换
-不同协议系统共享数据源：
-```
-Modbus 设备 → Mirror Export → 虚拟设备 → MQTT 发布
-                          ↘ HTTP API 暴露
+
+不同协议系统共享同一数据源：
+
+```mermaid
+graph LR
+    A[BACnet 设备] -->|Mirror| B[虚拟设备]
+    B --> C[MQTT]
+    B --> D[HTTP API]
 ```
 
-### 3. 数据聚合
+### 3. 设备聚合
+
 多个物理设备聚合为逻辑设备：
-```
-温度设备 → Mirror Export → 环境监控设备
-湿度设备 ↗              （包含温湿度）
-```
 
-### 4. 测试环境
-生产数据镜像到测试环境：
-```
-生产设备 → Mirror Export → 测试设备
+```mermaid
+graph LR
+    A[温度] -->|Mirror| C[环境监控]
+    B[湿度] -->|Mirror| C
 ```
 
-## 错误处理
+## 完整示例
 
-| 错误场景 | 处理方式 | 说明 |
-|----------|----------|------|
-| 镜像配置不存在 | 静默跳过 | 设备正常添加，不创建镜像 |
-| 模型加载失败 | 记录错误 | 检查 ModelKey 正确性 |
-| 设备已存在 | 静默跳过 | 避免重复创建 |
-| Mirror 插件未就绪 | 记录错误 | 镜像功能暂时不可用 |
-| 点位映射错误 | 记录错误 | 检查点位配置完整性 |
+### 示例：温湿度传感器数据镜像
 
+**源设备配置**：`res/library/driver/temp_humidity_sensor.json`
 
-### 4. 运维监控
-- 监控镜像设备创建成功率
-- 跟踪镜像数据流状态
-- 设置镜像健康度告警
+```json
+{
+  "name": "temp_humidity_sensor",
+  "driverKey": "modbus_tcp",
+  "attributes": {
+    "mirror_tpl": {
+      "modelKey": "virtual_sensor",
+      "points": [
+        {
+          "name": "env_temp",
+          "rawDevice": "${deviceId}",
+          "rawPoint": "temperature"
+        },
+        {
+          "name": "env_humidity",
+          "rawDevice": "${deviceId}",
+          "rawPoint": "humidity"
+        }
+      ]
+    }
+  },
+  "devicePoints": [
+    {
+      "name": "temperature",
+      "rawType": "Float32",
+      "readWrite": "R"
+    },
+    {
+      "name": "humidity",
+      "rawType": "UInt16",
+      "readWrite": "R"
+    }
+  ]
+}
+```
 
-## 注意事项
+**生成的镜像设备**：
 
-- Mirror Export 依赖 Mirror 插件，需要确保插件正常加载
-- 镜像设备 ID 冲突会导致创建失败
-- 不支持镜像设备的再次镜像（避免循环依赖）
-- 设备删除时需要手动清理对应的镜像设备
-- 环境变量修改需要重启生效
+```
+设备ID: mirror_sensor_001
+模型名称: temp_humidity_sensor_mirror_sensor_001
+点位:
+  - env_temp → sensor_001.temperature
+  - env_humidity → sensor_001.humidity
+```
+
+**MQTT 导出配置**：`res/driver/mqtt/config.json`
+
+```json
+{
+  "connections": {
+    "mqtt_broker": {
+      "broker": "tcp://localhost:1883"
+    }
+  },
+  "deviceModels": [
+    {
+      "name": "virtual_sensor",
+      "devices": [
+        {
+          "id": "mirror_sensor_001",
+          "connectionKey": "mqtt_broker",
+          "exportTopic": "/environment/sensor001"
+        }
+      ]
+    }
+  ]
+}
+```
 
