@@ -6,18 +6,18 @@ import mermaid from 'astro-mermaid';
 // https://astro.build/config
 export default defineConfig({
     site: 'https://ibuilding-X.github.io/driver-box/',
-    base: '/',
+    base: '/driver-box',
     trailingSlash: "always",
     integrations: [mermaid({
         theme: 'forest',
         autoTheme: true
-    },
+    }),
         starlight({
         title: 'driver-box',
         description: '一款嵌入式边缘平台',
-        social: {
-            github: 'https://github.com/ibuilding-X/driver-box'
-        },
+        social:[
+            { icon: 'github', label: 'GitHub', href: 'https://github.com/ibuilding-X/driver-box' }
+        ],
         head: [{
             tag: 'script',
             content: `
@@ -60,6 +60,6 @@ export default defineConfig({
                 directory: 'library'
             }
         }]
-    }))
+    })
     ]
 });
