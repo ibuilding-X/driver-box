@@ -39,7 +39,7 @@ driver-box 适用于多种场景，包括智能家居、智慧楼宇、智慧工
 ### 插件（Plugin）
 在 driver-box 中，「**插件**」这个词专指：通讯插件，例如：Http插件、Modbus插件、Bacnet插件。
 
-插件是 driver-box 提供了一项开放性能力，如若内置的插件不满足需求，用户可参考《[通讯插件开发](/driver-box/developer/plugin/)》实现一款自定义插件并集成至 driver-box。
+插件是 driver-box 提供了一项开放性能力，如若内置的插件不满足需求，用户可参考《[Plugin开发](/driver-box/plugins/development/)》实现一款自定义插件并集成至 driver-box。
 
 ### Export
 Export，一时找不到合适的中文名词来表示这个单词在 driver-box 中的用途。
@@ -48,24 +48,18 @@ Export，一时找不到合适的中文名词来表示这个单词在 driver-box
 
 以此，我们可以实现类似场景联动、边缘计算、数据上云等一系列高级能力。而这些能力的组织与融合，便形成了完整的边缘引擎产品。
 
-[《Export 开发》](/driver-box/developer/export/)。
+[《Export 开发》](/driver-box/exports/development/)。
 
-### 资产库
-资产库是 driver-box 框架提供的一种资源管理能力。通过持续沉淀和复用资产库中的已有资源，逐渐提升项目工程实施效率。
+### 资源库
+资源库是 driver-box 框架提供的一种资源管理能力。通过持续沉淀和复用资源库中的已有资源，逐渐提升项目工程实施效率。
 
-:::tip[为什么叫资产库，而不是资源库？]
-虽然本质上都是一些配置型资源文件，但我们认为这些资源文件都是企业实际项目的宝贵经验积累。
-这份积累能够在帮助企业极大的提升产品后期推广、复制效率，从某种角度而言，它更像企业的一份独特资产。
-
-:::
-
-资产库存储于`res/library/`目录。
+资源库存储于`res/library/`目录。
 <FileTree>
 
     - driver-box
         - res
             - library
-                - index.json    资产库索引文件，便于快速定位资源
+                - index.json    资源库索引文件，便于快速定位资源
                 - driver/       设备层驱动库
                 - mirror_tpl/   镜像模块库
                 - model/        物模型库

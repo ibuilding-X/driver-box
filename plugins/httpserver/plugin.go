@@ -1,10 +1,10 @@
 package httpserver
 
 import (
-	"github.com/ibuilding-x/driver-box/internal/plugins"
-	"github.com/ibuilding-x/driver-box/internal/plugins/httpserver"
+	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/plugins/httpserver/internal"
 )
 
-func RegisterPlugin() {
-	plugins.Manager.Register(httpserver.ProtocolName, new(httpserver.Plugin))
+func EnablePlugin() {
+	driverbox.EnablePlugin(internal.ProtocolName, new(internal.Plugin))
 }

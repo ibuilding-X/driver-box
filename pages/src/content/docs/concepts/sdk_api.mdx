@@ -1,0 +1,520 @@
+---
+title: SDK API
+description: driver-box 提供的 Go SDK API 接口文档
+sidebar:
+  order: 2
+---
+
+# driver-box API
+
+driver-box 提供了完整的 Go SDK API,支持设备管理、数据读写、配置管理、事件处理等核心功能。开发者可以通过 Go 代码直接调用这些接口,实现与 driver-box 框架的深度集成。
+
+## 应用启动与生命周期
+
+### 完整启动流程
+
+一个完整的 driver-box 应用启动流程包括:启用Plugin、启用Export模块、启动服务。
+
+```go title="main.go"
+package main
+import (
+    "github.com/ibuilding-x/driver-box/driverbox"
+    "github.com/ibuilding-x/driver-box/plugins"
+    "github.com/ibuilding-x/driver-box/exports"
+)
+func main() {
+    // 第一步: 启用内置Plugin
+    // 可选: plugins.EnableAll() 启用所有内置Plugin
+    // 或单独启用: 导入对应Plugin包,如 modbus.EnablePlugin()
+    plugins.EnableAll()
+    // 第二步: 启用Export模块
+    // 可选: exports.EnableAll() 启用所有内置Export模块
+    // 或单独启用: 导入对应Export包,如 gateway.EnableExport()
+    exports.EnableAll()
+    // 第三步: 启动 driver-box 服务
+    // 1. 初始化环境配置
+    // 2. 初始化日志记录器
+    // 3. 启动所有 Export
+    // 4. 启动所有 Plugin
+    // 5. 触发服务状态事件
+    err := driverbox.Start()
+    if err != nil {
+        panic(err)
+    }
+    // 第四步: 阻塞主线程
+    // driver-box 服务会在后台运行
+    select {}
+}
+```
+### Plugin
+#### 内置Plugin
+
+如果只需要启用特定的内置 Plugin,需要导入对应 Plugin 包并调用其 `EnablePlugin` 方法。
+
+**内置Plugin列表:**
+
+| Plugin名称 | 导入路径 | 启用方法 |
+|---------|---------|---------|
+| Modbus | `github.com/ibuilding-x/driver-box/plugins/modbus` | `modbus.EnablePlugin()` |
+| BACnet | `github.com/ibuilding-x/driver-box/plugins/bacnet` | `bacnet.EnablePlugin()` |
+| HTTP Server | `github.com/ibuilding-x/driver-box/plugins/httpserver` | `httpserver.EnablePlugin()` |
+| HTTP Client | `github.com/ibuilding-x/driver-box/plugins/httpclient` | `httpclient.EnablePlugin()` |
+| WebSocket | `github.com/ibuilding-x/driver-box/plugins/websocket` | `websocket.EnablePlugin()` |
+| TCP Server | `github.com/ibuilding-x/driver-box/plugins/tcpserver` | `tcpserver.EnablePlugin()` |
+| MQTT | `github.com/ibuilding-x/driver-box/plugins/mqtt` | `mqtt.EnablePlugin()` |
+| Mirror | `github.com/ibuilding-x/driver-box/plugins/mirror` | `mirror.EnablePlugin()` |
+| DLT645 | `github.com/ibuilding-x/driver-box/plugins/dlt645` | `dlt645.EnablePlugin()` |
+| Gateway | `github.com/ibuilding-x/driver-box/plugins/gateway` | `gateway.EnablePlugin()` |
+
+**使用示例:**
+
+```go title="main.go"
+import (
+    "github.com/ibuilding-x/driver-box/driverbox"
+    "github.com/ibuilding-x/driver-box/plugins/modbus"
+    "github.com/ibuilding-x/driver-box/plugins/bacnet"
+)
+func main() {
+    // 只启用 modbus Plugin
+    modbus.EnablePlugin()
+    // 只启用 bacnet Plugin
+    bacnet.EnablePlugin()
+    // 启动服务
+    err := driverbox.Start()
+    if err != nil {
+        panic(err)
+    }
+    select {}
+}
+```
+
+#### 自定义Plugin
+
+如果需要注册自定义Plugin,需要使用 `driverbox.EnablePlugin` 方法。
+
+```go title="main.go"
+import (
+    "github.com/ibuilding-x/driver-box/driverbox"
+    myplugin "github.com/your-org/my-driver-box-plugin"
+)
+func main() {
+    // 启用内置Plugin(可选)
+    modbus.EnablePlugin()
+    // 注册自定义Plugin
+    driverbox.EnablePlugin("my-protocol", new(myplugin.MyPlugin))
+    // 启动服务
+    err := driverbox.Start()
+    if err != nil {
+        panic(err)
+    }
+    select {}
+}
+```
+#### 重启 Plugin
+
+在服务运行期间,可以通过ReloadPlugin对插件进行重启，这通常在设备接入或删除时使用。
+
+```go
+// 重启指定Plugin
+driverbox.ReloadPlugin("modbus")
+// 重启所有Plugin
+driverbox.ReloadPlugins()
+
+```
+
+### Export
+#### 内置Export
+
+如果只需要启用特定Export模块,需要导入对应Export模块包并调用其 `EnableExport` 方法。
+
+**内置Export模块列表:**
+
+| Export模块名称 | 导入路径 | 启用方法 |
+|------------|---------|---------|
+| LinkEdge | `github.com/ibuilding-x/driver-box/exports/linkedge` | `linkedge.EnableExport()` |
+| Mirror | `github.com/ibuilding-x/driver-box/exports/mirror` | `mirror.EnableExport()` |
+| Discover | `github.com/ibuilding-x/driver-box/exports/discover` | `discover.EnableExport()` |
+| Gateway | `github.com/ibuilding-x/driver-box/exports/gateway` | `gateway.EnableExport()` |
+
+**使用示例:**
+
+```go
+import (
+    "github.com/ibuilding-x/driver-box/driverbox"
+    "github.com/ibuilding-x/driver-box/plugins/modbus"
+    "github.com/ibuilding-x/driver-box/exports/gateway"
+    "github.com/ibuilding-x/driver-box/exports/linkedge"
+)
+func main() {
+    // 启用Plugin
+    modbus.EnablePlugin()
+    // 只启用 gateway Export模块
+    gateway.EnableExport()
+    // 只启用 linkedge Export模块
+    linkedge.EnableExport()
+    // 启动服务
+    err := driverbox.Start()
+    if err != nil {
+        panic(err)
+    }
+    select {}
+}
+```
+
+#### 自定义Export
+
+如果需要注册自定义Export模块,需要使用 `driverbox.EnableExport` 方法。
+
+```go
+import (
+    "github.com/ibuilding-x/driver-box/driverbox"
+    myexport "github.com/your-org/my-driver-box-export"
+)
+func main() {
+    // 启用内置Plugin(可选)
+    modbus.EnablePlugin()
+    // 启用内置Export模块(可选)
+    exports.gateway.EnableExport()
+    // 注册自定义Export模块
+    driverbox.EnableExport(new(myexport.MyExport))
+    // 启动服务
+    err := driverbox.Start()
+    if err != nil {
+        panic(err)
+    }
+    select {}
+}
+```
+
+### 服务停止
+
+在程序退出前,建议优雅地停止 driver-box 服务。
+
+```go
+func gracefulShutdown() {
+    // 停止 driver-box 服务
+    // 执行以下操作:
+    // 1. 清理所有定时器任务
+    // 2. 销毁所有 Export 模块
+    // 3. 销毁所有 Plugin Plugin
+    // 4. 重置影子服务
+    // 5. 清除核心缓存数据
+    err := driverbox.Stop()
+    if err != nil {
+        driverbox.Log().Error("Stop service failed", err)
+    }
+}
+// 使用信号处理实现优雅退出
+func main() {
+    // ... 启动代码 ...
+
+    // 监听中断信号
+    sigChan := make(chan os.Signal, 1)
+    signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+    <-sigChan
+
+    gracefulShutdown()
+}
+```
+
+
+
+
+## SDK API 总览
+
+driver-box 的 Go SDK 主要包含以下模块:
+
+| 模块 | 功能说明 | 主要接口 |
+|------|---------|---------|
+| **设备操作 API** | 设备点位的读取和写入 | `ReadPoint`, `WritePoint`, `WritePoints`, `ReadPoints` |
+| **核心缓存 API** | 设备模型、设备实例、连接的查询和管理 | `CoreCache()`, `GetDevice`, `GetModel`, `AddOrUpdateDevice` |
+| **设备影子 API** | 设备实时状态和点位值的缓存管理 | `Shadow()`, `GetDevicePoint`, `SetDevicePoint`, `GetDeviceStatus` |
+| **事件处理 API** | 系统事件的触发和监听 | `TriggerEvents`, `DeviceAdded`, `DeviceDeleting` |
+| **定时任务 API** | 基于 cron 表达式的任务调度 | `AddFunc`, `Future` |
+| **服务管理 API** | 服务元数据和控制 | `Start`, `Stop`, `GetMetadata`, `UpdateMetadata` |
+| **日志 API** | 统一的日志记录接口 | `Log()` |
+| **Plugin管理 API** | Plugin的注册和管理 | `EnablePlugin`, `ReloadPlugin`, `ReloadPlugins` |
+| **Export管理 API** | Export模块的注册和管理 | `EnableExport` |
+
+## 设备操作 API
+
+### 读取设备点位
+
+主动读取指定设备的点位值。
+
+```go
+import "github.com/ibuilding-x/driver-box/driverbox"
+
+// 读取单个点位
+err := driverbox.ReadPoint("device-001", "temperature")
+if err != nil {
+    // 处理错误
+    driverbox.Log().Error("Read point failed", err)
+}
+```
+
+**参数说明:**
+- `deviceId`: 设备唯一标识符
+- `pointName`: 点位名称
+
+**返回值:**
+- `error`: 操作过程中发生的错误
+
+### 写入设备点位
+
+向指定设备的点位写入控制值,支持单个写入和批量写入。
+
+```go
+import "github.com/ibuilding-x/driver-box/driverbox"
+import "github.com/ibuilding-x/driver-box/driverbox/plugin"
+
+// 写入单个点位
+err := driverbox.WritePoint("device-001", plugin.PointData{
+    PointName: "switch",
+    Value:     true,
+})
+if err != nil {
+    driverbox.Log().Error("Write point failed", err)
+}
+
+// 批量写入点位
+points := []plugin.PointData{
+    {PointName: "switch1", Value: true},
+    {PointName: "switch2", Value: false},
+    {PointName: "temperature_set", Value: 25.5},
+}
+err = driverbox.WritePoints("device-001", points)
+if err != nil {
+    driverbox.Log().Error("Batch write points failed", err)
+}
+```
+
+**参数说明:**
+- `deviceId`: 设备唯一标识符
+- `pointData`: 点位数据结构,包含点位名称和值
+
+**返回值:**
+- `error`: 操作过程中发生的错误
+
+### 批量读取设备点位
+
+```go
+import "github.com/ibuilding-x/driver-box/driverbox"
+import "github.com/ibuilding-x/driver-box/driverbox/plugin"
+
+// 批量读取点位
+points := []plugin.PointData{
+    {PointName: "temperature"},
+    {PointName: "humidity"},
+}
+err := driverbox.ReadPoints("device-001", points)
+if err != nil {
+    driverbox.Log().Error("Batch read points failed", err)
+}
+```
+
+**参数说明:**
+- `deviceId`: 设备唯一标识符
+- `pointData`: 点位数据结构数组
+
+**返回值:**
+- `error`: 操作过程中发生的错误
+
+## 核心缓存 API
+
+核心缓存提供了对设备模型、设备实例、连接等配置的查询和管理功能。
+
+**设备查询：**
+- `Devices()` - 获取设备列表
+- `GetDevice()` - 查询指定设备
+- `HasDevice()` - 判断设备是否存在
+
+**点位查询：**
+- `GetPoints()` - 获取模型点位
+- `GetPointByDevice()` - 根据设备ID查询点位
+- `GetPointByModel()` - 根据模型查询点位
+
+**模型查询：**
+- `Models()` - 获取所有模型
+- `GetModel()` - 查询指定模型
+
+**设备管理：**
+- `UpdateDeviceProperty()` - 更新设备属性
+- `UpdateDeviceDesc()` - 更新设备描述
+- `DeleteDevice()` - 删除设备
+- `BatchRemoveDevice()` - 批量删除设备
+- `AddOrUpdateDevice()` - 添加或更新设备
+
+**连接管理：**
+- `GetConnection()` - 获取连接信息
+- `DeleteConnection()` - 删除连接
+
+**模型管理：**
+- `AddModel()` - 添加新模型
+- `DeleteModel()` - 删除模型
+
+**配置持久化：**
+- `Flush()` - 刷新指定插件配置到文件
+- `FlushAll()` - 刷新所有配置到文件
+
+> 详细的 API 文档和示例请参考 [核心缓存 API](/driver-box/concepts/corecache/)
+
+## 设备影子 API
+
+设备影子提供了设备的实时状态和最新数据缓存,支持设备在线状态管理和点位值存储。
+
+**设备状态管理：**
+- `GetDevices()` - 获取设备列表
+- `GetDevice()` - 查询设备
+- `HasDevice()` - 判断设备是否存在
+- `GetDeviceStatus()` - 获取设备在线状态
+- `SetOnline()` - 设置设备在线
+- `SetOffline()` - 设置设备离线
+- `MayBeOffline()` - 标记设备可能离线
+- `AddDevice()` - 添加设备到影子
+- `DeleteDevice()` - 删除设备
+
+**点位值操作：**
+- `GetDevicePoint()` - 获取设备点位值
+- `SetDevicePoint()` - 设置设备点位值
+- `GetDevicePoints()` - 获取设备所有点位
+- `GetDevicePointDetails()` - 获取点位详细信息
+- `SetWritePointValue()` - 存储下发的控制值
+- `GetWritePointValue()` - 获取下发的控制值
+
+**设备更新时间：**
+- `GetDeviceUpdateAt()` - 获取设备最后更新时间
+
+> 详细的 API 文档和示例请参考 [设备影子 API](/driver-box/concepts/shadow/)
+
+## 事件总线 API
+
+driver-box 通过事件系统实现了各组件间的松耦合通信,开发者可以触发和监听各种系统事件。
+
+```go
+driverbox.TriggerEvents(event.DeviceAdded, "device-001", nil)
+```
+
+**内置事件类型：**
+- `DeviceAdded` - 设备添加事件
+- `DeviceDeleting` - 设备删除事件
+- `DeviceDiscover` - 设备自动发现事件
+- `DeviceOnOff` - 设备开关事件
+- `ServiceStatus` - 服务状态事件
+- `Exporting` - 数据导出前事件
+- `DoExport` - 插件回调事件
+- `ShadowOnline` - 设备在线状态事件
+
+> 详细的事件机制说明、使用示例和最佳实践请参考 [事件总线](/driver-box/concepts/event-bus/)
+
+## 定时任务 API
+
+driver-box 提供了定时任务管理功能,支持两种时间格式:cron 表达式和 Go 的 `time.Duration` 格式。
+
+### 添加定时任务
+
+`AddFunc` 方法支持两种时间格式:
+
+**1. Cron 表达式格式**
+
+```go
+// 添加定时任务(使用 cron 表达式)
+future, err := driverbox.AddFunc("*/5 * * * *", func() {
+    // 每 5 分钟执行一次
+    fmt.Println("定时任务执行")
+})
+if err != nil {
+    driverbox.Log().Error("Add cron task failed", err)
+}
+```
+
+Cron 表达式格式: `秒 分 时 日 月 周`
+
+常用示例:
+- `*/5 * * * *`: 每 5 分钟执行
+- `0 */1 * * *`: 每 1 小时执行
+- `0 0 * * *`: 每天 0 点执行
+- `0 0 * * 1`: 每周一 0 点执行
+- `0 0 1 * *`: 每月 1 号 0 点执行
+
+**2. time.Duration 格式**
+
+```go
+// 添加定时任务(使用 time.Duration 格式)
+future, err := driverbox.AddFunc("5s", func() {
+    // 每 5 秒执行一次
+    fmt.Println("定时任务执行")
+})
+if err != nil {
+    driverbox.Log().Error("Add cron task failed", err)
+}
+```
+
+time.Duration 格式支持:
+- `ns`: 纳秒
+- `us` / `µs`: 微秒
+- `ms`: 毫秒
+- `s`: 秒
+- `m`: 分钟
+- `h`: 小时
+
+常用示例:
+- `"1s"`: 每 1 秒执行
+- `"5s"`: 每 5 秒执行
+- `"1m"`: 每 1 分钟执行
+- `"10m"`: 每 10 分钟执行
+- `"1h"`: 每 1 小时执行
+- `"24h"`: 每 24 小时执行
+
+### 管理定时任务
+
+通过返回的 `Future` 对象管理定时任务:
+
+```go
+future, err := driverbox.AddFunc("5s", func() {
+    fmt.Println("定时任务执行")
+})
+if err != nil {
+    driverbox.Log().Error("Add cron task failed", err)
+}
+
+// 禁用定时任务
+future.Disable()
+
+// 注意: Future 对象没有 Enable() 方法
+// 任务被禁用后无法重新启用,需要重新创建任务
+```
+
+## 服务元数据
+
+```go
+// 获取服务元数据
+metadata := driverbox.GetMetadata()
+fmt.Printf("序列号: %s, 型号: %s, 厂商: %s\n",
+    metadata.SerialNo, metadata.Model, metadata.Vendor)
+
+// 更新服务元数据
+driverbox.UpdateMetadata(func(metadata *config.Metadata) {
+    metadata.SerialNo = "new-serial-no"
+})
+```
+
+## 日志 API
+
+driver-box 提供了统一的日志接口。
+
+```go
+import "go.uber.org/zap"
+
+// 记录日志
+driverbox.Log().Info("信息日志",
+    zap.String("device", "device-001"),
+    zap.Any("data", data))
+
+driverbox.Log().Warn("警告日志", zap.Error(err))
+
+driverbox.Log().Error("错误日志", zap.Error(err))
+
+driverbox.Log().Debug("调试日志", zap.String("detail", "debug info"))
+```
+

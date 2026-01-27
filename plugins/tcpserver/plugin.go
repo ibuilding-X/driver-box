@@ -1,10 +1,10 @@
 package tcpserver
 
 import (
-	plugins0 "github.com/ibuilding-x/driver-box/internal/plugins"
-	"github.com/ibuilding-x/driver-box/internal/plugins/tcpserver"
+	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/plugins/tcpserver/internal"
 )
 
-func RegisterPlugin() {
-	plugins0.Manager.Register(tcpserver.ProtocolName, new(tcpserver.Plugin))
+func EnablePlugin() {
+	driverbox.EnablePlugin(internal.ProtocolName, new(internal.Plugin))
 }

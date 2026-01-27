@@ -1,10 +1,10 @@
 package dlt645
 
 import (
-	"github.com/ibuilding-x/driver-box/internal/plugins"
-	"github.com/ibuilding-x/driver-box/internal/plugins/dlt645"
+	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/plugins/dlt645/internal"
 )
 
-func RegisterPlugin() {
-	plugins.Manager.Register(dlt645.ProtocolName, new(dlt645.Plugin))
+func EnablePlugin() {
+	driverbox.EnablePlugin(internal.ProtocolName, new(internal.Plugin))
 }

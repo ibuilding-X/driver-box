@@ -1,279 +1,282 @@
 ---
-title: Modbus插件
-description: A reference page in my new Starlight docs site.
+title: Modbus 插件
+description: Modbus RTU 和 Modbus TCP 协议插件
 ---
 
-import { Tabs, TabItem } from '@astrojs/starlight/components';
+# Modbus 插件
 
-## 插件介绍
+Modbus 插件实现了 Modbus RTU 和 Modbus TCP 协议，支持从 Modbus 从站设备采集数据和写入控制命令。
 
-modbus插件用于连接modbus设备，支持 rtu、tcp、udp、tcp+tls 等通讯方式。
+## 功能特性
 
-## modbus连接配置
+- **Modbus RTU**：串口通讯（支持波特率、数据位、校验位、停止位配置）
+- **Modbus TCP**：TCP/IP 网络通讯
+- **功能码支持**：0x01（读线圈）、0x02（读离散输入）、0x03（读保持寄存器）、0x04（读输入寄存器）、0x05/0x0F（写线圈）、0x06/0x10（写保持寄存器）
+- **批量读取**：自动将相同采集频率和连续地址的点位合并读取
+- **批量写入**：支持批量写入连续地址的保持寄存器
+- **数据类型**：支持 Bool、String、Uint16/Int16、Uint32/Int32、Uint64/Int64、Float32/Float64
+- **字节交换**：支持字节交换（ByteSwap）和字交换（WordSwap）
+- **位操作**：支持寄存器中的位读写
+- **读写避让**：写操作时读任务自动避让，避免冲突
+- **超时处理**：连续超时后自动增加采集间隔，最大不超过 1 分钟
+- **虚拟模式**：支持虚拟模式（测试用）
 
-| 配置项           | 必填 | 类型     | 参数说明                                                                                                          |
-|---------------|----|--------|---------------------------------------------------------------------------------------------------------------|
-| address       | 必填 | string | 连接地址：例如：`127.0.0.1:502` 、`/dev/ttyUSB0`                                                                       |
-| mode          | 必填 | string | 通讯方式，支持类型：<ul><li>tcp</li><li>rtu</li><li>rtuovertcp</li><li>rtuoverudp</li><li>tcp+tls</li><li>udp</li></ul> |
-| baudRate      | 选填 | int    | 波特率，仅当 mode 为`rtu`时需要设置。<br/>默认：`19200`                                                                       |
-| dataBits      | 选填 | int    | 数据位 ，仅当 mode 为`rtu`时需要设置。<br/>默认：`8`                                                                          |
-| stopBits      | 选填 | int    | 停止位 ，仅当 mode 为`rtu`时需要设置。<br/>有效范围：<ul><li>0</li><li>1</li><li>2</li></ul>                                    |
-| parity        | 选填 | int    | 奇偶性校验 ，仅当 mode 为`rtu`时需要设置 。<br/>有效范围：<ul><li>0:None </li><li>1:EVEN</li><li>2:ODD  </li></ul>                |
-| duration      | 选填 | string | 当前连接采集任务的执行周期。<br/>默认：`1s`。例如：`1s`、`1m`、`1h`、`1d`                                                             |
-| batchReadLen  | 选填 | int    | 支持连续读的字节数。                                                                                                    |   
-| batchWriteLen | 选填 | int    | 支持连续写的字节数。                                                                                                    |   
-| retry         | 选填 | int    | 执行写操作出现失败时的重试次数，默认：3                                                                                          |
-| virtual       | 选填 | bool   | 是否启用虚拟模式，默认：false 。详见：[虚拟设备](#虚拟设备)                                                                               |
+## 连接配置
 
-### 示例
+连接配置位于 `config.json` 的 `connections` 字段下：
 
-config.json
-<Tabs>
-    <TabItem label="tcp" icon="seti:json">
-        ```json
-        {
-            ...
-            "connections": {
-                "192.168.16.111:502": {
-                    "address": "192.168.16.111:502",
-                    "batchReadLen": 50,
-                    "batchWriteLen": 10,
-                    "enable": true,
-                    "minInterval": 500,
-                    "mode": "tcp",
-                    "timeout": 5000,
-                    "virtual": false
-                }
-            },
-            "protocolName": "modbus"
-        }
+```json
+{
+  "plugin": "modbus",
+  "connections": {
+    "modbus-tcp-1": {
+      "address": "192.168.1.100:502",
+      "mode": "tcp",
+      "timeout": 1000,
+      "retry": 3,
+      "minInterval": 100,
+      "batchReadLen": 32
+    }
+  }
+}
+```
 
-        ```
-    </TabItem>
-    <TabItem label="rtu" icon="seti:json">
-        ```json
-        {
-            ...
-            "connections": {
-                "/dev/ttyS5": {
-                    "address": "/dev/ttyS5",
-                    "batchReadLen": 10,
-                    "baudRate": 9600,
-                    "dataBits": 8,
-                    "enable": true,
-                    "minInterval": 100,
-                    "mode": "rtu",
-                    "parity": 0,
-                    "retry": 0,
-                    "stopBits": 1,
-                    "timeout": 2000,
-                    "virtual": false
-                }
-            },
-            "protocolName": "modbus"
-        }
-        ```
-    </TabItem>
-</Tabs>
+### Modbus TCP 配置示例
 
+| 参数 | 值 |
+|------|------|
+| address | 192.168.1.100:502 |
+| mode | tcp |
+| timeout | 1000 |
+| retry | 3 |
+| minInterval | 100 |
+| batchReadLen | 32 |
 
+### Modbus RTU 配置示例
 
-## 扩展点表配置
+| 参数 | 值 |
+|------|------|
+| address | /dev/ttyUSB0 |
+| mode | rtu |
+| baudRate | 9600 |
+| dataBits | 8 |
+| parity | 0 |
+| stopBits | 1 |
+| timeout | 1000 |
+| retry | 3 |
+| minInterval | 100 |
+| batchReadLen | 32 |
 
-| 配置项          | 必填 | 类型     | 参数说明                                                                                                     |
-|--------------|----|--------|----------------------------------------------------------------------------------------------------------|
-| primaryTable | 必填 | string | 寄存器类型，支持类型：<ul><li>HOLDING_REGISTER</li><li>COIL</li><li>DISCRETE_INPUT</li><li>INPUT_REGISTER</li></ul> |
-| startAddress | 必填 | string | 点位所在的寄存器地址，详见：[startAddress配置说明](#startAddress配置说明)                                                      |
-| rawType      | 必填 | string | 数据原始类型 ，详见：[rawType配置说明](#rawType配置说明)                                                                   |
-|duration|选填|string| 当前点位值的采集频率。<br/>默认：`1s`。例如：`1s`、`1m`、`1h`、`1d`                                                           |
-| wordSwap     | 选填 | int    |                                                                                                          |
-| byteSwap     | 选填 | int    |                                                                                                          |
-| bit | 选填 | string | 点位值所处的比特位起始位置，默认：0                                                                                       |
-| bitLen | 选填 | int | 比特位长度                                                                                                    |
+### 配置参数说明
 
-### startAddress配置说明
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| address | string | - | TCP 模式为 `IP:PORT`，RTU 模式为串口路径 |
+| mode | string | - | 连接模式：`tcp` 或 `rtu` |
+| baudRate | uint | 9600 | 波特率（RTU 模式） |
+| dataBits | uint | 8 | 数据位（RTU 模式） |
+| parity | uint | 0 | 校验位：0(无)、1(奇)、2(偶) |
+| stopBits | uint | 1 | 停止位（RTU 模式） |
+| timeout | uint16 | 1000 | 超时时间（毫秒） |
+| retry | int | 3 | 重试次数 |
+| minInterval | uint16 | 100 | 最小采集间隔（毫秒） |
+| batchReadLen | uint16 | 32 | 批量读取寄存器最大数量 |
+| batchWriteLen | uint16 | 120 | 批量写入寄存器最大长度 |
+| virtual | bool | false | 是否启用虚拟模式（测试用） |
 
-寄存器地址存在三种表达方式：
+## 点位配置
 
-1. 十六进制表示  
-   使用前缀"0x"来指示该地址是十六进制形式，例如："0x0400" 表示第1024个寄存器地址。
-   解析时，会去掉"0x"并将其转换为十进制。
-2. 十进制表示   
-   使用后缀"d"来区分十进制地址，例如："40001d" 表示第40001个寄存器地址。
-   在解析时，会移除"d"并直接转换为十进制的uint16值。
-3. 特定格式表示   
-   对于长度为5位的数字字符串，遵循特定的地址映射规则：
-    - 地址范围在1-9999，实际地址 = 字符串值 - 1。
-    - 地址范围在10000-19999，实际地址 = 字符串值 - 10001。
-    - 地址范围在30000-39999，实际地址 = 字符串值 - 30001。
-    - 地址范围在40000-49999，实际地址 = 字符串值 - 40001。
-    - 其他值被视为无效。
+点位配置基于通用点位定义，并添加 Modbus 协议扩展参数。
 
-请注意，确保提供的地址符合上述格式，否则函数可能会返回错误。在与Modbus兼容的设备通信时，正确地表示和转换寄存器地址是至关重要的。
+### 通用点位参数
 
-:::tip
-具体算法可参见`internal/plugins/modbus/connector.go#castModbusAddress`
-:::
+点位的基础参数（如 `name`、`description`、`valueType`、`readWrite` 等）请参考[设备配置指南](/driver-box/guides/device-config/#点位point)。
 
-### rawType配置说明
+### Modbus 扩展参数
 
-rawType 表示从寄存器读取到的字节数值代表的真实数据类型。
+在通用点位基础上，Modbus 插件支持以下扩展参数：
 
-当寄存器类型为 `COIL`、`DISCRETE_INPUT` 时，rawType 参数无效。
+```json
+{
+  "name": "temperature",
+  "startAddress": "40001",
+  "primaryTable": "HOLDING_REGISTER",
+  "rawType": "Float32",
+  "duration": "5s",
+  "byteSwap": false,
+  "wordSwap": false
+}
+```
 
-rawType 适用于寄存器类型为：`INPUT_REGISTER`、`HOLDING_REGISTER` 的场景，且不同数据类型对应的寄存器字节数对照关系如下：
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| startAddress | string | 是 | 寄存器地址（支持十进制、十六进制 `0x`、Modbus 标准格式如 `40001`） |
+| primaryTable | string | 是 | 寄存器类型 |
+| rawType | string | 是 | 原始数据类型 |
+| duration | string | 否 | 采集周期，默认 `1s` |
+| byteSwap | bool | 否 | 是否字节交换 |
+| wordSwap | bool | 否 | 是否字交换（32 位及以上数据类型） |
+| bit | uint8 | 否 | 位偏移（仅位操作） |
+| bitLen | uint8 | 否 | 位长度（仅位操作） |
+| multiWrite | bool | 否 | 是否强制使用多寄存器写接口 |
 
-|         | 1字节     |2字节|4字节|
-|---------|---------|-|--|
-| int16   | &#10004; |||          
-| uint16  | &#10004; |||          
-| int32   |         |&#10004;||          
-| uint32  |         |&#10004;||          
-| float32 |         |&#10004;||          
-| int64   |         ||&#10004;|          
-| uint64  |         ||&#10004;|          
-| float64 |         ||&#10004;|          
+### 设备属性说明
 
-## 性能优化
-todo
+Modbus 设备需要在 `properties` 中配置从站 ID：
 
-## 虚拟设备
-启用 modbus 虚拟模式，一方面要将 virtual 配置项设置为 true。
-另一方面，要在 config.json 的同级目录下创建用于提供虚拟设备能力的 lua 脚本：`converter.lua`，并按以下步骤进行操作：
+| 属性 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| unitID | string | 是 | 从站 ID |
 
-### 第一步：初始化脚本内容
-脚本内容可从`res/library/template/modbus_virtual.lua`中拷贝。
+### 寄存器类型（primaryTable）
 
-### 第二步：初始化寄存器值
-modbus 虚拟设备的寄存器值皆为 0，需要在 `converter.lua` 脚本中为设备添加初始值。
-脚本的添加内容处于 initSlave 方法的 `Begin--End` 注释之间（**其余地方不作调整**）。
+| 值 | 说明 | 代码 |
+|----|------|------|
+| COIL | 线圈（读写） | 0x01/0x05/0x0F |
+| DISCRETE_INPUT | 离散输入（只读） | 0x02 |
+| INPUT_REGISTER | 输入寄存器（只读） | 0x04 |
+| HOLDING_REGISTER | 保持寄存器（读写） | 0x03/0x06/0x10 |
 
-<Tabs>
-    <TabItem label="converter.lua" icon="seti:lua">
-        ```lua {11-14}
-        -- 初始化指定从机
-        function initSlave(slaveId, holdingRegister, coil, discreteInput, inputRegister)
-            slaves[slaveId] = {
-                [HOLDING_REGISTER] = initRegisters(holdingRegister),
-                [COIL] = initRegisters(coil),
-                [DISCRETE_INPUT] = initRegisters(discreteInput),
-                [INPUT_REGISTER] = initRegisters(inputRegister)
-            }
+### 原始数据类型（rawType）
 
-            -- 调用 mockWrite 方法初始化模拟数据
-            -- Begin：以下需要开发者根据实际情况作修改
+| rawType | 说明 | 寄存器数量 |
+|---------|------|------------|
+| Bool | 布尔值 | 1（COIL/DISCRETE_INPUT） |
+| Uint8 | 无符号 8 位整数 | - |
+| Uint16 | 无符号 16 位整数 | 1 |
+| Uint32 | 无符号 32 位整数 | 2 |
+| Uint64 | 无符号 64 位整数 | 4 |
+| Int8 | 有符号 8 位整数 | - |
+| Int16 | 有符号 16 位整数 | 1 |
+| Int32 | 有符号 32 位整数 | 2 |
+| Int64 | 有符号 64 位整数 | 4 |
+| Float32 | 单精度浮点数 | 2 |
+| Float64 | 双精度浮点数 | 4 |
+| String | 字符串 | 自定义（默认 1） |
 
+### 地址格式说明
 
-            -- End：以上需要开发者根据实际情况作修改
+支持多种地址格式：
 
-            return slaves[slaveId]
-        end
-        ```
-    </TabItem>
-    <TabItem label="示例">
-        以某品牌空调网关为例，所有内机处于同一个从机地址的不同寄存器区域。
-        各内机的点位有着相同的偏移量，通过以下脚本模拟出 100 台内机，并设置开关、模式、风速、温度等状态值。
-        ```lua title="converter.lua" {12-15}
-        -- 初始化指定从机
-        function initSlave(slaveId, holdingRegister, coil, discreteInput, inputRegister)
-            slaves[slaveId] = {
-                [HOLDING_REGISTER] = initRegisters(holdingRegister),
-                [COIL] = initRegisters(coil),
-                [DISCRETE_INPUT] = initRegisters(discreteInput),
-                [INPUT_REGISTER] = initRegisters(inputRegister)
-            }
+- **十进制**：`100` 或 `100d` - 直接作为寄存器地址
+- **十六进制**：`0x64` - 十六进制地址
+- **Modbus 标准格式**：
+  - `00001-09999` → `COIL`，地址 `0-9998`
+  - `10001-19999` → `DISCRETE_INPUT`，地址 `0-9998`
+  - `30001-39999` → `INPUT_REGISTER`，地址 `0-9998`
+  - `40001-49999` → `HOLDING_REGISTER`，地址 `0-9998`
 
-            -- 调用 mockWrite 方法初始化模拟数据
-            -- Begin：以下需要开发者根据实际情况作修改
-            for i = 1, 100 do
-                --print("初始化第"..i.."台内机模拟数据")
-                mockWrite(slaveId, HOLDING_REGISTER, 40078 + (i - 1) * 91, { 1, 2, 2, 0, 16 })
-            end
-            -- End：以上需要开发者根据实际情况作修改
+## 批量采集
 
-            return slaves[slaveId]
-        end
-        ```
-    </TabItem>
-</Tabs>
+插件自动将相同采集频率、相同寄存器类型、连续地址的点位合并为一个采集组：
 
-### 第三步：编写控制逻辑（可选）
-对于点位读写分离的场景，需要开发者编写控制逻辑，以实现对模拟数据的更新。例如：开关点位的读操作处于寄存器地址 40001，而写操作处于 40002。
+- 相同 `duration` 的点位分为一组
+- 相同 `primaryTable` 的点位才能同组
+- 地址区间长度不超过 `batchReadLen` 时合并，超过则拆分为新组
+- 减少通讯次数，提高采集效率
 
-脚本的添加内容处于 mockWrite 方法的 Begin--End 注释之间（其余地方不作调整）。
-<Tabs>
-    <TabItem label="converter.lua" icon="seti:lua">
-        ```lua {23-25}
-        --模拟modbus读写
-        -- slaveId 从机id
-        -- primaryTable 寄存器类型：HOLDING_REGISTER,COIL,DISCRETE_INPUT,INPUT_REGISTER
-        -- address 寄存器地址
-        -- value 值，byte数组
-        function mockWrite(slaveId, primaryTable, address, value)
-            if address < 1 or address > 65535 then
-                error("Invalid register address")
-            end
-            -- 寻找从机
-            slave = slaves[slaveId]
-            if slaves[slaveId] == nil then
-                -- 初始化设备太多会增加内存消耗
-                slave = initSlave(slaveId, 65535, 65535, 65535, 65535);
-            end
+## 写操作
 
-            tableData = slave[primaryTable]
-            --从address开始填充数据value
-            for i = 1, #value do
-                tableData[address + i - 1] = value[i]
-            end
+- 支持单寄存器写和多寄存器写
+- 写操作时，读任务自动避让（通过 `writeSemaphore` 信号量控制）
+- 写操作后 `minInterval` 时间内，读任务继续避让
+- 支持位操作：写入时自动合并同地址的位操作
+- 失败自动重试，次数由 `retry` 参数控制
 
-            -- 对于读写点分离的情况，需要手动填写读点位数值
-            -- Begin：以下需要开发者根据实际情况作修改
+## 虚拟模式
 
-            -- End：以上需要开发者根据实际情况作修改
-        end
-        ```
-    </TabItem>
-    <TabItem label="示例">
-        当对控制点位进行写操作时，将数值同步更新至读点位，以此模拟空调的真实运行状态。
-        ```lua title="converter.lua" {19-34}
-        function mockWrite(slaveId, primaryTable, address, value)
-            if address < 1 or address > 65535 then
-                error("Invalid register address")
-            end
-            -- 寻找从机
-            slave = slaves[slaveId]
-            if slaves[slaveId] == nil then
-                slave = initSlave(slaveId, 65535, 65535, 65535, 65535);
-            end
+启用 `virtual` 或全局虚拟模式时：
 
-            tableData = slave[primaryTable]
-            --从address开始填充数据value
-            for i = 1, #value do
-                tableData[address + i - 1] = value[i]
-            end
+- 不实际连接设备
+- 使用 Lua 脚本模拟读写
+- 用于测试配置和协议
 
-            -- 对于读写点分离的情况，需要手动填写读点位数值
-            -- Begin：以下需要开发者根据实际情况作修改
-            for i = 1, #value do
-                offset = (address + i - 1 - 40000) % 91
-                if offset == 78 then
-                    -- 开关
-                    tableData[address + i - 77] = value[i]
-                elseif offset == 79 then
-                    -- 模式
-                    tableData[address + i - 77] = value[i]
-                elseif offset == 80 then
-                    -- 风速
-                    tableData[address + i - 77] = value[i]
-                elseif offset == 82 then
-                    -- 温度
-                    tableData[address + i - 75] = value[i]
-                end
-            end
-            -- End：以上需要开发者根据实际情况作修改
-        end
-        ```
-    </TabItem>
-</Tabs>
+## 运行原理
 
+### 数据流程
 
+```mermaid
+graph TB
+    A[插件初始化] --> B[创建连接器]
+    B --> C[加载设备点位]
+    C --> D[点位分组]
+
+    subgraph 采集组构建
+        D --> D1{相同采集周期?}
+        D1 -->|是| D2{相同寄存器类型?}
+        D2 -->|是| D3{地址连续<br/>且不超过batchReadLen?}
+        D3 -->|是| D4[合并为同一组]
+        D3 -->|否| D5[创建新组]
+        D2 -->|否| D5
+        D1 -->|否| D5
+    end
+
+    D4 --> E[定时采集任务]
+    D5 --> E
+
+    E --> F[读取寄存器数据]
+    F --> G[数据解码]
+    G --> G1[ByteSwap/WordSwap]
+    G --> G2[位操作]
+    G --> G3[类型转换]
+    G1 --> H[构造DeviceData]
+    G2 --> H
+    G3 --> H
+    H --> I[触发导出]
+
+    subgraph 写操作
+        J[写指令] --> K[编码数据]
+        K --> K1[类型转换]
+        K --> K2[ByteSwap/WordSwap]
+        K --> K3[位合并]
+        K1 --> K4[构造writeValue]
+        K2 --> K4
+        K3 --> K4
+        K4 --> L[发送写请求]
+        L --> M[写避让]
+    end
+
+    M --> E
+```
+
+### 采集组构建
+
+插件根据以下规则将点位分组：
+
+1. **相同采集周期**：`duration` 相同的点位分为一组
+2. **相同寄存器类型**：`primaryTable` 相同的点位才能同组
+3. **地址连续**：地址区间不超过 `batchReadLen` 时合并为同一组
+4. **超限拆分**：超过 `batchReadLen` 时拆分为新组
+
+示例：
+
+```
+点位A: address=100, duration=1s, HOLDING_REGISTER
+点位B: address=101, duration=1s, HOLDING_REGISTER  → 同一组
+点位C: address=102, duration=5s, HOLDING_REGISTER  → 新组（周期不同）
+点位D: address=100, duration=1s, INPUT_REGISTER    → 新组（类型不同）
+```
+
+### 写操作避让
+
+- 写操作通过 `writeSemaphore` 信号量控制
+- 写操作执行时，读任务自动等待
+- 写操作后 `minInterval` 时间内，读任务继续避让
+- 确保读写不冲突
+
+## 默认值
+
+以下参数未配置时使用默认值：
+
+- `minInterval`：100 毫秒
+- `retry`：3 次
+- `timeout`：1000 毫秒
+- `batchReadLen`：32 个
+- `duration`：`1s`
+
+## 相关代码
+
+- 插件入口：`plugins/modbus/plugin.go`
+- 核心实现：`plugins/modbus/internal/plugin.go`
+- 连接器：`plugins/modbus/internal/connector.go`
+- 数据模型：`plugins/modbus/internal/model.go`

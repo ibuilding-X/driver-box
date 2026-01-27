@@ -2,8 +2,8 @@ package ai
 
 import (
 	"context"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	agent2 "github.com/ibuilding-x/driver-box/internal/export/ai/agent"
+	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/internal/export/ai/agent"
 	"github.com/tmc/langchaingo/agents"
 	"github.com/tmc/langchaingo/chains"
 	"github.com/tmc/langchaingo/tools"
@@ -19,11 +19,11 @@ func (export *Export) startAgent() error {
 
 	ctx := context.Background()
 
-	dataAnalysisAgent := &agent2.DataAnalysisAgent{
+	dataAnalysisAgent := &agent.DataAnalysisAgent{
 		LLM:   export.llm,
 		Tools: mcpTools,
 	}
-	deviceManagerAgent := &agent2.DeviceManagerAgent{
+	deviceManagerAgent := &agent.DeviceManagerAgent{
 		LLM:   export.llm,
 		Tools: mcpTools,
 	}

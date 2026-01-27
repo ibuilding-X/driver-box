@@ -1,10 +1,10 @@
 package httpclient
 
 import (
-	"github.com/ibuilding-x/driver-box/internal/plugins"
-	"github.com/ibuilding-x/driver-box/internal/plugins/httpclient"
+	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/plugins/httpclient/internal"
 )
 
-func RegisterPlugin() {
-	plugins.Manager.Register(httpclient.ProtocolName, new(httpclient.Plugin))
+func EnablePlugin() {
+	driverbox.EnablePlugin(internal.ProtocolName, new(internal.Plugin))
 }

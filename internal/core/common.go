@@ -4,11 +4,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
-	"github.com/ibuilding-x/driver-box/driverbox/helper/utils"
-	"github.com/ibuilding-x/driver-box/driverbox/library"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/cache"
+	"github.com/ibuilding-x/driver-box/internal/logger"
+	"github.com/ibuilding-x/driver-box/pkg/config"
+	"github.com/ibuilding-x/driver-box/pkg/convutil"
+	"github.com/ibuilding-x/driver-box/pkg/library"
 	"go.uber.org/zap"
 )
 
@@ -31,20 +32,20 @@ func checkMode(mode plugin.EncodeMode) bool {
 
 // 点位值加工：设备驱动
 func deviceDriverProcess(deviceId string, mode plugin.EncodeMode, pointData ...plugin.PointData) ([]plugin.PointData, error) {
-	device, ok := helper.CoreCache.GetDevice(deviceId)
+	device, ok := cache.Get().GetDevice(deviceId)
 	if !ok {
-		helper.Logger.Error("unknown device", zap.Any("deviceId", device))
+		logger.Logger.Error("unknown device", zap.Any("deviceId", device))
 		return nil, errors.New("unknown device")
 	}
 	scaleEnable := len(device.DriverKey) == 0
 
 	if mode == plugin.WriteMode {
 		for i, p := range pointData {
-			point, ok := helper.CoreCache.GetPointByDevice(deviceId, p.PointName)
+			point, ok := cache.Get().GetPointByDevice(deviceId, p.PointName)
 			if !ok {
 				return nil, fmt.Errorf("not found point, point name is %s", p.PointName)
 			}
-			value, err := utils.ConvPointType(p.Value, point.ValueType())
+			value, err := convutil.PointValue(p.Value, point.ValueType())
 			if err != nil {
 				return nil, err
 			}

@@ -1,7 +1,7 @@
 {
   "deviceModels": [
     {
-      "name": "swtich",
+      "name": "swtich_mirror",
       "description": "开关",
       "devicePoints": [
         {

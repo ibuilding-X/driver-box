@@ -4,17 +4,18 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/internal/logger"
+	"github.com/ibuilding-x/driver-box/internal/shadow"
+	"github.com/ibuilding-x/driver-box/pkg/config"
 	"go.uber.org/zap"
 )
 
 // 单点操作
 func SendSinglePoint(deviceId string, mode plugin.EncodeMode, pointData plugin.PointData) error {
 	logger.Logger.Info("send single point", zap.String("deviceId", deviceId), zap.Any("mode", mode), zap.Any("pointData", pointData))
-	_ = helper.DeviceShadow.SetWritePointValue(deviceId, pointData.PointName, pointData.Value)
+	_ = shadow.Shadow().SetWritePointValue(deviceId, pointData.PointName, pointData.Value)
 	if !checkMode(mode) {
 		return errors.New("invalid mode")
 	}
@@ -24,7 +25,7 @@ func SendSinglePoint(deviceId string, mode plugin.EncodeMode, pointData plugin.P
 	}
 
 	if len(result) == 0 {
-		helper.Logger.Warn("device driver process result is empty", zap.String("deviceId", deviceId), zap.Any("mode", mode), zap.Any("pointData", pointData))
+		logger.Logger.Warn("device driver process result is empty", zap.String("deviceId", deviceId), zap.Any("mode", mode), zap.Any("pointData", pointData))
 		return nil
 	}
 
@@ -49,7 +50,7 @@ func SendSinglePoint(deviceId string, mode plugin.EncodeMode, pointData plugin.P
 }
 
 func singleRead(deviceId string, pointData plugin.PointData) error {
-	point, ok := helper.CoreCache.GetPointByDevice(deviceId, pointData.PointName)
+	point, ok := cache.Get().GetPointByDevice(deviceId, pointData.PointName)
 	if !ok {
 		return fmt.Errorf("not found point, point name is %s", pointData.PointName)
 	}
@@ -74,7 +75,7 @@ func singleRead(deviceId string, pointData plugin.PointData) error {
 	}
 	// 发送数据
 	if err = conn.Send(res); err != nil {
-		_ = helper.DeviceShadow.MayBeOffline(deviceId)
+		_ = shadow.Shadow().MayBeOffline(deviceId)
 		return err
 	}
 
@@ -82,7 +83,7 @@ func singleRead(deviceId string, pointData plugin.PointData) error {
 }
 
 func singleWrite(deviceId string, pointData plugin.PointData) error {
-	point, ok := helper.CoreCache.GetPointByDevice(deviceId, pointData.PointName)
+	point, ok := cache.Get().GetPointByDevice(deviceId, pointData.PointName)
 	if !ok {
 		return fmt.Errorf("not found point, point name is %s", pointData.PointName)
 	}
@@ -107,7 +108,7 @@ func singleWrite(deviceId string, pointData plugin.PointData) error {
 	}
 	// 发送数据
 	if err = conn.Send(res); err != nil {
-		_ = helper.DeviceShadow.MayBeOffline(deviceId)
+		_ = shadow.Shadow().MayBeOffline(deviceId)
 		return err
 	}
 	return err

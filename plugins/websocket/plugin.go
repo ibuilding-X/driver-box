@@ -1,10 +1,10 @@
 package websocket
 
 import (
-	"github.com/ibuilding-x/driver-box/internal/plugins"
-	"github.com/ibuilding-x/driver-box/internal/plugins/websocket"
+	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/plugins/websocket/internal"
 )
 
-func RegisterPlugin() {
-	plugins.Manager.Register(websocket.ProtocolName, new(websocket.Plugin))
+func EnablePlugin() {
+	driverbox.EnablePlugin(internal.ProtocolName, new(internal.Plugin))
 }

@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/internal/cache"
 	"github.com/ibuilding-x/driver-box/internal/logger"
+	"github.com/ibuilding-x/driver-box/internal/shadow"
+	"github.com/ibuilding-x/driver-box/pkg/config"
 	"go.uber.org/zap"
 )
 
@@ -16,7 +17,7 @@ import (
 func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 	logger.Logger.Info("send batch write", zap.String("deviceId", deviceId), zap.Any("points", points))
 	for _, point := range points {
-		_ = helper.DeviceShadow.SetWritePointValue(deviceId, point.PointName, point.Value)
+		_ = shadow.Shadow().SetWritePointValue(deviceId, point.PointName, point.Value)
 	}
 	//设备驱动层加工
 	result, err := deviceDriverProcess(deviceId, plugin.WriteMode, points...)
@@ -24,7 +25,7 @@ func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 		return err
 	}
 	if len(result) == 0 {
-		helper.Logger.Warn("device driver process result is empty", zap.String("deviceId", deviceId))
+		logger.Logger.Warn("device driver process result is empty", zap.String("deviceId", deviceId))
 		return nil
 	}
 
@@ -45,7 +46,7 @@ func SendBatchWrite(deviceId string, points []plugin.PointData) (err error) {
 	}
 	// 发送数据
 	if err = connector.Send(res); err != nil {
-		_ = helper.DeviceShadow.MayBeOffline(deviceId)
+		_ = shadow.Shadow().MayBeOffline(deviceId)
 		return err
 	}
 	//点位写成功后，立即触发读取操作以及时更新影子状态
@@ -58,7 +59,7 @@ func SendBatchRead(deviceId string, points []plugin.PointData) (err error) {
 	logger.Logger.Info("send batch read", zap.String("deviceId", deviceId), zap.Any("points", points))
 	readPoints := make([]plugin.PointData, 0)
 	for _, p := range points {
-		point, ok := helper.CoreCache.GetPointByDevice(deviceId, p.PointName)
+		point, ok := cache.Get().GetPointByDevice(deviceId, p.PointName)
 		if !ok {
 			return errors.New("point not found")
 		}
@@ -88,7 +89,7 @@ func SendBatchRead(deviceId string, points []plugin.PointData) (err error) {
 	}
 	// 发送数据
 	if err = connector.Send(res); err != nil {
-		_ = helper.DeviceShadow.MayBeOffline(deviceId)
+		_ = shadow.Shadow().MayBeOffline(deviceId)
 		return err
 	}
 	return nil
@@ -98,7 +99,7 @@ func SendBatchRead(deviceId string, points []plugin.PointData) (err error) {
 func tryReadNewValues(deviceId string, points []plugin.PointData) {
 	readPoints := make([]plugin.PointData, 0)
 	for _, p := range points {
-		point, ok := helper.CoreCache.GetPointByDevice(deviceId, p.PointName)
+		point, ok := cache.Get().GetPointByDevice(deviceId, p.PointName)
 		if !ok {
 			return
 		}
@@ -119,7 +120,7 @@ func tryReadNewValues(deviceId string, points []plugin.PointData) {
 			time.Sleep(time.Duration(i*100) * time.Millisecond)
 			//优先检查影子状态
 			newReadPoints := make([]plugin.PointData, 0)
-			shadowPoints, _ := helper.DeviceShadow.GetDevicePoints(deviceId)
+			shadowPoints, _ := shadow.Shadow().GetDevicePoints(deviceId)
 			for _, p := range readPoints {
 				point, ok := shadowPoints[p.PointName]
 				if !ok {
@@ -129,23 +130,23 @@ func tryReadNewValues(deviceId string, points []plugin.PointData) {
 				}
 				if point.WriteAt.After(checkTime) {
 					//在checkTime之后有发生过写行为,则本次检验可能不会生效
-					helper.Logger.Warn("point write success, but expect point value maybe expired", zap.String("deviceId", deviceId), zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", point.Value))
+					logger.Logger.Warn("point write success, but expect point value maybe expired", zap.String("deviceId", deviceId), zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", point.Value))
 					continue
 				}
 				if fmt.Sprint(p.Value) != fmt.Sprint(point.Value) {
 					newReadPoints = append(newReadPoints, p)
 				}
-				helper.Logger.Info("point write success, read new value", zap.String("deviceId", deviceId), zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", point.Value))
+				logger.Logger.Info("point write success, read new value", zap.String("deviceId", deviceId), zap.String("point", p.PointName), zap.Any("expect", p.Value), zap.Any("value", point.Value))
 			}
 			if len(newReadPoints) == 0 {
 				return
 			}
 			readPoints = newReadPoints
 
-			helper.Logger.Info("point write success,try to read new value", zap.String("deviceId", deviceId), zap.Any("points", readPoints))
+			logger.Logger.Info("point write success,try to read new value", zap.String("deviceId", deviceId), zap.Any("points", readPoints))
 			err := SendBatchRead(deviceId, readPoints)
 			if err != nil {
-				helper.Logger.Error("point write success, read new value error", zap.String("deviceId", deviceId), zap.Any("points", readPoints), zap.Error(err))
+				logger.Logger.Error("point write success, read new value error", zap.String("deviceId", deviceId), zap.Any("points", readPoints), zap.Error(err))
 				break
 			}
 		}
@@ -154,14 +155,14 @@ func tryReadNewValues(deviceId string, points []plugin.PointData) {
 
 func getConnector(deviceId string) (plugin.Connector, error) {
 	//按照点位的协议、连接分组
-	p, ok := helper.CoreCache.GetRunningPluginByDevice(deviceId)
+	p, ok := cache.GetRunningPluginByDevice(deviceId)
 	if !ok {
 		logger.Logger.Error("not found running plugin", zap.String("deviceId", deviceId))
 		return nil, fmt.Errorf("not found running plugin, deviceId: %s ,point: %s", deviceId)
 	}
 	connector, err := p.Connector(deviceId)
 	if err != nil {
-		_ = helper.DeviceShadow.MayBeOffline(deviceId)
+		_ = shadow.Shadow().MayBeOffline(deviceId)
 		return nil, err
 	} else if connector != nil {
 		return connector, nil

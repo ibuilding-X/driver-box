@@ -1,10 +1,10 @@
 package bacnet
 
 import (
-	"github.com/ibuilding-x/driver-box/internal/plugins"
-	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet"
+	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal"
 )
 
-func RegisterPlugin() {
-	plugins.Manager.Register(bacnet.ProtocolName, new(bacnet.Plugin))
+func EnablePlugin() {
+	driverbox.EnablePlugin(internal.ProtocolName, new(internal.Plugin))
 }

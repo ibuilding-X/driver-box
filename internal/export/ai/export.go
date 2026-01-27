@@ -4,19 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ibuilding-x/driver-box/driverbox/config"
-	"github.com/ibuilding-x/driver-box/driverbox/helper"
+	"net/http"
+	"os"
+	"sync"
+	"time"
+
+	"github.com/ibuilding-x/driver-box/driverbox"
 	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	tools2 "github.com/ibuilding-x/driver-box/internal/export/ai/mcp/tools"
+	"github.com/ibuilding-x/driver-box/internal/export/ai/mcp/tools"
+	"github.com/ibuilding-x/driver-box/pkg/config"
+	"github.com/ibuilding-x/driver-box/pkg/event"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/ollama"
 	"go.uber.org/zap"
-	"net/http"
-	"os"
-	"sync"
-	"time"
 )
 
 var driverInstance *Export
@@ -86,7 +88,7 @@ func (export *Export) ExportTo(deviceData plugin.DeviceData) {
 }
 
 // 继承Export OnEvent接口
-func (export *Export) OnEvent(eventCode string, key string, eventValue interface{}) error {
+func (export *Export) OnEvent(eventCode event.EventCode, key string, eventValue interface{}) error {
 	return nil
 }
 
@@ -96,14 +98,14 @@ func (export *Export) IsReady() bool {
 
 func (export *Export) addTools(s *server.MCPServer) {
 	// Repository Tools
-	s.AddTool(tools2.CoreCacheDevicesTool, tools2.CoreCacheDevicesHandler)
-	s.AddTool(tools2.CoreCacheGetModelByDeviceTool, tools2.CoreCacheGetModelByDeviceHandler)
-	s.AddTool(tools2.CoreCacheGetModelByNameTool, tools2.CoreCacheGetModelByNameHandler)
-	s.AddTool(tools2.ShadowDeviceListTool, tools2.ShadowDeviceListHandler)
-	s.AddTool(tools2.ShadowDeviceTool, tools2.ShadowDeviceHandler)
-	s.AddTool(tools2.WritePointsTool, tools2.WritePointsHandler)
-	s.AddTool(tools2.HistoryTableSchemaTool, tools2.HistoryTableSchemaHandler)
-	s.AddTool(tools2.HistoryDataAnalysisTool, tools2.HistoryDataAnalysisHandler)
+	s.AddTool(tools.CoreCacheDevicesTool, tools.CoreCacheDevicesHandler)
+	s.AddTool(tools.CoreCacheGetModelByDeviceTool, tools.CoreCacheGetModelByDeviceHandler)
+	s.AddTool(tools.CoreCacheGetModelByNameTool, tools.CoreCacheGetModelByNameHandler)
+	s.AddTool(tools.ShadowDeviceListTool, tools.ShadowDeviceListHandler)
+	s.AddTool(tools.ShadowDeviceTool, tools.ShadowDeviceHandler)
+	s.AddTool(tools.WritePointsTool, tools.WritePointsHandler)
+	s.AddTool(tools.HistoryTableSchemaTool, tools.HistoryTableSchemaHandler)
+	s.AddTool(tools.HistoryDataAnalysisTool, tools.HistoryDataAnalysisHandler)
 }
 
 func (export *Export) newMCPServer() *server.MCPServer {

@@ -1,10 +1,10 @@
 package modbus
 
 import (
-	plugins0 "github.com/ibuilding-x/driver-box/internal/plugins"
-	"github.com/ibuilding-x/driver-box/internal/plugins/modbus"
+	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/plugins/modbus/internal"
 )
 
-func RegisterPlugin() {
-	plugins0.Manager.Register(modbus.ProtocolName, new(modbus.Plugin))
+func EnablePlugin() {
+	driverbox.EnablePlugin(internal.ProtocolName, new(internal.Plugin))
 }
