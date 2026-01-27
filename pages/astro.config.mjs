@@ -6,7 +6,7 @@ import mermaid from 'astro-mermaid';
 // https://astro.build/config
 export default defineConfig({
     site: 'https://ibuilding-X.github.io/driver-box/',
-    base: '/driver-box',
+    base: '/',
     trailingSlash: "always",
     integrations: [
         starlight({
