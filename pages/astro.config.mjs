@@ -8,7 +8,10 @@ export default defineConfig({
     site: 'https://ibuilding-X.github.io/driver-box/',
     base: '/',
     trailingSlash: "always",
-    integrations: [
+    integrations: [mermaid({
+        theme: 'forest',
+        autoTheme: true
+    },
         starlight({
         title: 'driver-box',
         description: '一款嵌入式边缘平台',
@@ -57,7 +60,6 @@ export default defineConfig({
                 directory: 'library'
             }
         }]
-    }),
-    mermaid()
+    }))
     ]
 });
