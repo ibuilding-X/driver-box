@@ -11,7 +11,6 @@ import (
 func main() {
 	// 设置日志级别
 	_ = os.Setenv("LOG_LEVEL", "info")
-	//_ = plugins.EnableAll()
 	plugins.EnableAll()
 	exports.EnableAll()
 	driverbox.Start()

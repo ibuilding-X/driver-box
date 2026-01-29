@@ -123,33 +123,30 @@ driver-box/
 │   ├── websocket/      # WebSocket 协议
 │   └── dlt645/         # DLT645 协议
 ├── exports/            # 数据导出插件
-│   ├── linkedge/       # LinkEdge 导出
-│   ├── mirror/         # 镜像导出
-│   ├── discover/       # 设备发现
-│   ├── gateway/        # 网关导出
-│   └── modbusserver/   # Modbus Server 导出
+│   ├── linkedge/       # 场景联动
+│   ├── mirror/         # 镜像设备服务
+│   ├── discover/       # 设备自动发现
+│   └── gateway/        # 分布式网关
 ├── internal/           # 内部实现
 │   ├── core/           # 核心逻辑
 │   ├── cache/          # 缓存管理
-│   ├── export/         # 导出接口
+│   ├── export/         # 内置Export
 │   └── shadow/         # 影子服务
 ├── pkg/                # 公共包
 │   ├── config/         # 配置管理
-│   ├── event/          # 事件系统
-│   ├── library/        # 脚本库
+│   ├── event/          # 平台事件定义
+│   ├── library/        # 资源库
 │   └── crontab/        # 定时任务
 ├── res/                # 资源目录（运行时）
 │   ├── library/
 │   │   ├── driver/     # 设备驱动脚本
 │   │   ├── protocol/   # 协议解析脚本
-│   │   ├── device_tpl/ # 设备模板
-│   │   └── common_tpl/ # 通用模板
+│   │   └── model/      # 物模型定义
 │   ├── computing/      # 计算任务
 │   └── history_data/   # 历史数据
 ├── pages/              # 文档站点
 ├── main.go             # 应用入口
 ├── go.mod              # Go 依赖
-├── Dockerfile          # Docker 镜像
 └── deploy.sh           # 构建脚本
 ```
 
@@ -160,8 +157,8 @@ driver-box/
 ### 环境要求
 
 - **Go**: 1.23 或更高版本
-- **操作系统**: Linux / Windows / macOS
-- **架构**: amd64 / arm64 / armv7
+- **操作系统**: Linux / Windows / macOS / Android
+- **架构**: amd64 / arm64 / armv7 / arm
 
 ### 安装
 
@@ -180,6 +177,7 @@ go env -w GOPROXY=https://goproxy.cn,direct
 
 # 加载依赖
 go mod tidy
+go mod vendor
 ```
 
 #### 3. 运行
@@ -191,20 +189,6 @@ go run main.go
 # 或编译后运行
 go build -o driver-box
 ./driver-box
-```
-
-### Docker 部署
-
-```bash
-# 构建镜像
-docker build -t driver-box:latest .
-
-# 运行容器
-docker run -d \
-  -p 59999:59999 \
-  -v $(pwd)/res:/res \
-  --name driver-box \
-  driver-box:latest
 ```
 
 ### 交叉编译
@@ -228,14 +212,14 @@ DriverBox 使用 `res/` 目录作为配置资源目录，启动时可通过环�
 
 ```bash
 # 默认配置路径
-export RESOURCE_PATH="./res"
+export DRIVERBOX_RESOURCE_PATH="./res"
 
 # 自定义配置路径
-export RESOURCE_PATH="/opt/driver-box/res"
+export DRIVERBOX_RESOURCE_PATH="/opt/driver-box/res"
 
 # 设置日志级别
 export LOG_LEVEL="info"
-export LOG_PATH="./logs"
+export DRIVERBOX_LOG_PATH="./logs"
 ```
 
 ---
@@ -255,15 +239,14 @@ export LOG_PATH="./logs"
 | `websocket` | WebSocket | 实时双向通信协议 |
 | `dlt645` | DLT645 | 电能表通信协议 |
 
-### 导出插件
+### export 插件
 
-| 插件名称 | 功能说明 |
-|---------|---------|
-| `linkedge` | 阿里云 LinkEdge 数据导出 |
-| `mirror` | 设备数据镜像导出 |
-| `discover` | 设备自动发现服务 |
-| `gateway` | 网关数据聚合导出 |
-| `modbusserver` | Modbus Server 模式导出 |
+| 插件名称 | 功能说明               |
+|---------|--------------------|
+| `linkedge` | 场景联动               |
+| `mirror` | 设备数据镜像             |
+| `discover` | 设备自动发现服务           |
+| `gateway` | 分布式网关              |
 
 ### 启用插件
 
@@ -273,274 +256,32 @@ export LOG_PATH="./logs"
 package main
 
 import (
-    "github.com/ibuilding-x/driver-box/driverbox"
-    "github.com/ibuilding-x/driver-box/plugins"
-    "github.com/ibuilding-x/driver-box/exports"
+	"os"
+
+	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/exports"
+	"github.com/ibuilding-x/driver-box/plugins"
 )
 
 func main() {
-    // 启用所有内置插件
-    plugins.EnableAll()
-    exports.EnableAll()
-
-    // 或者单独启用特定插件
-    // plugins.EnablePlugin("modbus", &modbus.Plugin{})
-    // exports.EnableExport(&linkedge.Export{})
-
-    // 启动服务
-    driverbox.Start()
-    select {}
+	// 设置日志级别
+	_ = os.Setenv("LOG_LEVEL", "info")
+	plugins.EnableAll()
+	exports.EnableAll()
+	driverbox.Start()
+	select {}
 }
+
 ```
 
 ---
-
-## 📝 配置化设备接入
-
-### JSON 配置方式
-
-对于标准设备，通常只需编写 JSON 配置文件即可完成接入：
-
-```json
-{
-  "devices": [
-    {
-      "id": "modbus-device-001",
-      "name": "温度传感器",
-      "plugin": "modbus",
-      "protocol": "rtu",
-      "config": {
-        "port": "/dev/ttyUSB0",
-        "baudRate": 9600,
-        "dataBits": 8,
-        "stopBits": 1,
-        "parity": "none",
-        "slaveId": 1
-      },
-      "points": [
-        {
-          "name": "temperature",
-          "address": 40001,
-          "type": "float",
-          "scale": 0.1
-        },
-        {
-          "name": "humidity",
-          "address": 40002,
-          "type": "float",
-          "scale": 0.1
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Lua 脚本方式
-
-对于复杂设备，可以结合 Lua 脚本实现高级功能：
-
-#### 设备驱动脚本 (`res/library/driver/xxx.lua`)
-
-```lua
--- 数据解析
-function parse(data, point, device)
-    -- 将原始数据解析为点位值
-    local value = bit.lshift(data[1], 8) + data[2]
-    return value * 0.1
-end
-
--- 数据编码
-function encode(value, point, device)
-    -- 将点位值编码为原始数据
-    local data = value * 10
-    return {bit.rshift(data, 8), bit.band(data, 0xFF)}
-end
-
--- 数据验证
-function validate(value, point, device)
-    -- 验证数据有效性
-    return value >= 0 and value <= 100
-end
-```
-
-#### 协议解析脚本 (`res/library/protocol/xxx.lua`)
-
-```lua
--- 协议初始化
-function init(config)
-    -- 初始化协议配置
-    return true
-end
-
--- 请求数据包构建
-function buildRequest(device, points)
-    -- 构建请求数据包
-    return request
-end
-
--- 响应数据包解析
-function parseResponse(response, device, points)
-    -- 解析响应数据包
-    local result = {}
-    for i, point in ipairs(points) do
-        result[point.name] = parseData(response, point)
-    end
-    return result
-end
-```
-
----
-
-## 🔧 二次开发
-
-DriverBox 提供了完善的二次开发能力，支持自定义插件和脚本。
-
-### 开发自定义插件
-
-#### 1. 实现协议插件
-
-```go
-package myprotocol
-
-import (
-    "github.com/ibuilding-x/driver-box/driverbox/plugin"
-)
-
-type MyProtocol struct {
-    // 插件字段
-}
-
-func (p *MyProtocol) Initialize(config map[string]interface{}) error {
-    // 初始化插件
-    return nil
-}
-
-func (p *MyProtocol) Destroy() error {
-    // 销毁插件，清理资源
-    return nil
-}
-
-func (p *MyProtocol) GetConnector() plugin.Connector {
-    // 返回连接器实例
-    return &MyConnector{}
-}
-
-// 注册插件
-func init() {
-    driverbox.EnablePlugin("myprotocol", &MyProtocol{})
-}
-```
-
-#### 2. 实现导出插件
-
-```go
-package myexport
-
-import (
-    "github.com/ibuilding-x/driver-box/exports/export"
-)
-
-type MyExport struct {
-    // 导出字段
-}
-
-func (e *MyExport) Init() error {
-    // 初始化导出
-    return nil
-}
-
-func (e *MyExport) Destroy() error {
-    // 销毁导出
-    return nil
-}
-
-func (e *MyExport) OnData(deviceId string, data interface{}) {
-    // 处理设备数据
-}
-
-func (e *MyExport) OnEvent(eventType string, deviceId string, data interface{}) {
-    // 处理设备事件
-}
-
-// 注册导出
-func init() {
-    exports.EnableExport(&MyExport{})
-}
-```
 
 ### 📚 详细开发文档
 
 完整的二次开发文档请参考：
 
-- **[插件开发指南](https://ibuilding-x.github.io/driver-box/plugins/development)** - 详细的 Plugin 和 Connector 接口实现指南
-- **[导出开发指南](https://ibuilding-x.github.io/driver-box/exports/development)** - 数据导出功能开发教程
-- **[Lua 脚本开发](https://ibuilding-x.github.io/driver-box/)** - Lua 脚本编程和内置库文档
-
----
-
-## 🌐 API 文档
-
-DriverBox 提供了丰富的 RESTful API，涵盖设备管理、数据查询、控制操作等。
-
-### 核心接口
-
-#### 设备管理
-- `GET /api/devices` - 获取设备列表
-- `GET /api/devices/:id` - 获取设备详情
-- `POST /api/devices` - 添加设备
-- `PUT /api/devices/:id` - 更新设备配置
-- `DELETE /api/devices/:id` - 删除设备
-
-#### 数据操作
-- `GET /api/devices/:id/points` - 获取设备点位列表
-- `GET /api/devices/:id/data` - 获取设备实时数据
-- `POST /api/devices/:id/read` - 读取指定点位
-- `POST /api/devices/:id/write` - 写入点位数据
-
-#### 设备控制
-- `POST /api/devices/:id/start` - 启动设备
-- `POST /api/devices/:id/stop` - 停止设备
-- `POST /api/devices/:id/restart` - 重启设备
-
-#### 配置管理
-- `GET /api/config` - 获取系统配置
-- `PUT /api/config` - 更新系统配置
-- `POST /api/plugins/:name/reload` - 重载插件配置
-
-> 详细 API 文档请参考：[API 参考手册](https://ibuilding-x.github.io/driver-box/api)
-
-### Go SDK
-
-也可以在 Go 代码中直接调用 DriverBox SDK：
-
-```go
-import "github.com/ibuilding-x/driver-box/driverbox"
-
-// 读取点位
-err := driverbox.ReadPoint("device001", "temperature")
-
-// 写入点位
-data := plugin.PointData{
-    PointName: "switch",
-    Value:     true,
-}
-err := driverbox.WritePoint("device001", data)
-
-// 批量读取
-points := []plugin.PointData{
-    {PointName: "temperature"},
-    {PointName: "humidity"},
-}
-err := driverbox.ReadPoints("device001", points)
-
-// 批量写入
-points := []plugin.PointData{
-    {PointName: "switch1", Value: true},
-    {PointName: "switch2", Value: false},
-}
-err := driverbox.WritePoints("device001", points)
-```
+- **[Plugin开发指南](https://ibuilding-x.github.io/driver-box/plugins/development)** - 详细的 Plugin 和 Connector 接口实现指南
+- **[Export开发指南](https://ibuilding-x.github.io/driver-box/exports/development)** - 数据导出功能开发教程
 
 ---
 
@@ -565,15 +306,6 @@ DriverBox 适用于多种物联网场景：
 
 ---
 
-## 📊 性能特性
-
-- **并发能力**：单实例支持 1000+ 设备并发接入
-- **处理性能**：每秒处理 10000+ 数据点
-- **内存占用**：空闲状态 < 50MB，正常运行 < 200MB
-- **稳定性**：7×24 小时稳定运行，自动故障恢复
-
----
-
 ## 🤝 参与贡献
 
 欢迎参与 DriverBox 的开发，您的贡献将帮助更多开发者！
@@ -595,25 +327,6 @@ DriverBox 适用于多种物联网场景：
 
 ---
 
-## 📜 开源协议
-
-本项目采用 **Apache License 2.0** 开源协议，允许商业使用。
-
-```
-Copyright 2024 iBUILDING-X
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-```
 
 ---
 
@@ -622,8 +335,8 @@ limitations under the License.
 ### 获取帮助
 
 - 📚 **[官方文档](https://ibuilding-x.github.io/driver-box/)** - 完整的使用文档和 API 参考
-- 🐛 **[Issue 反馈](https://github.com/ibuilding-X/driver-box/issues)** - 报告 Bug 或提交功能请求
-- 💬 **[讨论区](https://github.com/ibuilding-X/driver-box/discussions)** - 交流使用经验和最佳实践
+- 🐛 **[Issue 反馈](https://gitee.com/ibuilding-X/driver-box/issues)** - 报告 Bug 或提交功能请求
+- 💬 **[讨论区](https://gitee.com/ibuilding-X/driver-box/discussions)** - 交流使用经验和最佳实践
 - 🔍 **[DeepWiki](https://deepwiki.com/ibuilding-X/driver-box)** - AI 驱动的知识库问答
 
 ### 联系方式
