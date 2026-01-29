@@ -242,9 +242,9 @@ package main
 import (
 	"os"
 
-	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/exports"
-	"github.com/ibuilding-x/driver-box/plugins"
+	"github.com/ibuilding-x/driver-box/v2/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/exports"
+	"github.com/ibuilding-x/driver-box/v2/plugins"
 )
 
 func main() {
@@ -255,7 +255,6 @@ func main() {
 	driverbox.Start()
 	select {}
 }
-
 ```
 
 ---
