@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/pkg/convutil"
-	"github.com/ibuilding-x/driver-box/pkg/luautil"
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
+	"github.com/ibuilding-x/driver-box/v2/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/pkg/convutil"
+	"github.com/ibuilding-x/driver-box/v2/pkg/luautil"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes"
 	lua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
 )

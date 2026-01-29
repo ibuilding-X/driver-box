@@ -1,8 +1,8 @@
 package httpserver
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/plugins/httpserver/internal"
+	"github.com/ibuilding-x/driver-box/v2/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/plugins/httpserver/internal"
 )
 
 func EnablePlugin() {

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet"
-	pprint "github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/helpers/print"
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/network"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet"
+	pprint "github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/helpers/print"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/network"
 )
 
 func TestByInterface(t *testing.T) {

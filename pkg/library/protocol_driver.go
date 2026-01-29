@@ -6,10 +6,10 @@ import (
 	"path"
 	"sync"
 
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/config"
-	"github.com/ibuilding-x/driver-box/pkg/event"
-	"github.com/ibuilding-x/driver-box/pkg/luautil"
+	"github.com/ibuilding-x/driver-box/v2/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/v2/pkg/config"
+	"github.com/ibuilding-x/driver-box/v2/pkg/event"
+	"github.com/ibuilding-x/driver-box/v2/pkg/luautil"
 	glua "github.com/yuin/gopher-lua"
 )
 

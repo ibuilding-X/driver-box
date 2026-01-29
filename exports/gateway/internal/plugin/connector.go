@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/exports/gateway/internal/model"
+	"github.com/ibuilding-x/driver-box/v2/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/v2/exports/gateway/internal/model"
 	"go.uber.org/zap"
 )
 

@@ -7,8 +7,8 @@ import (
 	"path"
 	"sync"
 
-	"github.com/ibuilding-x/driver-box/pkg/config"
-	"github.com/ibuilding-x/driver-box/pkg/fileutil"
+	"github.com/ibuilding-x/driver-box/v2/pkg/config"
+	"github.com/ibuilding-x/driver-box/v2/pkg/fileutil"
 )
 
 type Type string

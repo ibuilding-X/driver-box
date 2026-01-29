@@ -1,6 +1,6 @@
 package driverbox
 
-import "github.com/ibuilding-x/driver-box/pkg/crontab"
+import "github.com/ibuilding-x/driver-box/v2/pkg/crontab"
 
 // AddFunc 添加定时任务
 // 参数:

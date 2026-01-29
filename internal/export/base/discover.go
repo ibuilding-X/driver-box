@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ibuilding-x/driver-box/internal/core"
-	"github.com/ibuilding-x/driver-box/internal/logger"
-	"github.com/ibuilding-x/driver-box/pkg/config"
-	"github.com/ibuilding-x/driver-box/pkg/convutil"
+	"github.com/ibuilding-x/driver-box/v2/internal/core"
+	"github.com/ibuilding-x/driver-box/v2/internal/logger"
+	"github.com/ibuilding-x/driver-box/v2/pkg/config"
+	"github.com/ibuilding-x/driver-box/v2/pkg/convutil"
 	"go.uber.org/zap"
 )
 

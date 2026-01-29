@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/driverbox"
 	"github.com/mark3labs/mcp-go/mcp"
 )
 

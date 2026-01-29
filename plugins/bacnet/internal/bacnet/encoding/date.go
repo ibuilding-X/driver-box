@@ -1,6 +1,6 @@
 package encoding
 
-import "github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
+import "github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes"
 
 // epochYear is an increment to all non-stored values. This year is chosen in
 // the standard. Why? No idea. God help us all if bacnet hits the 255 + 1990

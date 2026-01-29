@@ -5,14 +5,14 @@ import (
 	"math"
 	"strings"
 
-	"github.com/ibuilding-x/driver-box/driverbox/export"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	export0 "github.com/ibuilding-x/driver-box/internal/export"
-	"github.com/ibuilding-x/driver-box/internal/export/base"
-	"github.com/ibuilding-x/driver-box/pkg/config"
-	"github.com/ibuilding-x/driver-box/pkg/convutil"
-	"github.com/ibuilding-x/driver-box/pkg/event"
-	"github.com/ibuilding-x/driver-box/pkg/library"
+	"github.com/ibuilding-x/driver-box/v2/driverbox/export"
+	"github.com/ibuilding-x/driver-box/v2/driverbox/plugin"
+	export0 "github.com/ibuilding-x/driver-box/v2/internal/export"
+	"github.com/ibuilding-x/driver-box/v2/internal/export/base"
+	"github.com/ibuilding-x/driver-box/v2/pkg/config"
+	"github.com/ibuilding-x/driver-box/v2/pkg/convutil"
+	"github.com/ibuilding-x/driver-box/v2/pkg/event"
+	"github.com/ibuilding-x/driver-box/v2/pkg/library"
 	"go.uber.org/zap"
 )
 

@@ -1,4 +1,4 @@
-module github.com/ibuilding-x/driver-box
+module github.com/ibuilding-x/driver-box/v2
 
 go 1.23.0
 

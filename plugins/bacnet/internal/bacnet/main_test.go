@@ -6,9 +6,9 @@ import (
 	"log"
 	"testing"
 
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/datalink"
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/encoding"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/datalink"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/encoding"
 )
 
 const interfaceName = "eth0"

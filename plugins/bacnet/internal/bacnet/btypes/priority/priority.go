@@ -3,9 +3,9 @@ package priority
 import (
 	"reflect"
 
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/helpers/data"
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/helpers/nils"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/helpers/data"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/helpers/nils"
 )
 
 func BuildFloat32(in btypes.PropertyData, objType btypes.ObjectType) (pri *Float32) {

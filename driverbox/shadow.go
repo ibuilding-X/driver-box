@@ -1,8 +1,8 @@
 package driverbox
 
 import (
-	shadow0 "github.com/ibuilding-x/driver-box/driverbox/shadow"
-	"github.com/ibuilding-x/driver-box/internal/shadow"
+	shadow0 "github.com/ibuilding-x/driver-box/v2/driverbox/shadow"
+	"github.com/ibuilding-x/driver-box/v2/internal/shadow"
 )
 
 // Shadow 获取设备影子服务实例

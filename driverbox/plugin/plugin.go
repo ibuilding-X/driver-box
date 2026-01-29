@@ -5,8 +5,8 @@ package plugin
 import (
 	"errors"
 
-	"github.com/ibuilding-x/driver-box/pkg/config"
-	"github.com/ibuilding-x/driver-box/pkg/event"
+	"github.com/ibuilding-x/driver-box/v2/pkg/config"
+	"github.com/ibuilding-x/driver-box/v2/pkg/event"
 )
 
 var (

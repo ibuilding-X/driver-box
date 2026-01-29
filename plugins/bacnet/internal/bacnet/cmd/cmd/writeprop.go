@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet"
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes/null"
-	ip2bytes "github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/helpers/ipbytes"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes/null"
+	ip2bytes "github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/helpers/ipbytes"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

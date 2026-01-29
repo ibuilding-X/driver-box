@@ -1,7 +1,7 @@
 package driverbox
 
 import (
-	"github.com/ibuilding-x/driver-box/internal/logger"
+	"github.com/ibuilding-x/driver-box/v2/internal/logger"
 	"go.uber.org/zap"
 )
 

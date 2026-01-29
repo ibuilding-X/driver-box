@@ -1,6 +1,6 @@
 package linkedge
 
-import "github.com/ibuilding-x/driver-box/exports/linkedge/model"
+import "github.com/ibuilding-x/driver-box/v2/exports/linkedge/model"
 
 type IService interface {
 	Get(id string) (model.Config, error)

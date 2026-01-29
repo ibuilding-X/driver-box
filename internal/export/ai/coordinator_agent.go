@@ -2,8 +2,8 @@ package ai
 
 import (
 	"context"
-	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/internal/export/ai/agent"
+	"github.com/ibuilding-x/driver-box/v2/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/internal/export/ai/agent"
 	"github.com/tmc/langchaingo/agents"
 	"github.com/tmc/langchaingo/chains"
 	"github.com/tmc/langchaingo/tools"

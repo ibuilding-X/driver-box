@@ -1,7 +1,7 @@
 package datalink
 
 import (
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes"
 )
 
 type DataLink interface {

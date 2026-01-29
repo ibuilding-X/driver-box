@@ -7,9 +7,9 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
-	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/library"
+	"github.com/ibuilding-x/driver-box/v2/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/v2/pkg/library"
 	"go.uber.org/zap"
 )
 

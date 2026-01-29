@@ -3,11 +3,11 @@ package network
 import (
 	"fmt"
 
-	//"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet"
+	//"github.com/ibuilding-x/driver-box/v2/internal/plugins/bacnet/bacnet"
 
 	"testing"
 
-	pprint "github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/helpers/print"
+	pprint "github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/helpers/print"
 )
 
 func TestDiscover(t *testing.T) {

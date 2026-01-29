@@ -7,7 +7,7 @@ import (
 	"math/rand"
 	"time"
 
-	dlt645 "github.com/ibuilding-x/driver-box/plugins/dlt645/internal/core"
+	dlt645 "github.com/ibuilding-x/driver-box/v2/plugins/dlt645/internal/core"
 	"github.com/themeyic/timing"
 )
 

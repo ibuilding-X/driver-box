@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ibuilding-x/driver-box/driverbox/shadow"
+	"github.com/ibuilding-x/driver-box/v2/driverbox/shadow"
 )
 
 // device 设备内部结构

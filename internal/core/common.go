@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/internal/cache"
-	"github.com/ibuilding-x/driver-box/internal/logger"
-	"github.com/ibuilding-x/driver-box/pkg/config"
-	"github.com/ibuilding-x/driver-box/pkg/convutil"
-	"github.com/ibuilding-x/driver-box/pkg/library"
+	"github.com/ibuilding-x/driver-box/v2/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/v2/internal/cache"
+	"github.com/ibuilding-x/driver-box/v2/internal/logger"
+	"github.com/ibuilding-x/driver-box/v2/pkg/config"
+	"github.com/ibuilding-x/driver-box/v2/pkg/convutil"
+	"github.com/ibuilding-x/driver-box/v2/pkg/library"
 	"go.uber.org/zap"
 )
 

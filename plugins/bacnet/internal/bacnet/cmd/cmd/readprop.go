@@ -5,11 +5,11 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet"
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes/services"
-	pprint "github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/helpers/print"
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/network"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes/services"
+	pprint "github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/helpers/print"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/network"
 	"github.com/spf13/cobra"
 )
 

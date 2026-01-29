@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ibuilding-x/driver-box/internal/export/base/restful"
-	"github.com/ibuilding-x/driver-box/internal/export/base/restful/route"
+	"github.com/ibuilding-x/driver-box/v2/internal/export/base/restful"
+	"github.com/ibuilding-x/driver-box/v2/internal/export/base/restful/route"
 )
 
 func (export *Export) HandleFunc(method, pattern string, handler restful.Handler) {

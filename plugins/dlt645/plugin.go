@@ -1,8 +1,8 @@
 package dlt645
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/plugins/dlt645/internal"
+	"github.com/ibuilding-x/driver-box/v2/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/plugins/dlt645/internal"
 )
 
 func EnablePlugin() {

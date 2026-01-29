@@ -1,8 +1,8 @@
 package tcpserver
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/plugins/tcpserver/internal"
+	"github.com/ibuilding-x/driver-box/v2/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/plugins/tcpserver/internal"
 )
 
 func EnablePlugin() {

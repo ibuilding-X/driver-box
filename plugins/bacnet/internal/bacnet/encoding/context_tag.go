@@ -1,6 +1,6 @@
 package encoding
 
-import "github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
+import "github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes"
 
 /* refer to https://github.com/bacnet-stack/bacnet-stack/blob/bacnet-stack-0.9.1/src/bacapp.c#L583 */
 /* returns the fixed tag type for certain context tagged properties */

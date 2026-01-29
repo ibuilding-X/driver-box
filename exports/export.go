@@ -1,10 +1,10 @@
 package exports
 
 import (
-	"github.com/ibuilding-x/driver-box/exports/discover"
-	"github.com/ibuilding-x/driver-box/exports/gateway"
-	"github.com/ibuilding-x/driver-box/exports/linkedge"
-	"github.com/ibuilding-x/driver-box/exports/mirror"
+	"github.com/ibuilding-x/driver-box/v2/exports/discover"
+	"github.com/ibuilding-x/driver-box/v2/exports/gateway"
+	"github.com/ibuilding-x/driver-box/v2/exports/linkedge"
+	"github.com/ibuilding-x/driver-box/v2/exports/mirror"
 )
 
 // EnableAll 加载driver-box框架内置的所有Export插件

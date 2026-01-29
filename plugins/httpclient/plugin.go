@@ -1,8 +1,8 @@
 package httpclient
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/plugins/httpclient/internal"
+	"github.com/ibuilding-x/driver-box/v2/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/plugins/httpclient/internal"
 )
 
 func EnablePlugin() {

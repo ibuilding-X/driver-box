@@ -1,8 +1,8 @@
 package driverbox
 
 import (
-	"github.com/ibuilding-x/driver-box/internal/core"
-	"github.com/ibuilding-x/driver-box/pkg/config"
+	"github.com/ibuilding-x/driver-box/v2/internal/core"
+	"github.com/ibuilding-x/driver-box/v2/pkg/config"
 )
 
 //// 获取当前被注册至 driver-box 的所有export

@@ -4,12 +4,12 @@ import (
 	"os"
 	"sync"
 
-	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/config"
-	"github.com/ibuilding-x/driver-box/pkg/convutil"
-	"github.com/ibuilding-x/driver-box/pkg/event"
-	"github.com/ibuilding-x/driver-box/pkg/library"
+	"github.com/ibuilding-x/driver-box/v2/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/v2/pkg/config"
+	"github.com/ibuilding-x/driver-box/v2/pkg/convutil"
+	"github.com/ibuilding-x/driver-box/v2/pkg/event"
+	"github.com/ibuilding-x/driver-box/v2/pkg/library"
 	"go.uber.org/zap"
 )
 

@@ -1,8 +1,8 @@
 package export
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/pkg/event"
+	"github.com/ibuilding-x/driver-box/v2/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/v2/pkg/event"
 )
 
 // Export 定义了驱动数据导出的标准接口

@@ -5,19 +5,19 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/exports/discover"
-	"github.com/ibuilding-x/driver-box/exports/gateway/internal/model"
-	"github.com/ibuilding-x/driver-box/pkg/config"
-	"github.com/ibuilding-x/driver-box/pkg/convutil"
-	"github.com/ibuilding-x/driver-box/pkg/event"
+	"github.com/ibuilding-x/driver-box/v2/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/exports/discover"
+	"github.com/ibuilding-x/driver-box/v2/exports/gateway/internal/model"
+	"github.com/ibuilding-x/driver-box/v2/pkg/config"
+	"github.com/ibuilding-x/driver-box/v2/pkg/convutil"
+	"github.com/ibuilding-x/driver-box/v2/pkg/event"
 
 	"net/http"
 	"strings"
 	"sync"
 
 	"github.com/gorilla/websocket"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/v2/driverbox/plugin"
 	"go.uber.org/zap"
 )
 

@@ -3,8 +3,8 @@ package btypes
 import (
 	"fmt"
 
-	ip2bytes "github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/helpers/ipbytes"
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/helpers/validation"
+	ip2bytes "github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/helpers/ipbytes"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/helpers/validation"
 )
 
 type Enumerated uint32

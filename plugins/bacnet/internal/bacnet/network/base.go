@@ -1,7 +1,7 @@
 package network
 
 import (
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet"
 	log "github.com/sirupsen/logrus"
 )
 

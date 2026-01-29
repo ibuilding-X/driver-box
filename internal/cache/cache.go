@@ -11,14 +11,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/internal/export"
-	"github.com/ibuilding-x/driver-box/internal/logger"
-	"github.com/ibuilding-x/driver-box/internal/shadow"
-	"github.com/ibuilding-x/driver-box/pkg/config"
-	"github.com/ibuilding-x/driver-box/pkg/crontab"
-	"github.com/ibuilding-x/driver-box/pkg/event"
-	"github.com/ibuilding-x/driver-box/pkg/fileutil"
+	"github.com/ibuilding-x/driver-box/v2/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/v2/internal/export"
+	"github.com/ibuilding-x/driver-box/v2/internal/logger"
+	"github.com/ibuilding-x/driver-box/v2/internal/shadow"
+	"github.com/ibuilding-x/driver-box/v2/pkg/config"
+	"github.com/ibuilding-x/driver-box/v2/pkg/crontab"
+	"github.com/ibuilding-x/driver-box/v2/pkg/event"
+	"github.com/ibuilding-x/driver-box/v2/pkg/fileutil"
 	"go.uber.org/zap"
 )
 

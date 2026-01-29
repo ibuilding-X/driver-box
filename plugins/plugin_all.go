@@ -1,14 +1,14 @@
 package plugins
 
 import (
-	"github.com/ibuilding-x/driver-box/plugins/bacnet"
-	"github.com/ibuilding-x/driver-box/plugins/dlt645"
-	"github.com/ibuilding-x/driver-box/plugins/httpclient"
-	"github.com/ibuilding-x/driver-box/plugins/httpserver"
-	"github.com/ibuilding-x/driver-box/plugins/modbus"
-	"github.com/ibuilding-x/driver-box/plugins/mqtt"
-	"github.com/ibuilding-x/driver-box/plugins/tcpserver"
-	"github.com/ibuilding-x/driver-box/plugins/websocket"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet"
+	"github.com/ibuilding-x/driver-box/v2/plugins/dlt645"
+	"github.com/ibuilding-x/driver-box/v2/plugins/httpclient"
+	"github.com/ibuilding-x/driver-box/v2/plugins/httpserver"
+	"github.com/ibuilding-x/driver-box/v2/plugins/modbus"
+	"github.com/ibuilding-x/driver-box/v2/plugins/mqtt"
+	"github.com/ibuilding-x/driver-box/v2/plugins/tcpserver"
+	"github.com/ibuilding-x/driver-box/v2/plugins/websocket"
 )
 
 func EnableAll() {

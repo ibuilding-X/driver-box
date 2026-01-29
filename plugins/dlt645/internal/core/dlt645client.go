@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/driverbox"
 	"go.uber.org/zap"
 )
 

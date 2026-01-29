@@ -3,8 +3,8 @@ package encoding
 import (
 	"encoding/json"
 
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
-	pprint "github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/helpers/print"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes"
+	pprint "github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/helpers/print"
 
 	"log"
 	"reflect"

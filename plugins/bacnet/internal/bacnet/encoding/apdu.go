@@ -3,8 +3,8 @@ package encoding
 import (
 	"fmt"
 
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes/bacerr"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes/bacerr"
 )
 
 func (e *Encoder) APDU(a btypes.APDU) error {

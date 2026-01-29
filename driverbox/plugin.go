@@ -3,11 +3,11 @@ package driverbox
 import (
 	"fmt"
 
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/internal/cache"
-	"github.com/ibuilding-x/driver-box/internal/export"
-	"github.com/ibuilding-x/driver-box/pkg/event"
-	"github.com/ibuilding-x/driver-box/pkg/library"
+	"github.com/ibuilding-x/driver-box/v2/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/v2/internal/cache"
+	"github.com/ibuilding-x/driver-box/v2/internal/export"
+	"github.com/ibuilding-x/driver-box/v2/pkg/event"
+	"github.com/ibuilding-x/driver-box/v2/pkg/library"
 	"go.uber.org/zap"
 )
 

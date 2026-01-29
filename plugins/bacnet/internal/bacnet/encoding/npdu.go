@@ -1,8 +1,8 @@
 package encoding
 
 import (
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes/ndpu"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes/ndpu"
 )
 
 //https://github.com/bacnet-stack/bacnet-stack/blob/master/src/bacnet/npdu.c#L391

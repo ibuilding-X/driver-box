@@ -1,6 +1,6 @@
 package encoding
 
-import "github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
+import "github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes"
 
 // WriteMultiProperty encodes a writes property request
 func (e *Encoder) WriteMultiProperty(invokeID uint8, data btypes.MultiplePropertyData) error {

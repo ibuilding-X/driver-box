@@ -1,6 +1,6 @@
 package btypes
 
-import "github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes/ndpu"
+import "github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes/ndpu"
 
 type NPDUPriority byte
 

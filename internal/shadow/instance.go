@@ -3,11 +3,11 @@ package shadow
 import (
 	"errors"
 
-	"github.com/ibuilding-x/driver-box/driverbox/shadow"
-	"github.com/ibuilding-x/driver-box/internal/export"
-	"github.com/ibuilding-x/driver-box/internal/logger"
-	"github.com/ibuilding-x/driver-box/pkg/crontab"
-	"github.com/ibuilding-x/driver-box/pkg/event"
+	"github.com/ibuilding-x/driver-box/v2/driverbox/shadow"
+	"github.com/ibuilding-x/driver-box/v2/internal/export"
+	"github.com/ibuilding-x/driver-box/v2/internal/logger"
+	"github.com/ibuilding-x/driver-box/v2/pkg/crontab"
+	"github.com/ibuilding-x/driver-box/v2/pkg/event"
 	"go.uber.org/zap"
 
 	"sync"

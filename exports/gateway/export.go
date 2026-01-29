@@ -1,8 +1,8 @@
 package gateway
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/exports/gateway/internal/plugin"
+	"github.com/ibuilding-x/driver-box/v2/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/exports/gateway/internal/plugin"
 )
 
 // LoadGatewayExport 加载网关Export插件

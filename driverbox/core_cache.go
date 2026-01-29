@@ -1,6 +1,6 @@
 package driverbox
 
-import "github.com/ibuilding-x/driver-box/internal/cache"
+import "github.com/ibuilding-x/driver-box/v2/internal/cache"
 
 // CoreCache 获取核心缓存实例
 // 提供对系统核心缓存的访问，用于存储和检索运行时数据

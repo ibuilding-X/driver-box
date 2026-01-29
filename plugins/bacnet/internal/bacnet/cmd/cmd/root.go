@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/helpers/homedir"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/helpers/homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

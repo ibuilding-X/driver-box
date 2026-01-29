@@ -1,8 +1,8 @@
 package modbus
 
 import (
-	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/plugins/modbus/internal"
+	"github.com/ibuilding-x/driver-box/v2/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/plugins/modbus/internal"
 )
 
 func EnablePlugin() {

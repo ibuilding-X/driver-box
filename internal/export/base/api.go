@@ -3,7 +3,7 @@ package base
 import (
 	"net/http"
 
-	"github.com/ibuilding-x/driver-box/internal/export/base/restful"
+	"github.com/ibuilding-x/driver-box/v2/internal/export/base/restful"
 )
 
 type BaseExport interface {

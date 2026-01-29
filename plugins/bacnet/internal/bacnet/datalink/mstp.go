@@ -7,7 +7,7 @@ package datalink
 //
 //import (
 //	"fmt"
-//	"github.com/ibuilding-x/driver-box/internal/plugins/bacnet/bacnet/btypes"
+//	"github.com/ibuilding-x/driver-box/v2/internal/plugins/bacnet/bacnet/btypes"
 //	"os"
 //	"time"
 //	"unsafe"

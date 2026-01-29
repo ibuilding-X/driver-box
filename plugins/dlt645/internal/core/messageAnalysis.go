@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ibuilding-x/driver-box/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/driverbox"
 	"github.com/shopspring/decimal"
 )
 

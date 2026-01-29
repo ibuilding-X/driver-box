@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/ibuilding-x/driver-box/internal/export/base/restful/response"
-	"github.com/ibuilding-x/driver-box/internal/logger"
+	"github.com/ibuilding-x/driver-box/v2/internal/export/base/restful/response"
+	"github.com/ibuilding-x/driver-box/v2/internal/logger"
 	"github.com/julienschmidt/httprouter"
 	"go.uber.org/zap"
 )

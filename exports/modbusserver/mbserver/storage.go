@@ -5,7 +5,7 @@ import (
 	"math"
 	"sync"
 
-	"github.com/ibuilding-x/driver-box/exports/modbusserver/mbserver/internal"
+	"github.com/ibuilding-x/driver-box/v2/exports/modbusserver/mbserver/internal"
 )
 
 type Storage struct {

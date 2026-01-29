@@ -5,7 +5,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/btypes"
+	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes"
 )
 
 // DefaultPort that BacnetIP will use if a port is not given. Valid ports for

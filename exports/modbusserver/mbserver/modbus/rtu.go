@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/goburrow/serial"
-	"github.com/ibuilding-x/driver-box/exports/modbusserver/mbserver/modbus/crc"
+	"github.com/ibuilding-x/driver-box/v2/exports/modbusserver/mbserver/modbus/crc"
 
 	"sync"
 )

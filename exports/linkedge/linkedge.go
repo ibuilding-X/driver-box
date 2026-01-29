@@ -14,9 +14,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ibuilding-x/driver-box/driverbox"
-	"github.com/ibuilding-x/driver-box/driverbox/plugin"
-	"github.com/ibuilding-x/driver-box/exports/linkedge/model"
+	"github.com/ibuilding-x/driver-box/v2/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/driverbox/plugin"
+	"github.com/ibuilding-x/driver-box/v2/exports/linkedge/model"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 )

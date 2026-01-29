@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	pprint "github.com/ibuilding-x/driver-box/plugins/bacnet/internal/bacnet/helpers/print"
+	pprint "github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/helpers/print"
 )
 
 var iface = "enp0s31f6"
