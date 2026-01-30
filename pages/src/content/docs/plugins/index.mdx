@@ -105,7 +105,7 @@ stateDiagram-v2
 
 ### Plugin 接口
 
-所有插件必须实现 `Plugin` 接口 ([`driverbox/plugin/plugin.go:26`](https://github.com/ibuilding-x/driver-box/blob/main/driverbox/plugin/plugin.go:26))：
+所有插件必须实现 `Plugin` 接口 ([`driverbox/plugin/plugin.go:26`](https://github.com/ibuilding-x/driver-box/blob/master/driverbox/plugin/plugin.go:26))：
 
 ```go title="driverbox/plugin/plugin.go"
 type Plugin interface {
@@ -126,7 +126,7 @@ type Plugin interface {
 
 ### Connector 接口
 
-连接器负责与单个设备进行实际的通信操作 ([`driverbox/plugin/plugin.go:64`](https://github.com/ibuilding-x/driver-box/blob/main/driverbox/plugin/plugin.go:64))：
+连接器负责与单个设备进行实际的通信操作 ([`driverbox/plugin/plugin.go:64`](https://github.com/ibuilding-x/driver-box/blob/master/driverbox/plugin/plugin.go:64))：
 
 ```go title="driverbox/plugin/plugin.go"
 type Connector interface {
@@ -149,7 +149,7 @@ type Connector interface {
 
 ### 数据结构
 
-**EncodeMode 编码模式** ([`driverbox/plugin/model.go:11`](https://github.com/ibuilding-x/driver-box/blob/main/driverbox/plugin/model.go:11))：
+**EncodeMode 编码模式** ([`driverbox/plugin/model.go:11`](https://github.com/ibuilding-x/driver-box/blob/master/driverbox/plugin/model.go:11))：
 
 ```go title="driverbox/plugin/model.go"
 type EncodeMode string
@@ -160,7 +160,7 @@ const (
 )
 ```
 
-**PointData 点位数据** ([`driverbox/plugin/model.go:26`](https://github.com/ibuilding-x/driver-box/blob/main/driverbox/plugin/model.go:26))：
+**PointData 点位数据** ([`driverbox/plugin/model.go:26`](https://github.com/ibuilding-x/driver-box/blob/master/driverbox/plugin/model.go:26))：
 
 ```go title="driverbox/plugin/model.go"
 type PointData struct {
@@ -169,7 +169,7 @@ type PointData struct {
 }
 ```
 
-**DeviceData 设备数据** ([`driverbox/plugin/model.go:36`](https://github.com/ibuilding-x/driver-box/blob/main/driverbox/plugin/model.go:36))：
+**DeviceData 设备数据** ([`driverbox/plugin/model.go:36`](https://github.com/ibuilding-x/driver-box/blob/master/driverbox/plugin/model.go:36))：
 
 ```go title="driverbox/plugin/model.go"
 type DeviceData struct {
@@ -192,7 +192,7 @@ const (
 
 ## 插件管理器实现
 
-插件管理器位于 [`driverbox/plugin.go`](https://github.com/ibuilding-x/driver-box/blob/main/driverbox/plugin.go)，负责插件的注册、加载和销毁。
+插件管理器位于 [`driverbox/plugin.go`](https://github.com/ibuilding-x/driver-box/blob/master/driverbox/plugin.go)，负责插件的注册、加载和销毁。
 
 ### 插件注册
 
@@ -205,7 +205,7 @@ func EnablePlugin(name string, plugin plugin.Plugin) {
 }
 ```
 
-**使用示例**（参考 [`plugins/modbus/plugin.go`](https://github.com/ibuilding-x/driver-box/blob/main/plugins/modbus/plugin.go)）：
+**使用示例**（参考 [`plugins/modbus/plugin.go`](https://github.com/ibuilding-x/driver-box/blob/master/plugins/modbus/plugin.go)）：
 
 ```go title="plugins/modbus/plugin.go"
 package modbus
@@ -289,7 +289,7 @@ func ReloadPlugins() {
 
 ### Modbus 插件
 
-Modbus 插件是典型的协议插件实现 ([`plugins/modbus/internal/plugin.go`](https://github.com/ibuilding-x/driver-box/blob/main/plugins/modbus/internal/plugin.go))：
+Modbus 插件是典型的协议插件实现 ([`plugins/modbus/internal/plugin.go`](https://github.com/ibuilding-x/driver-box/blob/master/plugins/modbus/internal/plugin.go))：
 
 ```go title="plugins/modbus/internal/plugin.go"
 type Plugin struct {
@@ -325,7 +325,7 @@ func (p *Plugin) Destroy() error {
 }
 ```
 
-**Modbus 连接器** ([`plugins/modbus/internal/connector.go`](https://github.com/ibuilding-x/driver-box/blob/main/plugins/modbus/internal/connector.go))：
+**Modbus 连接器** ([`plugins/modbus/internal/connector.go`](https://github.com/ibuilding-x/driver-box/blob/master/plugins/modbus/internal/connector.go))：
 
 ```go title="plugins/modbus/internal/connector.go"
 type connector struct {
@@ -356,7 +356,7 @@ func (c *connector) Release() error {
 
 ### MQTT 插件
 
-MQTT 插件实现了发布/订阅协议 ([`plugins/mqtt/internal/plugin.go`](https://github.com/ibuilding-x/driver-box/blob/main/plugins/mqtt/internal/plugin.go))：
+MQTT 插件实现了发布/订阅协议 ([`plugins/mqtt/internal/plugin.go`](https://github.com/ibuilding-x/driver-box/blob/master/plugins/mqtt/internal/plugin.go))：
 
 ```go title="plugins/mqtt/internal/plugin.go"
 type Plugin struct {
@@ -429,7 +429,7 @@ flowchart TD
 
 ## 错误处理
 
-插件接口定义了标准错误类型 ([`driverbox/plugin/plugin.go:12`](https://github.com/ibuilding-x/driver-box/blob/main/driverbox/plugin/plugin.go:12))：
+插件接口定义了标准错误类型 ([`driverbox/plugin/plugin.go:12`](https://github.com/ibuilding-x/driver-box/blob/master/driverbox/plugin/plugin.go:12))：
 
 ```go title="driverbox/plugin/plugin.go"
 var (

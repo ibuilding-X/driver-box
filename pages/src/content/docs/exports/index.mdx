@@ -71,7 +71,7 @@ sequenceDiagram
 
 ### 2. 导出触发
 
-`Export()` 函数 ([`driverbox/export.go`](https://github.com/ibuilding-x/driver-box/blob/main/driverbox/export.go)) 负责数据分发：
+`Export()` 函数 ([`driverbox/export.go`](https://github.com/ibuilding-x/driver-box/blob/master/driverbox/export.go)) 负责数据分发：
 
 ```go title="driverbox/export.go"
 func Export(deviceData []plugin.DeviceData) {
@@ -96,7 +96,7 @@ func Export(deviceData []plugin.DeviceData) {
 
 ### 3. 缓存过滤
 
-`pointCacheFilter()` ([`driverbox/export.go`](https://github.com/ibuilding-x/driver-box/blob/main/driverbox/export.go)) 执行以下操作：
+`pointCacheFilter()` ([`driverbox/export.go`](https://github.com/ibuilding-x/driver-box/blob/master/driverbox/export.go)) 执行以下操作：
 
 ```go title="driverbox/export.go"
 func pointCacheFilter(deviceData *plugin.DeviceData) {
@@ -133,7 +133,7 @@ func pointCacheFilter(deviceData *plugin.DeviceData) {
 
 ### 4. 点位值预处理
 
-`pointValueProcess()` ([`driverbox/export.go`](https://github.com/ibuilding-x/driver-box/blob/main/driverbox/export.go)) 对点位值进行加工：
+`pointValueProcess()` ([`driverbox/export.go`](https://github.com/ibuilding-x/driver-box/blob/master/driverbox/export.go)) 对点位值进行加工：
 
 ```go title="driverbox/export.go"
 func pointValueProcess(deviceData *plugin.DeviceData) error {
@@ -181,7 +181,7 @@ func pointValueProcess(deviceData *plugin.DeviceData) error {
 
 ### Export 接口
 
-所有导出插件必须实现 `Export` 接口 ([`driverbox/export/export.go`](https://github.com/ibuilding-x/driver-box/blob/main/driverbox/export/export.go))：
+所有导出插件必须实现 `Export` 接口 ([`driverbox/export/export.go`](https://github.com/ibuilding-x/driver-box/blob/master/driverbox/export/export.go))：
 
 ```go title="driverbox/export/export.go"
 type Export interface {
@@ -226,7 +226,7 @@ type Export interface {
 
 ### 数据结构
 
-**DeviceData** ([`driverbox/plugin/model.go`](https://github.com/ibuilding-x/driver-box/blob/main/driverbox/plugin/model.go))：
+**DeviceData** ([`driverbox/plugin/model.go`](https://github.com/ibuilding-x/driver-box/blob/master/driverbox/plugin/model.go))：
 
 ```go title="driverbox/plugin/model.go"
 type DeviceData struct {
@@ -244,7 +244,7 @@ type DeviceData struct {
 }
 ```
 
-**ExportType** ([`driverbox/plugin/model.go`](https://github.com/ibuilding-x/driver-box/blob/main/driverbox/plugin/model.go))：
+**ExportType** ([`driverbox/plugin/model.go`](https://github.com/ibuilding-x/driver-box/blob/master/driverbox/plugin/model.go))：
 
 ```go title="driverbox/plugin/model.go"
 type ExportType string
@@ -259,7 +259,7 @@ const (
 
 ### 事件类型
 
-导出系统支持多种事件类型 ([`pkg/event/event.go`](https://github.com/ibuilding-x/driver-box/blob/main/pkg/event/event.go))：
+导出系统支持多种事件类型 ([`pkg/event/event.go`](https://github.com/ibuilding-x/driver-box/blob/master/pkg/event/event.go))：
 
 ```go title="pkg/event/event.go"
 const (
@@ -304,7 +304,7 @@ func TriggerEvents(eventCode event.EventCode, key string, value interface{}) {
 
 ### 导出插件注册
 
-`EnableExport()` ([`driverbox/export.go`](https://github.com/ibuilding-x/driver-box/blob/main/driverbox/export.go)) 注册导出插件：
+`EnableExport()` ([`driverbox/export.go`](https://github.com/ibuilding-x/driver-box/blob/master/driverbox/export.go)) 注册导出插件：
 
 ```go title="driverbox/export.go"
 func EnableExport(export export.Export) {
@@ -329,7 +329,7 @@ func init() {
 
 ### MQTT 导出插件
 
-MQTT 导出将设备数据发布到 MQTT Broker ([`exports/mqtt/mqtt_export.go`](https://github.com/ibuilding-x/driver-box/blob/main/exports/mqtt/mqtt_export.go))：
+MQTT 导出将设备数据发布到 MQTT Broker ([`exports/mqtt/mqtt_export.go`](https://github.com/ibuilding-x/driver-box/blob/master/exports/mqtt/mqtt_export.go))：
 
 ```go title="exports/mqtt/mqtt_export.go"
 type MqttExport struct {
@@ -397,7 +397,7 @@ func (export *MqttExport) IsReady() bool {
 
 ### History 导出插件
 
-History 导出将设备数据存储到 SQLite 数据库 ([`exports/history/export.go`](https://github.com/ibuilding-x/driver-box/blob/main/exports/history/export.go))：
+History 导出将设备数据存储到 SQLite 数据库 ([`exports/history/export.go`](https://github.com/ibuilding-x/driver-box/blob/master/exports/history/export.go))：
 
 ```go title="exports/history/export.go"
 type Export struct {
