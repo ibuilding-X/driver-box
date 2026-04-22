@@ -17,6 +17,7 @@ require (
 	github.com/mark3labs/mcp-go v0.36.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/robinson/gos7 v0.0.0-20241205073040-7ea1d6fb9d20
 	github.com/shopspring/decimal v1.4.0
 	github.com/simonvetter/modbus v1.6.3
 	github.com/sirupsen/logrus v1.9.3

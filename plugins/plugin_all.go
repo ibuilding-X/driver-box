@@ -8,6 +8,7 @@ import (
 	"github.com/ibuilding-x/driver-box/v2/plugins/modbus"
 	"github.com/ibuilding-x/driver-box/v2/plugins/mqtt"
 	"github.com/ibuilding-x/driver-box/v2/plugins/opcua"
+	"github.com/ibuilding-x/driver-box/v2/plugins/s7"
 	"github.com/ibuilding-x/driver-box/v2/plugins/tcpserver"
 	"github.com/ibuilding-x/driver-box/v2/plugins/websocket"
 )
@@ -22,4 +23,5 @@ func EnableAll() {
 	mqtt.EnablePlugin()
 	dlt645.EnablePlugin()
 	opcua.EnablePlugin()
+	s7.EnablePlugin()
 }
