@@ -14,18 +14,15 @@ import (
 
 func newConnector(p *Plugin, config *ConnectionConfig) (*connector, error) {
 	conn := &connector{
-		config:  config,
-		plugin:  p,
-		nodes:   make(map[string]*NodeConfig),
-		virtual: config.Virtual,
+		config: config,
+		plugin: p,
+		nodes:  make(map[string]*NodeConfig),
 	}
-	if !config.Virtual {
-		client, err := newOpcuaClient(config)
-		if err != nil {
-			return nil, fmt.Errorf("create opcua client error: %w", err)
-		}
-		conn.client = client
+	client, err := newOpcuaClient(config)
+	if err != nil {
+		return nil, fmt.Errorf("create opcua client error: %w", err)
 	}
+	conn.client = client
 	return conn, nil
 }
 
@@ -64,10 +61,6 @@ func (c *connector) collectData() {
 	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	if c.virtual {
-		c.collectMockData()
-		return
-	}
 	if c.client == nil {
 		driverbox.Log().Error("opcua client is nil")
 		return
@@ -118,22 +111,6 @@ func (c *connector) processReadValues(values map[string]interface{}) plugin.Devi
 	}
 }
 
-func (c *connector) collectMockData() {
-	pointData := make([]plugin.PointData, 0, len(c.nodes))
-	for pointName := range c.nodes {
-		pointData = append(pointData, plugin.PointData{
-			PointName: pointName,
-			Value:     100,
-		})
-	}
-	deviceData := plugin.DeviceData{
-		ID:         c.config.ConnectionKey,
-		Values:     pointData,
-		ExportType: plugin.RealTimeExport,
-	}
-	driverbox.Export([]plugin.DeviceData{deviceData})
-}
-
 func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...plugin.PointData) (res interface{}, err error) {
 	if mode == plugin.ReadMode {
 		nodeIds := make([]string, 0, len(values))
@@ -167,9 +144,6 @@ func (c *connector) Encode(deviceId string, mode plugin.EncodeMode, values ...pl
 }
 
 func (c *connector) Send(data interface{}) (err error) {
-	if c.virtual {
-		return nil
-	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	if c.client == nil {

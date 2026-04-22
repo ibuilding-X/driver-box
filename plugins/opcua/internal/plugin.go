@@ -25,7 +25,6 @@ type connector struct {
 	client      *opcuaClient
 	mutex       sync.Mutex
 	close       bool
-	virtual     bool
 	collectTask interface{}
 	nodes       map[string]*NodeConfig
 }
