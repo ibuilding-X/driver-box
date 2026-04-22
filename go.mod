@@ -10,6 +10,7 @@ require (
 	github.com/goburrow/serial v0.1.0
 	github.com/gogf/gf/v2 v2.9.0
 	github.com/google/uuid v1.6.0
+	github.com/gopcua/opcua v0.8.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/i2y/langchaingo-mcp-adapter v0.0.0-20250623114610-a01671e1c8df
 	github.com/julienschmidt/httprouter v1.3.0
