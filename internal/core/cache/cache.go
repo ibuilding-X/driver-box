@@ -3,6 +3,7 @@ package cache
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
@@ -379,7 +380,8 @@ func (c *cache) AddOrUpdateDevice(device config.Device) error {
 	c.devices.Store(device.ID, device)
 	// 更新设备影子
 	if shadow.DeviceShadow != nil && !shadow.DeviceShadow.HasDevice(device.ID) {
-		shadow.DeviceShadow.AddDevice(device.ID, device.ModelName)
+		ttl, _ := time.ParseDuration(device.Ttl)
+		shadow.DeviceShadow.AddDevice(device.ID, device.ModelName, ttl)
 	}
 	// 持久化
 	return cmanager.AddOrUpdateDevice(device)

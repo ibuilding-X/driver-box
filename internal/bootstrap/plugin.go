@@ -3,6 +3,10 @@ package bootstrap
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
+	"sync"
+	"time"
+
 	"github.com/ibuilding-x/driver-box/driverbox/common"
 	"github.com/ibuilding-x/driver-box/driverbox/config"
 	"github.com/ibuilding-x/driver-box/driverbox/event"
@@ -17,8 +21,6 @@ import (
 	"github.com/ibuilding-x/driver-box/internal/plugins"
 	glua "github.com/yuin/gopher-lua"
 	"go.uber.org/zap"
-	"path/filepath"
-	"sync"
 )
 
 // LoadPlugins 加载插件并运行
@@ -179,7 +181,8 @@ func initDeviceShadow(configMap map[string]config.Config) {
 					continue
 				}
 				// 添加设备
-				helper.DeviceShadow.AddDevice(d.ID, model.Name)
+				ttl, _ := time.ParseDuration(d.Ttl)
+				helper.DeviceShadow.AddDevice(d.ID, model.Name, ttl)
 			}
 		}
 	}
