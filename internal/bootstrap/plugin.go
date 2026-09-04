@@ -181,7 +181,10 @@ func initDeviceShadow(configMap map[string]config.Config) {
 					continue
 				}
 				// 添加设备
-				ttl, _ := time.ParseDuration(d.Ttl)
+				ttl, err := time.ParseDuration(d.Ttl)
+				if err != nil {
+					helper.Logger.Warn("device ttl parse error, fallback to default 24h", zap.String("deviceId", d.ID), zap.String("ttl", d.Ttl), zap.Error(err))
+				}
 				helper.DeviceShadow.AddDevice(d.ID, model.Name, ttl)
 			}
 		}
@@ -216,6 +219,8 @@ func ReloadPlugins() error {
 	DestroyPlugins()
 	// 3. 停止影子服务设备状态监听、删除影子服务
 	helper.DeviceShadow.StopStatusListener()
+	// 置空影子服务，使 LoadPlugins 重建影子服务（恢复 5s 离线检测定时器与在离线回调）
+	helper.DeviceShadow = nil
 	// 4. 清除核心缓存数据
 	helper.CoreCache.Reset()
 	// 5. 加载 plugins

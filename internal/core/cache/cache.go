@@ -380,7 +380,10 @@ func (c *cache) AddOrUpdateDevice(device config.Device) error {
 	c.devices.Store(device.ID, device)
 	// 更新设备影子
 	if shadow.DeviceShadow != nil && !shadow.DeviceShadow.HasDevice(device.ID) {
-		ttl, _ := time.ParseDuration(device.Ttl)
+		ttl, err := time.ParseDuration(device.Ttl)
+		if err != nil {
+			logger.Logger.Warn("device ttl parse error, fallback to default 24h", zap.String("deviceId", device.ID), zap.String("ttl", device.Ttl), zap.Error(err))
+		}
 		shadow.DeviceShadow.AddDevice(device.ID, device.ModelName, ttl)
 	}
 	// 持久化
