@@ -24,6 +24,7 @@ type Export interface {
 
 	// ExportTo 导出设备数据
 	// 该方法在设备数据发生变化时被调用，将数据推送到配置的目标
+	// 一次回调可包含该设备本批次的多个点位，实现方应处理完整的 Values 集合。
 	// 参数:
 	//   deviceData - 包含设备ID、点位名称和值的设备数据结构
 	//     deviceData.ID: 设备唯一标识

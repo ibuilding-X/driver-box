@@ -211,34 +211,7 @@ func (c *connector) Send(raw interface{}) (err error) {
 		if err != nil {
 			return err
 		}
-		if out.ErrorClass != 0 {
-			driverbox.Log().Error(fmt.Sprintf("read error: [%d-%d] %s)", out.ErrorClass, out.ErrorCode, err.Error()))
-			return err
-		}
-		for _, object := range out.Objects {
-			resp, err := convertObj2Resp(&object)
-			if err != nil {
-				driverbox.Log().Error("error bacnet result", zap.Any("object", object), zap.Error(err))
-				continue
-			}
-
-			for _, obj := range req.Objects {
-				if obj.ID != object.ID {
-					continue
-				}
-				for deviceSn, pointName := range obj.Points {
-					resp.PointName = pointName
-					resp.DeviceId = deviceSn
-					respJson, err := json.Marshal(resp)
-					res, err := c.Decode(respJson)
-					if err != nil {
-						driverbox.Log().Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
-					} else {
-						driverbox.Export(res)
-					}
-				}
-			}
-		}
+		return c.exportReadResponse(req, out)
 	case plugin.WriteMode:
 		writes := br.req.([]*network.Write)
 		for _, write := range writes {
@@ -259,6 +232,44 @@ func (c *connector) Send(raw interface{}) (err error) {
 	default:
 		return errors.New("not support mode error")
 	}
+	return nil
+}
+
+// exportReadResponse 将一次多属性读取的有效点位作为一个批次上报。
+func (c *connector) exportReadResponse(req, out btypes.MultiplePropertyData) error {
+	if out.ErrorClass != 0 {
+		return fmt.Errorf("bacnet read error: [%d-%d]", out.ErrorClass, out.ErrorCode)
+	}
+	var batches []plugin.DeviceData
+	for _, object := range out.Objects {
+		resp, err := convertObj2Resp(&object)
+		if err != nil {
+			driverbox.Log().Error("error bacnet result", zap.Any("object", object), zap.Error(err))
+			continue
+		}
+
+		for _, obj := range req.Objects {
+			if obj.ID != object.ID {
+				continue
+			}
+			for deviceSn, pointName := range obj.Points {
+				resp.PointName = pointName
+				resp.DeviceId = deviceSn
+				respJson, err := json.Marshal(resp)
+				if err != nil {
+					driverbox.Log().Error("error bacnet response encoding", zap.Error(err))
+					continue
+				}
+				res, err := c.Decode(string(respJson))
+				if err != nil {
+					driverbox.Log().Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
+				} else {
+					batches = append(batches, res...)
+				}
+			}
+		}
+	}
+	driverbox.Export(batches)
 	return nil
 }
 

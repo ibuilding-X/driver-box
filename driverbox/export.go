@@ -75,7 +75,7 @@ func TriggerEvents(eventCode event.EventCode, key string, value interface{}) {
 //     每个DeviceData包含: ID(设备ID), Values(点位值数组), Events(事件数组), ExportType(导出类型)
 //
 // 处理流程:
-//  1. 记录调试日志
+//  1. 合并本次调用中同设备、同导出类型的点位和事件，跳过空数据并记录调试日志
 //  2. 触发插件回调事件(event.DoExport)
 //  3. 遍历每个设备数据:
 //     - 如果设备有事件，则触发事件通知
@@ -88,6 +88,10 @@ func TriggerEvents(eventCode event.EventCode, key string, value interface{}) {
 //   - 缓存点位值以检测变化
 //   - 触发预处理事件(event.Exporting)
 func Export(deviceData []plugin.DeviceData) {
+	deviceData = plugin.MergeDeviceData(deviceData)
+	if len(deviceData) == 0 {
+		return
+	}
 	Log().Debug("export data", zap.Any("data", deviceData))
 	// 产生插件回调事件
 	TriggerEvents(event.DoExport, "", deviceData)

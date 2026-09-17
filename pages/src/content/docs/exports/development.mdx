@@ -35,6 +35,25 @@ flowchart TD
     K[系统关闭] --> L[Export.Destroy]
 ```
 
+## 批量导出语义
+
+`driverbox.Export([]plugin.DeviceData)` 以一次调用为一个批次。框架按设备 ID 和
+`ExportType` 合并点位、事件，保留各组首次出现的顺序和组内点位、事件顺序；
+同名点位不去重。无点位且无事件的数据会被忽略，空批次不触发回调。
+
+- Modbus、DLT645 按一次读取组上报，BACnet 按一次多属性读取响应上报。
+- S7、OPC UA 已按一次采集结果上报；MQTT、HTTP、TCP、WebSocket 按一次消息或响应上报。
+- 不同读取组、不同消息和不同 `Export` 调用之间不合并，也不等待整轮采集结束。
+
+每批先触发一次 `event.DoExport`，其中包含合并后的原始数据。之后按设备执行
+设备解码、点值加工、Shadow 更新和变化过滤，`event.Exporting` 接收该设备加工后的
+全部点位，`ExportTo(plugin.DeviceData)` 接收该设备过滤后仍需上报的点位集合。
+若全部点位被过滤，则不调用 `ExportTo`；仅含事件的记录仍通过 `OnEvent` 通知。
+
+现有 `ExportTo` 接口和 MQTT、网关等传输格式保持兼容。自定义 Exporter 和设备解码器
+应遍历整个 `Values`，不要假定每次只有一个点。同一设备同一导出类型在一个批次中
+最多产生一次 `ExportTo` 回调；不同导出类型分别处理。
+
 ## 开发环境准备
 
 ### 前置要求

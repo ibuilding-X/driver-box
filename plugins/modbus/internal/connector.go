@@ -277,7 +277,8 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 	if err != nil {
 		return err
 	}
-	// 转化数据并上报
+	// 保留本次读取的批次边界；同一从机的点位可能属于多个物模型设备。
+	var batches []plugin.DeviceData
 	for _, point := range group.Points {
 		var value interface{}
 		start := point.Address - group.Address
@@ -342,8 +343,13 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 		res, err := c.Decode(pointReadValue)
 		if err != nil {
 			driverbox.Log().Error("error modbus callback", zap.Any("data", pointReadValue), zap.Error(err))
+			continue
 		}
-		driverbox.Export(res)
+		batches = append(batches, res...)
+	}
+	// Shadow、点位加工和变化过滤仍由框架执行；每个设备收到一个完整批次。
+	if len(batches) > 0 {
+		driverbox.Export(batches)
 	}
 	return nil
 }
