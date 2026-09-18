@@ -53,9 +53,13 @@ func newConnector(p *Plugin, cf *ConnectionConfig) (*connector, error) {
 }
 
 func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, error) {
+	scanInterval, err := crontab.ParseDurationOrDefault(conf.ScanInterval, time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("invalid scanInterval: %w", err)
+	}
 
 	//注册定时采集任务
-	return driverbox.AddFunc("1s", func() {
+	return driverbox.AddFunc(scanInterval.String(), func() {
 		//遍历所有通讯设备
 		for unitID, device := range c.devices {
 			if len(device.pointGroup) == 0 {

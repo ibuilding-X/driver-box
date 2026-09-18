@@ -59,6 +59,7 @@ type ConnectionConfig struct {
 	MinInterval   uint16 `json:"minInterval"`   // 最小读取间隔
 	Timeout       uint16 `json:"timeout"`       // 请求超时
 	Retry         int    `json:"retry"`         // 重试次数
+	ScanInterval  string `json:"scanInterval"`  // 采集任务扫描周期，默认1s
 }
 
 // Point modbus点位

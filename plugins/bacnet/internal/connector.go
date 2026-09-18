@@ -136,8 +136,13 @@ func (c *connector) initCollectTask(bic *bacIpConfig) (err error) {
 		}
 	}
 
+	scanInterval, err := crontab.ParseDurationOrDefault(bic.ScanInterval, time.Second)
+	if err != nil {
+		return fmt.Errorf("invalid scanInterval: %w", err)
+	}
+
 	//注册定时采集任务
-	future, err := driverbox.AddFunc("1s", func() {
+	future, err := driverbox.AddFunc(scanInterval.String(), func() {
 		//遍历所有通讯设备
 		for deviceId, device := range c.devices {
 			if len(device.pointGroup) == 0 {
@@ -395,6 +400,8 @@ type bacIpConfig struct {
 	LocalIp     string `json:"localIp"`
 	LocalSubnet int    `json:"localSubnet"`
 	LocalPort   int    `json:"localPort"`
+	//采集任务扫描周期，默认1s
+	ScanInterval string `json:"scanInterval"`
 	//虚拟设备功能
 	Virtual bool `json:"virtual"`
 }
