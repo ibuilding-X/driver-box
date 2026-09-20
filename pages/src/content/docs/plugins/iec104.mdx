@@ -30,7 +30,7 @@ import "github.com/ibuilding-x/driver-box/v2/plugins/iec104"
 iec104.EnablePlugin()
 ```
 
-配置文件位于 `res/driver/iec104/config.json`，顶层协议字段为 `"protocolName": "iec104"`。仓库示例默认 `enable: false`，编辑远端地址、点表并启用后生效。修改运行中的配置后可调用 `driverbox.ReloadPlugin("iec104")`，按框架原有流程重新加载连接。
+配置文件位于 `res/driver/iec104/config.json`，顶层协议字段为 `"protocolName": "iec104"`。仓库示例默认 `enable: false`，编辑远端地址、点表并启用后生效。通过 `CoreCache` API 更新运行时配置后，可调用 `driverbox.ReloadPlugin("iec104")` 重建全部 IEC104 连接；直接修改此 JSON 文件后需要重新启动进程，`ReloadPlugin` 不重新读文件。完整边界见[插件热重载](/driver-box/plugins/#插件热重载)。
 
 协议库使用正式 Go 模块依赖 `github.com/orglibs/go-iecp5 v1.7.1`，版本与校验信息由项目的 `go.mod`、`go.sum` 管理，使用 Go 1.23。应用从该模块导入 `asdu` 和 `cs104`；将 driver-box 作为其他 Go 模块的依赖时，按 Go Modules 正常解析即可。
 
@@ -72,7 +72,7 @@ go list -m -json github.com/orglibs/go-iecp5
 |------|------|--------|------|
 | enable | bool | false | 是否建立连接；禁用连接不提供设备读写 |
 | address | string | 必填 | 远端从站 `host[:port]` 或 `tcp://host[:port]`；默认端口 2404，IPv6 使用方括号 |
-| protocolLogEnabled | bool | false | 本连接的协议报文日志开关，与 DLT645 字段名一致；开启后以 Info 级记录收发帧，重载配置后生效 |
+| protocolLogEnabled | bool | false | 本连接的协议报文日志开关，与 DLT645 字段名一致；开启后以 Info 级记录收发帧；文件修改需进程重启，缓存更新后可重启插件 |
 | commonAddress | integer | 1 | 设备未指定 CA 时的默认值，范围 1–65534；0 和广播地址不接受 |
 | originatorAddress | integer | 0 | 主站源发地址 OA，范围 0–255；总召、读取、对时和控制均携带此地址 |
 | timeZone | string | UTC | 解释/编码时间标签的时区，例如 `Asia/Shanghai` |
@@ -104,7 +104,7 @@ go list -m -json github.com/orglibs/go-iecp5
 }
 ```
 
-这是连接配置片段，需要保留现有 `protocolName`、设备和点表配置。保存后重启或调用 `driverbox.ReloadPlugin("iec104")` 生效。一个连接共用一个开关，覆盖该连接下全部设备；无需逐设备设置。
+这是连接配置片段，需要保留现有 `protocolName`、设备和点表配置。直接修改文件后重新启动进程生效。`driverbox.ReloadPlugin("iec104")` 只使用内存核心缓存，适用于已通过缓存 API 完成配置更新的情况；当前缓存没有修改既有连接的专用 API，不能用同 Key 的 `AddConnection` 覆盖连接配置。一个连接共用一个开关，覆盖该连接下全部设备；无需逐设备设置。
 
 日志接入 driver-box 原有日志系统，以 **Info** 级输出 `IEC104 protocol frame`。正常的 Info/Debug 日志级别均可查看；全局级别为 Warn/Error 时会过滤这些记录。开关不修改全局日志级别，也不关闭普通错误诊断。
 
