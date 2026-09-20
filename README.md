@@ -99,6 +99,7 @@ driver-box/
 │   └── crontab.go      # 定时任务
 ├── plugins/            # 内置协议插件
 │   ├── modbus/         # Modbus 协议
+│   ├── iec104/         # IEC104 主站，多设备与点号偏移
 │   ├── bacnet/         # BACnet 协议
 │   ├── mqtt/           # MQTT 协议
 │   ├── httpclient/     # HTTP 客户端
@@ -118,6 +119,7 @@ driver-box/
 │   └── shadow/         # 影子服务
 ├── pkg/                # 公共包
 │   ├── config/         # 配置管理
+│   ├── iec104/         # 主从站共用的 IEC104 地址与编解码
 │   ├── event/          # 平台事件定义
 │   ├── library/        # 资源库
 │   └── crontab/        # 定时任务
@@ -215,6 +217,7 @@ export DRIVERBOX_LOG_PATH="./logs"
 | 插件名称 | 协议类型 | 说明 |
 |---------|---------|------|
 | `modbus` | Modbus RTU/TCP | 工业通用协议，支持串口和TCP |
+| `iec104` | IEC 60870-5-104 主站 | 一连接多设备、地址偏移、总召与遥控；[详细配置](pages/src/content/docs/plugins/iec104.mdx) |
 | `bacnet` | BACnet/IP | 楼宇自动化标准协议 |
 | `mqtt` | MQTT | 物联网轻量级消息协议 |
 | `httpclient` | HTTP Client | HTTP 客户端，支持 REST API |
@@ -222,6 +225,8 @@ export DRIVERBOX_LOG_PATH="./logs"
 | `tcpserver` | TCP Server | TCP 服务端，支持自定义协议 |
 | `websocket` | WebSocket | 实时双向通信协议 |
 | `dlt645` | DLT645 | 电能表通信协议 |
+
+IEC104 使用 [github.com/orglibs/go-iecp5](https://github.com/orglibs/go-iecp5/tree/v1.7.1) `v1.7.1` 正式模块依赖，由 `go.mod` 和 `go.sum` 管理版本与校验信息。示例位于 `res/driver/iec104/config.json`，默认禁用；修改地址和点表后启用。一个连接下的同型号设备可用 `properties.ioaOffset` 和 `commandIoaOffset` 分别调整监视及控制点号。连接级 `protocolLogEnabled` 可开启收发报文日志。当前提供主站，从站 export 尚未实现。
 
 ### export 插件
 
@@ -264,6 +269,7 @@ func main() {
 完整的二次开发文档请参考：
 
 - **[Plugin开发指南](https://ibuilding-x.github.io/driver-box/plugins/development)** - 详细的 Plugin 和 Connector 接口实现指南
+- **[IEC104 主站接入与扩展](pages/src/content/docs/plugins/iec104.mdx)** - 多设备点表复用、配置示例、控制确认及后续从站 export 设计
 - **[Export开发指南](https://ibuilding-x.github.io/driver-box/exports/development)** - 数据导出功能开发教程
 
 ---
