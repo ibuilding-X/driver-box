@@ -11,7 +11,6 @@ import (
 	"github.com/ibuilding-x/driver-box/v2/driverbox"
 	"github.com/ibuilding-x/driver-box/v2/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/v2/pkg/config"
-	protocol "github.com/ibuilding-x/driver-box/v2/pkg/iec104"
 	"github.com/orglibs/go-iecp5/asdu"
 	"github.com/orglibs/go-iecp5/cs104"
 )
@@ -49,8 +48,8 @@ type connector struct {
 	client masterClient
 	// nodes 的两级 Key 分别是设备 ID、点名，确保同模型设备不会覆盖彼此。
 	nodes map[string]map[string]node
-	// routes 将实际 CA/IOA 唯一映射到业务设备和点名，不依赖报文的具体编码类型。
-	routes map[protocol.Address]node
+	// routes 按实际 CA/IOA/category 映射到业务点，不同类别可以复用地址。
+	routes map[monitoringRoute]node
 	// stations 是去重且排序的 CA；总召和对时按 CA 发起，而非按设备重复发起。
 	stations []uint16
 	// export 接入 driverbox.Export；测试可注入收集器，不启动整个应用。
@@ -94,7 +93,7 @@ func newConnector(s settings, cfg config.DeviceConfig, export func([]plugin.Devi
 			cancel()
 		}
 	}()
-	c := &connector{settings: s, nodes: make(map[string]map[string]node), routes: make(map[protocol.Address]node), export: export, ctx: ctx, cancel: cancel, done: make(chan struct{}), telemetry: make(chan telemetryBatch, 256), exportDone: make(chan struct{})}
+	c := &connector{settings: s, nodes: make(map[string]map[string]node), routes: make(map[monitoringRoute]node), export: export, ctx: ctx, cancel: cancel, done: make(chan struct{}), telemetry: make(chan telemetryBatch, 256), exportDone: make(chan struct{})}
 	c.markOffline = func(id string) { _ = driverbox.Shadow().SetOffline(id) }
 	stations := make(map[uint16]bool)
 	commands := make(map[commandRoute]node)
@@ -119,10 +118,10 @@ func newConnector(s settings, cfg config.DeviceConfig, export func([]plugin.Devi
 				if _, ok := points[n.name]; ok {
 					return nil, fmt.Errorf("duplicate point %s/%s", device.ID, n.name)
 				}
-				key := n.Address
+				key := monitoringRoute{n.Address, n.Category}
 				if n.access != config.ReadWrite_W {
 					if previous, ok := c.routes[key]; ok {
-						return nil, fmt.Errorf("monitoring address conflict CA=%d IOA=%d: %s/%s and %s/%s", n.CommonAddress, n.IOA, previous.deviceID, previous.name, n.deviceID, n.name)
+						return nil, fmt.Errorf("monitoring address conflict CA=%d IOA=%d category=%s: %s/%s and %s/%s", n.CommonAddress, n.IOA, n.Category, previous.deviceID, previous.name, n.deviceID, n.name)
 					}
 					c.routes[key] = n
 				}

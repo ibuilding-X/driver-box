@@ -45,10 +45,17 @@ func TestCategoryConfigurationAndUniqueAddress(t *testing.T) {
 		}
 	}
 	s, cfg := categoryFixture()
-	// 遥信/遥测即使类别不同，也不能在同连接同 CA 下占用相同的最终 IOA。
+	// 不同类别可以使用同连接、同 CA、同最终 IOA；同类别仍拒绝重复。
 	cfg.DeviceModels[0].Devices[0].Properties["telemetryIoaOffset"] = "1000"
+	c, err := newConnector(s, cfg, nil)
+	if err != nil {
+		t.Fatalf("shared address across categories rejected: %v", err)
+	}
+	c.cancel()
+	cfg.DeviceModels[0].DevicePoints = append(cfg.DeviceModels[0].DevicePoints,
+		config.Point{"name": "duplicate", "readWrite": "R", "ext": map[string]any{"ioa": 1, "category": "telemetry"}})
 	if _, err := newConnector(s, cfg, nil); err == nil || !strings.Contains(err.Error(), "monitoring address conflict") {
-		t.Fatalf("ambiguous address accepted: %v", err)
+		t.Fatalf("same-category duplicate accepted: %v", err)
 	}
 }
 
@@ -185,5 +192,61 @@ func TestMasterReadsWithoutExpectedType(t *testing.T) {
 	raw := nextFrame(t, frames, 102)
 	if len(raw) != 9 || raw[4] != 1 || raw[6] != 0xa1 || raw[7] != 0x0f || raw[8] != 0 {
 		t.Fatalf("wrong read request: %x", raw)
+	}
+}
+
+// Both same-device and cross-device bindings share CA/IOA; wire TypeID selects
+// the category while all encodings inside that category retain their values.
+func TestSharedIOARoutesByCategory(t *testing.T) {
+	for _, separateDevices := range []bool{false, true} {
+		s, cfg := categoryFixture()
+		cfg.DeviceModels[0].Devices[0].Properties["telemetryIoaOffset"] = "1000"
+		if separateDevices {
+			model := cfg.DeviceModels[0]
+			model.DevicePoints = model.DevicePoints[1:]
+			model.Devices = append([]config.Device(nil), model.Devices...)
+			model.Devices[0].ID = "telemetry-device"
+			cfg.DeviceModels[0].DevicePoints = cfg.DeviceModels[0].DevicePoints[:1]
+			cfg.DeviceModels = append(cfg.DeviceModels, model)
+		}
+		c, err := newConnector(s, cfg, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, tt := range []struct {
+			kind    byte
+			payload []byte
+			name    string
+			value   any
+		}{
+			{1, []byte{1}, "switch", int(1)},
+			{3, []byte{2}, "switch", int(2)},
+			{7, []byte{42, 0, 0, 0, 0}, "switch", uint32(42)},
+			{9, []byte{0, 0x40, 0}, "value", float64(.5)},
+			{11, []byte{0xfe, 0xff, 0}, "value", int16(-2)},
+			{13, []byte{0, 0, 0xc0, 0x3f, 0}, "value", float64(1.5)},
+		} {
+			raw := append([]byte{tt.kind, 1, 3, 0, 1, 0, 0xe9, 3, 0}, tt.payload...)
+			a := asdu.NewEmptyASDU(asdu.ParamsWide)
+			if err := a.UnmarshalBinary(raw); err != nil {
+				t.Fatal(err)
+			}
+			if err := c.ASDUHandler(nil, a); err != nil {
+				t.Fatal(err)
+			}
+			wantID := "a"
+			if separateDevices && tt.name == "value" {
+				wantID = "telemetry-device"
+			}
+			select {
+			case batch := <-c.telemetry:
+				if len(batch.values) != 1 || batch.values[0].ID != wantID || len(batch.values[0].Values) != 1 || batch.values[0].Values[0].PointName != tt.name || batch.values[0].Values[0].Value != tt.value {
+					t.Fatalf("misrouted type %d: %+v", tt.kind, batch.values)
+				}
+			default:
+				t.Fatalf("shared IOA report dropped: type=%d", tt.kind)
+			}
+		}
+		c.cancel()
 	}
 }

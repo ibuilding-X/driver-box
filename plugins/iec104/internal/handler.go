@@ -31,10 +31,10 @@ func (c *connector) ASDUHandler(_ asdu.Connect, a *asdu.ASDU) error {
 	data := make([]plugin.DeviceData, 0)
 	devices := make(map[string]int)
 	for _, sample := range samples {
-		// 先按最终地址定位，再校验遥信/遥测类别。类型 9/11/13 等无需预先绑定；
+		// 按最终地址及报文所属遥信/遥测类别定位。类型 9/11/13 等无需预先绑定；
 		// Decode 已按报文实际类型解码，不把标度值当浮点字节解析，也不做隐式量程换算。
-		n, ok := c.routes[sample.Address]
-		if !ok || protocol.CategoryOf(sample.TypeID) != n.Category || !sample.Valid() {
+		n, ok := c.routes[monitoringRoute{sample.Address, protocol.CategoryOf(sample.TypeID)}]
+		if !ok || !sample.Valid() {
 			continue
 		}
 		index, ok := devices[n.deviceID]

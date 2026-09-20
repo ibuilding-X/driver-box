@@ -137,7 +137,13 @@ type node struct {
 	access config.ReadWrite
 }
 
-// commandRoute 仅用于控制地址冲突检查；监视地址单独按 CA/IOA 唯一定位。
+// monitoringRoute 按实际地址与业务类别路由；遥信和遥测可复用相同 CA/IOA。
+type monitoringRoute struct {
+	protocol.Address
+	category protocol.MonitoringCategory
+}
+
+// commandRoute 仅用于控制地址冲突检查；同地址不同 commandType 可共存。
 type commandRoute struct {
 	protocol.Address
 	// commandType 保留主动发送命令所需的具体编码类型。
