@@ -24,6 +24,8 @@ type testStation struct {
 	receiveSequence uint16
 	reject          bool
 	silence         bool
+	// monitoring 指定总召返回的监视 ASDU，供跨编码类型的真实传输回归使用。
+	monitoring [][]byte
 }
 
 func (s *testStation) writeASDU(raw []byte) error {
@@ -73,6 +75,14 @@ func (s *testStation) run() {
 		}
 		switch asdu.TypeID(raw[0]) {
 		case asdu.C_IC_NA_1:
+			if s.monitoring != nil {
+				for _, raw := range s.monitoring {
+					if err := s.writeASDU(raw); err != nil {
+						return
+					}
+				}
+				continue
+			}
 			ca := binary.LittleEndian.Uint16(raw[4:6])
 			addresses := []uint32{1001, 2001}
 			if ca == 2 {
@@ -309,7 +319,7 @@ func TestHandlerFiltersAndRoutesSpontaneous(t *testing.T) {
 	}{
 		{"device a", 1, 1001, 1, 3, 1, "a"}, {"device b", 1, 2001, 1, 3, 0, "b"}, {"other CA", 2, 1, 1, 3, 1, "c"},
 		{"unknown address", 1, 999, 1, 3, 1, ""}, {"test ASDU", 1, 1001, 1, 0x83, 1, ""}, {"invalid", 1, 1001, 1, 3, 0x81, ""},
-		{"not topical", 1, 1001, 1, 3, 0x41, ""}, {"wrong type family", 1, 1001, 3, 3, 1, ""},
+		{"not topical", 1, 1001, 1, 3, 0x41, ""}, {"double point same category", 1, 1001, 3, 3, 2, "a"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			raw := []byte{tt.kind, 1, tt.cot, 0, byte(tt.ca), byte(tt.ca >> 8), byte(tt.ioa), byte(tt.ioa >> 8), byte(tt.ioa >> 16), tt.quality}

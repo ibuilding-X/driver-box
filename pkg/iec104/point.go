@@ -16,12 +16,24 @@ type Address struct {
 	IOA uint32 `json:"ioa"`
 }
 
+// MonitoringCategory 是模型的监视业务类别，只决定地址分区和允许的监视数据类别。
+// 具体 ASDU TypeID 由从站报文携带，不能用本地配置替代或强制解码。
+type MonitoringCategory string
+
+const (
+	// Signal 表示遥信：单点、双点、32 位状态位串及其时标变体。
+	Signal MonitoringCategory = "signal"
+	// Telemetry 表示遥测：测量值、数值型步位置和累计量及其时标变体。
+	// 步位置和累计量归入此区是本插件的映射约定，不隐含量程转换。
+	Telemetry MonitoringCategory = "telemetry"
+)
+
 // Point 描述一个点的监视与控制信息，可用于主站采集和后续从站映射。
 type Point struct {
 	Address
-	// TypeID 是监视方向类型标识，如 1=单点遥信、11=标度值、13=短浮点。
-	// 路由时同一信息类型的带时标变体互通；不同信息类型不互相转换。
-	TypeID uint8 `json:"typeId"`
+	// Category 必填：signal=遥信、telemetry=遥测，分别选择设备的监视地址偏移。
+	// 不限定具体 TypeID；同类别的不同编码按实际报文解码，保留原始数值语义。
+	Category MonitoringCategory `json:"category"`
 	// CommandType 是控制方向类型标识；0 表示未配置写入，支持 45/46/48/49/50。
 	CommandType uint8 `json:"commandType"`
 	// CommandIOA 为控制地址；nil 表示沿用 IOA，指针可区分“未设置”和合法地址 0。
@@ -43,8 +55,8 @@ func (p Point) Validate() error {
 	if p.IOA > 0xffffff || (p.CommandIOA != nil && *p.CommandIOA > 0xffffff) {
 		return fmt.Errorf("ioa must fit in 24 bits")
 	}
-	if MonitoringFamily(asdu.TypeID(p.TypeID)) == 0 {
-		return fmt.Errorf("unsupported monitoring typeId %d", p.TypeID)
+	if p.Category != Signal && p.Category != Telemetry {
+		return fmt.Errorf("category must be signal or telemetry, got %q", p.Category)
 	}
 	switch asdu.TypeID(p.CommandType) {
 	case 0:
@@ -96,5 +108,18 @@ func MonitoringFamily(t asdu.TypeID) asdu.TypeID {
 		return asdu.M_IT_NA_1
 	default:
 		return 0
+	}
+}
+
+// CategoryOf 将支持的实际报文类型归入业务类别，仅用于接收后的类别校验。
+// 未支持的类型返回空字符串；MonitoringFamily 仍供编解码分派使用，不参与地址路由。
+func CategoryOf(t asdu.TypeID) MonitoringCategory {
+	switch MonitoringFamily(t) {
+	case asdu.M_SP_NA_1, asdu.M_DP_NA_1, asdu.M_BO_NA_1:
+		return Signal
+	case asdu.M_ST_NA_1, asdu.M_ME_NA_1, asdu.M_ME_NB_1, asdu.M_ME_NC_1, asdu.M_IT_NA_1:
+		return Telemetry
+	default:
+		return ""
 	}
 }

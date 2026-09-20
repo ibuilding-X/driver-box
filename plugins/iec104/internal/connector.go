@@ -49,8 +49,8 @@ type connector struct {
 	client masterClient
 	// nodes 的两级 Key 分别是设备 ID、点名，确保同模型设备不会覆盖彼此。
 	nodes map[string]map[string]node
-	// routes 将实际 CA/IOA/类型族反向映射到业务设备和点名。
-	routes map[route]node
+	// routes 将实际 CA/IOA 唯一映射到业务设备和点名，不依赖报文的具体编码类型。
+	routes map[protocol.Address]node
 	// stations 是去重且排序的 CA；总召和对时按 CA 发起，而非按设备重复发起。
 	stations []uint16
 	// export 接入 driverbox.Export；测试可注入收集器，不启动整个应用。
@@ -94,10 +94,10 @@ func newConnector(s settings, cfg config.DeviceConfig, export func([]plugin.Devi
 			cancel()
 		}
 	}()
-	c := &connector{settings: s, nodes: make(map[string]map[string]node), routes: make(map[route]node), export: export, ctx: ctx, cancel: cancel, done: make(chan struct{}), telemetry: make(chan telemetryBatch, 256), exportDone: make(chan struct{})}
+	c := &connector{settings: s, nodes: make(map[string]map[string]node), routes: make(map[protocol.Address]node), export: export, ctx: ctx, cancel: cancel, done: make(chan struct{}), telemetry: make(chan telemetryBatch, 256), exportDone: make(chan struct{})}
 	c.markOffline = func(id string) { _ = driverbox.Shadow().SetOffline(id) }
 	stations := make(map[uint16]bool)
-	commands := make(map[route]node)
+	commands := make(map[commandRoute]node)
 	for _, model := range cfg.DeviceModels {
 		for _, device := range model.Devices {
 			if device.ConnectionKey != s.ConnectionKey {
@@ -119,7 +119,7 @@ func newConnector(s settings, cfg config.DeviceConfig, export func([]plugin.Devi
 				if _, ok := points[n.name]; ok {
 					return nil, fmt.Errorf("duplicate point %s/%s", device.ID, n.name)
 				}
-				key := route{n.Address, protocol.MonitoringFamily(asdu.TypeID(n.TypeID))}
+				key := n.Address
 				if n.access != config.ReadWrite_W {
 					if previous, ok := c.routes[key]; ok {
 						return nil, fmt.Errorf("monitoring address conflict CA=%d IOA=%d: %s/%s and %s/%s", n.CommonAddress, n.IOA, previous.deviceID, previous.name, n.deviceID, n.name)
@@ -127,7 +127,7 @@ func newConnector(s settings, cfg config.DeviceConfig, export func([]plugin.Devi
 					c.routes[key] = n
 				}
 				if n.access != config.ReadWrite_R {
-					key := route{n.WriteAddress(), asdu.TypeID(n.CommandType)}
+					key := commandRoute{n.WriteAddress(), asdu.TypeID(n.CommandType)}
 					if previous, ok := commands[key]; ok {
 						return nil, fmt.Errorf("command address conflict: %s/%s and %s/%s", previous.deviceID, previous.name, n.deviceID, n.name)
 					}

@@ -29,10 +29,10 @@
           "reportMode": "change",
           "ext": {
             "ioa": 1,
-            "typeId": 1,
             "commandType": 45,
             "commandIoa": 1,
-            "selectBeforeExecute": true
+            "selectBeforeExecute": true,
+            "category": "signal"
           }
         },
         {
@@ -43,9 +43,9 @@
           "reportMode": "change",
           "ext": {
             "ioa": 2,
-            "typeId": 13,
             "commandType": 50,
-            "commandIoa": 2
+            "commandIoa": 2,
+            "category": "telemetry"
           }
         }
       ],

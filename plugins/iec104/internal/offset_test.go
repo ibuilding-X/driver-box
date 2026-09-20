@@ -10,23 +10,18 @@ import (
 	"github.com/orglibs/go-iecp5/asdu"
 )
 
-// 独立列出全部已支持监视类型，确保 CP24/CP56 变体与无时标点选择相同地址区。
+// 地址计算不依赖具体 TypeID：相同模型基础 IOA 使用类别选择设备偏移。
 func TestMonitoringOffsetCategories(t *testing.T) {
-	for _, group := range []struct {
-		types []int
-		want  uint32
+	for _, tt := range []struct {
+		category string
+		want     uint32
 	}{
-		{[]int{1, 2, 30, 3, 4, 31, 7, 8, 33}, 1001},
-		{[]int{5, 6, 32, 9, 10, 21, 34, 11, 12, 35, 13, 14, 36, 15, 16, 37}, 4001},
+		{"signal", 1001}, {"telemetry", 4001},
 	} {
-		for _, typ := range group.types {
-			t.Run(fmt.Sprint(typ), func(t *testing.T) {
-				p := config.Point{"name": "value", "readWrite": "R", "ext": map[string]any{"ioa": 1, "typeId": typ}}
-				n, err := resolvePoint(p, config.Device{ID: "dev", Properties: map[string]string{"signalIoaOffset": "1000", "telemetryIoaOffset": "4000"}}, 1)
-				if err != nil || n.IOA != group.want {
-					t.Fatalf("wrong address: %+v, %v", n, err)
-				}
-			})
+		p := config.Point{"name": "value", "readWrite": "R", "ext": map[string]any{"ioa": 1, "category": tt.category}}
+		n, err := resolvePoint(p, config.Device{Properties: map[string]string{"signalIoaOffset": "1000", "telemetryIoaOffset": "4000"}}, 1)
+		if err != nil || n.IOA != tt.want {
+			t.Fatalf("wrong address: %+v, %v", n, err)
 		}
 	}
 }
@@ -36,7 +31,7 @@ func TestControlOffsetCategories(t *testing.T) {
 		for _, explicitBase := range []bool{false, true} {
 			p := modelPoint()
 			ext := p["ext"].(map[string]any)
-			ext["typeId"] = 13 // 即使监视点为遥测，单/双命令仍必须选遥控区。
+			ext["category"] = "telemetry" // 即使监视点为遥测，单/双命令仍必须选遥控区。
 			ext["commandType"] = typ
 			base := uint32(1)
 			if explicitBase {
@@ -74,7 +69,7 @@ func TestOffsetValidation(t *testing.T) {
 		}
 	}
 	for _, key := range []string{"telemetryIoaOffset", "setpointIoaOffset"} {
-		p := config.Point{"name": "value", "readWrite": "RW", "ext": map[string]any{"ioa": 1, "typeId": 13, "commandType": 50}}
+		p := config.Point{"name": "value", "readWrite": "RW", "ext": map[string]any{"ioa": 1, "category": "telemetry", "commandType": 50}}
 		for _, value := range []string{"-2", "16777215"} {
 			if _, err := resolvePoint(p, config.Device{Properties: map[string]string{key: value}}, 1); err == nil {
 				t.Fatalf("resolved address outside 24 bits accepted: %s=%s", key, value)
@@ -92,7 +87,7 @@ func TestOffsetValidation(t *testing.T) {
 func TestIndependentOffsetsRoutingAndEncoding(t *testing.T) {
 	s, cfg := fixture()
 	cfg.DeviceModels[0].DevicePoints = append(cfg.DeviceModels[0].DevicePoints,
-		config.Point{"name": "voltage", "readWrite": "RW", "ext": map[string]any{"ioa": 1, "typeId": 13, "commandType": 50, "selectBeforeExecute": true}})
+		config.Point{"name": "voltage", "readWrite": "RW", "ext": map[string]any{"ioa": 1, "category": "telemetry", "commandType": 50, "selectBeforeExecute": true}})
 	for i := range cfg.DeviceModels[0].Devices {
 		props := cfg.DeviceModels[0].Devices[i].Properties
 		props["telemetryIoaOffset"] = fmt.Sprint(4000 + i*1000)

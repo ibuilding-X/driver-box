@@ -90,7 +90,7 @@ func TestCommandValidationAndEncoding(t *testing.T) {
 	}{
 		{45, true, true}, {45, 2, false}, {46, 2, true}, {46, 0, false}, {48, .5, true}, {48, 1, false}, {49, -32768, true}, {49, 1.2, false}, {49, 32768, false}, {50, 1.25, true}, {50, math.NaN(), false}, {50, math.Inf(1), false}, {50, "bad", false},
 	} {
-		p := Point{Address: Address{2, 100}, TypeID: 1, CommandType: tt.command}
+		p := Point{Address: Address{2, 100}, Category: Signal, CommandType: tt.command}
 		frame, err := Command(&params, p, tt.value, true)
 		if (err == nil) != tt.valid {
 			t.Fatalf("command %d value %v: %v", tt.command, tt.value, err)

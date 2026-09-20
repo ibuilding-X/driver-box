@@ -137,11 +137,11 @@ type node struct {
 	access config.ReadWrite
 }
 
-// route 的作用域为一条连接；同 CA/IOA 的不同值类型仍可独立寻址。
-type route struct {
+// commandRoute 仅用于控制地址冲突检查；监视地址单独按 CA/IOA 唯一定位。
+type commandRoute struct {
 	protocol.Address
-	// family 将同一信息类型的无时标、CP24、CP56 变体归并，兼容总召与自发上报。
-	family asdu.TypeID
+	// commandType 保留主动发送命令所需的具体编码类型。
+	commandType asdu.TypeID
 }
 
 // resolvePoint 使用有符号 64 位中间值计算偏移，再校验 24 位范围，防止溢出回绕。
@@ -174,6 +174,9 @@ func resolvePoint(point config.Point, device config.Device, defaultCA uint16) (n
 	if err := convert(ext, &fields); err != nil {
 		return n, err
 	}
+	if _, exists := fields["typeId"]; exists {
+		return n, fmt.Errorf("point %s: ext.typeId is no longer supported; use ext.category (signal or telemetry)", n.name)
+	}
 	if _, ok := fields["ioa"]; !ok {
 		return n, fmt.Errorf("point %s requires ext.ioa", n.name)
 	}
@@ -200,11 +203,10 @@ func resolvePoint(point config.Point, device config.Device, defaultCA uint16) (n
 	if err != nil {
 		return n, err
 	}
-	// 分类只取决于模型的监视 typeId，与值的 Go 类型、readWrite、控制类型无关。
-	// 同族 CP24/CP56 变体使用同一偏移，避免总召和自发上报落入不同地址区。
+	// 监视地址只按业务类别选取偏移，具体编码类型在收到报文时确定。
+	// 模型类别与 valueType、readWrite、主动发送的 commandType 相互独立。
 	offset := offsets.telemetry
-	switch protocol.MonitoringFamily(asdu.TypeID(n.TypeID)) {
-	case asdu.M_SP_NA_1, asdu.M_DP_NA_1, asdu.M_BO_NA_1:
+	if n.Category == protocol.Signal {
 		offset = offsets.signal
 	}
 	baseCommand := n.IOA
@@ -213,7 +215,7 @@ func resolvePoint(point config.Point, device config.Device, defaultCA uint16) (n
 	}
 	readAddr := int64(n.IOA) + offset
 	// 单/双命令是遥控，归一化/标度/短浮点设点是遥调；按 commandType 选取控制区。
-	// 不能根据监视 typeId 推断，一个监视点可以配置独立类型的控制命令。
+	// 不能根据监视 category 推断，一个监视点可以配置独立类型的控制命令。
 	commandOffset := offsets.command
 	switch asdu.TypeID(n.CommandType) {
 	case asdu.C_SE_NA_1, asdu.C_SE_NB_1, asdu.C_SE_NC_1:

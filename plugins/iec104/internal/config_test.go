@@ -9,7 +9,7 @@ import (
 )
 
 func modelPoint() config.Point {
-	return config.Point{"name": "switch", "readWrite": "RW", "ext": map[string]any{"ioa": 1, "typeId": 1, "commandType": 45, "selectBeforeExecute": true}}
+	return config.Point{"name": "switch", "readWrite": "RW", "ext": map[string]any{"ioa": 1, "category": "signal", "commandType": 45, "selectBeforeExecute": true}}
 }
 
 func TestDeviceAddressOffsets(t *testing.T) {
