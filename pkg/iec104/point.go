@@ -25,7 +25,9 @@ type Point struct {
 	// CommandType 是控制方向类型标识；0 表示未配置写入，支持 45/46/48/49/50。
 	CommandType uint8 `json:"commandType"`
 	// CommandIOA 为控制地址；nil 表示沿用 IOA，指针可区分“未设置”和合法地址 0。
-	// 模型中的 commandIoa 与设备 commandIoaOffset 相加后得到最终控制地址。
+	// 最终控制地址 = 模型 commandIoa（未设时为原始 ioa）+ 设备对应控制偏移。
+	// 45/46 使用 commandIoaOffset，48/49/50 使用 setpointIoaOffset，均默认 0。
+	// 控制偏移不继承 signalIoaOffset 或 telemetryIoaOffset。
 	CommandIOA *uint32 `json:"commandIoa,omitempty"`
 	// SelectBeforeExecute=true 时先选择，收到匹配的正 ACT_CON 后才执行；默认直接执行。
 	SelectBeforeExecute bool `json:"selectBeforeExecute"`

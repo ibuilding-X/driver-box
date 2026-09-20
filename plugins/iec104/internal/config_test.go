@@ -21,15 +21,15 @@ func TestDeviceAddressOffsets(t *testing.T) {
 		valid       bool
 	}{
 		{"defaults", nil, 1, 1, 1, true},
-		{"shared model", map[string]string{"ioaOffset": "1000"}, 1001, 1001, 1, true},
-		{"independent command", map[string]string{"ioaOffset": "1000", "commandIoaOffset": "2000", "commonAddress": "2"}, 1001, 2001, 2, true},
-		{"hex", map[string]string{"ioaOffset": "0x100"}, 257, 257, 1, true},
-		{"negative", map[string]string{"ioaOffset": "-1"}, 0, 0, 1, true},
-		{"underflow", map[string]string{"ioaOffset": "-2"}, 0, 0, 0, false},
-		{"overflow", map[string]string{"ioaOffset": "16777215"}, 0, 0, 0, false},
-		{"huge offset", map[string]string{"ioaOffset": "9223372036854775807"}, 0, 0, 0, false},
+		{"shared model", map[string]string{"signalIoaOffset": "1000"}, 1001, 1, 1, true},
+		{"independent command", map[string]string{"signalIoaOffset": "1000", "commandIoaOffset": "2000", "commonAddress": "2"}, 1001, 2001, 2, true},
+		{"hex", map[string]string{"signalIoaOffset": "0x100"}, 257, 1, 1, true},
+		{"negative", map[string]string{"signalIoaOffset": "-1"}, 0, 1, 1, true},
+		{"underflow", map[string]string{"signalIoaOffset": "-2"}, 0, 0, 0, false},
+		{"overflow", map[string]string{"signalIoaOffset": "16777215"}, 0, 0, 0, false},
+		{"huge offset", map[string]string{"signalIoaOffset": "9223372036854775807"}, 0, 0, 0, false},
 		{"broadcast", map[string]string{"commonAddress": "65535"}, 0, 0, 0, false},
-		{"bad offset", map[string]string{"ioaOffset": "one"}, 0, 0, 0, false},
+		{"bad offset", map[string]string{"signalIoaOffset": "one"}, 0, 0, 0, false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			n, err := resolvePoint(modelPoint(), config.Device{ID: "dev", Properties: tt.properties}, 1)
@@ -43,8 +43,8 @@ func TestDeviceAddressOffsets(t *testing.T) {
 	}
 	p := modelPoint()
 	p["ext"].(map[string]any)["commandIoa"] = 500
-	n, err := resolvePoint(p, config.Device{ID: "dev", Properties: map[string]string{"ioaOffset": "1000"}}, 1)
-	if err != nil || n.IOA != 1001 || n.WriteAddress().IOA != 1500 {
+	n, err := resolvePoint(p, config.Device{ID: "dev", Properties: map[string]string{"signalIoaOffset": "1000"}}, 1)
+	if err != nil || n.IOA != 1001 || n.WriteAddress().IOA != 500 {
 		t.Fatalf("explicit command address: %+v %v", n, err)
 	}
 }
@@ -53,8 +53,8 @@ func fixture() (settings, config.DeviceConfig) {
 	s, _ := parseSettings(map[string]any{"address": "127.0.0.1:2404"})
 	s.ConnectionKey = "station"
 	cfg := config.DeviceConfig{DeviceModels: []config.DeviceModel{{Model: config.Model{Name: "switch", DevicePoints: []config.Point{modelPoint()}}, Devices: []config.Device{
-		{ID: "a", ConnectionKey: "station", Properties: map[string]string{"ioaOffset": "1000", "commandIoaOffset": "3000"}},
-		{ID: "b", ConnectionKey: "station", Properties: map[string]string{"ioaOffset": "2000"}},
+		{ID: "a", ConnectionKey: "station", Properties: map[string]string{"signalIoaOffset": "1000", "commandIoaOffset": "3000"}},
+		{ID: "b", ConnectionKey: "station", Properties: map[string]string{"signalIoaOffset": "2000", "commandIoaOffset": "2000"}},
 		{ID: "c", ConnectionKey: "station", Properties: map[string]string{"commonAddress": "2"}},
 	}}}}
 	return s, cfg
@@ -70,11 +70,11 @@ func TestAddressConflicts(t *testing.T) {
 	if len(c.nodes) != 3 || len(c.stations) != 2 {
 		t.Fatalf("devices=%d stations=%v", len(c.nodes), c.stations)
 	}
-	cfg.DeviceModels[0].Devices[1].Properties["ioaOffset"] = "1000"
+	cfg.DeviceModels[0].Devices[1].Properties["signalIoaOffset"] = "1000"
 	if _, err = newConnector(s, cfg, nil); err == nil {
 		t.Fatal("duplicate monitoring address accepted")
 	}
-	cfg.DeviceModels[0].Devices[1].Properties["ioaOffset"] = "2000"
+	cfg.DeviceModels[0].Devices[1].Properties["signalIoaOffset"] = "2000"
 	cfg.DeviceModels[0].Devices[1].Properties["commandIoaOffset"] = "3000"
 	if _, err = newConnector(s, cfg, nil); err == nil {
 		t.Fatal("duplicate command address accepted")
@@ -120,7 +120,7 @@ func TestRepositoryExample(t *testing.T) {
 			t.Fatal(err)
 		}
 		c.cancel()
-		if len(c.nodes) != 3 || c.nodes["cabinet_a"]["switch"].IOA != 1001 || c.nodes["cabinet_b"]["switch"].WriteAddress().IOA != 20001 || c.nodes["cabinet_c"]["voltage"].CommonAddress != 2 {
+		if len(c.nodes) != 3 || c.nodes["cabinet_a"]["switch"].IOA != 1001 || c.nodes["cabinet_a"]["voltage"].IOA != 4002 || c.nodes["cabinet_b"]["voltage"].IOA != 5002 || c.nodes["cabinet_b"]["switch"].WriteAddress().IOA != 20001 || c.nodes["cabinet_c"]["voltage"].CommonAddress != 2 {
 			t.Fatal("example address mapping incorrect")
 		}
 	}

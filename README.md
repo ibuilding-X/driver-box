@@ -226,7 +226,7 @@ export DRIVERBOX_LOG_PATH="./logs"
 | `websocket` | WebSocket | 实时双向通信协议 |
 | `dlt645` | DLT645 | 电能表通信协议 |
 
-IEC104 使用 [github.com/orglibs/go-iecp5](https://github.com/orglibs/go-iecp5/tree/v1.7.1) `v1.7.1` 正式模块依赖，由 `go.mod` 和 `go.sum` 管理版本与校验信息。示例位于 `res/driver/iec104/config.json`，默认禁用；修改地址和点表后启用。一个连接下的同型号设备可用 `properties.ioaOffset` 和 `commandIoaOffset` 分别调整监视及控制点号。连接级 `protocolLogEnabled` 可开启收发报文日志。当前提供主站，从站 export 尚未实现。
+IEC104 使用 [github.com/orglibs/go-iecp5](https://github.com/orglibs/go-iecp5/tree/v1.7.1) `v1.7.1` 正式模块依赖，由 `go.mod` 和 `go.sum` 管理版本与校验信息。示例位于 `res/driver/iec104/config.json`，默认禁用；修改地址和点表后启用。一个连接下的同型号设备可用 设备属性 `signalIoaOffset`、`telemetryIoaOffset`、`commandIoaOffset`、`setpointIoaOffset` 分别调整遥信、遥测、遥控、遥调点号，四者独立且默认 0。连接级 `protocolLogEnabled` 可开启收发报文日志。当前提供主站，从站 export 尚未实现。
 
 ### export 插件
 

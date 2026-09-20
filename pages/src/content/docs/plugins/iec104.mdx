@@ -14,7 +14,7 @@ description: IEC 60870-5-104 主站，多设备地址偏移、数据采集、遥
 - 接收总召、读取响应、自发上报，按设备 ID 写入现有影子与 export 流程。
 - 单点、双点、步位置、32 位位串、归一化/标度/短浮点测量值及累计量。
 - 单命令、双命令、三种设点命令；支持直接执行和先选择后执行。
-- 多设备共享连接，分别配置监视/控制地址偏移，初始化时校验地址冲突和越界。
+- 多设备共享连接，分别配置遥信、遥测、遥控、遥调地址偏移，初始化时校验地址冲突和越界。
 - 公共协议包保留质量、时标和累计量状态，便于后续 IEC104 从站 export 复用。
 
 当前实现是主站插件。IEC104 从站监听、总召应答、对外遥控转发尚未作为 export 提供，不能用此插件代替从站。
@@ -136,29 +136,45 @@ STARTDT 请求的字段示例：
 | 属性 | 默认值 | 说明 |
 |------|--------|------|
 | commonAddress | 连接的 commonAddress | 本设备的公共地址 CA；同连接可存在多个 CA |
-| ioaOffset | `"0"` | 加到模型 `ext.ioa` 上的偏移，适合同型号设备共享点表 |
-| commandIoaOffset | ioaOffset | 控制地址偏移，遥控与遥测分区时单独填写 |
+| signalIoaOffset | `"0"` | 遥信监视地址偏移：单点、双点、32 位状态位串及其带时标变体 |
+| telemetryIoaOffset | `"0"` | 遥测监视地址偏移：归一化、标度、短浮点测量值；步位置、累计量也按此区处理 |
+| commandIoaOffset | `"0"` | 遥控地址偏移，仅用于单命令/双命令（commandType 45/46） |
+| setpointIoaOffset | `"0"` | 遥调地址偏移，仅用于归一化/标度/短浮点设点（commandType 48/49/50） |
 
 属性支持十进制及 `0x` 十六进制表示，偏移可以是负数；偏移及最终地址均会校验，最终 IOA 必须落在 0–16777215。设备 ID 在插件中必须唯一，多个设备使用相同点名不会互相覆盖。
+
+四种偏移互不继承、互不叠加。监视分类由 `ext.typeId` 决定，控制分类由 `ext.commandType` 决定，不能根据 `valueType` 判断。同类型的无时标、CP24、CP56 报文使用相同偏移。步位置和累计量归入遥测区是本插件的地址映射约定；具体基础地址仍按厂家点表配置。
+
+不再支持设备属性 `ioaOffset`；配置中出现此字段会报错并拒绝初始化对应连接。必须明确填写各区偏移，未填写的区偏移为 0；遥调不会继承遥控或遥测偏移。
 
 ### 地址计算规则
 
 ```text
 实际 CA       = 设备 commonAddress，否则使用连接 commonAddress
-实际监视 IOA  = 模型 ext.ioa + 设备 ioaOffset
+实际遥信 IOA  = 模型 ext.ioa + 设备 signalIoaOffset
+实际遥测 IOA  = 模型 ext.ioa + 设备 telemetryIoaOffset
 控制基础 IOA  = 模型 ext.commandIoa，否则使用模型 ext.ioa
-实际控制 IOA  = 控制基础 IOA + 设备 commandIoaOffset
+实际遥控 IOA  = 控制基础 IOA + 设备 commandIoaOffset（45/46）
+实际遥调 IOA  = 控制基础 IOA + 设备 setpointIoaOffset（48/49/50）
 ```
 
-`commandIoaOffset` 未设置时继承 `ioaOffset`，它不是在已偏移的监视地址上再加一次。CA 由设备配置决定，不在模型 `ext` 中设置，避免固定地址破坏模型复用。
+监视和控制都从模型原始基础地址计算，控制地址不会加上监视偏移。CA 由设备配置决定，不在模型 `ext` 中设置，避免固定地址破坏模型复用。
 
-对于模型 `switch` 的 `ioa=1`、`commandIoa=1` 和 `voltage` 的 `ioa=2`：
+下面与完整配置示例一致：`switch` 使用 `ioa=1`、`commandIoa=1`、`commandType=45`；`voltage` 使用 `ioa=2`、`commandIoa=2`、`commandType=50`。
 
-| 设备 | 连接 | CA | ioaOffset | commandIoaOffset | switch 监视 IOA | voltage 监视 IOA | switch 控制 IOA |
-|------|------|----|-----------|------------------|----------------|-----------------|----------------|
-| cabinet_a | station_1 | 1 | 1000 | 10000 | 1001 | 1002 | 10001 |
-| cabinet_b | station_1 | 1 | 2000 | 20000 | 2001 | 2002 | 20001 |
-| cabinet_c | station_1 | 2 | 0 | 未设置 | 1 | 2 | 1 |
+| 设备 | CA | signalIoaOffset | telemetryIoaOffset | commandIoaOffset | setpointIoaOffset |
+|------|----|-----------------|--------------------|------------------|-------------------|
+| cabinet_a | 1 | 1000 | 4000 | 10000 | 30000 |
+| cabinet_b | 1 | 2000 | 5000 | 20000 | 40000 |
+| cabinet_c | 2 | 0 | 0 | 0 | 0 |
+
+| 设备 | switch 遥信 IOA | voltage 遥测 IOA | switch 遥控 IOA | voltage 遥调 IOA |
+|------|----------------|-----------------|----------------|-----------------|
+| cabinet_a | 1001 | 4002 | 10001 | 30002 |
+| cabinet_b | 2001 | 5002 | 20001 | 40002 |
+| cabinet_c | 1 | 2 | 1 | 2 |
+
+同一个模型也可以将遥信、遥测的 `ext.ioa` 都从 1 编排：如 cabinet_a 的遥信实际地址为 1001，遥测实际地址为 4001，分别使用各自区的偏移。
 
 此配置只建立一个 TCP 会话，每次连接总召 CA=1、CA=2 各一次。每条上报仍分别归属 `cabinet_a`、`cabinet_b`、`cabinet_c`，不会以 `station_1` 作为设备 ID。
 
@@ -272,13 +288,15 @@ STARTDT 请求的字段示例：
         },
         {
           "name": "voltage",
-          "description": "电压",
+          "description": "电压测量及设定",
           "valueType": "float",
-          "readWrite": "R",
+          "readWrite": "RW",
           "reportMode": "change",
           "ext": {
             "ioa": 2,
-            "typeId": 13
+            "typeId": 13,
+            "commandType": 50,
+            "commandIoa": 2
           }
         }
       ],
@@ -289,8 +307,10 @@ STARTDT 请求的字段示例：
           "connectionKey": "station_1",
           "properties": {
             "commonAddress": "1",
-            "ioaOffset": "1000",
-            "commandIoaOffset": "10000"
+            "commandIoaOffset": "10000",
+            "signalIoaOffset": "1000",
+            "telemetryIoaOffset": "4000",
+            "setpointIoaOffset": "30000"
           }
         },
         {
@@ -299,8 +319,10 @@ STARTDT 请求的字段示例：
           "connectionKey": "station_1",
           "properties": {
             "commonAddress": "1",
-            "ioaOffset": "2000",
-            "commandIoaOffset": "20000"
+            "commandIoaOffset": "20000",
+            "signalIoaOffset": "2000",
+            "telemetryIoaOffset": "5000",
+            "setpointIoaOffset": "40000"
           }
         },
         {
@@ -309,7 +331,10 @@ STARTDT 请求的字段示例：
           "connectionKey": "station_1",
           "properties": {
             "commonAddress": "2",
-            "ioaOffset": "0"
+            "signalIoaOffset": "0",
+            "telemetryIoaOffset": "0",
+            "setpointIoaOffset": "0",
+            "commandIoaOffset": "0"
           }
         }
       ]
@@ -326,7 +351,7 @@ import (
     "github.com/ibuilding-x/driver-box/v2/driverbox/plugin"
 )
 
-// 读 cabinet_a；响应异步更新影子，使用 CA=1、监视 IOA=1002。
+// 读 cabinet_a；响应异步更新影子，使用 CA=1、遥测 IOA=4002。
 err := driverbox.ReadPoint("cabinet_a", "voltage")
 if err != nil {
     // 处理请求发送失败。
@@ -336,6 +361,12 @@ if err != nil {
 err = driverbox.WritePoint("cabinet_b", plugin.PointData{
     PointName: "switch",
     Value:     1,
+})
+
+// 遥调 cabinet_b；使用 CA=1、遥调 IOA=40002，短浮点设点类型 50。
+err = driverbox.WritePoint("cabinet_b", plugin.PointData{
+    PointName: "voltage",
+    Value:     220.0,
 })
 ```
 
@@ -377,9 +408,9 @@ github.com/orglibs/go-iecp5  asdu / cs104.Client / cs104.Server（Go 模块依�
 |------|----------|
 | 获取连接失败 | `enable` 是否开启；设备的 connectionKey 是否存在；初始化日志是否有地址冲突/非法字段 |
 | TCP 已连接但未采集 | 远端是否响应 STARTDT；CA 是否正确；总召是否支持；示例默认连接被禁用 |
-| 部分设备无数据 | 计算偏移后的实际 IOA；检查 CA、监视类型族、IV/NT 质量位和设备 ID |
+| 部分设备无数据 | 按 typeId 核对 signalIoaOffset/telemetryIoaOffset 和最终 IOA；检查 CA、监视类型族、IV/NT 质量位和设备 ID |
 | 总召有数据但单点读无结果 | 远端是否实现 `C_RD_NA_1`；读取是异步更新影子，不返回同步测量值 |
-| 遥控被拒绝 | 检查 commandType、commandIoaOffset、QOC/QOS、选择/执行策略、OA，以及响应负确认原因 |
+| 遥控被拒绝 | 检查 commandType、commandIoaOffset/setpointIoaOffset、QOC/QOS、选择/执行策略、OA，以及响应负确认原因 |
 | 遥控超时 | 结果未知，应核查设备状态；确认从站返回 ACT_CON 并回显同一 IOA、值和选择位 |
 | 时间偏差 | 检查 timeZone 和对时配置；无时标值没有设备原始时间，CP24 也不包含完整日期 |
 
@@ -398,7 +429,7 @@ go build -mod=readonly -o /tmp/driver-box-iec104 .
 
 若出现 `missing go.sum entry`，在可联网环境重新执行前述 `go mod download`，检查并提交新增校验记录后重试。离线环境需提前准备完整模块缓存；使用临时本地替换进行的源码兼容性测试，不能替代正式依赖下载与校验验证。
 
-主站集成测试使用 `net.Pipe` 双向字节流与独立报文对端，覆盖真实客户端的 STARTDT、总召、控制确认、超时和重连，不要求测试环境能够打开 TCP 端口。连接级协议日志测试覆盖开关隔离、收发摘要及开启日志后的多设备上报和选择/执行确认；上述协议库测试验证 TCP 分段合帧及观察器快照隔离，还覆盖畸形帧拒绝、序号回绕、k 窗口、发送快照、时间合法性与夏令时、广播部分失败和等待取消，以及从站选择命令原样确认。上线前仍需与目标厂家的真实从站核对点表、控制策略、时间和质量语义。
+主站集成测试使用 `net.Pipe` 双向字节流与独立报文对端，覆盖真实客户端的 STARTDT、总召、控制确认、超时和重连，不要求测试环境能够打开 TCP 端口。地址映射测试覆盖四类偏移独立计算、同族时标变体、读写报文地址、冲突和越界拒绝。连接级协议日志测试覆盖开关隔离、收发摘要及开启日志后的多设备上报和选择/执行确认；上述协议库测试验证 TCP 分段合帧及观察器快照隔离，还覆盖畸形帧拒绝、序号回绕、k 窗口、发送快照、时间合法性与夏令时、广播部分失败和等待取消，以及从站选择命令原样确认。上线前仍需与目标厂家的真实从站核对点表、控制策略、时间和质量语义。
 
 ## 相关源码
 

@@ -37,13 +37,15 @@
         },
         {
           "name": "voltage",
-          "description": "电压",
+          "description": "电压测量及设定",
           "valueType": "float",
-          "readWrite": "R",
+          "readWrite": "RW",
           "reportMode": "change",
           "ext": {
             "ioa": 2,
-            "typeId": 13
+            "typeId": 13,
+            "commandType": 50,
+            "commandIoa": 2
           }
         }
       ],
@@ -54,8 +56,10 @@
           "connectionKey": "station_1",
           "properties": {
             "commonAddress": "1",
-            "ioaOffset": "1000",
-            "commandIoaOffset": "10000"
+            "commandIoaOffset": "10000",
+            "signalIoaOffset": "1000",
+            "telemetryIoaOffset": "4000",
+            "setpointIoaOffset": "30000"
           }
         },
         {
@@ -64,8 +68,10 @@
           "connectionKey": "station_1",
           "properties": {
             "commonAddress": "1",
-            "ioaOffset": "2000",
-            "commandIoaOffset": "20000"
+            "commandIoaOffset": "20000",
+            "signalIoaOffset": "2000",
+            "telemetryIoaOffset": "5000",
+            "setpointIoaOffset": "40000"
           }
         },
         {
@@ -74,7 +80,10 @@
           "connectionKey": "station_1",
           "properties": {
             "commonAddress": "2",
-            "ioaOffset": "0"
+            "signalIoaOffset": "0",
+            "telemetryIoaOffset": "0",
+            "setpointIoaOffset": "0",
+            "commandIoaOffset": "0"
           }
         }
       ]

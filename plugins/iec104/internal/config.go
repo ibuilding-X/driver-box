@@ -148,8 +148,10 @@ type route struct {
 // 设备 properties（字符串值）：
 //
 //	commonAddress：覆盖连接默认 CA；
-//	ioaOffset：加到模型 ext.ioa，默认 0；
-//	commandIoaOffset：加到 ext.commandIoa（未配置则取模型 ext.ioa），默认继承 ioaOffset。
+//	signalIoaOffset：遥信点的监视偏移，默认 0；
+//	telemetryIoaOffset：遥测点的监视偏移，默认 0；
+//	commandIoaOffset：遥控偏移；setpointIoaOffset：遥调偏移；均默认 0。
+//	控制基础地址取 ext.commandIoa，未配置时取原始 ext.ioa，不继承监视偏移。
 //
 // CA 始终属于设备，模型 ext 中的 commonAddress 不参与覆盖，以确保模型能跨设备复用。
 func resolvePoint(point config.Point, device config.Device, defaultCA uint16) (node, error) {
@@ -194,33 +196,31 @@ func resolvePoint(point config.Point, device config.Device, defaultCA uint16) (n
 	if err := n.Validate(); err != nil {
 		return n, err
 	}
-	offset := int64(0)
-	if v := device.Properties["ioaOffset"]; v != "" {
-		var err error
-		offset, err = parseInteger(v)
-		if err != nil {
-			return n, fmt.Errorf("invalid ioaOffset: %w", err)
-		}
+	offsets, err := parseDeviceOffsets(device.Properties)
+	if err != nil {
+		return n, err
 	}
-	commandOffset := offset
-	if v := device.Properties["commandIoaOffset"]; v != "" {
-		var err error
-		commandOffset, err = parseInteger(v)
-		if err != nil {
-			return n, fmt.Errorf("invalid commandIoaOffset: %w", err)
-		}
-	}
-	// 先限制偏移自身的范围，再相加，避免极端输入使 int64 也发生溢出。
-	if offset < -0xffffff || offset > 0xffffff || commandOffset < -0xffffff || commandOffset > 0xffffff {
-		return n, fmt.Errorf("address offset out of range")
+	// 分类只取决于模型的监视 typeId，与值的 Go 类型、readWrite、控制类型无关。
+	// 同族 CP24/CP56 变体使用同一偏移，避免总召和自发上报落入不同地址区。
+	offset := offsets.telemetry
+	switch protocol.MonitoringFamily(asdu.TypeID(n.TypeID)) {
+	case asdu.M_SP_NA_1, asdu.M_DP_NA_1, asdu.M_BO_NA_1:
+		offset = offsets.signal
 	}
 	baseCommand := n.IOA
 	if n.CommandIOA != nil {
 		baseCommand = *n.CommandIOA
 	}
 	readAddr := int64(n.IOA) + offset
+	// 单/双命令是遥控，归一化/标度/短浮点设点是遥调；按 commandType 选取控制区。
+	// 不能根据监视 typeId 推断，一个监视点可以配置独立类型的控制命令。
+	commandOffset := offsets.command
+	switch asdu.TypeID(n.CommandType) {
+	case asdu.C_SE_NA_1, asdu.C_SE_NB_1, asdu.C_SE_NC_1:
+		commandOffset = offsets.setpoint
+	}
 	writeAddr := int64(baseCommand) + commandOffset
-	if readAddr < 0 || readAddr > 0xffffff || writeAddr < 0 || writeAddr > 0xffffff {
+	if readAddr < 0 || readAddr > 0xffffff || (n.CommandType != 0 && (writeAddr < 0 || writeAddr > 0xffffff)) {
 		return n, fmt.Errorf("resolved IOA outside [0, 16777215]")
 	}
 	n.IOA = uint32(readAddr)
@@ -235,6 +235,51 @@ func resolvePoint(point config.Point, device config.Device, defaultCA uint16) (n
 		return n, fmt.Errorf("writable point %s requires commandType", n.name)
 	}
 	return n, nil
+}
+
+// deviceOffsets 保存已校验的设备地址偏移，四类分别从各自的模型基础地址计算。
+// 不设置时为 0；四者互不继承，也不相加。全量解析可尽早发现尚未使用的错误配置。
+type deviceOffsets struct {
+	// signal 用于单点、双点遥信及表示状态集合的 32 位位串（含带时标变体）。
+	signal int64
+	// telemetry 用于归一化、标度、短浮点测量值；数值型步位置和累计量也使用此区。
+	// 这是本插件的地址分区约定，不表示 IEC104 协议强制这些类型共享地址区。
+	telemetry int64
+	// command 仅用于单命令/双命令遥控（45/46），基于 commandIoa 或原始模型 ioa。
+	command int64
+	// setpoint 仅用于归一化/标度/短浮点遥调（48/49/50），不继承遥控或遥测偏移。
+	setpoint int64
+}
+
+func parseDeviceOffsets(properties map[string]string) (deviceOffsets, error) {
+	var offsets deviceOffsets
+	if _, exists := properties["ioaOffset"]; exists {
+		return offsets, fmt.Errorf("ioaOffset is no longer supported; use signalIoaOffset, telemetryIoaOffset, commandIoaOffset and setpointIoaOffset")
+	}
+	for _, field := range []struct {
+		name  string // properties 中的设备属性名；属性值必须是整数字符串。
+		value *int64 // 对应运行时偏移；未设置的属性保留零值。
+	}{
+		{"signalIoaOffset", &offsets.signal},
+		{"telemetryIoaOffset", &offsets.telemetry},
+		{"commandIoaOffset", &offsets.command},
+		{"setpointIoaOffset", &offsets.setpoint},
+	} {
+		raw, exists := properties[field.name]
+		if !exists {
+			continue
+		}
+		value, err := parseInteger(raw)
+		if err != nil {
+			return offsets, fmt.Errorf("invalid %s: %w", field.name, err)
+		}
+		// 相加前限制偏移自身范围，防止极端输入使 int64 溢出；最终 IOA 仍需单独校验。
+		if value < -0xffffff || value > 0xffffff {
+			return offsets, fmt.Errorf("%s must be in [-16777215, 16777215]", field.name)
+		}
+		*field.value = value
+	}
+	return offsets, nil
 }
 
 func parseInteger(s string) (int64, error) {
