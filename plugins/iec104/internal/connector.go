@@ -34,6 +34,13 @@ type pendingCommand struct {
 	result chan error
 }
 
+// telemetryBatch carries its source session so queued samples cannot revive a
+// device after that session has disconnected or been replaced.
+type telemetryBatch struct {
+	generation uint64
+	values     []plugin.DeviceData
+}
+
 // connector 管理一条 TCP 主站会话。所有地址表初始化后只读，生命周期状态由锁保护。
 type connector struct {
 	// settings 是连接参数的不可变快照。
@@ -48,6 +55,9 @@ type connector struct {
 	stations []uint16
 	// export 接入 driverbox.Export；测试可注入收集器，不启动整个应用。
 	export func([]plugin.DeviceData)
+	// exportMu orders telemetry publication and device-offline transitions.
+	exportMu    sync.Mutex
+	markOffline func(string)
 	// ctx/cancel 统一取消维护任务、上报任务、确认等待和正在入队的上报。
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -68,7 +78,7 @@ type connector struct {
 	blocked           bool
 	// telemetry 将上报与协议回调分离，避免 Export 中的控制操作堵住其自身 ACT_CON。
 	// 队列容量有限；满时施加背压，关闭时通过 ctx 解除等待。
-	telemetry chan []plugin.DeviceData
+	telemetry chan telemetryBatch
 }
 
 var _ plugin.Connector = (*connector)(nil)
@@ -84,7 +94,8 @@ func newConnector(s settings, cfg config.DeviceConfig, export func([]plugin.Devi
 			cancel()
 		}
 	}()
-	c := &connector{settings: s, nodes: make(map[string]map[string]node), routes: make(map[route]node), export: export, ctx: ctx, cancel: cancel, done: make(chan struct{}), telemetry: make(chan []plugin.DeviceData, 256), exportDone: make(chan struct{})}
+	c := &connector{settings: s, nodes: make(map[string]map[string]node), routes: make(map[route]node), export: export, ctx: ctx, cancel: cancel, done: make(chan struct{}), telemetry: make(chan telemetryBatch, 256), exportDone: make(chan struct{})}
+	c.markOffline = func(id string) { _ = driverbox.Shadow().SetOffline(id) }
 	stations := make(map[uint16]bool)
 	commands := make(map[route]node)
 	for _, model := range cfg.DeviceModels {
@@ -151,7 +162,7 @@ func newConnector(s settings, cfg config.DeviceConfig, export func([]plugin.Devi
 		c.mu.Unlock()
 		client.SendStartDt()
 	})
-	client.SetConnectionLostHandler(func(*cs104.Client) { c.failPending(errors.New("IEC104 connection lost")) })
+	client.SetConnectionLostHandler(func(*cs104.Client) { c.connectionLost() })
 	c.client = client
 	return c, nil
 }
@@ -169,9 +180,7 @@ func (c *connector) start() error {
 			case <-c.ctx.Done():
 				return
 			case data := <-c.telemetry:
-				if c.ctx.Err() == nil {
-					c.export(data)
-				}
+				c.exportBatch(data)
 			}
 		}
 	}()
@@ -229,4 +238,29 @@ type wireConnection struct {
 func (w wireConnection) Send(a *asdu.ASDU) error { a.OrigAddr = w.origin; return w.Connect.Send(a) }
 func (c *connector) wire() wireConnection {
 	return wireConnection{c.client, c.settings.params.OrigAddress}
+}
+
+// Release pending commands before waiting for an exporter: an exporter may be
+// waiting for a command confirmation from the same connection.
+func (c *connector) connectionLost() {
+	c.failPending(errors.New("IEC104 connection lost"))
+	c.exportMu.Lock()
+	defer c.exportMu.Unlock()
+	c.mu.Lock()
+	c.generation++ // Invalidate all samples queued before this disconnect.
+	c.mu.Unlock()
+	for id := range c.nodes {
+		c.markOffline(id)
+	}
+}
+
+func (c *connector) exportBatch(data telemetryBatch) {
+	c.exportMu.Lock()
+	defer c.exportMu.Unlock()
+	c.mu.Lock()
+	current := c.generation
+	c.mu.Unlock()
+	if c.ctx.Err() == nil && data.generation == current && c.client.IsConnected() {
+		c.export(data.values)
+	}
 }

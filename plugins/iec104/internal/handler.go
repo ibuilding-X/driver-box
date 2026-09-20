@@ -15,6 +15,9 @@ func (c *connector) ASDUHandler(_ asdu.Connect, a *asdu.ASDU) error {
 	if c.ctx.Err() != nil || a.Coa.IsTest {
 		return nil
 	}
+	c.mu.Lock()
+	generation := c.generation
+	c.mu.Unlock()
 	if protocol.MonitoringFamily(a.Type) == 0 {
 		return c.confirm(a)
 	}
@@ -42,7 +45,7 @@ func (c *connector) ASDUHandler(_ asdu.Connect, a *asdu.ASDU) error {
 	}
 	if len(data) > 0 {
 		select {
-		case c.telemetry <- data:
+		case c.telemetry <- telemetryBatch{generation: generation, values: data}:
 		case <-c.ctx.Done():
 		}
 	}

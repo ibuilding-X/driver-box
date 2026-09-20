@@ -101,6 +101,10 @@ func (s *testStation) run() {
 }
 
 func startTestConnector(t *testing.T, reject, silence bool) (*connector, <-chan []byte, <-chan plugin.DeviceData) {
+	return startTestConnectorWithSetup(t, reject, silence, nil)
+}
+
+func startTestConnectorWithSetup(t *testing.T, reject, silence bool, setup func(*connector)) (*connector, <-chan []byte, <-chan plugin.DeviceData) {
 	t.Helper()
 	observed := make(chan []byte, 64)
 	var peers sync.WaitGroup
@@ -126,6 +130,9 @@ func startTestConnector(t *testing.T, reject, silence bool) (*connector, <-chan 
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if setup != nil {
+		setup(c)
 	}
 	if err = c.start(); err != nil {
 		t.Fatal(err)
@@ -314,7 +321,8 @@ func TestHandlerFiltersAndRoutesSpontaneous(t *testing.T) {
 				t.Fatal(err)
 			}
 			select {
-			case data := <-c.telemetry:
+			case batch := <-c.telemetry:
+				data := batch.values
 				if tt.expected == "" || len(data) != 1 || data[0].ID != tt.expected {
 					t.Fatalf("unexpected data %+v", data)
 				}

@@ -150,7 +150,8 @@ func TestIndependentOffsetsRoutingAndEncoding(t *testing.T) {
 				t.Fatal(err)
 			}
 			select {
-			case data := <-c.telemetry:
+			case batch := <-c.telemetry:
+				data := batch.values
 				if len(data) != 1 || data[0].ID != dev || len(data[0].Values) != 1 || data[0].Values[0].PointName != point.name {
 					t.Fatalf("wrong route: %+v", data)
 				}
