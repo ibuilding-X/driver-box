@@ -149,20 +149,19 @@ func initProtocolDriver(configMap map[string]config.Config) error {
 
 // 初始化影子服务
 func initDeviceShadow(configMap map[string]config.Config) {
-	// 设置影子服务设备生命周期
-	if helper.DeviceShadow == nil {
-		helper.DeviceShadow = shadow.NewDeviceShadow()
-		// 设置回调
-		helper.DeviceShadow.SetOnlineChangeCallback(func(deviceId string, online bool) {
-			if online {
-				helper.Logger.Info("device online", zap.String("deviceId", deviceId))
-			} else {
-				helper.Logger.Warn("device offline...", zap.String("deviceId", deviceId))
-			}
-			//触发设备在离线事件
-			export.TriggerEvents(event.EventCodeDeviceStatus, deviceId, online)
-		})
-	}
+	// 重建影子服务（恢复 5s 离线检测定时器与在离线回调）
+	// 注意：不复用旧实例、不置空，避免 reload 期间其他协程调用 helper.DeviceShadow 触发 nil panic
+	helper.DeviceShadow = shadow.NewDeviceShadow()
+	// 设置回调
+	helper.DeviceShadow.SetOnlineChangeCallback(func(deviceId string, online bool) {
+		if online {
+			helper.Logger.Info("device online", zap.String("deviceId", deviceId))
+		} else {
+			helper.Logger.Warn("device offline...", zap.String("deviceId", deviceId))
+		}
+		//触发设备在离线事件
+		export.TriggerEvents(event.EventCodeDeviceStatus, deviceId, online)
+	})
 	// 添加设备
 	for _, c := range configMap {
 		for _, model := range c.DeviceModels {
@@ -217,10 +216,8 @@ func ReloadPlugins() error {
 
 	// 2. 停止运行中的 plugin
 	DestroyPlugins()
-	// 3. 停止影子服务设备状态监听、删除影子服务
+	// 3. 停止影子服务设备状态监听（不置空，避免 reload 期间其他协程调用 helper.DeviceShadow 触发 nil panic）
 	helper.DeviceShadow.StopStatusListener()
-	// 置空影子服务，使 LoadPlugins 重建影子服务（恢复 5s 离线检测定时器与在离线回调）
-	helper.DeviceShadow = nil
 	// 4. 清除核心缓存数据
 	helper.CoreCache.Reset()
 	// 5. 加载 plugins
