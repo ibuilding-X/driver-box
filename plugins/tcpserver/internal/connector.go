@@ -2,10 +2,13 @@ package internal
 
 import (
 	"bufio"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -208,9 +211,23 @@ func (c *connector) handleConn(conn net.Conn) {
 		}
 
 		// 接收数据，调用 Lua 解码
-		if res, err := c.Decode(data.ToJSON()); err != nil {
+		res, reply, err := c.decode(data)
+		if err != nil {
 			driverbox.Log().Error("tcp_server decode error", zap.Error(err), zap.String("remoteAddr", conn.RemoteAddr().String()))
 		} else {
+			// 如果 Lua 脚本返回了需要即时响应的内容，回写到当前连接
+			if len(reply) > 0 {
+				if _, writeErr := conn.Write(reply); writeErr != nil {
+					driverbox.Log().Error("tcp_server write reply error",
+						zap.Error(writeErr),
+						zap.String("remoteAddr", conn.RemoteAddr().String()))
+				} else {
+					driverbox.Log().Debug("tcp_server reply sent successfully",
+						zap.Int("bytes", len(reply)),
+						zap.String("remoteAddr", conn.RemoteAddr().String()))
+				}
+			}
+
 			// 更新设备与连接的映射关系
 			for i := range res {
 				// 解析设备ID，支持通过 deviceKey 匹配
@@ -225,10 +242,12 @@ func (c *connector) handleConn(conn net.Conn) {
 				res[i].ID = deviceId
 				c.updateMapping(deviceId, conn)
 			}
-			// 自动发现设备
-			plugin.WrapperDiscoverEvent(res, c.config.ConnectionKey, ProtocolName)
-			// 导出数据
-			driverbox.Export(res)
+			if len(res) > 0 {
+				// 自动发现设备
+				plugin.WrapperDiscoverEvent(res, c.config.ConnectionKey, ProtocolName)
+				// 导出数据
+				driverbox.Export(res)
+			}
 		}
 	}
 }
@@ -413,7 +432,112 @@ func (c *connector) IsDeviceConnected(deviceId string) bool {
 	return ok
 }
 
-// Decode 解码数据
+// decodeResponse 扩展解码结果结构体，支持携带即时响应内容
+type decodeResponse struct {
+	Devices     []plugin.DeviceData `json:"devices"`
+	Reply       string              `json:"reply"`       // 原始文本响应
+	ReplyHex    string              `json:"replyHex"`    // 十六进制格式响应
+	ReplyBase64 string              `json:"replyBase64"` // Base64格式响应
+}
+
+// parseDecodeResult 解析 Lua decode 函数的返回结果
+// 支持两种格式：
+// 1. 传统格式：JSON 数组形式的 []plugin.DeviceData
+// 2. 扩展格式：包含 devices、reply/replyHex/replyBase64 的 JSON 对象
+func parseDecodeResult(result string) ([]plugin.DeviceData, []byte, error) {
+	trimmed := strings.TrimSpace(result)
+	if trimmed == "" || trimmed == "null" {
+		return nil, nil, nil
+	}
+
+	// 1. 传统数组格式: [{"id": "...", "values": [...]}]
+	if strings.HasPrefix(trimmed, "[") {
+		var devices []plugin.DeviceData
+		if err := json.Unmarshal([]byte(trimmed), &devices); err != nil {
+			return nil, nil, fmt.Errorf("unmarshal legacy devices error: %w", err)
+		}
+		return devices, nil, nil
+	}
+
+	// 2. 扩展对象格式: {"devices": [...], "reply": "...", "replyHex": "...", "replyBase64": "..."}
+	if strings.HasPrefix(trimmed, "{") {
+		var resp decodeResponse
+		if err := json.Unmarshal([]byte(trimmed), &resp); err != nil {
+			// 兼容可能单设备返回的情况: {"id": "...", "values": [...]}
+			var single plugin.DeviceData
+			if singleErr := json.Unmarshal([]byte(trimmed), &single); singleErr == nil && (single.ID != "" || len(single.Values) > 0) {
+				return []plugin.DeviceData{single}, nil, nil
+			}
+			return nil, nil, fmt.Errorf("unmarshal decode response error: %w", err)
+		}
+
+		var reply []byte
+		if resp.ReplyHex != "" {
+			clean := strings.ReplaceAll(resp.ReplyHex, " ", "")
+			clean = strings.ReplaceAll(clean, "\t", "")
+			clean = strings.ReplaceAll(clean, "\r", "")
+			clean = strings.ReplaceAll(clean, "\n", "")
+			clean = strings.ReplaceAll(clean, "0x", "")
+			clean = strings.ReplaceAll(clean, "0X", "")
+			var err error
+			reply, err = hex.DecodeString(clean)
+			if err != nil {
+				return nil, nil, fmt.Errorf("invalid replyHex: %w", err)
+			}
+		} else if resp.ReplyBase64 != "" {
+			var err error
+			reply, err = base64.StdEncoding.DecodeString(resp.ReplyBase64)
+			if err != nil {
+				return nil, nil, fmt.Errorf("invalid replyBase64: %w", err)
+			}
+		} else if resp.Reply != "" {
+			reply = []byte(resp.Reply)
+		}
+
+		if resp.Devices == nil {
+			// 如果未配置 devices 且没有响应内容，尝试是否为单个 DeviceData
+			if len(reply) == 0 {
+				var single plugin.DeviceData
+				if singleErr := json.Unmarshal([]byte(trimmed), &single); singleErr == nil && (single.ID != "" || len(single.Values) > 0) {
+					return []plugin.DeviceData{single}, nil, nil
+				}
+			}
+			return []plugin.DeviceData{}, reply, nil
+		}
+
+		return resp.Devices, reply, nil
+	}
+
+	return nil, nil, fmt.Errorf("unsupported decode result format: %s", trimmed)
+}
+
+// decode 调用 Lua 解码并解析点位数据与即时响应内容
+func (c *connector) decode(raw interface{}) (res []plugin.DeviceData, reply []byte, err error) {
+	var param string
+	switch v := raw.(type) {
+	case string:
+		param = v
+	case protoData:
+		param = v.ToJSON()
+	case *protoData:
+		param = v.ToJSON()
+	default:
+		b, err := json.Marshal(v)
+		if err != nil {
+			return nil, nil, err
+		}
+		param = string(b)
+	}
+
+	result, err := library.Protocol().Execute(c.config.ProtocolKey, "decode", param)
+	if err != nil {
+		return nil, nil, err
+	}
+	return parseDecodeResult(result)
+}
+
+// Decode 解码数据，返回解析到的设备数据（兼容旧接口）
 func (c *connector) Decode(raw interface{}) (res []plugin.DeviceData, err error) {
-	return library.Protocol().Decode(c.config.ProtocolKey, raw)
+	res, _, err = c.decode(raw)
+	return res, err
 }

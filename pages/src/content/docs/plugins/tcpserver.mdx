@@ -99,7 +99,11 @@ graph TD
 }
 ```
 
-**Lua decode 函数输出：**
+```
+
+**Lua decode 函数输出（支持两种格式）：**
+
+1. **传统格式（仅解析并导出设备数据）：**
 
 ```json
 [
@@ -113,6 +117,57 @@ graph TD
   }
 ]
 ```
+
+2. **扩展格式（支持同时或单独即时响应内容到 TCP 客户端）：**
+
+```json
+{
+  "devices": [
+    {
+      "id": "device001",
+      "values": [
+        {"name": "temperature", "value": 25.5}
+      ]
+    }
+  ],
+  // 支持以下三种响应字段之一（按 replyHex > replyBase64 > reply 优先级）：
+  "reply": "ACK\n",                  // 文本/原始字节
+  "replyHex": "AA F5 00 01 00",      // 十六进制报文（自动忽略空格与 0x 前缀）
+  "replyBase64": "qvUA"              // Base64 编码二进制
+}
+```
+
+> **提示**：如果仅需要响应（例如心跳/握手 ACK），可省略 `devices` 字段，仅返回 `{"replyHex": "..."}`。
+
+### 即时响应场景（Lua 直接应答）
+
+在收到 TCP 数据包后，若需要立即给客户端应答（如心跳 ACK、协议握手、控制应答），只需在 Lua `decode` 函数中返回带有 `reply` 或 `replyHex` 的对象，服务端收到后会在当前连接上立即写回：
+
+```lua
+function decode(raw)
+    local data = json.decode(raw)
+    local raw_data = data["raw"]
+
+    -- 心跳包直接响应
+    if string.byte(raw_data, 1) == 0xAA and string.byte(raw_data, 2) == 0x01 then
+        return json.encode({
+            replyHex = "AA 02 00 00" -- 即时应答客户端心跳
+        })
+    end
+
+    -- 正常上报且需应答 ACK
+    return json.encode({
+        devices = {
+            {
+                id = "device001",
+                values = { {name = "temp", value = 25.5} }
+            }
+        },
+        reply = "OK\n"
+    })
+end
+```
+
 
 ### 下行数据（服务器 → 设备）
 

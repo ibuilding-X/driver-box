@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -682,3 +683,206 @@ func TestConnectorConfig(t *testing.T) {
 		t.Fatalf("ReadTimeout = %d, want %d", config.ReadTimeout, 60)
 	}
 }
+
+// TestParseDecodeResult_LegacyArray 测试传统 JSON 数组格式
+func TestParseDecodeResult_LegacyArray(t *testing.T) {
+	jsonStr := `[
+		{
+			"id": "device001",
+			"values": [
+				{"name": "temperature", "value": 25.5},
+				{"name": "humidity", "value": 60}
+			]
+		}
+	]`
+
+	devices, reply, err := parseDecodeResult(jsonStr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(devices) != 1 {
+		t.Fatalf("expected 1 device, got %d", len(devices))
+	}
+	if devices[0].ID != "device001" {
+		t.Fatalf("expected ID device001, got %s", devices[0].ID)
+	}
+	if len(devices[0].Values) != 2 {
+		t.Fatalf("expected 2 values, got %d", len(devices[0].Values))
+	}
+	if reply != nil {
+		t.Fatalf("expected nil reply, got %v", reply)
+	}
+}
+
+// TestParseDecodeResult_ExtendedObject_TextReply 测试扩展对象带文本响应
+func TestParseDecodeResult_ExtendedObject_TextReply(t *testing.T) {
+	jsonStr := `{
+		"devices": [
+			{
+				"id": "device001",
+				"values": [{"name": "status", "value": "online"}]
+			}
+		],
+		"reply": "ACK\n"
+	}`
+
+	devices, reply, err := parseDecodeResult(jsonStr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(devices) != 1 || devices[0].ID != "device001" {
+		t.Fatalf("devices = %v, want 1 device with ID device001", devices)
+	}
+	expectedReply := []byte("ACK\n")
+	if !bytes.Equal(reply, expectedReply) {
+		t.Fatalf("reply = %q, want %q", reply, expectedReply)
+	}
+}
+
+// TestParseDecodeResult_ExtendedObject_HexReply 测试扩展对象带十六进制响应
+func TestParseDecodeResult_ExtendedObject_HexReply(t *testing.T) {
+	tests := []struct {
+		name     string
+		hexStr   string
+		expected []byte
+	}{
+		{
+			name:     "plain hex",
+			hexStr:   "AAF5000100",
+			expected: []byte{0xAA, 0xF5, 0x00, 0x01, 0x00},
+		},
+		{
+			name:     "hex with spaces and prefix",
+			hexStr:   "0xAA 0xF5 0x00 0x01 0x00",
+			expected: []byte{0xAA, 0xF5, 0x00, 0x01, 0x00},
+		},
+		{
+			name:     "lowercase hex with whitespace",
+			hexStr:   " aa  f5 00 01 00 \n",
+			expected: []byte{0xAA, 0xF5, 0x00, 0x01, 0x00},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			jsonStr := fmt.Sprintf(`{"replyHex": %q}`, tt.hexStr)
+			devices, reply, err := parseDecodeResult(jsonStr)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(devices) != 0 {
+				t.Fatalf("expected 0 devices, got %d", len(devices))
+			}
+			if !bytes.Equal(reply, tt.expected) {
+				t.Fatalf("reply = %X, want %X", reply, tt.expected)
+			}
+		})
+	}
+}
+
+// TestParseDecodeResult_ExtendedObject_Base64Reply 测试扩展对象带 Base64 响应
+func TestParseDecodeResult_ExtendedObject_Base64Reply(t *testing.T) {
+	jsonStr := `{
+		"devices": [
+			{"id": "device001"}
+		],
+		"replyBase64": "qvUA"
+	}`
+
+	devices, reply, err := parseDecodeResult(jsonStr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(devices) != 1 {
+		t.Fatalf("expected 1 device, got %d", len(devices))
+	}
+	expectedReply := []byte{0xAA, 0xF5, 0x00}
+	if !bytes.Equal(reply, expectedReply) {
+		t.Fatalf("reply = %X, want %X", reply, expectedReply)
+	}
+}
+
+// TestParseDecodeResult_HeartbeatOnly 测试仅响应无点位数据
+func TestParseDecodeResult_HeartbeatOnly(t *testing.T) {
+	jsonStr := `{"reply": "PONG"}`
+
+	devices, reply, err := parseDecodeResult(jsonStr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(devices) != 0 {
+		t.Fatalf("expected 0 devices, got %d", len(devices))
+	}
+	if string(reply) != "PONG" {
+		t.Fatalf("reply = %q, want PONG", string(reply))
+	}
+}
+
+// TestParseDecodeResult_EmptyAndNull 测试空字符串及 null
+func TestParseDecodeResult_EmptyAndNull(t *testing.T) {
+	for _, input := range []string{"", "   ", "null", "[]"} {
+		devices, reply, err := parseDecodeResult(input)
+		if err != nil {
+			t.Fatalf("input %q: unexpected error: %v", input, err)
+		}
+		if len(devices) != 0 {
+			t.Fatalf("input %q: expected 0 devices, got %d", input, len(devices))
+		}
+		if reply != nil {
+			t.Fatalf("input %q: expected nil reply, got %v", input, reply)
+		}
+	}
+}
+
+// TestParseDecodeResult_SingleDevice 兼容单设备对象格式
+func TestParseDecodeResult_SingleDevice(t *testing.T) {
+	jsonStr := `{
+		"id": "dev_single",
+		"values": [{"name": "power", "value": 100}]
+	}`
+
+	devices, reply, err := parseDecodeResult(jsonStr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(devices) != 1 || devices[0].ID != "dev_single" {
+		t.Fatalf("devices = %v, want 1 device with ID dev_single", devices)
+	}
+	if reply != nil {
+		t.Fatalf("expected nil reply, got %v", reply)
+	}
+}
+
+// TestParseDecodeResult_InvalidFormat 测试异常格式
+func TestParseDecodeResult_InvalidFormat(t *testing.T) {
+	// 非法 JSON 数组
+	_, _, err := parseDecodeResult("[invalid json")
+	if err == nil {
+		t.Fatal("expected error for invalid JSON array")
+	}
+
+	// 非法 JSON 对象
+	_, _, err = parseDecodeResult("{invalid json")
+	if err == nil {
+		t.Fatal("expected error for invalid JSON object")
+	}
+
+	// 非法十六进制字符串
+	_, _, err = parseDecodeResult(`{"replyHex": "NOT_A_HEX"}`)
+	if err == nil {
+		t.Fatal("expected error for invalid replyHex")
+	}
+
+	// 非法 Base64 字符串
+	_, _, err = parseDecodeResult(`{"replyBase64": "!!!not_base64!!!"}`)
+	if err == nil {
+		t.Fatal("expected error for invalid replyBase64")
+	}
+
+	// 不支持的格式（纯普通字符串）
+	_, _, err = parseDecodeResult("plain text")
+	if err == nil {
+		t.Fatal("expected error for plain text")
+	}
+}
+
