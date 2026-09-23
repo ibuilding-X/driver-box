@@ -1,0 +1,92 @@
+{
+  "protocolName": "iec104",
+  "connections": {
+    "station_1": {
+      "enable": false,
+      "address": "tcp://127.0.0.1:2404",
+      "protocolLogEnabled": false,
+      "commonAddress": 1,
+      "originatorAddress": 0,
+      "timeZone": "Asia/Shanghai",
+      "connectTimeout": "10s",
+      "reconnectInterval": "5s",
+      "interrogationInterval": "5m",
+      "clockSyncInterval": "0s",
+      "commandTimeout": "10s"
+    }
+  },
+  "deviceModels": [
+    {
+      "name": "iec104_switchgear",
+      "modelId": "iec104_switchgear",
+      "description": "复用同一相对点表的开关柜",
+      "devicePoints": [
+        {
+          "name": "switch",
+          "description": "开关状态与遥控",
+          "valueType": "int",
+          "readWrite": "RW",
+          "reportMode": "change",
+          "ext": {
+            "ioa": 1,
+            "commandType": 45,
+            "commandIoa": 1,
+            "selectBeforeExecute": true,
+            "category": "signal"
+          }
+        },
+        {
+          "name": "voltage",
+          "description": "电压测量及设定",
+          "valueType": "float",
+          "readWrite": "RW",
+          "reportMode": "change",
+          "ext": {
+            "ioa": 2,
+            "commandType": 50,
+            "commandIoa": 2,
+            "category": "telemetry"
+          }
+        }
+      ],
+      "devices": [
+        {
+          "id": "cabinet_a",
+          "description": "一号柜",
+          "connectionKey": "station_1",
+          "properties": {
+            "commonAddress": "1",
+            "commandIoaOffset": "10000",
+            "signalIoaOffset": "1000",
+            "telemetryIoaOffset": "4000",
+            "setpointIoaOffset": "30000"
+          }
+        },
+        {
+          "id": "cabinet_b",
+          "description": "二号柜",
+          "connectionKey": "station_1",
+          "properties": {
+            "commonAddress": "1",
+            "commandIoaOffset": "20000",
+            "signalIoaOffset": "2000",
+            "telemetryIoaOffset": "5000",
+            "setpointIoaOffset": "40000"
+          }
+        },
+        {
+          "id": "cabinet_c",
+          "description": "另一公共地址的开关柜",
+          "connectionKey": "station_1",
+          "properties": {
+            "commonAddress": "2",
+            "signalIoaOffset": "0",
+            "telemetryIoaOffset": "0",
+            "setpointIoaOffset": "0",
+            "commandIoaOffset": "0"
+          }
+        }
+      ]
+    }
+  ]
+}

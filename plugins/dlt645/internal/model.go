@@ -24,6 +24,7 @@ type ConnectionConfig struct {
 	Retry              int    `json:"retry"`              // 重试次数
 	AutoReconnect      bool   `json:"autoReconnect"`      //自动重连
 	ProtocolLogEnabled bool   `json:"protocolLogEnabled"` // 协议解析日志
+	ScanInterval       string `json:"scanInterval"`       // 采集任务扫描周期，默认1s
 }
 
 // Point 点位

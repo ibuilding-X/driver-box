@@ -33,6 +33,7 @@ BACnet 插件实现了 BACnet 协议，用于与楼宇自动化设备进行通�
       "localIp": "192.168.1.100",
       "localSubnet": 24,
       "localPort": 47808,
+      "scanInterval": "1s",
       "virtual": false
     }
   }
@@ -48,6 +49,7 @@ BACnet 插件实现了 BACnet 协议，用于与楼宇自动化设备进行通�
 | localIp | string | - | 本地 IP 地址 |
 | localSubnet | int | - | 子网掩码位数 |
 | localPort | int | 47808 | BACnet 端口 |
+| scanInterval | string | `1s` | 连接采集任务扫描周期。仅控制调度器检查频率，不改变点位的 `duration` 采集周期 |
 | virtual | bool | false | 是否启用虚拟模式 |
 
 ## 点位配置

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ibuilding-x/driver-box/v2/driverbox"
+	"github.com/ibuilding-x/driver-box/v2/driverbox/plugin"
 	"github.com/ibuilding-x/driver-box/v2/pkg/convutil"
 	"github.com/ibuilding-x/driver-box/v2/pkg/luautil"
 	"github.com/ibuilding-x/driver-box/v2/plugins/bacnet/internal/bacnet/btypes"
@@ -12,7 +13,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func mockRead(plugin *connector, L *lua.LState, data btypes.MultiplePropertyData) error {
+func mockRead(conn *connector, L *lua.LState, data btypes.MultiplePropertyData) error {
+	var batches []plugin.DeviceData
 	for _, object := range data.Objects {
 		for deviceId, pointName := range object.Points {
 			mockData, e := luautil.CallLuaMethod(L, "mockRead", lua.LString(deviceId), lua.LString(pointName))
@@ -30,14 +32,19 @@ func mockRead(plugin *connector, L *lua.LState, data btypes.MultiplePropertyData
 				"value":     v,
 			}
 			respJson, err := json.Marshal(resp)
-			res, err := plugin.Decode(respJson)
+			if err != nil {
+				driverbox.Log().Error("error bacnet response encoding", zap.Error(err))
+				continue
+			}
+			res, err := conn.Decode(string(respJson))
 			if err != nil {
 				driverbox.Log().Error("error bacnet callback", zap.Any("data", respJson), zap.Error(err))
 			} else {
-				driverbox.Export(res)
+				batches = append(batches, res...)
 			}
 		}
 	}
+	driverbox.Export(batches)
 	return nil
 }
 

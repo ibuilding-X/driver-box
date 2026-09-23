@@ -27,6 +27,7 @@ require (
 	github.com/themeyic/timing v1.1.2
 	github.com/tmc/langchaingo v0.1.13
 	github.com/yuin/gopher-lua v1.1.1
+	github.com/orglibs/go-iecp5 v1.7.1
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20250718183923-645b1fa84792
 	golang.org/x/text v0.27.0

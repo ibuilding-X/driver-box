@@ -1,6 +1,7 @@
 package crontab
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -14,6 +15,22 @@ type Crontab interface {
 	Clear()
 	// AddFunc s please refer to time.ParseDuration
 	AddFunc(s string, f func()) (*Future, error)
+}
+
+// ParseDurationOrDefault parses a duration string, returning fallback when value is empty.
+// It rejects invalid and non-positive durations before they can create an invalid ticker.
+func ParseDurationOrDefault(value string, fallback time.Duration) (time.Duration, error) {
+	if value == "" {
+		return fallback, nil
+	}
+	d, err := time.ParseDuration(value)
+	if err != nil {
+		return 0, fmt.Errorf("parse duration %q: %w", value, err)
+	}
+	if d <= 0 {
+		return 0, fmt.Errorf("duration %q must be greater than zero", value)
+	}
+	return d, nil
 }
 
 func Instance() Crontab {

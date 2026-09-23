@@ -34,6 +34,7 @@ DL/T 645 插件实现了 DL/T 645 电力行业标准协议，用于与电能表�
       "stopBits": 1,
       "parity": "E",
       "minInterval": 100,
+      "scanInterval": "1s",
       "timeout": 1000,
       "retry": 3,
       "autoReconnect": true,
@@ -53,6 +54,7 @@ DL/T 645 插件实现了 DL/T 645 电力行业标准协议，用于与电能表�
 | stopBits | uint | 1 | 停止位（通常为 1） |
 | parity | string | E | 校验位（N=无、E=偶、O=奇） |
 | minInterval | uint16 | 100 | 最小读取间隔（毫秒） |
+| scanInterval | string | `1s` | 连接采集任务扫描周期。仅控制调度器检查频率，不改变点位的 `duration` 采集周期 |
 | timeout | uint16 | 1000 | 请求超时时间（毫秒） |
 | retry | int | 3 | 重试次数 |
 | autoReconnect | bool | false | 是否自动重连 |

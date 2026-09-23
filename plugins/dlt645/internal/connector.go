@@ -2,6 +2,7 @@ package internal
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/ibuilding-x/driver-box/v2/driverbox"
@@ -65,8 +66,13 @@ func (c *connector) initCollectTask(conf *ConnectionConfig) (*crontab.Future, er
 		return nil, nil
 	}
 
+	scanInterval, err := crontab.ParseDurationOrDefault(conf.ScanInterval, time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("invalid scanInterval: %w", err)
+	}
+
 	//注册定时采集任务
-	return driverbox.AddFunc("1s", func() {
+	return driverbox.AddFunc(scanInterval.String(), func() {
 		//遍历所有通讯设备
 		for unitID, device := range c.devices {
 			if len(device.pointGroup) == 0 {
@@ -201,7 +207,8 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 	if err != nil {
 		return err
 	}
-	// 转化数据并上报
+	// 保留本次读取的批次边界，由 Export 按设备合并点位。
+	var batches []plugin.DeviceData
 	for _, point := range group.Points {
 		pointReadValue := plugin.PointReadValue{
 			ID:        point.DeviceId,
@@ -212,9 +219,10 @@ func (c *connector) sendReadCommand(group *pointGroup) error {
 		if err != nil {
 			driverbox.Log().Error("error dlt645 callback", zap.Any("data", pointReadValue), zap.Error(err))
 		} else {
-			driverbox.Export(res)
+			batches = append(batches, res...)
 		}
 	}
+	driverbox.Export(batches)
 	return nil
 }
 

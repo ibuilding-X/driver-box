@@ -35,6 +35,7 @@ Modbus 插件实现了 Modbus RTU 和 Modbus TCP 协议，支持从 Modbus 从�
       "timeout": 1000,
       "retry": 3,
       "minInterval": 100,
+      "scanInterval": "1s",
       "batchReadLen": 32
     }
   }
@@ -50,6 +51,7 @@ Modbus 插件实现了 Modbus RTU 和 Modbus TCP 协议，支持从 Modbus 从�
 | timeout | 1000 |
 | retry | 3 |
 | minInterval | 100 |
+| scanInterval | 1s |
 | batchReadLen | 32 |
 
 ### Modbus RTU 配置示例
@@ -80,6 +82,7 @@ Modbus 插件实现了 Modbus RTU 和 Modbus TCP 协议，支持从 Modbus 从�
 | timeout | uint16 | 1000 | 超时时间（毫秒） |
 | retry | int | 3 | 重试次数 |
 | minInterval | uint16 | 100 | 最小采集间隔（毫秒） |
+| scanInterval | string | `1s` | 连接采集任务扫描周期。仅控制调度器检查频率，不改变点位的 `duration` 采集周期 |
 | batchReadLen | uint16 | 32 | 批量读取寄存器最大数量 |
 | batchWriteLen | uint16 | 120 | 批量写入寄存器最大长度 |
 | virtual | bool | false | 是否启用虚拟模式（测试用） |

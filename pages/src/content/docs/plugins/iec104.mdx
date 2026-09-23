@@ -1,0 +1,452 @@
+---
+title: IEC104 主站插件
+description: IEC 60870-5-104 主站，多设备地址偏移、数据采集、遥控及后续从站扩展
+---
+
+# IEC104 主站插件
+
+`iec104` 插件基于 [`github.com/orglibs/go-iecp5`](https://github.com/orglibs/go-iecp5/tree/v1.7.1)，作为 IEC 60870-5-104 主站连接远端从站。一个 `connections` 配置对应一个 TCP 会话，一个会话可承载多个业务设备；同型号设备可以复用同一套相对点表，通过设备属性调整公共地址和点号偏移。
+
+## 功能特性
+
+- TCP 长连接、STARTDT 激活、I/S/U 帧确认、链路测试和自动重连。
+- 连接断开时触发设备离线事件。
+- 激活后按公共地址去重总召；支持周期总召和可选对时。
+- 接收总召、读取响应、自发上报，按设备 ID 写入现有影子与 export 流程。
+- 单点、双点、步位置、32 位位串、归一化/标度/短浮点测量值及累计量。
+- 单命令、双命令、三种设点命令；支持直接执行和先选择后执行。
+- 多设备共享连接，分别配置遥信、遥测、遥控、遥调地址偏移，初始化时校验地址冲突和越界。
+- 公共协议包保留质量、时标和累计量状态，便于后续 IEC104 从站 export 复用。
+
+当前实现是主站插件。IEC104 从站监听、总召应答、对外遥控转发尚未作为 export 提供，不能用此插件代替从站。
+
+## 启用插件与依赖
+
+`plugins.EnableAll()` 已注册 IEC104；也可单独启用：
+
+```go
+import "github.com/ibuilding-x/driver-box/v2/plugins/iec104"
+
+// 在 driverbox.Start() 前调用。
+iec104.EnablePlugin()
+```
+
+配置文件位于 `res/driver/iec104/config.json`，顶层协议字段为 `"protocolName": "iec104"`。仓库示例默认 `enable: false`，编辑远端地址、点表并启用后生效。通过 `CoreCache` API 更新运行时配置后，可调用 `driverbox.ReloadPlugin("iec104")` 重建全部 IEC104 连接；直接修改此 JSON 文件后需要重新启动进程，`ReloadPlugin` 不重新读文件。完整边界见[插件热重载](/driver-box/plugins/#插件热重载)。
+
+协议库使用正式 Go 模块依赖 `github.com/orglibs/go-iecp5 v1.7.1`，版本与校验信息由项目的 `go.mod`、`go.sum` 管理，使用 Go 1.23。应用从该模块导入 `asdu` 和 `cs104`；将 driver-box 作为其他 Go 模块的依赖时，按 Go Modules 正常解析即可。
+
+`v1.7.1` 已包含协议校验、序号回绕、发送窗口、时间标签、连接生命周期及报文观察器等优化。修复来源与库层兼容说明见依赖仓库的 [UPSTREAM.md](https://github.com/orglibs/go-iecp5/blob/v1.7.1/UPSTREAM.md)，许可证见 [LICENSE](https://github.com/orglibs/go-iecp5/blob/v1.7.1/LICENSE)。本插件实际开放的功能以本文配置及支持范围为准，库层具备的从站、TLS 或其他命令能力不会自动成为插件功能。
+
+首次构建前可在项目根目录下载固定版本并确认实际解析结果：
+
+```bash
+go mod download github.com/orglibs/go-iecp5@v1.7.1
+go list -m -json github.com/orglibs/go-iecp5
+```
+
+正常结果应包含 `Version: v1.7.1`，且无 `Replace` 字段。依赖升级时同时维护 `go.mod`、`go.sum`，并运行本文末尾的回归命令。
+
+## 连接配置
+
+```json
+{
+  "protocolName": "iec104",
+  "connections": {
+    "station_1": {
+      "enable": true,
+      "address": "tcp://192.168.1.100:2404",
+      "protocolLogEnabled": false,
+      "commonAddress": 1,
+      "originatorAddress": 0,
+      "timeZone": "Asia/Shanghai",
+      "connectTimeout": "10s",
+      "reconnectInterval": "5s",
+      "interrogationInterval": "5m",
+      "clockSyncInterval": "0s",
+      "commandTimeout": "10s"
+    }
+  }
+}
+```
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| enable | bool | false | 是否建立连接；禁用连接不提供设备读写 |
+| address | string | 必填 | 远端从站 `host[:port]` 或 `tcp://host[:port]`；默认端口 2404，IPv6 使用方括号 |
+| protocolLogEnabled | bool | false | 本连接的协议报文日志开关，与 DLT645 字段名一致；开启后以 Info 级记录收发帧；文件修改需进程重启，缓存更新后可重启插件 |
+| commonAddress | integer | 1 | 设备未指定 CA 时的默认值，范围 1–65534；0 和广播地址不接受 |
+| originatorAddress | integer | 0 | 主站源发地址 OA，范围 0–255；总召、读取、对时和控制均携带此地址 |
+| timeZone | string | UTC | 解释/编码时间标签的时区，例如 `Asia/Shanghai` |
+| connectTimeout | string | 10s | TCP 建连超时 t0，范围 1s–255s |
+| reconnectInterval | string | 5s | 拨号失败后的等待时长，必须大于零；已连接会话断开后首次重连使用协议库的 500ms–1s 随机退避 |
+| interrogationInterval | string | 5m | 按 CA 周期总召；`0s` 关闭周期任务，首次连接和重连仍总召一次 |
+| clockSyncInterval | string | 0s | 按 CA 周期对时；`0s` 禁用，非零时激活后立即对时 |
+| commandTimeout | string | 10s | 每个选择或执行阶段等待 ACT_CON 的上限，必须大于零 |
+
+所有时长均使用 Go duration 字符串，例如 `500ms`、`10s`、`5m`，不是纳秒整数。维护任务每 100ms 检查一次。链路其他参数沿用协议库默认值：t1=15s、t2=10s、t3=20s、k=12、w=8。ASDU 固定使用 COT 2 字节、CA 2 字节、IOA 3 字节。
+
+底层库默认严格校验 APCI 保留位和 ASDU 长度：畸形 STARTDT/STOPDT 不改变链路状态，尾部多余字节的 ASDU 不进入业务处理器。库层的 `AllowTrailingOctets` 兼容开关不向插件 JSON 开放。
+
+目前不开放 TLS、虚拟设备、自动发现、连接级 Lua `protocolKey` 或自定义地址宽度；不要依靠通用连接字段启用这些功能。
+
+## 连接级协议日志
+
+在需要排查的连接下设置 `"protocolLogEnabled": true`，其余连接可保持 `false`。例如：
+
+```json
+{
+  "connections": {
+    "station_1": {
+      "enable": true,
+      "address": "tcp://192.168.1.100:2404",
+      "protocolLogEnabled": true
+    }
+  }
+}
+```
+
+这是连接配置片段，需要保留现有 `protocolName`、设备和点表配置。直接修改文件后重新启动进程生效。`driverbox.ReloadPlugin("iec104")` 只使用内存核心缓存，适用于已通过缓存 API 完成配置更新的情况；当前缓存没有修改既有连接的专用 API，不能用同 Key 的 `AddConnection` 覆盖连接配置。一个连接共用一个开关，覆盖该连接下全部设备；无需逐设备设置。
+
+日志接入 driver-box 原有日志系统，以 **Info** 级输出 `IEC104 protocol frame`。正常的 Info/Debug 日志级别均可查看；全局级别为 Warn/Error 时会过滤这些记录。开关不修改全局日志级别，也不关闭普通错误诊断。
+
+| 日志字段 | 含义 |
+|----------|------|
+| protocol / connection / address | 协议名、连接 Key、远端地址，用于区分多个连接 |
+| direction | `TX`：整帧已写入连接；`RX`：完整接收帧进入协议状态机 |
+| bytes / hex | APDU 字节数及带空格的完整十六进制数据 |
+| apci | I/S/U 帧摘要；I/S 帧含序号，U 帧含 STARTDT/STOPDT/TESTFR 功能 |
+| typeId / type / cot | I 帧 ASDU 的类型编号、名称与传送原因 |
+| negative / test / oa / ca | 负确认标志、测试标志、源发地址、公共地址 |
+| count / sq / firstIoa | 信息对象数量、顺序寻址标志、首个实际 IOA（已包含设备偏移） |
+| parseError | 已组装帧的 APCI 或 ASDU 校验失败原因；此时仍保留原始 hex |
+
+STARTDT 请求的字段示例：
+
+```json
+{"protocol":"iec104","connection":"station_1","address":"tcp://192.168.1.100:2404","direction":"TX","bytes":6,"hex":"68 04 07 00 00 00","apci":"U[function: StartDtActive]"}
+```
+
+日志覆盖 I/S/U 帧，包括总召、遥测、遥控确认、链路确认和心跳。TX 不代表远端已确认执行；RX 记录在业务校验之前，出现日志不代表报文已被采纳。多对象报文的 `firstIoa` 只描述首个对象，其余地址和值查看 `hex`；同帧可能涉及多个设备，因此不强行标注单一设备 ID。截断帧及链路重同步时丢弃的字节不属于完整帧日志。
+
+## 一个连接对应多个设备
+
+### 设备属性
+
+`deviceModels[].devices[].properties` 的值均为**字符串**：
+
+| 属性 | 默认值 | 说明 |
+|------|--------|------|
+| commonAddress | 连接的 commonAddress | 本设备的公共地址 CA；同连接可存在多个 CA |
+| signalIoaOffset | `"0"` | 遥信监视地址偏移：单点、双点、32 位状态位串及其带时标变体 |
+| telemetryIoaOffset | `"0"` | 遥测监视地址偏移：归一化、标度、短浮点测量值；步位置、累计量也按此区处理 |
+| commandIoaOffset | `"0"` | 遥控地址偏移，仅用于单命令/双命令（commandType 45/46） |
+| setpointIoaOffset | `"0"` | 遥调地址偏移，仅用于归一化/标度/短浮点设点（commandType 48/49/50） |
+
+属性支持十进制及 `0x` 十六进制表示，偏移可以是负数；偏移及最终地址均会校验，最终 IOA 必须落在 0–16777215。设备 ID 在插件中必须唯一，多个设备使用相同点名不会互相覆盖。
+
+四种偏移互不继承、互不叠加。监视分类由 `ext.category`（`signal`/`telemetry`）决定，控制分类由 `ext.commandType` 决定，不能根据 `valueType` 判断。偏移计算不依赖具体报文类型；同类别的无时标、CP24、CP56 报文都按线上实际地址定位。步位置和累计量归入遥测区是本插件的地址映射约定；具体基础地址仍按厂家点表配置。
+
+不再支持设备属性 `ioaOffset`；配置中出现此字段会报错并拒绝初始化对应连接。必须明确填写各区偏移，未填写的区偏移为 0；遥调不会继承遥控或遥测偏移。
+
+### 地址计算规则
+
+```text
+实际 CA       = 设备 commonAddress，否则使用连接 commonAddress
+实际遥信 IOA  = 模型 ext.ioa + 设备 signalIoaOffset
+实际遥测 IOA  = 模型 ext.ioa + 设备 telemetryIoaOffset
+控制基础 IOA  = 模型 ext.commandIoa，否则使用模型 ext.ioa
+实际遥控 IOA  = 控制基础 IOA + 设备 commandIoaOffset（45/46）
+实际遥调 IOA  = 控制基础 IOA + 设备 setpointIoaOffset（48/49/50）
+```
+
+监视和控制都从模型原始基础地址计算，控制地址不会加上监视偏移。CA 由设备配置决定，不在模型 `ext` 中设置，避免固定地址破坏模型复用。
+
+下面与完整配置示例一致：`switch` 使用 `ioa=1`、`commandIoa=1`、`commandType=45`；`voltage` 使用 `ioa=2`、`commandIoa=2`、`commandType=50`。
+
+| 设备 | CA | signalIoaOffset | telemetryIoaOffset | commandIoaOffset | setpointIoaOffset |
+|------|----|-----------------|--------------------|------------------|-------------------|
+| cabinet_a | 1 | 1000 | 4000 | 10000 | 30000 |
+| cabinet_b | 1 | 2000 | 5000 | 20000 | 40000 |
+| cabinet_c | 2 | 0 | 0 | 0 | 0 |
+
+| 设备 | switch 遥信 IOA | voltage 遥测 IOA | switch 遥控 IOA | voltage 遥调 IOA |
+|------|----------------|-----------------|----------------|-----------------|
+| cabinet_a | 1001 | 4002 | 10001 | 30002 |
+| cabinet_b | 2001 | 5002 | 20001 | 40002 |
+| cabinet_c | 1 | 2 | 1 | 2 |
+
+同一个模型也可以将遥信、遥测的 `ext.ioa` 都从 1 编排：如 cabinet_a 的遥信实际地址为 1001，遥测实际地址为 4001，分别使用各自区的偏移。
+
+此配置只建立一个 TCP 会话，每次连接总召 CA=1、CA=2 各一次。每条上报仍分别归属 `cabinet_a`、`cabinet_b`、`cabinet_c`，不会以 `station_1` 作为设备 ID。
+
+同连接内相同 `CA + 实际监视 IOA + category` 只能绑定一个业务点；不同 category 允许复用相同 CA 和实际 IOA，相同 `CA + 控制 IOA + commandType` 也不能重复；发生冲突时整条连接拒绝初始化并记录冲突设备/点名。不同连接有独立地址空间。
+
+## 点位配置
+
+通用字段参见[设备配置指南](/driver-box/guides/device-config/#点位point)。IEC104 扩展参数放在 `ext` 中，地址和 `commandType` 使用 JSON 整数，`category` 使用字符串。
+
+```json
+{
+  "name": "switch",
+  "description": "开关状态与遥控",
+  "valueType": "int",
+  "readWrite": "RW",
+  "reportMode": "change",
+  "ext": {
+    "ioa": 1,
+    "category": "signal",
+    "commandType": 45,
+    "commandIoa": 1,
+    "selectBeforeExecute": true,
+    "qualifier": 0
+  }
+}
+```
+
+| 字段 | 必填 | 默认值 | 说明 |
+|------|------|--------|------|
+| name | 是 | — | 设备内唯一点名；同一模型的不同设备可以复用 |
+| readWrite | 是 | — | `R`、`W` 或 `RW`；`W` 不建立监视路由，`R` 不允许控制 |
+| ext.ioa | 是 | — | 模型相对监视地址，IOA=0 也必须显式写出 |
+| ext.category | 是 | — | `signal`=遥信、`telemetry`=遥测；用于监视地址偏移及接收类别校验，不指定具体编码类型；`W` 点也保留此字段作为点位定义 |
+| ext.commandType | 可写点必填 | 0 | 控制方向类型，支持 45、46、48、49、50；不从 category 自动猜测 |
+| ext.commandIoa | 否 | ext.ioa | 模型控制基础地址；显式 0 与未设置可区分 |
+| ext.selectBeforeExecute | 否 | false | true：先选择、确认成功后执行；false：直接执行 |
+| ext.qualifier | 否 | 0 | 单/双命令 QOC：0=无附加定义，1=短脉冲，2=长脉冲，3=持续输出；设点 QOS 当前仅支持 0 |
+
+模型不再配置 `ext.typeId`，出现该字段会明确报错，需替换为 `ext.category`。`valueType` 是业务值类型，不用于推断协议类别或报文编码。读取命令 `C_RD_NA_1` 只指定 CA、IOA，总召也不指定预期监视 TypeID；从站用响应报文的 TypeID 描述实际编码。
+
+只读点可以不提供任何控制字段。不要对归一化值再按原始 int16 值手工除以 32768，解码器已经完成该转换。工程量缩放仍使用项目通用点位/设备驱动机制，不在此插件中重复缩放。
+
+### 监视方向支持范围
+
+| 类型族 | 无时标 | CP24 时标 | CP56 时标 | 上报值 |
+|--------|--------|-----------|-----------|--------|
+| 单点遥信 | 1 | 2 | 30 | 0/1 |
+| 双点遥信 | 3 | 4 | 31 | 0/1/2/3，保留不确定/中间态 |
+| 步位置 | 5 | 6 | 32 | 有符号步位置值 |
+| 32 位位串 | 7 | 8 | 33 | uint32 |
+| 归一化测量值 | 9、21（无质量字） | 10 | 34 | 浮点数，范围 -1 到 32767/32768 |
+| 标度测量值 | 11 | 12 | 35 | int16 |
+| 短浮点测量值 | 13 | 14 | 36 | 转为 float64 的 float32 值 |
+| 累计量 | 15 | 16 | 37 | int32 计数值 |
+
+以上数字是从站报文的 TypeID，用于说明解码支持范围，不需要填入模型。单点、双点、32 位位串归入 `signal`；步位置、三类测量值、累计量归入 `telemetry`，含所有列出的时标变体。
+
+接收时按报文实际 TypeID 解码，再按本连接的 `CA + IOA + 报文所属 category` 查找业务点。因此同一个 `telemetry` 点可接收类型 9/11/13 的归一化、标度、浮点值及其时标变体；`signal` 点可接收单点或双点等数据。支持 SQ=0 和 SQ=1。未知点、类别不匹配、测试报文、IV 无效值、NT 非当前值、NaN/Inf 不写入影子；尚未支持的编码类型也不会被强制解释。其他质量位在公共 `Sample` 中保留，默认不会阻止值上报。
+
+接受不同编码并不表示工程量自动统一：归一化值按归一化定义解码，标度值保留整数，浮点值保留实际数值；单点保留 0/1，双点保留 0/1/2/3，不自动转成布尔值。厂家切换编码时，量程、单位、缩放及模型 `valueType` 仍需保持业务语义一致。
+
+`pkg/iec104.Sample` 保留质量、报文时间、BCR 计数器状态；现有 `plugin.PointData` 只承载名称和值，因此当前 export 收到的是有效值，尚不提供完整 SOE/质量字段。CP24 不含完整日期，使用配置时区的当前日期/小时重建；当报文分钟超过当前分钟 5 分钟时按上一小时解释，因此不能恢复任意历史时刻。CP56 支持夏令时 SU 位，非法时间标签解析为零时间。不要把当前值上报当作完整 SOE 存储接口。
+
+### 控制方向支持范围
+
+| commandType | 命令 | 输入范围 |
+|-------------|------|----------|
+| 45 | C_SC_NA_1 单命令 | 0/1（协议编码器也接受 bool） |
+| 46 | C_DC_NA_1 双命令 | 1=分/关，2=合/开，不接受 0/3 |
+| 48 | C_SE_NA_1 归一化设点 | -1 到 32767/32768 |
+| 49 | C_SE_NB_1 标度设点 | -32768 到 32767，必须为整数 |
+| 50 | C_SE_NC_1 短浮点设点 | 有限 float32 范围，拒绝 NaN/Inf |
+
+暂不实现带时标控制、步调节命令、位串控制、文件传输、参数命令、保护事件类型或累计量专用召唤；累计量报文本身可以接收。单点读取使用 `C_RD_NA_1`，要求远端实现该命令。
+
+## 完整多设备配置示例
+
+下面的配置与仓库 `res/driver/iec104/config.json` 一致；修改远端地址并将 `enable` 改为 `true` 后使用。
+
+```json
+{
+  "protocolName": "iec104",
+  "connections": {
+    "station_1": {
+      "enable": false,
+      "address": "tcp://127.0.0.1:2404",
+      "protocolLogEnabled": false,
+      "commonAddress": 1,
+      "originatorAddress": 0,
+      "timeZone": "Asia/Shanghai",
+      "connectTimeout": "10s",
+      "reconnectInterval": "5s",
+      "interrogationInterval": "5m",
+      "clockSyncInterval": "0s",
+      "commandTimeout": "10s"
+    }
+  },
+  "deviceModels": [
+    {
+      "name": "iec104_switchgear",
+      "modelId": "iec104_switchgear",
+      "description": "复用同一相对点表的开关柜",
+      "devicePoints": [
+        {
+          "name": "switch",
+          "description": "开关状态与遥控",
+          "valueType": "int",
+          "readWrite": "RW",
+          "reportMode": "change",
+          "ext": {
+            "ioa": 1,
+            "commandType": 45,
+            "commandIoa": 1,
+            "selectBeforeExecute": true,
+            "category": "signal"
+          }
+        },
+        {
+          "name": "voltage",
+          "description": "电压测量及设定",
+          "valueType": "float",
+          "readWrite": "RW",
+          "reportMode": "change",
+          "ext": {
+            "ioa": 2,
+            "commandType": 50,
+            "commandIoa": 2,
+            "category": "telemetry"
+          }
+        }
+      ],
+      "devices": [
+        {
+          "id": "cabinet_a",
+          "description": "一号柜",
+          "connectionKey": "station_1",
+          "properties": {
+            "commonAddress": "1",
+            "commandIoaOffset": "10000",
+            "signalIoaOffset": "1000",
+            "telemetryIoaOffset": "4000",
+            "setpointIoaOffset": "30000"
+          }
+        },
+        {
+          "id": "cabinet_b",
+          "description": "二号柜",
+          "connectionKey": "station_1",
+          "properties": {
+            "commonAddress": "1",
+            "commandIoaOffset": "20000",
+            "signalIoaOffset": "2000",
+            "telemetryIoaOffset": "5000",
+            "setpointIoaOffset": "40000"
+          }
+        },
+        {
+          "id": "cabinet_c",
+          "description": "另一公共地址的开关柜",
+          "connectionKey": "station_1",
+          "properties": {
+            "commonAddress": "2",
+            "signalIoaOffset": "0",
+            "telemetryIoaOffset": "0",
+            "setpointIoaOffset": "0",
+            "commandIoaOffset": "0"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+## 读写调用与确认语义
+
+```go
+import (
+    "github.com/ibuilding-x/driver-box/v2/driverbox"
+    "github.com/ibuilding-x/driver-box/v2/driverbox/plugin"
+)
+
+// 读 cabinet_a；响应异步更新影子，使用 CA=1、遥测 IOA=4002。
+err := driverbox.ReadPoint("cabinet_a", "voltage")
+if err != nil {
+    // 处理请求发送失败。
+}
+
+// 写 cabinet_b；连接器会使用 CA=1、控制 IOA=20001。
+err = driverbox.WritePoint("cabinet_b", plugin.PointData{
+    PointName: "switch",
+    Value:     1,
+})
+
+// 遥调 cabinet_b；使用 CA=1、遥调 IOA=40002，短浮点设点类型 50。
+err = driverbox.WritePoint("cabinet_b", plugin.PointData{
+    PointName: "voltage",
+    Value:     220.0,
+})
+```
+
+- `Encode` 校验整批点名、权限、类型和数值，编码过程没有网络副作用。
+- 同连接控制串行执行，先选择后执行的两个阶段之间不插入其他控制命令。
+- 每个阶段按 CA、OA、类型、完整信息体匹配响应，包括 IOA、值、限定词和选择位。只有匹配的正 ACT_CON 视为接受，负确认立即返回错误。
+- 写入成功表示从站已确认接受命令，不代表物理动作已经完成；不等待 ACT_TERM，也不把命令回显作为实际值上报。实际状态通过遥信/遥测更新。
+- 任一阶段超时，返回“执行结果未知”，关闭当前会话并重连；不会自动重放控制。用户应先核查实际状态再决定是否重发。
+- 读取发送成功只表示进入发送队列；响应异步进入 `driverbox.Export`。核心框架在写成功后会尝试读取新值，远端需支持 `C_RD_NA_1`。
+- 多点写不是事务，后续点失败不会回滚已成功的点。`Release` 不关闭共享会话，只有插件销毁/重载关闭连接和后台任务。
+
+## 后续 IEC104 从站 export 的扩展方式
+
+```text
+plugins/iec104             主站连接、总召/读取、控制确认、设备路由
+          ↓
+pkg/iec104                 Address / Point / Sample / Decode / Command
+          ↑
+exports/iec104server       后续实现：监听、站点镜像、总召应答、遥控转发
+          ↓
+github.com/orglibs/go-iecp5  asdu / cs104.Client / cs104.Server（Go 模块依赖）
+```
+
+主站插件负责从远端采集；未来从站 export 应作为独立 `driverbox/export.Export` 实现，消费影子/上报数据，对外监听并发布站点数据。建议复用下列边界：
+
+1. 使用公共 `Address`、`Point` 定义从站侧 CA/IOA 映射，以设备 ID + 点名关联源点；从站地址独立于主站上游地址，不能简单复用上游连接对象。
+2. 使用 `Sample` 保存值、质量和时标；按协议库的监视方向 ASDU 编码接口构建总召应答和自发上报。当前公共包尚未实现从站镜像缓存和监视方向发送编排。
+3. 实现协议库的 `cs104.ServerHandlerInterface`，明确处理 STARTDT、总召 ACT_CON/数据/ACT_TERM、读取、对时和命令负确认。服务端处理器与主站确认等待各自维护生命周期。
+4. 对外部选择/执行命令建立权限、值域、选择有效期和设备映射校验，然后调用 driver-box 核心写入接口。控制接受确认与真实设备执行结果分别处理，避免转发回路和乐观回显。
+5. `ExportTo` 更新镜像并触发上报；`Destroy` 停止监听和会话；初始值和设备离线转换为明确质量状态。实现完成后再注册该 export，当前 `exports.EnableAll()` 不包含 IEC104 从站。
+
+库层已提供 `cs104.Waiting(ctx, session)` 和 `Server.SendWait(ctx, a)`，后续从站总召可用带截止时间的上下文等待发送队列空间。前者用于单个会话，后者逐会话广播并避免重发已入队的数据；不要对整个 `Server.Send` 无条件重试。发送成功只表示入队，普通广播的部分失败现在会返回汇总错误。从站命令确认保留原请求的选择位、值、源发地址和时间标签。
+
+底层服务端设置 `TLSConfig` 后可使用 TLS 监听，但主站插件 JSON 仍只支持 TCP。协议库的单活动会话策略及外部持久队列还需要在实现从站 export 时单独评估；这些库层修复不代表从站 export 已完成。
+
+## 故障排查与验证
+
+| 现象 | 检查内容 |
+|------|----------|
+| 获取连接失败 | `enable` 是否开启；设备的 connectionKey 是否存在；初始化日志是否有地址冲突/非法字段 |
+| TCP 已连接但未采集 | 远端是否响应 STARTDT；CA 是否正确；总召是否支持；示例默认连接被禁用 |
+| 部分设备无数据 | 按 category 核对 signalIoaOffset/telemetryIoaOffset 和最终 IOA；检查 CA、报文类别、IV/NT 质量位和设备 ID |
+| 总召有数据但单点读无结果 | 远端是否实现 `C_RD_NA_1`；读取是异步更新影子，不返回同步测量值 |
+| 遥控被拒绝 | 检查 commandType、commandIoaOffset/setpointIoaOffset、QOC/QOS、选择/执行策略、OA，以及响应负确认原因 |
+| 遥控超时 | 结果未知，应核查设备状态；确认从站返回 ACT_CON 并回显同一 IOA、值和选择位 |
+| 时间偏差 | 检查 timeZone 和对时配置；无时标值没有设备原始时间，CP24 也不包含完整日期 |
+
+以下命令均在 driver-box 项目根目录执行，使用项目解析到的正式依赖。`-mod=readonly` 用于检查已提交的依赖信息是否完整，`-count=1` 确保本次实际执行测试。
+
+```bash
+# 公共编解码、设备偏移、主站收发、控制确认、协议日志及相关框架测试
+go test -mod=readonly -race -count=1 -timeout 60s ./pkg/iec104 ./plugins/iec104/... ./driverbox/... ./plugins
+
+# 直接测试当前依赖版本的协议库，无需本地源码目录
+go test -mod=readonly -race -count=1 -timeout 60s github.com/orglibs/go-iecp5/asdu github.com/orglibs/go-iecp5/cs101 github.com/orglibs/go-iecp5/cs104
+
+# 构建主程序
+go build -mod=readonly -o /tmp/driver-box-iec104 .
+```
+
+若出现 `missing go.sum entry`，在可联网环境重新执行前述 `go mod download`，检查并提交新增校验记录后重试。离线环境需提前准备完整模块缓存；使用临时本地替换进行的源码兼容性测试，不能替代正式依赖下载与校验验证。
+
+主站集成测试使用 `net.Pipe` 双向字节流与独立报文对端，覆盖真实客户端的 STARTDT、总召、控制确认、超时和重连，不要求测试环境能够打开 TCP 端口。地址映射测试覆盖四类偏移独立计算、实际编码自动识别、同类别不同类型及其时标变体、跨类别拒绝、读写报文地址、冲突和越界拒绝。连接级协议日志测试覆盖开关隔离、收发摘要及开启日志后的多设备上报和选择/执行确认；上述协议库测试验证 TCP 分段合帧及观察器快照隔离，还覆盖畸形帧拒绝、序号回绕、k 窗口、发送快照、时间合法性与夏令时、广播部分失败和等待取消，以及从站选择命令原样确认。上线前仍需与目标厂家的真实从站核对点表、控制策略、时间和质量语义。
+
+## 相关源码
+
+- 插件入口：`plugins/iec104/plugin.go`
+- 连接与生命周期：`plugins/iec104/internal/plugin.go`、`connector.go`
+- 配置、设备偏移与冲突检查：`plugins/iec104/internal/config.go`
+- 读写与确认：`plugins/iec104/internal/operation.go`、`handler.go`
+- 连接级协议日志：`plugins/iec104/internal/protocol_log.go`
+- 公共地址与编解码：`pkg/iec104/`
+- 完整配置示例：`res/driver/iec104/config.json`
+- 协议库源码：[github.com/orglibs/go-iecp5 v1.7.1](https://github.com/orglibs/go-iecp5/tree/v1.7.1)
+- 协议库修复来源与兼容说明：[UPSTREAM.md](https://github.com/orglibs/go-iecp5/blob/v1.7.1/UPSTREAM.md)
+- 依赖版本与校验信息：项目根目录 `go.mod`、`go.sum`

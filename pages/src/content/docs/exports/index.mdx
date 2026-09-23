@@ -510,3 +510,8 @@ if p.ReportMode() == config.ReportMode_Change && shadowValue == point.Value {
 | discover | 设备发现 | ✅ 稳定 | 自动发现设备 | `exports/discover/` |
 | mcp | AI集成 | ✅ 稳定 | MCP模型上下文协议 | `exports/mcp/` |
 
+
+
+### IEC104 从站扩展规划
+
+IEC104 当前提供[主站通信插件](/driver-box/plugins/iec104/)，尚未注册从站 export。后续从站应独立实现监听、总召应答和遥控转发，并复用 `pkg/iec104` 的地址、点位与样本定义；实现边界参见 [IEC104 扩展说明](/driver-box/plugins/iec104/#后续-iec104-从站-export-的扩展方式)。
